@@ -487,6 +487,9 @@ impl Engine {
         if pos.head_sha.is_none() {
             pos.head_sha = self.store.get_detail(id)?.and_then(|d| d.head_sha);
         }
+        if pos.other_line.is_none() {
+            pos.other_line = self.cached_changed_files(id).and_then(|fs| context_partner(&fs, &pos));
+        }
         Ok(self.provider(id.repo.kind, &id.repo.host).await?.add_line_comment(id, &pos, body).await?)
     }
 
@@ -500,6 +503,22 @@ impl Engine {
             (Some(d), Some(f)) => index_inline_threads(&d.threads, &f),
             _ => InlineIndex::default(),
         }
+    }
+}
+
+/// For a context line, the line number on the opposite side (GitLab anchors need both).
+fn context_partner(files: &[ChangedFile], pos: &DiffPosition) -> Option<u32> {
+    let f = files.iter().find(|f| f.new_path == pos.path || f.old_path == pos.path)?;
+    let l = f.hunks.iter().flat_map(|h| &h.lines).find(|l| match pos.side {
+        DiffSide::New => l.new_no == Some(pos.line),
+        DiffSide::Old => l.old_no == Some(pos.line),
+    })?;
+    if l.kind != LineKind::Context {
+        return None;
+    }
+    match pos.side {
+        DiffSide::New => l.old_no,
+        DiffSide::Old => l.new_no,
     }
 }
 

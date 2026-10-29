@@ -35,12 +35,30 @@ enum Cmd {
         #[arg(long)]
         cat: Option<String>,
     },
-    /// Post a top-level comment (or a reply with --thread).
+    /// Post a top-level comment, a reply with --thread, or a line comment with --file and --line.
     Comment {
         target: String,
         body: String,
-        #[arg(long)]
+        #[arg(long, conflicts_with = "file")]
         thread: Option<String>,
+        /// File path for an inline comment (needs --line).
+        #[arg(long, requires = "line")]
+        file: Option<String>,
+        #[arg(long, requires = "file")]
+        line: Option<u32>,
+        /// First line of a multi-line range.
+        #[arg(long, requires = "line")]
+        start_line: Option<u32>,
+        /// old or new (default new).
+        #[arg(long, default_value = "new")]
+        side: String,
+    },
+    /// Resolve (or with --off unresolve) an inline thread.
+    Resolve {
+        target: String,
+        thread: String,
+        #[arg(long)]
+        off: bool,
     },
     /// Edit an existing comment you wrote.
     EditComment { target: String, comment_id: String, body: String },
@@ -292,7 +310,11 @@ async fn main() -> Result<()> {
                     Some(false) => " (unresolved)",
                     None => "",
                 };
-                println!("--- thread {}{res}", t.id);
+                let at = t.position.as_ref().map(|p| {
+                    let range = p.start_line.map(|s| format!("{s}-")).unwrap_or_default();
+                    format!(" at {}:{range}{} ({:?}){}", p.path, p.line, p.side, if t.outdated { " outdated" } else { "" })
+                });
+                println!("--- thread {}{res}{}", t.id, at.unwrap_or_default());
                 for c in &t.comments {
                     let pos = c.position.as_ref().map(|p| format!(" on {}:{}", p.path, p.line.map(|l| l.to_string()).unwrap_or_default())).unwrap_or_default();
                     println!("  @{} {} ago{pos} [{}]", c.author.username, ago(c.created_at), c.id);
@@ -329,13 +351,26 @@ async fn main() -> Result<()> {
                 }
             }
         }
-        Cmd::Comment { target, body, thread } => {
+        Cmd::Comment { target, body, thread, file, line, start_line, side } => {
             let id = engine.resolve_id(&target)?;
-            let c = match thread {
-                Some(t) => engine.reply_to_thread(&id, &t, &body).await?,
-                None => engine.add_comment(&id, &body).await?,
+            let c = match (thread, file, line) {
+                (Some(t), _, _) => engine.reply_to_thread(&id, &t, &body).await?,
+                (None, Some(f), Some(l)) => {
+                    let Some(side) = DiffSide::parse(&side) else { bail!("--side must be old or new") };
+                    let mut pos = DiffPosition::new(f, side, l);
+                    pos.start_line = start_line;
+                    engine.detail(&id, true).await?;
+                    engine.changed_files(&id).await?;
+                    engine.add_line_comment(&id, &pos, &body).await?
+                }
+                _ => engine.add_comment(&id, &body).await?,
             };
             println!("posted comment {}", c.id);
+        }
+        Cmd::Resolve { target, thread, off } => {
+            let id = engine.resolve_id(&target)?;
+            engine.resolve_thread(&id, &thread, !off).await?;
+            println!("{} {thread}", if off { "unresolved" } else { "resolved" });
         }
         Cmd::EditComment { target, comment_id, body } => {
             let id = engine.resolve_id(&target)?;

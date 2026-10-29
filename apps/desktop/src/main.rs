@@ -2,9 +2,8 @@
 
 mod app;
 mod bridge;
-mod input;
 mod settings;
-mod theme;
+mod ui;
 
 use gpui::{actions, point, px, size, App, AppContext, Application, Bounds, KeyBinding, TitlebarOptions, WindowBounds, WindowOptions};
 use std::sync::Arc;
@@ -22,7 +21,7 @@ fn main() {
     let settings = settings::Settings::load();
 
     Application::new().run(move |cx: &mut App| {
-        input::bind_keys(cx);
+        ui::molecules::text_input::bind_keys(cx);
         cx.on_action(|_: &Quit, cx| cx.quit());
         cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
         cx.on_window_closed(|cx| cx.quit()).detach();

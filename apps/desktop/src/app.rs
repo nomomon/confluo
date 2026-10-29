@@ -15,9 +15,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::bridge;
-use crate::input::{InputEvent, TextInput};
+use crate::ui::molecules::text_input::{InputEvent, TextInput};
 use crate::settings::{Appearance, Settings};
-use crate::theme;
+use crate::ui::theme;
 
 #[derive(Clone, Copy, PartialEq)]
 enum DetailTab {

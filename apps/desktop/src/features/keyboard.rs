@@ -96,7 +96,7 @@ impl GitViewer {
             None if delta > 0 => 0,
             None => order.len() - 1,
         };
-        self.cursor = Some(order[next].clone());
+        self.set_cursor(order[next].clone(), cx);
         if self.detail.is_some() {
             if let Some(c) = self.cursor_item(cx) {
                 self.open_detail(c, cx);

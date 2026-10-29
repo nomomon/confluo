@@ -11,6 +11,7 @@ mod inbox;
 mod list;
 mod overlay;
 mod projects;
+mod selection;
 mod sources;
 pub mod timing;
 

@@ -3,7 +3,9 @@
 //! State transitions live in `state/`, rendering in `features/`.
 
 use chrono::{DateTime, Utc};
-use gpui::{div, img, prelude::*, Context, Entity, FocusHandle, ObjectFit, Pixels, Window};
+use gpui::{div, img, prelude::*, Context, Entity, FocusHandle, ObjectFit, Pixels, ScrollHandle, Window};
+use std::cell::Cell;
+use std::rc::Rc;
 use gv_engine::{ChangeRequest, ChangeRequestId, Engine, Involvement, Project, RepoRef};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -44,6 +46,10 @@ pub struct GitViewer {
     /// Keyboard selection in the list.
     pub(crate) cursor: Option<ChangeRequestId>,
     pub(crate) detail: Option<DetailState>,
+    pub(crate) list_scroll: ScrollHandle,
+    pub(crate) detail_scroll: ScrollHandle,
+    /// Set by j/k; the highlighted row scrolls itself into view on the next paint.
+    pub(crate) reveal_cursor: Rc<Cell<bool>>,
     pub(crate) overlay: Overlay,
     pub(crate) menu: Option<Menu>,
     pub(crate) copied: Option<Copied>,
@@ -124,6 +130,9 @@ impl GitViewer {
             collapsed: Section::ALL.into_iter().filter(|s| s.collapsed_by_default()).collect(),
             cursor: None,
             detail: None,
+            list_scroll: ScrollHandle::new(),
+            detail_scroll: ScrollHandle::new(),
+            reveal_cursor: Rc::new(Cell::new(false)),
             overlay: Overlay::None,
             menu: None,
             copied: None,
@@ -150,6 +159,7 @@ impl GitViewer {
         })
         .detach();
         this.reload_projects();
+        this.cursor = this.restored_cursor();
         this.refreshed_at = this.engine.last_refreshed(&gv_engine::RefreshTarget::InvolvingMe);
         this.reload();
         this.check_hosts(cx);

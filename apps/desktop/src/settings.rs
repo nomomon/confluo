@@ -41,11 +41,13 @@ pub struct Settings {
     pub background_dim: f32,
     /// `#rrggbb` tint drawn behind the panels.
     pub tint: String,
+    /// Key of the last highlighted PR, restored as a highlight only.
+    pub last_selected: Option<String>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Self { appearance: Appearance::Blurred, panel_opacity: 0.7, background_image: None, background_dim: 0.45, tint: "#14141c".into() }
+        Self { appearance: Appearance::Blurred, panel_opacity: 0.7, background_image: None, background_dim: 0.45, tint: "#14141c".into(), last_selected: None }
     }
 }
 

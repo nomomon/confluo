@@ -37,6 +37,7 @@ impl GitViewer {
     pub(crate) fn render_detail(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
         let col = div()
             .id("detail-scroll")
+            .track_scroll(&self.detail_scroll)
             .flex()
             .flex_col()
             .flex_1()

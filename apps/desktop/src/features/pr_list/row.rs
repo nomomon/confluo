@@ -63,7 +63,7 @@ impl GitViewer {
             .active(|s| s.bg(theme::SURFACE_ACTIVE))
             .cursor_pointer()
             .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
-                this.cursor = Some(cr.id.clone());
+                this.set_cursor(cr.id.clone(), cx);
                 window.focus(&this.focus);
                 this.open_detail(cr.clone(), cx)
             }))

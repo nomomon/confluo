@@ -43,6 +43,7 @@ impl GitViewer {
             editing: None,
             posting: false,
         });
+        self.detail_scroll.set_offset(gpui::Point::default());
         self.composer.update(cx, |i, cx| i.set_text("", cx));
         self.load_detail(cx);
     }

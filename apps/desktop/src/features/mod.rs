@@ -3,6 +3,7 @@
 //! Each module adds `render_*` methods to `GitViewer` for one area of the window.
 
 mod aliases;
+pub(crate) mod keyboard;
 mod overlay;
 mod pr_detail;
 mod pr_list;

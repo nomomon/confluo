@@ -24,6 +24,7 @@ fn main() {
 
     Application::new().run(move |cx: &mut App| {
         ui::molecules::text_input::bind_keys(cx);
+        features::keyboard::bind_keys(cx);
         cx.on_action(|_: &Quit, cx| cx.quit());
         cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
         cx.on_window_closed(|cx| cx.quit()).detach();

@@ -3,7 +3,7 @@
 //! State transitions live in `state/`, rendering in `features/`.
 
 use chrono::{DateTime, Utc};
-use gpui::{div, img, prelude::*, Context, Entity, MouseMoveEvent, MouseUpEvent, ObjectFit, Pixels, Window};
+use gpui::{div, img, prelude::*, Context, Entity, FocusHandle, MouseMoveEvent, MouseUpEvent, ObjectFit, Pixels, Window};
 use gv_engine::{ChangeRequest, ChangeRequestId, Engine, Involvement, Project, RepoRef};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -34,6 +34,8 @@ pub enum Overlay {
 }
 
 pub struct GitViewer {
+    /// Root focus target for window-level shortcuts.
+    pub(crate) focus: FocusHandle,
     pub(crate) engine: Arc<Engine>,
     pub(crate) settings: Settings,
     pub(crate) projects: Vec<Project>,
@@ -124,7 +126,10 @@ impl GitViewer {
             }
         });
 
+        let focus = cx.focus_handle();
+        window.focus(&focus);
         let mut this = Self {
+            focus,
             engine,
             settings,
             projects: vec![],
@@ -202,7 +207,8 @@ impl Render for GitViewer {
             .child(self.render_sidebar(cx))
             .child(self.render_list(cx))
             .children(self.detail.as_ref().map(|d| self.render_detail(d, cx)));
-        div()
+        let root = div().id("root");
+        self.key_handlers(root, cx)
             .relative()
             .size_full()
             .font_family(theme::UI_FONT)

@@ -7,6 +7,8 @@ mod header;
 mod overview;
 mod tabs;
 
+pub(crate) use checkout::checkout_command;
+
 use gpui::{div, prelude::*, Context, MouseButton, MouseDownEvent};
 
 use crate::app::GitViewer;

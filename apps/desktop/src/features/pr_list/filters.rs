@@ -13,7 +13,7 @@ const INVOLVEMENTS: [(&str, Involvement); 3] =
 
 impl GitViewer {
     /// Items matching the search box (title, repo, author, alias or number).
-    pub(super) fn visible_items(&self, cx: &App) -> Vec<&ChangeRequest> {
+    pub(crate) fn visible_items(&self, cx: &App) -> Vec<&ChangeRequest> {
         let q = self.search.read(cx).text().to_lowercase();
         self.items
             .iter()
@@ -35,7 +35,7 @@ impl GitViewer {
             .on_select(cx.listener(|this, i: &usize, _, cx| {
                 this.tab = INVOLVEMENTS[*i].1;
                 this.reload();
-                cx.notify();
+                cx.notify()
             }))
     }
 

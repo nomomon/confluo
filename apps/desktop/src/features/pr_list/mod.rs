@@ -32,6 +32,7 @@ impl GitViewer {
                 Button::new("refresh", "")
                     .icon("\u{21BB}")
                     .variant(ButtonVariant::Ghost)
+                    .tooltip("Refresh  \u{2318}R")
                     .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.refresh(cx))),
             )
     }

@@ -62,7 +62,11 @@ impl GitViewer {
             .hover(|s| s.bg(theme::SURFACE_HOVER))
             .active(|s| s.bg(theme::SURFACE_ACTIVE))
             .cursor_pointer()
-            .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.open_detail(cr.clone(), cx)))
+            .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
+                this.cursor = Some(cr.id.clone());
+                window.focus(&this.focus);
+                this.open_detail(cr.clone(), cx)
+            }))
             .child(
                 div()
                     .flex()

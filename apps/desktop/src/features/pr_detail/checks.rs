@@ -21,7 +21,7 @@ impl GitViewer {
             .child(div().text_size(theme::text_sm()).font_weight(theme::WEIGHT_MEDIUM).child("Checks"))
             .child(checks_summary(&d.summary))
             .child(div().flex_1())
-            .child(Icon::new(if d.checks_open { IconName::ChevronDown } else { IconName::ChevronRight }).size(theme::ICON_SM).color(theme::TEXT_SUBTLE))
+            .child(Icon::new(if d.checks_open { IconName::ChevronDown } else { IconName::ChevronRight }).size(theme::ICON_SM).color(theme::text_subtle()))
             .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
                 if let Some(d) = this.detail.as_mut() {
                     d.checks_open = !d.checks_open;
@@ -35,9 +35,9 @@ impl GitViewer {
                     .flex_col()
                     .gap(theme::SPACE_1)
                     .text_size(theme::text_xs())
-                    .child(KeyValueRow::new("Passed", div().text_color(theme::SUCCESS).child(ch.passed.to_string())))
-                    .child(KeyValueRow::new("Failed", div().text_color(theme::DANGER).child(ch.failed.to_string())))
-                    .child(KeyValueRow::new("Pending", div().text_color(theme::WARNING).child(ch.pending.to_string())))
+                    .child(KeyValueRow::new("Passed", div().text_color(theme::success()).child(ch.passed.to_string())))
+                    .child(KeyValueRow::new("Failed", div().text_color(theme::danger()).child(ch.failed.to_string())))
+                    .child(KeyValueRow::new("Pending", div().text_color(theme::warning()).child(ch.pending.to_string())))
                     .child(KeyValueRow::new("Total", div().child(ch.total.to_string()))),
             )
         })

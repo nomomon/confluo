@@ -41,11 +41,11 @@ impl RenderOnce for Banner {
             .items_center()
             .gap(theme::SPACE_2)
             .text_size(theme::text_xs())
-            .text_color(theme::WARNING)
+            .text_color(theme::warning())
             .px(theme::SPACE_2)
             .py(theme::SPACE_1)
             .rounded(theme::RADIUS_MD)
-            .bg(theme::tint_bg(theme::WARNING))
+            .bg(theme::tint_bg(theme::warning()))
             .child(div().flex_1().min_w(theme::SPACE_0).truncate().child(self.text))
             .children(action)
             .children(dismiss);

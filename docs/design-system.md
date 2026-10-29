@@ -27,35 +27,46 @@ Rules:
 ## Color
 
 `ui::theme::palette` holds raw scales; features use only semantic tokens.
+Tokens are functions (`theme::text_muted()`), resolved against the live
+palette, so the theme switches without a restart.
 
-Neutral scale `palette::zinc::Z50 .. Z950` (Tailwind zinc). Accents, used only
-where meaning exists:
+Neutral scale `palette::zinc::Z50 .. Z950` (Tailwind zinc). Accents live in
+`palette::dark` (light 400-ish shades) and `palette::light` (darker shades for
+contrast on grey), used only where meaning exists:
 
 | Accent | Meaning                     | Semantic token |
 |--------|-----------------------------|----------------|
-| green  | open, added, passed         | `SUCCESS`      |
-| purple | merged                      | `MERGED`       |
-| red    | removed, failed, closed     | `DANGER`       |
-| amber  | pending, needs you, starred | `WARNING`      |
-| blue   | links, focus                | `ACCENT`, `FOCUS_RING` |
+| green  | open, added, passed         | `success()`    |
+| purple | merged                      | `merged()`     |
+| red    | removed, failed, closed     | `danger()`     |
+| amber  | pending, needs you, starred | `warning()`    |
+| blue   | links, focus                | `accent()`, `focus_ring()` |
 
-Semantic tokens (`ui::theme::*`):
+Semantic tokens (`ui::theme::*`), dark / light:
 
-| Token            | Use                                       |
-|------------------|-------------------------------------------|
-| `BG`             | opaque background, default tint           |
-| `SURFACE`        | inputs, buttons, inline code (white 4%)   |
-| `SURFACE_HOVER`  | hover fill (white 7%)                     |
-| `SURFACE_ACTIVE` | pressed or selected fill (white 10%)      |
-| `BORDER`         | default 1px border (white 8%)             |
-| `BORDER_SUBTLE`  | card outlines and dividers (white 5%)     |
-| `TEXT`           | primary text (zinc 100)                   |
-| `TEXT_MUTED`     | secondary text, labels (zinc 400)         |
-| `TEXT_SUBTLE`    | hints, timestamps, placeholders (zinc 500)|
-| `OVERLAY`        | dialogs and menus (zinc 900, 97%)         |
-| `SCRIM`          | modal backdrop (black 45%)                |
+| Token              | Dark                  | Light                       |
+|--------------------|-----------------------|-----------------------------|
+| `bg()`             | zinc 950              | page grey ~#f3f3f5          |
+| `surface()`        | white 4%              | black 4%                    |
+| `surface_hover()`  | white 7%              | black 6%                    |
+| `surface_active()` | white 10%             | black 9%                    |
+| `border()`         | white 8%              | black 9%                    |
+| `border_subtle()`  | white 5% (dividers)   | black 6%                    |
+| `text()`           | zinc 100              | zinc 900                    |
+| `text_muted()`     | zinc 400              | zinc 600                    |
+| `text_subtle()`    | zinc 500              | zinc 500                    |
+| `overlay()`        | zinc 900, 97%         | zinc 50, 98%                |
+| `scrim()`          | black 45%             | black 25%                   |
 
-`tint_bg(color)` gives the 14% fill used behind pills, badges and notices.
+`tint_bg(color)` gives the 14% (12% light) fill used behind pills, badges and
+notices.
+
+### Theme
+
+Settings > Theme: System / Light / Dark (`settings::ThemeMode`, default
+System). System follows `window.appearance()`; the root view observes
+`observe_window_appearance` and re-renders, calling `theme::set_light(..)`
+each frame before children render.
 
 ### Translucency
 
@@ -63,9 +74,11 @@ Semantic tokens (`ui::theme::*`):
 appearance settings (`GitViewer::surfaces()` builds it):
 
 - `window_bg()`: the user tint at the appearance's base alpha
-  (opaque 1.0, blurred 0.35, transparent 0.55)
-- `panel()`: zinc 900 at panel opacity (sidebar, detail)
-- `card()`: zinc 800 at 60% of panel opacity (cards, list rows)
+  (opaque 1.0, blurred 0.35, transparent 0.55); in light mode the tint keeps
+  its hue but is lifted to the page grey
+- `panel()`: zinc 900 (light: `light::PANEL`) at panel opacity (sidebar, detail)
+- `card()`: zinc 800 (light: `light::CARD`, slightly darker than the page) at
+  60% of panel opacity (cards, list rows)
 
 ## Spacing, radius, type
 

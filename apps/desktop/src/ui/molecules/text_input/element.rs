@@ -56,7 +56,7 @@ impl Element for TextElement {
         let cursor = input.cursor_offset();
         let style = window.text_style();
         let (text, color): (SharedString, Hsla) =
-            if content.is_empty() { (input.placeholder.clone(), theme::TEXT_MUTED) } else { (content, style.color) };
+            if content.is_empty() { (input.placeholder.clone(), theme::text_muted()) } else { (content, style.color) };
         let run = TextRun { len: text.len(), font: style.font(), color, background_color: None, underline: None, strikethrough: None };
         let runs = if let Some(m) = input.marked_range.as_ref() {
             vec![
@@ -78,7 +78,7 @@ impl Element for TextElement {
         let line = window.text_system().shape_line(text, font_size, &runs, None);
         let x = line.x_for_index(if input.content.is_empty() { 0 } else { cursor });
         let (selection, cursor) = if selected.is_empty() {
-            (None, Some(fill(Bounds::new(point(bounds.left() + x, bounds.top()), size(px(1.5), bounds.bottom() - bounds.top())), theme::ACCENT)))
+            (None, Some(fill(Bounds::new(point(bounds.left() + x, bounds.top()), size(px(1.5), bounds.bottom() - bounds.top())), theme::accent())))
         } else {
             (
                 Some(fill(
@@ -86,7 +86,7 @@ impl Element for TextElement {
                         point(bounds.left() + line.x_for_index(selected.start), bounds.top()),
                         point(bounds.left() + line.x_for_index(selected.end), bounds.bottom()),
                     ),
-                    theme::ACCENT.opacity(0.3),
+                    theme::accent().opacity(0.3),
                 )),
                 None,
             )

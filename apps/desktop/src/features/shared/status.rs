@@ -8,28 +8,28 @@ use crate::ui::theme;
 
 pub fn provider_badge(kind: ProviderKind) -> Badge {
     match kind {
-        ProviderKind::GitHub => Badge::new("GH", theme::TEXT_MUTED),
-        ProviderKind::GitLab => Badge::new("GL", theme::TEXT_MUTED),
-        ProviderKind::Azure => Badge::new("AZ", theme::TEXT_MUTED),
+        ProviderKind::GitHub => Badge::new("GH", theme::text_muted()),
+        ProviderKind::GitLab => Badge::new("GL", theme::text_muted()),
+        ProviderKind::Azure => Badge::new("AZ", theme::text_muted()),
     }
 }
 
 pub fn state_pill(s: ChangeRequestState) -> Pill {
     match s {
-        ChangeRequestState::Open => Pill::new("Open", theme::SUCCESS),
-        ChangeRequestState::Draft => Pill::new("Draft", theme::TEXT_SUBTLE),
-        ChangeRequestState::Merged => Pill::new("Merged", theme::MERGED),
-        ChangeRequestState::Closed => Pill::new("Closed", theme::DANGER),
+        ChangeRequestState::Open => Pill::new("Open", theme::success()),
+        ChangeRequestState::Draft => Pill::new("Draft", theme::text_subtle()),
+        ChangeRequestState::Merged => Pill::new("Merged", theme::merged()),
+        ChangeRequestState::Closed => Pill::new("Closed", theme::danger()),
     }
 }
 
 /// Leading pull request icon: green open, grey draft, purple merged, red closed.
 pub fn state_icon(s: ChangeRequestState) -> Icon {
     let (name, color) = match s {
-        ChangeRequestState::Open => (IconName::GitPullRequest, theme::SUCCESS),
-        ChangeRequestState::Draft => (IconName::GitPullRequestDraft, theme::TEXT_SUBTLE),
-        ChangeRequestState::Merged => (IconName::GitMerge, theme::MERGED),
-        ChangeRequestState::Closed => (IconName::GitPullRequestClosed, theme::DANGER),
+        ChangeRequestState::Open => (IconName::GitPullRequest, theme::success()),
+        ChangeRequestState::Draft => (IconName::GitPullRequestDraft, theme::text_subtle()),
+        ChangeRequestState::Merged => (IconName::GitMerge, theme::merged()),
+        ChangeRequestState::Closed => (IconName::GitPullRequestClosed, theme::danger()),
     };
     Icon::new(name).size(theme::ICON_LG).color(color)
 }
@@ -44,15 +44,15 @@ pub fn review_summary(c: &ChangeRequest) -> Div {
     let n = |s: ReviewState| c.reviewers.iter().filter(|r| r.state == s).count();
     let (a, ch, p) = (n(ReviewState::Approved), n(ReviewState::ChangesRequested), n(ReviewState::Pending));
     let (text, color) = if ch > 0 {
-        (format!("{ch} changes requested"), theme::DANGER)
+        (format!("{ch} changes requested"), theme::danger())
     } else if a > 0 {
-        (format!("{a} approved"), theme::SUCCESS)
+        (format!("{a} approved"), theme::success())
     } else if p > 0 {
-        (format!("{p} pending review"), theme::WARNING)
+        (format!("{p} pending review"), theme::warning())
     } else if c.reviewers.is_empty() {
-        ("No reviewers".into(), theme::TEXT_SUBTLE)
+        ("No reviewers".into(), theme::text_subtle())
     } else {
-        ("Commented".into(), theme::TEXT_MUTED)
+        ("Commented".into(), theme::text_muted())
     };
     div().text_size(theme::text_xs()).text_color(color).child(text)
 }
@@ -61,13 +61,13 @@ pub fn review_summary(c: &ChangeRequest) -> Div {
 pub fn checks_text(c: &ChangeRequest) -> (String, Hsla) {
     let k = c.checks;
     if k.total == 0 {
-        ("No checks reported".into(), theme::TEXT_SUBTLE)
+        ("No checks reported".into(), theme::text_subtle())
     } else if k.failed > 0 {
-        (format!("{} failing", k.failed), theme::DANGER)
+        (format!("{} failing", k.failed), theme::danger())
     } else if k.pending > 0 {
-        (format!("{} pending", k.pending), theme::TEXT_MUTED)
+        (format!("{} pending", k.pending), theme::text_muted())
     } else {
-        (format!("{} passed", k.passed), theme::TEXT_MUTED)
+        (format!("{} passed", k.passed), theme::text_muted())
     }
 }
 

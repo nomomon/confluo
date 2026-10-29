@@ -25,8 +25,8 @@ impl GitViewer {
             .items_center()
             .gap(theme::SPACE_2)
             .child(div().text_size(theme::text_2xl()).font_weight(theme::WEIGHT_SEMIBOLD).child(self.project_name()))
-            .child(div().text_size(theme::text_sm()).text_color(theme::TEXT_MUTED).child(count.to_string()))
-            .child(div().text_size(theme::text_xs()).text_color(theme::TEXT_SUBTLE).child(freshness))
+            .child(div().text_size(theme::text_sm()).text_color(theme::text_muted()).child(count.to_string()))
+            .child(div().text_size(theme::text_xs()).text_color(theme::text_subtle()).child(freshness))
             .child(div().flex_1())
             .child(
                 Button::new("refresh", "")

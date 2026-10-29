@@ -41,11 +41,11 @@ impl GitViewer {
             .items_center()
             .gap(theme::SPACE_2)
             .text_size(theme::text_xs())
-            .text_color(theme::TEXT_MUTED)
+            .text_color(theme::text_muted())
             .child(div().flex().items_center().gap(theme::SPACE_1).child(Avatar::new(s.author.username.clone()).image(self.avatar(s.author.avatar_url.as_deref()))).child(s.author.username.clone()))
             .child(div().id("detail-repo").min_w(theme::SPACE_0).truncate().tooltip(tooltip(s.id.repo.path.clone())).child(self.repo_label(&s.id.repo)))
-            .child(Pill::new(number_label(s), theme::TEXT_MUTED))
-            .child(div().text_color(theme::TEXT_SUBTLE).child(loaded));
+            .child(Pill::new(number_label(s), theme::text_muted()))
+            .child(div().text_color(theme::text_subtle()).child(loaded));
         div()
             .relative()
             .flex()

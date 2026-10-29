@@ -1,10 +1,10 @@
-//! Settings dialog: appearance preset, fonts, text size, panel opacity, background image, tint and repo aliases.
+//! Settings dialog: theme, appearance preset, fonts, text size, panel opacity, background image, tint and repo aliases.
 
 use gpui::{div, prelude::*, ClickEvent, Context, PathPromptOptions};
 use std::path::Path;
 
 use crate::app::GitViewer;
-use crate::settings::{Appearance, MonoFont, UiFont, FONT_SIZES};
+use crate::settings::{Appearance, MonoFont, ThemeMode, UiFont, FONT_SIZES};
 use crate::ui::atoms::{Button, Swatch};
 use crate::ui::molecules::{Field, SegmentedTabs};
 use crate::ui::theme;
@@ -35,6 +35,12 @@ impl GitViewer {
             this.settings.background_dim = DIMS[*i];
             this.save_settings(cx);
         }));
+        let mode = ThemeMode::ALL.iter().fold(SegmentedTabs::new("theme"), |t, m| t.tab(m.label(), *m == s.theme)).on_select(cx.listener(
+            |this, i: &usize, _, cx| {
+                this.settings.theme = ThemeMode::ALL[*i];
+                this.save_settings(cx);
+            },
+        ));
         let ui_font = UiFont::ALL.iter().fold(SegmentedTabs::new("ui-font"), |t, f| t.tab(f.label(), *f == s.ui_font)).on_select(cx.listener(
             |this, i: &usize, _, cx| {
                 this.settings.ui_font = UiFont::ALL[*i];
@@ -55,7 +61,7 @@ impl GitViewer {
         ));
         let swatches = div().flex().gap(theme::SPACE_2).children(TINTS.iter().map(|t| {
             let t = *t;
-            Swatch::new(format!("tint-{t}"), theme::parse_hex(t).unwrap_or(theme::BG)).active(s.tint.eq_ignore_ascii_case(t)).on_click(cx.listener(
+            Swatch::new(format!("tint-{t}"), theme::parse_hex(t).unwrap_or(theme::bg())).active(s.tint.eq_ignore_ascii_case(t)).on_click(cx.listener(
                 move |this, _: &ClickEvent, _, cx| {
                     this.settings.tint = t.to_string();
                     this.save_settings(cx);
@@ -68,6 +74,7 @@ impl GitViewer {
             .flex_col()
             .gap(theme::SPACE_3)
             .overflow_y_scroll()
+            .child(Field::new("Theme", mode))
             .child(Field::new("Window", appearance))
             .child(Field::new("Panel opacity", opacity))
             .child(Field::new("UI font", ui_font))
@@ -85,7 +92,7 @@ impl GitViewer {
             .flex()
             .gap(theme::SPACE_2)
             .items_center()
-            .child(div().flex_1().min_w(theme::SPACE_0).truncate().text_size(theme::text_xs()).text_color(theme::TEXT_MUTED).child(name.clone().unwrap_or_else(|| "None".into())))
+            .child(div().flex_1().min_w(theme::SPACE_0).truncate().text_size(theme::text_xs()).text_color(theme::text_muted()).child(name.clone().unwrap_or_else(|| "None".into())))
             .child(Button::new("bg-browse", "Choose...").on_click(cx.listener(|_, _: &ClickEvent, _, cx| {
                 let rx = cx.prompt_for_paths(PathPromptOptions { files: true, directories: false, multiple: false, prompt: Some("Choose".into()) });
                 cx.spawn(async move |this, cx| {

@@ -38,9 +38,9 @@ impl GitViewer {
             .pb(theme::SPACE_3)
             .pt(theme::SPACE_2)
             .border_t_1()
-            .border_color(theme::BORDER)
+            .border_color(theme::border())
             .when_some(mode, |c, m| {
-                c.child(div().flex().gap(theme::SPACE_2).text_size(theme::text_xs()).text_color(theme::TEXT_MUTED).child(div().flex_1().min_w(theme::SPACE_0).truncate().child(m)).child(cancel))
+                c.child(div().flex().gap(theme::SPACE_2).text_size(theme::text_xs()).text_color(theme::text_muted()).child(div().flex_1().min_w(theme::SPACE_0).truncate().child(m)).child(cancel))
             })
             .child(
                 div()

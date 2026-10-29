@@ -48,8 +48,8 @@ impl RenderOnce for DropdownMenu {
             .flex_col()
             .rounded(theme::RADIUS_LG)
             .border_1()
-            .border_color(theme::BORDER)
-            .bg(theme::OVERLAY)
+            .border_color(theme::border())
+            .bg(theme::overlay())
             .shadow_lg()
             .children(self.children)
             .when_some(self.on_dismiss, |el, f| el.on_mouse_down_out(f));

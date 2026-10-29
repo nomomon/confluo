@@ -1,6 +1,6 @@
 //! SVG icon from the embedded Tabler set (outline, stroke 1.75), tinted with one color.
 //!
-//! `Icon::new(IconName::ChevronDown).size(theme::SPACE_3).color(theme::TEXT_MUTED)`
+//! `Icon::new(IconName::ChevronDown).size(theme::SPACE_3).color(theme::text_muted())`
 
 use gpui::{prelude::*, svg, App, Hsla, Pixels, Window};
 
@@ -89,7 +89,7 @@ pub struct Icon {
 
 impl Icon {
     pub fn new(name: IconName) -> Self {
-        Self { name, size: theme::ICON_MD, color: theme::TEXT_MUTED }
+        Self { name, size: theme::ICON_MD, color: theme::text_muted() }
     }
 
     pub fn size(mut self, size: Pixels) -> Self {

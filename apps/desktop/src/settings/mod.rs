@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 mod options;
-pub use options::{MonoFont, UiFont, FONT_SIZES};
+pub use options::{MonoFont, ThemeMode, UiFont, FONT_SIZES};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Appearance {
@@ -44,6 +44,7 @@ pub struct Settings {
     pub background_dim: f32,
     /// `#rrggbb` tint drawn behind the panels.
     pub tint: String,
+    pub theme: ThemeMode,
     pub ui_font: UiFont,
     pub mono_font: MonoFont,
     /// Body text size in px: 13, 14 or 15.
@@ -60,6 +61,7 @@ impl Default for Settings {
             background_image: None,
             background_dim: 0.45,
             tint: "#14141c".into(),
+            theme: ThemeMode::System,
             ui_font: UiFont::Inter,
             mono_font: MonoFont::JetBrainsMono,
             font_size: 13,

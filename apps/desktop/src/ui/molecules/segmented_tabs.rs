@@ -47,10 +47,10 @@ impl RenderOnce for SegmentedTabs {
             .p(theme::SPACE_0P5)
             .gap(theme::SPACE_0P5)
             .rounded(theme::RADIUS_MD)
-            .bg(theme::SURFACE)
+            .bg(theme::surface())
             .border_1()
-            .border_color(theme::BORDER)
-            .when(self.floating, |d| d.p(theme::SPACE_1).rounded(theme::RADIUS_FULL).bg(theme::OVERLAY).shadow_lg());
+            .border_color(theme::border())
+            .when(self.floating, |d| d.p(theme::SPACE_1).rounded(theme::RADIUS_FULL).bg(theme::overlay()).shadow_lg());
         let floating = self.floating;
         for (i, (label, active)) in self.items.into_iter().enumerate() {
             let on = self.on_select.clone();
@@ -63,9 +63,9 @@ impl RenderOnce for SegmentedTabs {
                     .when(floating, |d| d.px(theme::SPACE_3).py(theme::SPACE_1))
                     .text_size(theme::text_xs())
                     .cursor_pointer()
-                    .text_color(if active { theme::TEXT } else { theme::TEXT_MUTED })
-                    .when(active, |d| d.bg(theme::SURFACE_ACTIVE))
-                    .hover(|s| s.text_color(theme::TEXT))
+                    .text_color(if active { theme::text() } else { theme::text_muted() })
+                    .when(active, |d| d.bg(theme::surface_active()))
+                    .hover(|s| s.text_color(theme::text()))
                     .child(label)
                     .on_click(move |_: &ClickEvent, window, cx| {
                         if let Some(on) = &on {

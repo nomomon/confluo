@@ -41,7 +41,7 @@ fn block(ids: &Ids, b: &Block) -> AnyElement {
         Block::Code(code) => div()
             .p(theme::SPACE_2)
             .rounded(theme::RADIUS_MD)
-            .bg(theme::SURFACE)
+            .bg(theme::surface())
             .text_size(theme::text_xs())
             .font_family(theme::mono_font())
             .overflow_hidden()
@@ -59,13 +59,13 @@ fn block(ids: &Ids, b: &Block) -> AnyElement {
             .gap(theme::SPACE_1)
             .pl(theme::SPACE_3)
             .border_l_2()
-            .border_color(if alert.is_some() { theme::WARNING } else { theme::BORDER })
-            .text_color(theme::TEXT_MUTED)
-            .when_some(*alert, |d, a| d.child(div().text_size(theme::text_xs()).font_weight(theme::WEIGHT_SEMIBOLD).text_color(theme::WARNING).child(a)))
+            .border_color(if alert.is_some() { theme::warning() } else { theme::border() })
+            .text_color(theme::text_muted())
+            .when_some(*alert, |d, a| d.child(div().text_size(theme::text_xs()).font_weight(theme::WEIGHT_SEMIBOLD).text_color(theme::warning()).child(a)))
             .children(blocks.iter().map(|b| block(ids, b)))
             .into_any_element(),
         Block::Table { head, rows } => table(ids, head, rows),
-        Block::Rule => div().my(theme::SPACE_1).h(gpui::px(1.)).bg(theme::BORDER_SUBTLE).into_any_element(),
+        Block::Rule => div().my(theme::SPACE_1).h(gpui::px(1.)).bg(theme::border_subtle()).into_any_element(),
     }
 }
 
@@ -79,11 +79,11 @@ fn list_item(ids: &Ids, start: Option<u64>, i: usize, item: &Item) -> AnyElement
             .size(theme::ICON_MD)
             .rounded(theme::RADIUS_SM)
             .border_1()
-            .border_color(theme::BORDER)
-            .when(done, |d| d.bg(theme::tint_bg(theme::SUCCESS)).child(Icon::new(IconName::Check).size(theme::ICON_SM).color(theme::SUCCESS)))
+            .border_color(theme::border())
+            .when(done, |d| d.bg(theme::tint_bg(theme::success())).child(Icon::new(IconName::Check).size(theme::ICON_SM).color(theme::success())))
             .into_any_element(),
-        (None, Some(n)) => div().text_color(theme::TEXT_MUTED).child(format!("{}.", n + i as u64)).into_any_element(),
-        (None, None) => div().text_color(theme::TEXT_SUBTLE).child("\u{2022}").into_any_element(),
+        (None, Some(n)) => div().text_color(theme::text_muted()).child(format!("{}.", n + i as u64)).into_any_element(),
+        (None, None) => div().text_color(theme::text_subtle()).child("\u{2022}").into_any_element(),
     };
     div()
         .flex()
@@ -100,8 +100,8 @@ fn table(ids: &Ids, head: &[Inline], rows: &[Vec<Inline>]) -> AnyElement {
         div()
             .flex()
             .border_b_1()
-            .border_color(theme::BORDER_SUBTLE)
-            .when(is_head, |d| d.bg(theme::SURFACE).text_color(theme::TEXT_MUTED))
+            .border_color(theme::border_subtle())
+            .when(is_head, |d| d.bg(theme::surface()).text_color(theme::text_muted()))
             .children((0..cols).map(|i| {
                 let cell = div().flex_1().min_w(theme::SPACE_0).px(theme::SPACE_2).py(theme::SPACE_1P5);
                 match cells.get(i) {
@@ -115,7 +115,7 @@ fn table(ids: &Ids, head: &[Inline], rows: &[Vec<Inline>]) -> AnyElement {
         .flex_col()
         .rounded(theme::RADIUS_MD)
         .border_1()
-        .border_color(theme::BORDER_SUBTLE)
+        .border_color(theme::border_subtle())
         .overflow_hidden()
         .text_size(theme::text_xs())
         .child(row(head, true))
@@ -135,17 +135,17 @@ fn inline(ids: &Ids, text: &Inline, weight: FontWeight) -> AnyElement {
                 f.style = FontStyle::Italic;
             }
             let color = if s.link.is_some() {
-                theme::ACCENT
+                theme::accent()
             } else if s.muted {
-                theme::TEXT_SUBTLE
+                theme::text_subtle()
             } else {
-                theme::TEXT
+                theme::text()
             };
             TextRun {
                 len: r.len(),
                 font: f,
                 color,
-                background_color: s.code.then_some(theme::SURFACE_ACTIVE),
+                background_color: s.code.then_some(theme::surface_active()),
                 underline: None::<UnderlineStyle>,
                 strikethrough: s.strike.then(|| StrikethroughStyle { thickness: gpui::px(1.), color: Some(color) }),
             }

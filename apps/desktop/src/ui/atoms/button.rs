@@ -83,20 +83,20 @@ impl RenderOnce for Button {
                 .py(theme::SPACE_1)
                 .rounded(theme::RADIUS_MD)
                 .border_1()
-                .border_color(theme::BORDER)
-                .bg(theme::SURFACE)
+                .border_color(theme::border())
+                .bg(theme::surface())
                 .text_size(theme::text_xs())
-                .hover(|s| s.bg(theme::SURFACE_HOVER))
-                .active(|s| s.bg(theme::SURFACE_ACTIVE)),
+                .hover(|s| s.bg(theme::surface_hover()))
+                .active(|s| s.bg(theme::surface_active())),
             ButtonVariant::Ghost => {
-                base.px(theme::SPACE_1P5).rounded(theme::RADIUS_MD).text_color(theme::TEXT_MUTED).hover(|s| s.bg(theme::SURFACE_HOVER).text_color(theme::TEXT))
-                .active(|s| s.bg(theme::SURFACE_ACTIVE))
+                base.px(theme::SPACE_1P5).rounded(theme::RADIUS_MD).text_color(theme::text_muted()).hover(|s| s.bg(theme::surface_hover()).text_color(theme::text()))
+                .active(|s| s.bg(theme::surface_active()))
             }
-            ButtonVariant::Link => base.text_size(theme::text_xs()).text_color(theme::ACCENT).hover(|s| s.text_color(theme::TEXT)),
+            ButtonVariant::Link => base.text_size(theme::text_xs()).text_color(theme::accent()).hover(|s| s.text_color(theme::text())),
         };
         styled
             .when(self.size == Size::Md, |el| el.px(theme::SPACE_3).py(theme::SPACE_1P5).text_size(theme::text_sm()))
-            .children(self.icon.map(|n| Icon::new(n).color(if self.variant == ButtonVariant::Outline { theme::TEXT } else { theme::TEXT_MUTED })))
+            .children(self.icon.map(|n| Icon::new(n).color(if self.variant == ButtonVariant::Outline { theme::text() } else { theme::text_muted() })))
             .when(self.icon.is_some() && self.label.is_empty(), |el| el.py(theme::SPACE_1P5))
             .when(!self.label.is_empty(), |el| el.child(self.label))
             .when_some(self.tooltip, |el, t| el.tooltip(super::tooltip(t)))

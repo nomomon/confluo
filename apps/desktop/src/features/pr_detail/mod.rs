@@ -56,7 +56,7 @@ impl GitViewer {
             .h_full()
             .w(layout::RESIZE_HANDLE_W)
             .cursor_col_resize()
-            .hover(|s| s.bg(theme::BORDER))
+            .hover(|s| s.bg(theme::border()))
             .on_mouse_down(
                 MouseButton::Left,
                 cx.listener(|this, _: &MouseDownEvent, _, cx| {
@@ -72,7 +72,7 @@ impl GitViewer {
             .h_full()
             .bg(self.surfaces().panel())
             .border_l_1()
-            .border_color(theme::BORDER_SUBTLE)
+            .border_color(theme::border_subtle())
             .pt(layout::TITLEBAR_INSET)
             .px(theme::SPACE_4)
             .gap(theme::SPACE_2)

@@ -1,52 +1,155 @@
 //! Semantic color tokens. Features use these, never raw palette values.
 //!
-//! Surfaces are translucent white overlays so they sit well on the tinted,
-//! possibly blurred window background.
+//! Each token is a function over the live light/dark palette, so switching
+//! the theme applies on the next frame. Surfaces are translucent overlays
+//! (white on dark, black on light) so they sit well on the tinted, possibly
+//! blurred window background.
 
 use gpui::Hsla;
 
-use super::palette::{zinc, AMBER, BLACK, BLUE, GREEN, PURPLE, RED, WHITE};
+use super::palette::{dark, light, zinc, BLACK, WHITE};
+use super::runtime::is_light;
 
 const fn alpha(c: Hsla, a: f32) -> Hsla {
     Hsla { a, ..c }
 }
 
+/// One full set of semantic colors.
+pub(super) struct Colors {
+    bg: Hsla,
+    surface: Hsla,
+    surface_hover: Hsla,
+    surface_active: Hsla,
+    border: Hsla,
+    border_subtle: Hsla,
+    text: Hsla,
+    text_muted: Hsla,
+    text_subtle: Hsla,
+    accent: Hsla,
+    success: Hsla,
+    danger: Hsla,
+    warning: Hsla,
+    merged: Hsla,
+    overlay: Hsla,
+    scrim: Hsla,
+}
+
+const DARK: Colors = Colors {
+    bg: zinc::Z950,
+    surface: alpha(WHITE, 0.04),
+    surface_hover: alpha(WHITE, 0.07),
+    surface_active: alpha(WHITE, 0.10),
+    border: alpha(WHITE, 0.08),
+    border_subtle: alpha(WHITE, 0.05),
+    text: zinc::Z100,
+    text_muted: zinc::Z400,
+    text_subtle: zinc::Z500,
+    accent: dark::BLUE,
+    success: dark::GREEN,
+    danger: dark::RED,
+    warning: dark::AMBER,
+    merged: dark::PURPLE,
+    overlay: alpha(zinc::Z900, 0.97),
+    scrim: alpha(BLACK, 0.45),
+};
+
+const LIGHT: Colors = Colors {
+    bg: light::PAGE,
+    surface: alpha(BLACK, 0.04),
+    surface_hover: alpha(BLACK, 0.06),
+    surface_active: alpha(BLACK, 0.09),
+    border: alpha(BLACK, 0.09),
+    border_subtle: alpha(BLACK, 0.06),
+    text: zinc::Z900,
+    text_muted: zinc::Z600,
+    text_subtle: zinc::Z500,
+    accent: light::BLUE,
+    success: light::GREEN,
+    danger: light::RED,
+    warning: light::AMBER,
+    merged: light::PURPLE,
+    overlay: alpha(zinc::Z50, 0.98),
+    scrim: alpha(BLACK, 0.25),
+};
+
+fn c() -> &'static Colors {
+    if is_light() {
+        &LIGHT
+    } else {
+        &DARK
+    }
+}
+
 /// Opaque app background (also the fallback tint).
-pub const BG: Hsla = zinc::Z950;
+pub fn bg() -> Hsla {
+    c().bg
+}
 /// Resting fill for inputs, buttons and inline code.
-pub const SURFACE: Hsla = alpha(WHITE, 0.04);
+pub fn surface() -> Hsla {
+    c().surface
+}
 /// Fill on pointer hover.
-pub const SURFACE_HOVER: Hsla = alpha(WHITE, 0.07);
+pub fn surface_hover() -> Hsla {
+    c().surface_hover
+}
 /// Fill for pressed or selected items.
-pub const SURFACE_ACTIVE: Hsla = alpha(WHITE, 0.10);
+pub fn surface_active() -> Hsla {
+    c().surface_active
+}
 /// Default 1px border.
-pub const BORDER: Hsla = alpha(WHITE, 0.08);
+pub fn border() -> Hsla {
+    c().border
+}
 /// Hairline for dividers and card outlines.
-pub const BORDER_SUBTLE: Hsla = alpha(WHITE, 0.05);
+pub fn border_subtle() -> Hsla {
+    c().border_subtle
+}
 /// Primary text.
-pub const TEXT: Hsla = zinc::Z100;
+pub fn text() -> Hsla {
+    c().text
+}
 /// Secondary text: metadata, labels.
-pub const TEXT_MUTED: Hsla = zinc::Z400;
+pub fn text_muted() -> Hsla {
+    c().text_muted
+}
 /// Tertiary text: hints, timestamps, placeholders.
-pub const TEXT_SUBTLE: Hsla = zinc::Z500;
+pub fn text_subtle() -> Hsla {
+    c().text_subtle
+}
 /// Links and interactive emphasis.
-pub const ACCENT: Hsla = BLUE;
+pub fn accent() -> Hsla {
+    c().accent
+}
 /// Keyboard focus outline.
-pub const FOCUS_RING: Hsla = alpha(BLUE, 0.6);
+pub fn focus_ring() -> Hsla {
+    c().accent.opacity(0.6)
+}
 /// Open, added, passed.
-pub const SUCCESS: Hsla = GREEN;
+pub fn success() -> Hsla {
+    c().success
+}
 /// Removed, failed, closed.
-pub const DANGER: Hsla = RED;
+pub fn danger() -> Hsla {
+    c().danger
+}
 /// Pending, needs you, starred.
-pub const WARNING: Hsla = AMBER;
+pub fn warning() -> Hsla {
+    c().warning
+}
 /// Merged.
-pub const MERGED: Hsla = PURPLE;
+pub fn merged() -> Hsla {
+    c().merged
+}
 /// Floating layers (dialogs, menus): near-opaque so text stays legible.
-pub const OVERLAY: Hsla = alpha(zinc::Z900, 0.97);
+pub fn overlay() -> Hsla {
+    c().overlay
+}
 /// Dimmed backdrop behind modal dialogs.
-pub const SCRIM: Hsla = alpha(BLACK, 0.45);
+pub fn scrim() -> Hsla {
+    c().scrim
+}
 
 /// Low-alpha fill of a semantic color, for pills and banners.
 pub fn tint_bg(c: Hsla) -> Hsla {
-    c.opacity(0.14)
+    c.opacity(if is_light() { 0.12 } else { 0.14 })
 }

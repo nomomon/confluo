@@ -41,7 +41,7 @@ impl IntoElement for AreaElement {
 fn shape(input: &TextInput, width: Option<Pixels>, window: &mut Window) -> (Vec<Para>, bool) {
     let style = window.text_style();
     let placeholder = input.content.is_empty();
-    let (text, color): (SharedString, Hsla) = if placeholder { (input.placeholder.clone(), theme::TEXT_MUTED) } else { (input.content.clone(), style.color) };
+    let (text, color): (SharedString, Hsla) = if placeholder { (input.placeholder.clone(), theme::text_muted()) } else { (input.content.clone(), style.color) };
     let run = TextRun { len: text.len(), font: style.font(), color, background_color: None, underline: None, strikethrough: None };
     let font_size = style.font_size.to_pixels(window.rem_size());
     let lh = window.line_height();
@@ -98,11 +98,11 @@ impl Element for AreaElement {
         let at = |o: usize| b.origin + position(&paras, o, lh);
         if placeholder || sel.is_empty() {
             let c = if placeholder { b.origin } else { at(input.cursor_offset()) };
-            let cursor = fill(Bounds::new(c, size(px(1.5), lh)), theme::ACCENT);
+            let cursor = fill(Bounds::new(c, size(px(1.5), lh)), theme::accent());
             return AreaPrepaint { paras, quads: vec![], cursor: Some(cursor) };
         }
         let (s, e) = (at(sel.start), at(sel.end));
-        let color = theme::ACCENT.opacity(0.3);
+        let color = theme::accent().opacity(0.3);
         let quads = if s.y == e.y {
             vec![fill(Bounds::from_corners(s, point(e.x, e.y + lh)), color)]
         } else {

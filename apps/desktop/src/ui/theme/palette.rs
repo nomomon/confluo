@@ -25,11 +25,30 @@ pub mod zinc {
     pub const Z950: Hsla = c(240., 0.10, 0.039);
 }
 
-/// Accents, used only where color carries meaning. Tuned 400 shades for dark UIs.
-pub const GREEN: Hsla = c(142., 0.60, 0.56);
-pub const PURPLE: Hsla = c(270., 0.80, 0.74);
-pub const RED: Hsla = c(0., 0.85, 0.68);
-pub const AMBER: Hsla = c(43., 0.92, 0.58);
-pub const BLUE: Hsla = c(213., 0.90, 0.68);
+/// Accents for dark UIs (light 400-ish shades), used only where color carries meaning.
+pub mod dark {
+    use super::{c, Hsla};
+    pub const GREEN: Hsla = c(142., 0.60, 0.56);
+    pub const PURPLE: Hsla = c(270., 0.80, 0.74);
+    pub const RED: Hsla = c(0., 0.85, 0.68);
+    pub const AMBER: Hsla = c(43., 0.92, 0.58);
+    pub const BLUE: Hsla = c(213., 0.90, 0.68);
+}
+
+/// Light UI: soft grey page and darker accents for contrast on it.
+pub mod light {
+    use super::{c, Hsla};
+    /// Page background, about #f3f3f5.
+    pub const PAGE: Hsla = c(240., 0.11, 0.955);
+    /// Panel fill (sidebar, detail), a touch lighter than the page.
+    pub const PANEL: Hsla = c(240., 0.12, 0.975);
+    /// Card fill, slightly darker than the page (about #e9e9ec).
+    pub const CARD: Hsla = c(240., 0.08, 0.885);
+    pub const GREEN: Hsla = c(142., 0.62, 0.32);
+    pub const PURPLE: Hsla = c(270., 0.55, 0.50);
+    pub const RED: Hsla = c(0., 0.70, 0.45);
+    pub const AMBER: Hsla = c(35., 0.92, 0.38);
+    pub const BLUE: Hsla = c(213., 0.80, 0.46);
+}
 pub const WHITE: Hsla = c(0., 0., 1.);
 pub const BLACK: Hsla = c(0., 0., 0.);

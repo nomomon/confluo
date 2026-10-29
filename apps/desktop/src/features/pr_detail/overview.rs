@@ -16,7 +16,7 @@ pub(super) fn overview_card(s: &ChangeRequest, surfaces: Translucency) -> impl I
     };
     // GitLab lists carry no line counts; show +/- only once they are known.
     let lines = s.additions.zip(s.deletions).map(|(a, d)| {
-        div().flex().gap(theme::SPACE_1).child(div().text_color(theme::SUCCESS).child(format!("+{a}"))).child(div().text_color(theme::DANGER).child(format!("-{d}")))
+        div().flex().gap(theme::SPACE_1).child(div().text_color(theme::success()).child(format!("+{a}"))).child(div().text_color(theme::danger()).child(format!("-{d}")))
     });
     let branch = format!("{} -> {}", s.source_branch, s.target_branch);
     Card::new(surfaces)

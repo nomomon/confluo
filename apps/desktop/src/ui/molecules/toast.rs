@@ -20,8 +20,8 @@ impl RenderOnce for Toast {
             .py(theme::SPACE_1P5)
             .rounded(theme::RADIUS_FULL)
             .border_1()
-            .border_color(theme::BORDER)
-            .bg(theme::OVERLAY)
+            .border_color(theme::border())
+            .bg(theme::overlay())
             .shadow_lg()
             .text_size(theme::text_xs())
             .child(self.0);

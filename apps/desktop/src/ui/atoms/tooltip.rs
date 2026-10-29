@@ -13,10 +13,10 @@ impl Render for Tooltip {
             .py(theme::SPACE_1)
             .rounded(theme::RADIUS_SM)
             .border_1()
-            .border_color(theme::BORDER)
-            .bg(theme::OVERLAY)
+            .border_color(theme::border())
+            .bg(theme::overlay())
             .text_size(theme::text_xs())
-            .text_color(theme::TEXT_MUTED)
+            .text_color(theme::text_muted())
             .font_family(theme::ui_font())
             .child(self.0.clone())
     }

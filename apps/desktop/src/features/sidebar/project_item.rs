@@ -15,10 +15,10 @@ impl GitViewer {
             .id(gpui::SharedString::from(format!("project-more-{id}")))
             .px(theme::SPACE_1)
             .rounded(theme::RADIUS_SM)
-            .text_color(theme::TEXT_SUBTLE)
-            .hover(|s| s.text_color(theme::TEXT).bg(theme::SURFACE_HOVER))
+            .text_color(theme::text_subtle())
+            .hover(|s| s.text_color(theme::text()).bg(theme::surface_hover()))
             .tooltip(tooltip("More"))
-            .child(Icon::new(IconName::Ellipsis).size(theme::ICON_SM).color(theme::TEXT_SUBTLE))
+            .child(Icon::new(IconName::Ellipsis).size(theme::ICON_SM).color(theme::text_subtle()))
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 cx.stop_propagation();
                 this.toggle_project_menu(id, cx)

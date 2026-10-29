@@ -1,6 +1,7 @@
-//! Live theme state: font families and UI text step, set by the app each
+//! Live theme state: light/dark palette, font families and UI text step, set by the app each
 //! frame from the settings and read by the token functions.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 
 /// User-chosen typography applied through the theme.
@@ -39,4 +40,16 @@ pub fn ui_font() -> &'static str {
 /// Monospace family for branches, commands and SHAs.
 pub fn mono_font() -> &'static str {
     typography().mono_font
+}
+
+static LIGHT: AtomicBool = AtomicBool::new(false);
+
+/// Switch the semantic palette between light and dark.
+pub fn set_light(light: bool) {
+    LIGHT.store(light, Ordering::Relaxed);
+}
+
+/// Whether the light palette is active.
+pub fn is_light() -> bool {
+    LIGHT.load(Ordering::Relaxed)
 }

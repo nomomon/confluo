@@ -12,18 +12,18 @@ use crate::ui::theme;
 
 impl GitViewer {
     pub(super) fn render_thread(&self, t: &Thread, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
-        let mut tc = div().flex().flex_col().gap(theme::SPACE_2).p(theme::SPACE_2).rounded(theme::RADIUS_MD).border_1().border_color(theme::BORDER);
+        let mut tc = div().flex().flex_col().gap(theme::SPACE_2).p(theme::SPACE_2).rounded(theme::RADIUS_MD).border_1().border_color(theme::border());
         if let Some(p) = t.comments.first().and_then(|c| c.position.as_ref()) {
             tc = tc.child(
                 div()
                     .text_size(theme::text_xs())
                     .font_family(theme::mono_font())
-                    .text_color(theme::TEXT_MUTED)
+                    .text_color(theme::text_muted())
                     .child(format!("{}{}", p.path, p.line.map(|l| format!(":{l}")).unwrap_or_default())),
             );
         }
         if t.resolved == Some(true) {
-            tc = tc.child(div().text_size(theme::text_xs()).text_color(theme::SUCCESS).child("Resolved"));
+            tc = tc.child(div().text_size(theme::text_xs()).text_color(theme::success()).child("Resolved"));
         }
         for c in &t.comments {
             tc = tc.child(self.render_comment(c, d, cx));
@@ -55,7 +55,7 @@ impl GitViewer {
             .gap(theme::SPACE_2)
             .text_size(theme::text_xs())
             .child(div().font_weight(theme::WEIGHT_SEMIBOLD).child(c.author.username.clone()))
-            .child(div().text_color(theme::TEXT_SUBTLE).child(when))
+            .child(div().text_color(theme::text_subtle()).child(when))
             .child(div().flex_1());
         if mine && c.id != "pending" {
             head = head.child(Button::new(format!("edit-{}", c.id), "Edit").variant(ButtonVariant::Link).on_click(cx.listener(

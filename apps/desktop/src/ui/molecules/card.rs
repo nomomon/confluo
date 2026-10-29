@@ -32,7 +32,7 @@ impl RenderOnce for Card {
             .p(theme::SPACE_3)
             .rounded(theme::RADIUS_LG)
             .border_1()
-            .border_color(theme::BORDER_SUBTLE)
+            .border_color(theme::border_subtle())
             .bg(self.fill)
     }
 }

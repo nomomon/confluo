@@ -35,7 +35,7 @@ impl RenderOnce for Swatch {
             .size(theme::SPACE_5)
             .rounded(theme::RADIUS_FULL)
             .border_2()
-            .border_color(if self.active { theme::FOCUS_RING } else { theme::BORDER })
+            .border_color(if self.active { theme::focus_ring() } else { theme::border() })
             .bg(self.color)
             .cursor_pointer()
             .when_some(self.on_click, |el, f| el.on_click(f))

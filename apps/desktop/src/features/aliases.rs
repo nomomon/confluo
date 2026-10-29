@@ -13,7 +13,7 @@ impl GitViewer {
         let mut list = div().id("alias-list").flex().flex_col().max_h(layout::ALIAS_LIST_MAX_H).overflow_y_scroll().gap(theme::SPACE_0P5);
         let cands = self.alias_candidates();
         if cands.is_empty() {
-            list = list.child(div().text_size(theme::text_sm()).text_color(theme::TEXT_SUBTLE).child("No repos in view. Select a project or refresh first."));
+            list = list.child(div().text_size(theme::text_sm()).text_color(theme::text_subtle()).child("No repos in view. Select a project or refresh first."));
         }
         for r in cands {
             let label = match self.engine.repo_override(&r).ok().and_then(|o| o.alias) {

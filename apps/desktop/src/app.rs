@@ -155,6 +155,7 @@ impl GitViewer {
             alias_input,
             rename_input,
         };
+        cx.observe_window_appearance(window, |_, _, cx| cx.notify()).detach();
         cx.observe_window_activation(window, |this, window, cx| {
             if window.is_window_active() {
                 this.on_activated(cx)
@@ -181,6 +182,7 @@ impl Render for GitViewer {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.fetch_avatars(cx);
         theme::set_typography(self.settings.typography());
+        theme::set_light(self.settings.theme.is_light(window.appearance()));
         window.set_background_appearance(self.settings.appearance.to_gpui());
         let bg_image = self.settings.background_image.clone().filter(|p| Path::new(p).is_file());
         let main = div()
@@ -197,12 +199,12 @@ impl Render for GitViewer {
             .relative()
             .size_full()
             .font_family(theme::ui_font())
-            .text_color(theme::TEXT)
+            .text_color(theme::text())
             .text_size(theme::text_sm())
             .bg(self.surfaces().window_bg())
             .when_some(bg_image, |root, p| {
                 root.child(img(PathBuf::from(p)).absolute().top_0().left_0().size_full().object_fit(ObjectFit::Cover))
-                    .child(div().absolute().top_0().left_0().size_full().bg(theme::SCRIM.opacity(self.settings.background_dim / theme::SCRIM.a)))
+                    .child(div().absolute().top_0().left_0().size_full().bg(theme::scrim().opacity(self.settings.background_dim / theme::scrim().a)))
             })
             .when(self.resizing, |root| self.resize_handlers(root, cx))
             .child(main)

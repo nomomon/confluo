@@ -23,7 +23,7 @@ impl GitViewer {
             .gap(theme::SPACE_2)
             .min_w(theme::SPACE_0)
             .text_size(theme::text_xs())
-            .text_color(theme::TEXT_MUTED)
+            .text_color(theme::text_muted())
             .when(show_provider, |d| d.child(provider_badge(c.id.repo.kind)))
             .child(div().flex().items_center().gap(theme::SPACE_1).flex_shrink_0().child(Avatar::new(c.author.username.clone()).image(self.avatar(c.author.avatar_url.as_deref()))).child(c.author.username.clone()))
             .child(
@@ -34,15 +34,15 @@ impl GitViewer {
                     .tooltip(tooltip(c.id.repo.path.clone()))
                     .child(self.repo_label(&c.id.repo)),
             )
-            .child(Pill::new(number_label(c), theme::TEXT_MUTED))
+            .child(Pill::new(number_label(c), theme::text_muted()))
             .child(div().flex_shrink_0().text_color(checks_color).child(checks));
         let diff = match (c.additions, c.deletions) {
             (Some(a), Some(d)) => Some(
                 div()
                     .flex()
                     .gap(theme::SPACE_1)
-                    .child(div().text_color(theme::SUCCESS).child(format!("+{a}")))
-                    .child(div().text_color(theme::DANGER).child(format!("-{d}"))),
+                    .child(div().text_color(theme::success()).child(format!("+{a}")))
+                    .child(div().text_color(theme::danger()).child(format!("-{d}"))),
             ),
             _ => None,
         };
@@ -67,7 +67,7 @@ impl GitViewer {
             .px(theme::SPACE_1)
             .when(!starred, |d| d.opacity(0.))
             .group_hover(group.clone(), |s| s.opacity(1.))
-            .child(Icon::new(if starred { IconName::StarFilled } else { IconName::Star }).color(if starred { theme::WARNING } else { theme::TEXT_SUBTLE }))
+            .child(Icon::new(if starred { IconName::StarFilled } else { IconName::Star }).color(if starred { theme::warning() } else { theme::text_subtle() }))
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 cx.stop_propagation();
                 this.toggle_star(sid.clone(), cx)
@@ -82,9 +82,9 @@ impl GitViewer {
             .px(theme::SPACE_2P5)
             .py(theme::SPACE_2)
             .rounded(theme::RADIUS_MD)
-            .when(is_selected, |d| d.bg(theme::SURFACE_ACTIVE))
-            .hover(|s| s.bg(theme::SURFACE_HOVER))
-            .active(|s| s.bg(theme::SURFACE_ACTIVE))
+            .when(is_selected, |d| d.bg(theme::surface_active()))
+            .hover(|s| s.bg(theme::surface_hover()))
+            .active(|s| s.bg(theme::surface_active()))
             .cursor_pointer()
             .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
                 this.set_cursor(cr.id.clone(), cx);
@@ -119,7 +119,7 @@ impl GitViewer {
                     .w(layout::TIME_COL_W)
                     .flex_shrink_0()
                     .text_size(theme::text_xs())
-                    .text_color(theme::TEXT_SUBTLE)
+                    .text_color(theme::text_subtle())
                     .child(relative_time(c.updated_at))
                     .children(diff),
             )

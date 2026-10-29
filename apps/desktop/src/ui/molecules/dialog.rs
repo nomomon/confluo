@@ -52,8 +52,8 @@ impl RenderOnce for Dialog {
             .p(theme::SPACE_4)
             .rounded(theme::RADIUS_XL)
             .border_1()
-            .border_color(theme::BORDER_SUBTLE)
-            .bg(theme::OVERLAY)
+            .border_color(theme::border_subtle())
+            .bg(theme::overlay())
             .shadow_lg()
             .child(header)
             .children(self.content.map(|c| div().flex().flex_col().min_h(theme::SPACE_0).child(c)));
@@ -65,7 +65,7 @@ impl RenderOnce for Dialog {
             .flex()
             .items_center()
             .justify_center()
-            .bg(theme::SCRIM)
+            .bg(theme::scrim())
             .occlude()
             .child(motion::pop_in(panel, "dialog-panel"));
         motion::fade_in(scrim, "dialog-scrim")

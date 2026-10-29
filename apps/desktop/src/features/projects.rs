@@ -74,7 +74,7 @@ impl GitViewer {
             .flex()
             .flex_col()
             .gap(theme::SPACE_3)
-            .child(div().text_color(theme::TEXT_MUTED).child(format!("Delete \"{name}\"? Its repos and cached pull requests are removed from Confluo. Nothing changes on the server.")))
+            .child(div().text_color(theme::text_muted()).child(format!("Delete \"{name}\"? Its repos and cached pull requests are removed from Confluo. Nothing changes on the server.")))
             .child(
                 div()
                     .flex()

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/core", "crates/auth", "crates/discovery", "crates/provider-github"]
+members = ["crates/core", "crates/auth", "crates/discovery", "crates/provider-github", "crates/provider-gitlab", "crates/provider-azure"]
 
 [workspace.package]
 version = "0.1.0"
@@ -25,6 +25,7 @@ chrono = { version = "0.4", default-features = false, features = ["serde", "cloc
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "sync"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 clap = { version = "4", features = ["derive"] }
 
 [profile.dev]

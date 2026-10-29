@@ -1,0 +1,14 @@
+[package]
+name = "gv-provider-gitlab"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+gv-core.workspace = true
+gv-auth.workspace = true
+async-trait.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+reqwest.workspace = true
+tokio.workspace = true
+futures-util.workspace = true

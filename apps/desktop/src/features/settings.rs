@@ -84,6 +84,34 @@ impl GitViewer {
             .child(Field::new("Background image", self.render_bg_image_row(cx)))
             .when(s.background_image.is_some(), |d| d.child(Field::new("Image dim", dim)))
             .child(Field::new("Repo aliases", self.render_alias(cx)))
+            .child(self.render_bot_settings(cx))
+    }
+
+    /// Hide bot PRs, and the author patterns and branch prefixes that mark them (comma separated).
+    fn render_bot_settings(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let hide = SegmentedTabs::new("hide-bots").tab("Hide", self.settings.hide_bots).tab("Show", !self.settings.hide_bots).on_select(cx.listener(
+            |this, i: &usize, _, cx| {
+                this.settings.hide_bots = *i == 0;
+                this.save_settings(cx);
+                this.reload();
+            },
+        ));
+        let row = |input: gpui::Entity<crate::ui::molecules::text_input::TextInput>, id: &'static str, cx: &mut Context<Self>| {
+            div()
+                .flex()
+                .gap(theme::SPACE_2)
+                .child(div().flex_1().child(input))
+                .child(Button::new(id, "Save").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.save_bot_lists(cx))))
+        };
+        div()
+            .flex()
+            .flex_col()
+            .gap(theme::SPACE_3)
+            .child(Field::new("Bot PRs", hide))
+            .when(self.settings.hide_bots, |d| {
+                d.child(Field::new("Hidden authors (* matches anything)", row(self.bot_authors_input.clone(), "bot-authors-save", cx)))
+                    .child(Field::new("Hidden branch prefixes", row(self.bot_branches_input.clone(), "bot-branches-save", cx)))
+            })
     }
 
     fn render_bg_image_row(&self, cx: &mut Context<Self>) -> impl IntoElement {

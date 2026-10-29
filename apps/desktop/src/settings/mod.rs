@@ -51,6 +51,12 @@ pub struct Settings {
     pub font_size: u8,
     /// Key of the last highlighted PR, restored as a highlight only.
     pub last_selected: Option<String>,
+    /// Hide Renovate, Dependabot and other bot PRs. Read by the CLI too.
+    pub hide_bots: bool,
+    /// Author patterns treated as bots (`*` wildcard).
+    pub hidden_authors: Vec<String>,
+    /// Source branch prefixes treated as bots.
+    pub hidden_branch_prefixes: Vec<String>,
 }
 
 impl Default for Settings {
@@ -66,6 +72,9 @@ impl Default for Settings {
             mono_font: MonoFont::JetBrainsMono,
             font_size: 13,
             last_selected: None,
+            hide_bots: true,
+            hidden_authors: gv_engine::DEFAULT_BOT_AUTHORS.iter().map(|s| s.to_string()).collect(),
+            hidden_branch_prefixes: gv_engine::DEFAULT_BOT_BRANCHES.iter().map(|s| s.to_string()).collect(),
         }
     }
 }
@@ -89,6 +98,11 @@ impl Settings {
     pub fn typography(&self) -> crate::ui::theme::Typography {
         let size = FONT_SIZES.iter().copied().find(|s| *s == self.font_size).unwrap_or(13);
         crate::ui::theme::Typography { ui_font: self.ui_font.family(), mono_font: self.mono_font.family(), step: f32::from(size - 13) }
+    }
+
+    /// The bot filter the list applies.
+    pub fn bot_filter(&self) -> gv_engine::BotFilter {
+        gv_engine::BotFilter { enabled: self.hide_bots, authors: self.hidden_authors.clone(), branch_prefixes: self.hidden_branch_prefixes.clone() }
     }
 
     pub fn load() -> Self {

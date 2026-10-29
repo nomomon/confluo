@@ -38,7 +38,17 @@ pub struct GitViewer {
     /// Set `LOADING_DELAY` after a refresh starts, so quick refreshes show nothing.
     pub(crate) show_loading: bool,
     pub(crate) last_attempt: Option<Instant>,
+    /// The view the last refresh was for, so manual refreshes of it can be debounced.
+    pub(crate) last_target: Option<Option<i64>>,
     pub(crate) refreshed_at: Option<DateTime<Utc>>,
+    /// A host is rate limited; refreshes wait until then and the header says so.
+    pub(crate) paused_until: Option<DateTime<Utc>>,
+    /// Bot PRs left out of `items` by the filter.
+    pub(crate) hidden_bots: usize,
+    /// Show bot PRs for now, without changing the setting.
+    pub(crate) show_bots: bool,
+    pub(crate) bot_authors_input: Entity<TextInput>,
+    pub(crate) bot_branches_input: Entity<TextInput>,
     /// Signed-in hosts; `None` while checking.
     pub(crate) hosts: Option<Vec<HostStatus>>,
     /// One-line error for the banner; cleared on the next successful refresh.
@@ -100,6 +110,12 @@ impl GitViewer {
         let add_value = input(cx, "Paste a repo or group URL, or a folder path");
         let alias_input = input(cx, "Alias (empty to clear)");
         let rename_input = input(cx, "Project name");
+        let bot_authors_input = input(cx, "renovate, *-bot, project_*_bot*");
+        let bot_branches_input = input(cx, "renovate/, dependabot/");
+        bot_authors_input.update(cx, |i, cx| i.set_text(settings.hidden_authors.join(", "), cx));
+        bot_branches_input.update(cx, |i, cx| i.set_text(settings.hidden_branch_prefixes.join(", "), cx));
+        on_submit(cx, &bot_authors_input, |this, _, cx| this.save_bot_lists(cx));
+        on_submit(cx, &bot_branches_input, |this, _, cx| this.save_bot_lists(cx));
 
         cx.subscribe(&search, |_, _, ev: &InputEvent, cx| {
             if matches!(ev, InputEvent::Changed) {
@@ -135,7 +151,13 @@ impl GitViewer {
             refreshing: false,
             show_loading: false,
             last_attempt: None,
+            last_target: None,
             refreshed_at: None,
+            paused_until: None,
+            hidden_bots: 0,
+            show_bots: false,
+            bot_authors_input,
+            bot_branches_input,
             hosts: None,
             error: None,
             collapsed: Section::ALL.into_iter().filter(|s| s.collapsed_by_default()).collect(),

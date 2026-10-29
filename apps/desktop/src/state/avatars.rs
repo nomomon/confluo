@@ -1,4 +1,5 @@
-//! Author avatars: fetched once per URL on tokio, kept in a small in-memory cache.
+//! Author avatars: read from the engine's disk cache or fetched (small, through the host governor)
+//! on tokio, then kept decoded in a small in-memory cache.
 
 use gpui::{Context, Image, ImageFormat};
 use std::sync::Arc;
@@ -8,8 +9,6 @@ use crate::app::GitViewer;
 
 /// Upper bound on cached avatars; the cache is cleared when it is reached.
 const MAX_AVATARS: usize = 512;
-/// Avatars larger than this are ignored.
-const MAX_BYTES: usize = 512 * 1024;
 
 impl GitViewer {
     /// The decoded avatar for `url`, if it has loaded.
@@ -39,8 +38,8 @@ impl GitViewer {
         }
         for url in wanted {
             self.avatars.insert(url.clone(), None);
-            let fetch_url = url.clone();
-            let rx = bridge::spawn(async move { download(&fetch_url).await });
+            let (fetch_url, engine) = (url.clone(), self.engine.clone());
+            let rx = bridge::spawn(async move { decode(engine.avatar(&fetch_url).await?) });
             cx.spawn(async move |this, cx| {
                 let Ok(Some(img)) = rx.await else { return };
                 this.update(cx, |v, cx| {
@@ -54,13 +53,8 @@ impl GitViewer {
     }
 }
 
-async fn download(url: &str) -> Option<Image> {
-    let resp = reqwest::get(url).await.ok()?.error_for_status().ok()?;
-    let bytes = resp.bytes().await.ok()?;
-    if bytes.len() > MAX_BYTES {
-        return None;
-    }
-    Some(Image::from_bytes(sniff(&bytes)?, bytes.to_vec()))
+fn decode(bytes: Vec<u8>) -> Option<Image> {
+    Some(Image::from_bytes(sniff(&bytes)?, bytes))
 }
 
 /// Image format from magic bytes; content types from avatar hosts are unreliable.

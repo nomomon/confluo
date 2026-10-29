@@ -1,7 +1,7 @@
 //! Project and PR list state: loading from cache, refreshing from providers, stars.
 
 use gpui::Context;
-use gv_engine::{ChangeRequestId, Filter, Involvement, ListQuery, RefreshTarget, RepoOverride, RepoRef, StateFilter};
+use gv_engine::{BotFilter, ChangeRequestId, Filter, Involvement, ListQuery, RefreshTarget, RepoOverride, RepoRef, StateFilter};
 use std::collections::HashSet;
 use std::time::Instant;
 
@@ -25,9 +25,14 @@ impl GitViewer {
             filter: Filter { involvement: self.tab, state: StateFilter::Active },
             starred_only: self.starred_only,
             needs_you_only: false,
+            bots: if self.show_bots { BotFilter::off() } else { self.settings.bot_filter() },
         };
-        match self.engine.list(&q) {
-            Ok(v) => self.items = v,
+        match self.engine.list_counted(&q) {
+            Ok((v, hidden)) => {
+                self.items = v;
+                // While shown, count what the setting would hide, so the footer can offer "Hide".
+                self.hidden_bots = if self.show_bots { self.items.iter().filter(|c| self.settings.bot_filter().hides(c)).count() } else { hidden };
+            }
             Err(e) => self.error = Some(err_str(e)),
         }
         let starred_q = ListQuery {
@@ -35,6 +40,7 @@ impl GitViewer {
             filter: Filter { involvement: Involvement::All, state: StateFilter::Any },
             starred_only: true,
             needs_you_only: false,
+            bots: BotFilter::off(),
         };
         self.starred = self.engine.list(&starred_q).unwrap_or_default().into_iter().map(|c| c.id).collect();
         self.aliases.clear();
@@ -55,12 +61,24 @@ impl GitViewer {
 
     /// Fetch from providers in the background, then reload from cache.
     /// The cached list stays on screen; a loading hint shows only after `LOADING_DELAY`.
+    /// Coalesced: one refresh at a time, repeats of the same view within `MANUAL_DEBOUNCE` are
+    /// ignored, and nothing is sent while a host is rate limited (the cache stays on screen).
     pub(crate) fn refresh(&mut self, cx: &mut Context<Self>) {
         if self.refreshing {
             return;
         }
+        let same_view = self.last_target == Some(self.selected);
+        if same_view && self.last_attempt.is_some_and(|t| t.elapsed() < timing::MANUAL_DEBOUNCE) {
+            return;
+        }
+        self.paused_until = self.engine.paused_until();
+        if self.paused_until.is_some() {
+            cx.notify();
+            return;
+        }
         self.refreshing = true;
         self.last_attempt = Some(Instant::now());
+        self.last_target = Some(self.selected);
         let engine = self.engine.clone();
         let target = self.refresh_target();
         let rx = bridge::spawn(async move { engine.refresh(target).await.map_err(err_str) });
@@ -78,8 +96,12 @@ impl GitViewer {
             this.update(cx, |v, cx| {
                 v.refreshing = false;
                 v.show_loading = false;
+                v.paused_until = None;
                 v.error = match r {
-                    Ok(Ok(rep)) => v.summarize_errors(&rep.errors),
+                    Ok(Ok(rep)) => {
+                        v.paused_until = rep.paused_until;
+                        v.summarize_errors(&rep.errors)
+                    }
                     Ok(Err(e)) => v.summarize_errors(&[("refresh".into(), e)]),
                     Err(_) => Some("Refresh cancelled".into()),
                 };
@@ -129,7 +151,26 @@ impl GitViewer {
         self.detail = None;
         self.refreshed_at = self.engine.last_refreshed(&self.refresh_target());
         self.reload();
-        self.refresh(cx);
+        let fresh = self.refreshed_at.is_some_and(|t| (chrono::Utc::now() - t).to_std().is_ok_and(|age| age < timing::SELECT_FRESH));
+        if !fresh {
+            self.refresh(cx);
+        }
+    }
+
+    /// Show or hide bot PRs for now (the list footer), without changing the setting.
+    pub(crate) fn toggle_show_bots(&mut self, cx: &mut Context<Self>) {
+        self.show_bots = !self.show_bots;
+        self.reload();
+        cx.notify();
+    }
+
+    /// Save the hidden author and branch prefix lists from their inputs.
+    pub(crate) fn save_bot_lists(&mut self, cx: &mut Context<Self>) {
+        let split = |s: &str| s.split([',', '\n']).map(str::trim).filter(|x| !x.is_empty()).map(str::to_string).collect::<Vec<_>>();
+        self.settings.hidden_authors = split(&self.bot_authors_input.read(cx).text());
+        self.settings.hidden_branch_prefixes = split(&self.bot_branches_input.read(cx).text());
+        self.save_settings(cx);
+        self.reload();
     }
 
     pub(crate) fn toggle_star(&mut self, id: ChangeRequestId, cx: &mut Context<Self>) {

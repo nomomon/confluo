@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS change_requests (
   key TEXT PRIMARY KEY, repo TEXT NOT NULL, updated_at TEXT NOT NULL, data TEXT NOT NULL, fetched_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS cr_repo ON change_requests(repo);
 CREATE TABLE IF NOT EXISTS details (key TEXT PRIMARY KEY, data TEXT NOT NULL, fetched_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS diffs (key TEXT PRIMARY KEY, sha TEXT NOT NULL, data TEXT NOT NULL, fetched_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS starred (key TEXT PRIMARY KEY);
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT NOT NULL);
 "#;
@@ -304,6 +305,26 @@ impl Store {
         })
     }
 
+    // ---- changed files ----
+
+    pub fn put_files(&self, id: &ChangeRequestId, sha: &str, files: &[ChangedFile]) -> StoreResult<()> {
+        self.c().execute(
+            "INSERT OR REPLACE INTO diffs(key, sha, data, fetched_at) VALUES (?1, ?2, ?3, ?4)",
+            params![id.key(), sha, serde_json::to_string(files)?, Utc::now().to_rfc3339()],
+        )?;
+        Ok(())
+    }
+
+    /// Cached files and the head sha they were fetched at.
+    pub fn get_files(&self, id: &ChangeRequestId) -> StoreResult<Option<(String, Vec<ChangedFile>)>> {
+        let row: Option<(String, String)> =
+            self.c().query_row("SELECT sha, data FROM diffs WHERE key=?1", [id.key()], |r| Ok((r.get(0)?, r.get(1)?))).optional()?;
+        Ok(match row {
+            Some((sha, d)) => Some((sha, serde_json::from_str(&d)?)),
+            None => None,
+        })
+    }
+
     // ---- stars ----
 
     pub fn set_starred(&self, id: &ChangeRequestId, starred: bool) -> StoreResult<()> {
@@ -358,6 +379,16 @@ mod tests {
             web_url: String::new(),
             needs_you: false,
         }
+    }
+
+    #[test]
+    fn files_roundtrip() {
+        let s = Store::in_memory().unwrap();
+        let id = cr(1, "me", ChangeRequestState::Open).id;
+        assert!(s.get_files(&id).unwrap().is_none());
+        let f = ChangedFile::from_patch("a", "a", FileStatus::Modified, "@@ -1 +1 @@\n-x\n+y\n");
+        s.put_files(&id, "abc", &[f.clone()]).unwrap();
+        assert_eq!(s.get_files(&id).unwrap(), Some(("abc".into(), vec![f])));
     }
 
     #[test]

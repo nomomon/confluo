@@ -428,6 +428,45 @@ impl Engine {
         Ok(self.store.get_detail(id)?)
     }
 
+    // ---------- changed files ----------
+
+    /// Cached changed files, whatever head sha they were fetched at.
+    pub fn cached_changed_files(&self, id: &ChangeRequestId) -> Option<Vec<ChangedFile>> {
+        self.store.get_files(id).ok().flatten().map(|(_, f)| f)
+    }
+
+    /// Changed files at the current head. Cache-first: refetches only when the head sha moved.
+    pub async fn changed_files(&self, id: &ChangeRequestId) -> Result<Vec<ChangedFile>> {
+        let sha = match self.store.get_detail(id)?.and_then(|d| d.head_sha) {
+            Some(s) => s,
+            None => self.detail(id, true).await?.head_sha.unwrap_or_default(),
+        };
+        if let Some((cached_sha, files)) = self.store.get_files(id)? {
+            if !sha.is_empty() && cached_sha == sha {
+                return Ok(files);
+            }
+        }
+        let files = self.provider(id.repo.kind, &id.repo.host).await?.list_changed_files(id).await?;
+        self.store.put_files(id, &sha, &files)?;
+        self.apply_totals(id, &files);
+        Ok(files)
+    }
+
+    /// Fill +a -d and the file count into the cached summary (GitLab lists carry none).
+    fn apply_totals(&self, id: &ChangeRequestId, files: &[ChangedFile]) {
+        let Ok(Some(mut cr)) = self.store.get_change_request(id) else { return };
+        let (a, d) = gv_core::totals(files);
+        cr.additions = Some(a);
+        cr.deletions = Some(d);
+        cr.changed_files = Some(files.len() as u32);
+        let _ = self.store.upsert_change_requests(&[cr]);
+    }
+
+    /// Whole file content at `rev` (usually the head sha).
+    pub async fn file_content(&self, id: &ChangeRequestId, path: &str, rev: &str) -> Result<Option<String>> {
+        Ok(self.provider(id.repo.kind, &id.repo.host).await?.get_file_content(id, path, rev).await?)
+    }
+
     // ---------- comment actions ----------
 
     pub async fn add_comment(&self, id: &ChangeRequestId, body: &str) -> Result<Comment> {

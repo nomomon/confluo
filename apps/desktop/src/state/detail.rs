@@ -61,7 +61,8 @@ impl GitViewer {
         cx.notify();
     }
 
-    /// Dev only: `CONFLUO_OPEN=<pr url>` opens that PR at launch, `CONFLUO_TAB=code|activity` picks the tab.
+    /// Dev only: `CONFLUO_OPEN=<pr url>` opens that PR at launch, `CONFLUO_TAB=code|activity` picks the tab,
+    /// `CONFLUO_REVEAL=<thread id>` scrolls the Code tab to that inline thread.
     pub(crate) fn open_from_env(&mut self, cx: &mut Context<Self>) {
         let Ok(url) = std::env::var("CONFLUO_OPEN") else { return };
         let Ok(id) = self.engine.resolve_id(&url) else { return };
@@ -74,6 +75,9 @@ impl GitViewer {
             _ => DetailTab::Summary,
         };
         self.set_detail_tab(tab, cx);
+        if let (Ok(t), Some(d)) = (std::env::var("CONFLUO_REVEAL"), self.detail.as_mut()) {
+            d.code.inline.reveal = Some(t);
+        }
     }
 
     pub(crate) fn close_detail(&mut self, cx: &mut Context<Self>) {

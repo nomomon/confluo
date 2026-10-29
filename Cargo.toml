@@ -1,0 +1,35 @@
+[workspace]
+resolver = "2"
+members = ["crates/*", "apps/cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+gv-core = { path = "crates/core" }
+gv-auth = { path = "crates/auth" }
+gv-discovery = { path = "crates/discovery" }
+gv-provider-github = { path = "crates/provider-github" }
+gv-provider-gitlab = { path = "crates/provider-gitlab" }
+gv-provider-azure = { path = "crates/provider-azure" }
+gv-store = { path = "crates/store" }
+gv-engine = { path = "crates/engine" }
+anyhow = "1"
+thiserror = "2"
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", default-features = false, features = ["serde", "clock", "std"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "sync"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+clap = { version = "4", features = ["derive"] }
+
+[profile.dev]
+debug = 0
+
+[profile.dev.package."*"]
+opt-level = 1
+debug = 0

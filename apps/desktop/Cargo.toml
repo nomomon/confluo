@@ -1,0 +1,19 @@
+[package]
+name = "gv-desktop"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "git-viewer"
+path = "src/main.rs"
+
+[dependencies]
+gv-engine.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+futures = "0.3"
+gpui = { version = "=0.2.2", default-features = false, features = ["font-kit", "runtime_shaders"] }
+unicode-segmentation = "1"

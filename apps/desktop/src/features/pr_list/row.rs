@@ -10,7 +10,8 @@ use crate::ui::atoms::{tooltip, Avatar, Icon, IconName, Pill};
 use crate::ui::theme;
 
 impl GitViewer {
-    pub(super) fn render_row(&self, c: &ChangeRequest, show_provider: bool, cx: &mut Context<Self>) -> impl IntoElement {
+    /// `edges` (first, last) round the row so its hover fill stays inside the card corners.
+    pub(super) fn render_row(&self, c: &ChangeRequest, show_provider: bool, edges: (bool, bool), cx: &mut Context<Self>) -> impl IntoElement {
         let is_selected = self.cursor.as_ref() == Some(&c.id) || self.detail.as_ref().is_some_and(|d| d.summary.id == c.id);
         let starred = self.starred.contains(&c.id);
         let cr = c.clone();
@@ -77,6 +78,8 @@ impl GitViewer {
             .id(group.clone())
             .group(group)
             .relative()
+            .when(edges.0, |d| d.rounded_t(theme::RADIUS_XL))
+            .when(edges.1, |d| d.rounded_b(theme::RADIUS_XL))
             .flex()
             .items_center()
             .gap(theme::SPACE_4)

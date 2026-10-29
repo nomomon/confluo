@@ -35,7 +35,8 @@ impl GitViewer {
         kinds.dedup();
         let mixed = kinds.len() > 1;
         if !self.sectioned() {
-            let rows = visible.iter().map(|c| self.render_row(c, mixed, cx).into_any_element());
+            let n = visible.len();
+            let rows = visible.iter().enumerate().map(|(i, c)| self.render_row(c, mixed, (i == 0, i + 1 == n), cx).into_any_element());
             return vec![ListSection::new("list-all", fill).children(rows).into_any_element()];
         }
         let mut out = vec![];
@@ -49,7 +50,7 @@ impl GitViewer {
                 .header(s.title(), items.len())
                 .open(open)
                 .on_toggle(cx.listener(move |this, _: &ClickEvent, _, cx| this.toggle_section(s, cx)))
-                .when(open, |sec| sec.children(items.iter().map(|c| self.render_row(c, mixed, cx).into_any_element())));
+                .when(open, |sec| sec.children(items.iter().enumerate().map(|(i, c)| self.render_row(c, mixed, (i == 0, i + 1 == items.len()), cx).into_any_element())));
             out.push(section.into_any_element());
         }
         out

@@ -44,24 +44,29 @@ impl RenderOnce for SegmentedTabs {
         let mut row = div()
             .flex()
             .flex_shrink_0()
-            .p(theme::SPACE_0P5)
-            .gap(theme::SPACE_0P5)
-            .rounded(theme::RADIUS_MD)
+            .items_center()
+            .h(theme::CONTROL_H)
+            .p(theme::SPACE_1)
+            .gap(theme::SPACE_1)
+            .rounded(theme::RADIUS_LG)
             .bg(theme::surface())
             .border_1()
             .border_color(theme::border())
-            .when(self.floating, |d| d.p(theme::SPACE_1).rounded(theme::RADIUS_FULL).bg(theme::overlay()).shadow_lg());
+            .when(self.floating, |d| d.h_auto().p(theme::SPACE_1).rounded(theme::RADIUS_FULL).bg(theme::overlay()).shadow_lg());
         let floating = self.floating;
         for (i, (label, active)) in self.items.into_iter().enumerate() {
             let on = self.on_select.clone();
             row = row.child(
                 div()
                     .id(ElementId::Name(format!("{}-{i}", self.id).into()))
-                    .px(theme::SPACE_2P5)
-                    .py(theme::SPACE_0P5)
-                    .rounded(if floating { theme::RADIUS_FULL } else { theme::RADIUS_SM })
-                    .when(floating, |d| d.px(theme::SPACE_3).py(theme::SPACE_1))
-                    .text_size(theme::text_xs())
+                    .flex()
+                    .items_center()
+                    .h_full()
+                    .px(theme::SPACE_3)
+                    .rounded(if floating { theme::RADIUS_FULL } else { theme::RADIUS_MD })
+                    .when(floating, |d| d.h_auto().py(theme::SPACE_1))
+                    .text_size(theme::text_sm())
+                    .font_weight(theme::WEIGHT_MEDIUM)
                     .cursor_pointer()
                     .text_color(if active { theme::text() } else { theme::text_muted() })
                     .when(active, |d| d.bg(theme::surface_active()))

@@ -57,7 +57,7 @@ pub fn review_summary(c: &ChangeRequest) -> Div {
     div().text_size(theme::text_xs()).text_color(color).child(text)
 }
 
-/// Checks in words; red only when something fails.
+/// Checks in words: green when all passed, red when something fails.
 pub fn checks_text(c: &ChangeRequest) -> (String, Hsla) {
     let k = c.checks;
     if k.total == 0 {
@@ -67,7 +67,24 @@ pub fn checks_text(c: &ChangeRequest) -> (String, Hsla) {
     } else if k.pending > 0 {
         (format!("{} pending", k.pending), theme::text_muted())
     } else {
-        (format!("{} passed", k.passed), theme::text_muted())
+        (format!("{} passed", k.passed), theme::success())
+    }
+}
+
+/// Muted hint after the checks in a list row: draft, review asked, changes asked.
+pub fn row_hint(c: &ChangeRequest) -> Option<&'static str> {
+    if c.state == ChangeRequestState::Draft {
+        return Some("Draft");
+    }
+    if !c.needs_you {
+        return None;
+    }
+    if c.reviewers.iter().any(|r| r.state == ReviewState::ChangesRequested) {
+        Some("Changes requested")
+    } else if c.checks.failed == 0 {
+        Some("Your review requested")
+    } else {
+        None
     }
 }
 

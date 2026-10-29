@@ -23,10 +23,10 @@ impl GitViewer {
         div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
+            .gap(theme::SPACE_3)
             .child(div().text_size(theme::text_2xl()).font_weight(theme::WEIGHT_SEMIBOLD).child(self.project_name()))
-            .child(div().text_size(theme::text_sm()).text_color(theme::text_muted()).child(count.to_string()))
-            .child(div().text_size(theme::text_xs()).text_color(theme::text_subtle()).child(freshness))
+            .child(div().text_size(theme::text_lg()).text_color(theme::text_muted()).child(count.to_string()))
+            .child(div().pl(theme::SPACE_2).text_size(theme::text_sm()).text_color(theme::text_subtle()).child(freshness))
             .child(div().flex_1())
             .child(
                 Button::new("refresh", "")
@@ -47,24 +47,25 @@ impl GitViewer {
                     cx.notify()
                 }))
         });
-        let mut rows = div().id("pr-list").track_scroll(&self.list_scroll).flex().flex_col().flex_1().min_h(theme::SPACE_0).overflow_y_scroll().gap(theme::SPACE_3).pb(theme::SPACE_4);
+        let mut rows = div().id("pr-list").track_scroll(&self.list_scroll).flex().flex_col().flex_1().min_h(theme::SPACE_0).overflow_y_scroll().pb(theme::SPACE_12);
         if visible.is_empty() {
             rows = rows.child(self.render_empty(cx));
         }
         rows = rows.children(self.render_sections(&visible, cx));
 
-        div()
+        let content = div()
             .flex()
             .flex_col()
-            .flex_1()
-            .min_w(theme::SPACE_0)
+            .w_full()
+            .max_w(layout::CONTENT_MAX_W)
             .h_full()
             .pt(layout::TITLEBAR_INSET)
-            .px(theme::SPACE_4)
-            .gap(theme::SPACE_3)
+            .px(theme::SPACE_12)
             .child(self.render_list_header(visible.len(), cx))
-            .child(div().flex().items_center().gap(theme::SPACE_3).child(self.render_involvement_tabs(cx)).child(self.render_search(cx)))
-            .children(banner)
-            .child(rows)
+            .child(div().flex().items_center().gap(theme::SPACE_4).mt(theme::SPACE_6).child(self.render_involvement_tabs(cx)).child(self.render_search(cx)))
+            .children(banner.map(|b| div().mt(theme::SPACE_4).child(b)))
+            .child(rows);
+        // The column breathes: content is centered and capped, like a document.
+        div().flex().justify_center().flex_1().min_w(theme::SPACE_0).h_full().child(content)
     }
 }

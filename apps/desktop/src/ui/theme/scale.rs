@@ -15,9 +15,12 @@ pub const SPACE_3: Pixels = px(12.);
 pub const SPACE_4: Pixels = px(16.);
 pub const SPACE_5: Pixels = px(20.);
 pub const SPACE_6: Pixels = px(24.);
+pub const SPACE_7: Pixels = px(28.);
 pub const SPACE_8: Pixels = px(32.);
 pub const SPACE_10: Pixels = px(40.);
 pub const SPACE_12: Pixels = px(48.);
+pub const SPACE_14: Pixels = px(56.);
+pub const SPACE_16: Pixels = px(64.);
 
 pub const RADIUS_SM: Pixels = px(6.);
 pub const RADIUS_MD: Pixels = px(8.);
@@ -48,6 +51,10 @@ pub fn text_sm() -> Pixels {
 pub fn text_base() -> Pixels {
     sized(14.)
 }
+/// List row titles.
+pub fn text_md() -> Pixels {
+    sized(15.)
+}
 pub fn text_lg() -> Pixels {
     sized(16.)
 }
@@ -64,6 +71,15 @@ pub const WEIGHT_MEDIUM: FontWeight = FontWeight::MEDIUM;
 pub const WEIGHT_SEMIBOLD: FontWeight = FontWeight::SEMIBOLD;
 pub const WEIGHT_BOLD: FontWeight = FontWeight::BOLD;
 
+
+/// Rhythm: height of primary controls (tabs, search, filter chips).
+pub const CONTROL_H: Pixels = px(40.);
+/// Rhythm: minimum height of a two-line list row (16px vertical padding).
+pub const ROW_MIN_H: Pixels = px(68.);
+/// Rhythm: height of a key/value row inside a card.
+pub const KV_ROW_H: Pixels = px(52.);
+/// Width of the key column in key/value rows.
+pub const KV_KEY_W: Pixels = px(88.);
 
 /// Minimum width of dropdown menus.
 pub const MENU_MIN_W: Pixels = px(180.);

@@ -5,7 +5,7 @@ use gv_engine::ChangeRequest;
 
 use crate::app::GitViewer;
 use crate::state;
-use crate::features::shared::{checks_text, layout, number_label, provider_badge, relative_time, state_icon};
+use crate::features::shared::{checks_text, layout, number_label, provider_badge, relative_time, row_hint, state_icon};
 use crate::ui::atoms::{tooltip, Avatar, Icon, IconName, Pill};
 use crate::ui::theme;
 
@@ -22,10 +22,9 @@ impl GitViewer {
             .items_center()
             .gap(theme::SPACE_2)
             .min_w(theme::SPACE_0)
-            .text_size(theme::text_xs())
+            .text_size(theme::text_sm())
             .text_color(theme::text_muted())
             .when(show_provider, |d| d.child(provider_badge(c.id.repo.kind)))
-            .child(div().flex().items_center().gap(theme::SPACE_1).flex_shrink_0().child(Avatar::new(c.author.username.clone()).image(self.avatar(c.author.avatar_url.as_deref()))).child(c.author.username.clone()))
             .child(
                 div()
                     .id(SharedString::from(format!("repo-{}", c.id.key())))
@@ -34,13 +33,16 @@ impl GitViewer {
                     .tooltip(tooltip(c.id.repo.path.clone()))
                     .child(self.repo_label(&c.id.repo)),
             )
-            .child(Pill::new(number_label(c), theme::text_muted()))
-            .child(div().flex_shrink_0().text_color(checks_color).child(checks));
+            .child(div().flex().items_center().gap(theme::SPACE_1P5).flex_shrink_0().child(Avatar::new(c.author.username.clone()).image(self.avatar(c.author.avatar_url.as_deref()))).child(c.author.username.clone()))
+            .child(Pill::new(number_label(c), theme::success()).icon(IconName::GitPullRequest))
+            .child(div().flex_shrink_0().text_color(checks_color).child(checks))
+            .children(row_hint(c).map(|h| div().flex_shrink_0().text_color(theme::text_muted()).child(h)));
         let diff = match (c.additions, c.deletions) {
             (Some(a), Some(d)) => Some(
                 div()
                     .flex()
-                    .gap(theme::SPACE_1)
+                    .gap(theme::SPACE_2)
+                    .font_family(theme::mono_font())
                     .child(div().text_color(theme::success()).child(format!("+{a}")))
                     .child(div().text_color(theme::danger()).child(format!("-{d}"))),
             ),
@@ -64,7 +66,7 @@ impl GitViewer {
         });
         let star = div()
             .id(SharedString::from(format!("star-{}", c.id.key())))
-            .px(theme::SPACE_1)
+            .px(theme::SPACE_2)
             .when(!starred, |d| d.opacity(0.))
             .group_hover(group.clone(), |s| s.opacity(1.))
             .child(Icon::new(if starred { IconName::StarFilled } else { IconName::Star }).color(if starred { theme::warning() } else { theme::text_subtle() }))
@@ -78,10 +80,11 @@ impl GitViewer {
             .relative()
             .flex()
             .items_center()
-            .gap(theme::SPACE_3)
-            .px(theme::SPACE_2P5)
-            .py(theme::SPACE_2)
-            .rounded(theme::RADIUS_MD)
+            .gap(theme::SPACE_4)
+            .min_h(theme::ROW_MIN_H)
+            .pl(theme::SPACE_5)
+            .pr(theme::SPACE_4)
+            .py(theme::SPACE_4)
             .when(is_selected, |d| d.bg(theme::surface_active()))
             .hover(|s| s.bg(theme::surface_hover()))
             .active(|s| s.bg(theme::surface_active()))
@@ -97,29 +100,29 @@ impl GitViewer {
                     .flex_col()
                     .flex_1()
                     .min_w(theme::SPACE_0)
-                    .gap(theme::SPACE_1)
+                    .gap(theme::SPACE_2)
                     .child(
                         div()
                             .flex()
                             .w_full()
                             .min_w(theme::SPACE_0)
                             .items_center()
-                            .gap(theme::SPACE_2)
+                            .gap(theme::SPACE_3)
                             .child(state_icon(c.state))
-                            .child(div().flex_1().min_w(theme::SPACE_0).text_size(theme::text_sm()).font_weight(theme::WEIGHT_MEDIUM).truncate().child(c.title.clone())),
+                            .child(div().flex_1().min_w(theme::SPACE_0).text_size(theme::text_md()).font_weight(theme::WEIGHT_MEDIUM).truncate().child(c.title.clone())),
                     )
-                    .child(div().w_full().min_w(theme::SPACE_0).overflow_hidden().pl(theme::SPACE_6).child(meta)),
+                    .child(div().w_full().min_w(theme::SPACE_0).overflow_hidden().pl(theme::SPACE_7).child(meta)),
             )
             .child(
                 div()
                     .flex()
                     .flex_col()
                     .items_end()
-                    .gap(theme::SPACE_1)
+                    .gap(theme::SPACE_2)
                     .w(layout::TIME_COL_W)
                     .flex_shrink_0()
-                    .text_size(theme::text_xs())
-                    .text_color(theme::text_subtle())
+                    .text_size(theme::text_sm())
+                    .text_color(theme::text_muted())
                     .child(relative_time(c.updated_at))
                     .children(diff),
             )

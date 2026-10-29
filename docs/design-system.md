@@ -84,7 +84,33 @@ appearance settings (`GitViewer::surfaces()` builds it):
 
 Spacing, Tailwind 4px steps: `SPACE_0` 0, `SPACE_0P5` 2, `SPACE_1` 4,
 `SPACE_1P5` 6, `SPACE_2` 8, `SPACE_2P5` 10, `SPACE_3` 12, `SPACE_4` 16,
-`SPACE_5` 20, `SPACE_6` 24, `SPACE_8` 32, `SPACE_10` 40, `SPACE_12` 48.
+`SPACE_5` 20, `SPACE_6` 24, `SPACE_7` 28, `SPACE_8` 32, `SPACE_10` 40,
+`SPACE_12` 48, `SPACE_14` 56, `SPACE_16` 64.
+
+Rhythm tokens: `CONTROL_H` 40 (tabs, search, inputs; radius `RADIUS_LG`),
+`ROW_MIN_H` 68 (two-line list rows), `KV_ROW_H` 52 and `KV_KEY_W` 88
+(key/value rows). Layout: `CONTENT_MAX_W` 1360, `SIDEBAR_W` 240,
+`TITLEBAR_INSET` 48.
+
+### Spacing rhythm
+
+The UI should breathe. The list column is centered, capped at
+`CONTENT_MAX_W`, with `SPACE_12` side padding and 48px top padding.
+
+- Page title `text_2xl()` semibold, muted count `text_lg()`, then `SPACE_6`
+  to the controls row (`CONTROL_H` tall).
+- Section header (chevron, label `text_base()`, muted count): `SPACE_8` above,
+  `SPACE_4` below, outside the card.
+- One rounded card (`RADIUS_XL`) per section; rows sit flush, split by 1px
+  `border_subtle()` dividers (`ListSection`).
+- Rows: `ROW_MIN_H`, `SPACE_4` vertical padding, 16-20px horizontal; title
+  `text_md()` medium; meta `text_sm()` muted with `SPACE_2` between items;
+  right column time over `+a -d`; star outside it.
+- Meta color: CI passed `success()`, failing `danger()`; hints such as "Your
+  review requested" and "Draft" are muted; the number is a green tinted
+  `Pill` with the git-pull-request icon.
+- Sidebar: `SPACE_3` padding, nav items `SPACE_2` vertical. Detail pane:
+  `SPACE_6` padding, cards `SPACE_5` apart, key/value rows in `Card::rows()`.
 
 Icons: `ICON_SM` 12 (chevrons), `ICON_MD` 14 (buttons, nav), `ICON_LG` 16 (row state).
 Never use text glyphs as icons; add a Tabler outline SVG (stroke-width 1.75) and an `IconName` variant instead.
@@ -125,9 +151,9 @@ Tabler outline SVGs in `apps/desktop/assets/icons`, MIT license), `NavItem` (`.i
 `.on_right_click(..)`), `Pill`, `Swatch`, `tooltip(text)` for any stateful element.
 
 Molecules: `Banner` (one-line dismissible error with an action such as Retry),
-`Card`, `CopyField`, `Dialog`, `DropdownMenu` (`.on_dismiss` on outside press),
+`Card` (`.rows()` for flush divided rows), `CopyField`, `Dialog`, `DropdownMenu` (`.on_dismiss` on outside press),
 `EmptyState` (children for extra lines and actions), `Field`, `KeyValueRow`,
-`ListSection` (rounded card of rows with a collapsible header and count),
+`ListSection` (collapsible header and count above a rounded card of divided rows),
 `SegmentedTabs` (`.floating()` pill for bottom tab bars), `markdown(id, src)`
 (pulldown-cmark; tables as a grid, clickable links, images as muted alt text), `TextInput`
 (`.multiline()`: Enter inserts a newline, Cmd+Enter submits), `Toast`.

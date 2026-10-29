@@ -20,8 +20,9 @@ pub(super) fn overview_card(s: &ChangeRequest, surfaces: Translucency) -> impl I
     });
     let branch = format!("{} -> {}", s.source_branch, s.target_branch);
     Card::new(surfaces)
+        .rows()
         .child(KeyValueRow::new("Status", state_pill(s.state)))
         .child(KeyValueRow::new("Review", review_summary(s)))
-        .child(KeyValueRow::new("Branch", div().min_w(theme::SPACE_0).truncate().text_size(theme::text_xs()).font_family(theme::mono_font()).child(branch)))
-        .child(KeyValueRow::new("Changes", div().flex().gap(theme::SPACE_2).text_size(theme::text_xs()).child(files).children(lines)))
+        .child(KeyValueRow::new("Branch", div().min_w(theme::SPACE_0).truncate().text_size(theme::text_sm()).font_family(theme::mono_font()).child(branch)))
+        .child(KeyValueRow::new("Changes", div().flex().gap(theme::SPACE_2).child(files).children(lines)))
 }

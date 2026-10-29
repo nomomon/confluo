@@ -43,8 +43,8 @@ impl GitViewer {
             .flex_1()
             .min_h(theme::SPACE_0)
             .overflow_y_scroll()
-            .gap(theme::SPACE_3)
-            .pb(theme::SPACE_4)
+            .gap(theme::SPACE_5)
+            .pb(theme::SPACE_8)
             .child(self.render_detail_header(d, cx))
             .when_some(d.error.clone(), |col, e| col.child(ErrorText::new(e)))
             .child(self.render_detail_body(d, cx));
@@ -74,12 +74,12 @@ impl GitViewer {
             .border_l_1()
             .border_color(theme::border_subtle())
             .pt(layout::TITLEBAR_INSET)
-            .px(theme::SPACE_4)
-            .gap(theme::SPACE_2)
+            .px(theme::SPACE_6)
+            .gap(theme::SPACE_3)
             .child(col)
-            .child(div().flex().justify_center().pb(theme::SPACE_2).child(self.render_detail_tabs(d, cx)))
+            .child(div().flex().justify_center().pb(theme::SPACE_3).child(self.render_detail_tabs(d, cx)))
             .when(d.tab == DetailTab::Activity, |p| p.child(self.render_composer(d, cx)))
-            .when(d.tab == DetailTab::Summary, |p| p.pb(theme::SPACE_2))
+            .when(d.tab == DetailTab::Summary, |p| p.pb(theme::SPACE_3))
             .child(handle);
         motion::slide_in_right(panel, "detail-panel", theme::SPACE_6)
     }

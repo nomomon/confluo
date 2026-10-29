@@ -16,7 +16,7 @@ impl SectionLabel {
 
 impl RenderOnce for SectionLabel {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        div().px(theme::SPACE_2).pt(theme::SPACE_3).pb(theme::SPACE_1).text_size(theme::text_xs()).font_weight(theme::WEIGHT_MEDIUM).text_color(theme::text_subtle()).child(self.0)
+        div().px(theme::SPACE_3).pt(theme::SPACE_6).pb(theme::SPACE_2).text_size(theme::text_xs()).font_weight(theme::WEIGHT_MEDIUM).text_color(theme::text_subtle()).child(self.0)
     }
 }
 

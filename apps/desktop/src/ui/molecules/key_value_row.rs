@@ -1,6 +1,6 @@
-//! Label on the left, arbitrary value on the right.
+//! Label on the left, arbitrary value on the right; one 52px row of a `Card::rows()`.
 
-use gpui::{div, prelude::*, px, AnyElement, App, SharedString, Window};
+use gpui::{div, prelude::*, AnyElement, App, SharedString, Window};
 
 use crate::ui::theme;
 
@@ -21,8 +21,11 @@ impl RenderOnce for KeyValueRow {
         div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
-            .child(div().w(px(80.)).text_size(theme::text_xs()).text_color(theme::text_muted()).child(self.key))
+            .gap(theme::SPACE_4)
+            .min_h(theme::KV_ROW_H)
+            .px(theme::SPACE_4)
+            .text_size(theme::text_sm())
+            .child(div().w(theme::KV_KEY_W).flex_shrink_0().text_color(theme::text_muted()).child(self.key))
             .child(self.value)
     }
 }

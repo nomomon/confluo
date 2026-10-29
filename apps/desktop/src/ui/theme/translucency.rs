@@ -24,7 +24,10 @@ impl Translucency {
     /// tint keeps its hue but is lifted to a soft page grey.
     pub fn window_bg(&self) -> Hsla {
         let tint = if is_light() { Hsla { s: self.tint.s.min(0.2), l: light::PAGE.l - self.tint.l * 0.1, ..self.tint } } else { self.tint };
-        Hsla { a: self.base_alpha, ..tint }
+        // A light page needs more of its own fill: the blur behind follows the
+        // macOS appearance and is dark under a dark desktop.
+        let a = if is_light() { self.base_alpha.max(0.82) } else { self.base_alpha };
+        Hsla { a, ..tint }
     }
 
     /// Sidebar and detail panel fill.

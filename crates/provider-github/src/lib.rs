@@ -5,6 +5,8 @@ use chrono::{DateTime, Utc};
 use gv_core::*;
 use serde_json::{json, Value};
 
+mod inline;
+
 pub struct GitHubProvider {
     host: String,
     api: String,
@@ -219,6 +221,17 @@ fn comment(v: &Value) -> Comment {
     }
 }
 
+/// A comment from a REST response (issue or review comment).
+fn rest_comment(v: &Value) -> Comment {
+    Comment {
+        id: s(&v["node_id"]),
+        author: User { username: s(&v["user"]["login"]), name: None, avatar_url: v["user"]["avatar_url"].as_str().map(str::to_string) },
+        body: s(&v["body"]),
+        created_at: time(&v["created_at"]),
+        position: v["path"].as_str().map(|p| InlinePosition { path: p.into(), line: v["line"].as_u64().map(|l| l as u32) }),
+    }
+}
+
 /// One entry of `GET /pulls/{n}/files`.
 fn changed_file(v: &Value) -> ChangedFile {
     let status = match v["status"].as_str().unwrap_or_default() {
@@ -312,9 +325,9 @@ impl Provider for GitHubProvider {
                {PR_FIELDS} body
                comments(first: 100) {{ nodes {{ id body createdAt author {{ login avatarUrl ... on User {{ name }} }} }} }}
                reviews(first: 50) {{ nodes {{ id body createdAt author {{ login avatarUrl ... on User {{ name }} }} }} }}
-               reviewThreads(first: 100) {{ nodes {{ id isResolved comments(first: 50) {{ nodes {{
-                 id body createdAt path line originalLine author {{ login avatarUrl ... on User {{ name }} }} }} }} }} }}
-             }} }} }}"
+               reviewThreads(first: 100) {{ nodes {{ {} }} }}
+             }} }} }}",
+            inline::THREAD_FIELDS
         );
         let d = self.gql(&query, json!({"o": owner, "n": name, "num": id.number})).await?;
         let pr = &d["repository"]["pullRequest"];
@@ -325,19 +338,15 @@ impl Provider for GitHubProvider {
         let mut threads: Vec<Thread> = vec![];
         // Top-level conversation comments and review summaries become single-comment threads.
         for c in pr["comments"]["nodes"].as_array().into_iter().flatten() {
-            threads.push(Thread { id: s(&c["id"]), resolved: None, comments: vec![comment(c)] });
+            threads.push(Thread::conversation(s(&c["id"]), vec![comment(c)]));
         }
         for c in pr["reviews"]["nodes"].as_array().into_iter().flatten() {
             if !c["body"].as_str().unwrap_or_default().is_empty() {
-                threads.push(Thread { id: s(&c["id"]), resolved: None, comments: vec![comment(c)] });
+                threads.push(Thread::conversation(s(&c["id"]), vec![comment(c)]));
             }
         }
         for t in pr["reviewThreads"]["nodes"].as_array().into_iter().flatten() {
-            threads.push(Thread {
-                id: s(&t["id"]),
-                resolved: t["isResolved"].as_bool(),
-                comments: t["comments"]["nodes"].as_array().into_iter().flatten().map(comment).collect(),
-            });
+            threads.push(inline::parse_thread(t));
         }
         threads.sort_by_key(|t| t.comments.first().map(|c| c.created_at));
         Ok(ChangeRequestDetail {
@@ -370,13 +379,7 @@ impl Provider for GitHubProvider {
         let (o, n) = split_repo(&id.repo)?;
         let url = format!("{}/repos/{o}/{n}/issues/{}/comments", self.api, id.number);
         let v = self.send(self.http.post(url).json(&json!({"body": body}))).await?;
-        Ok(Comment {
-            id: s(&v["node_id"]),
-            author: User { username: s(&v["user"]["login"]), name: None, avatar_url: v["user"]["avatar_url"].as_str().map(str::to_string) },
-            body: s(&v["body"]),
-            created_at: time(&v["created_at"]),
-            position: None,
-        })
+        Ok(rest_comment(&v))
     }
 
     async fn reply_to_thread(&self, id: &ChangeRequestId, thread_id: &str, body: &str) -> ProviderResult<Comment> {
@@ -392,6 +395,24 @@ impl Provider for GitHubProvider {
             )
             .await?;
         Ok(comment(&d["addPullRequestReviewThreadReply"]["comment"]))
+    }
+
+    async fn add_line_comment(&self, id: &ChangeRequestId, position: &DiffPosition, body: &str) -> ProviderResult<Comment> {
+        let (o, n) = split_repo(&id.repo)?;
+        let head = match &position.head_sha {
+            Some(h) => h.clone(),
+            None => s(&self.send(self.http.get(format!("{}/repos/{o}/{n}/pulls/{}", self.api, id.number))).await?["head"]["sha"]),
+        };
+        let url = format!("{}/repos/{o}/{n}/pulls/{}/comments", self.api, id.number);
+        let v = self.send(self.http.post(url).json(&inline::line_comment_payload(position, &head, body))).await?;
+        Ok(rest_comment(&v))
+    }
+
+    async fn resolve_thread(&self, _id: &ChangeRequestId, thread_id: &str, resolved: bool) -> ProviderResult<()> {
+        let m = if resolved { "resolveReviewThread" } else { "unresolveReviewThread" };
+        let q = format!("mutation($t: ID!) {{ {m}(input: {{threadId: $t}}) {{ thread {{ id isResolved }} }} }}");
+        self.gql(&q, json!({"t": thread_id})).await?;
+        Ok(())
     }
 
     async fn list_changed_files(&self, id: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>> {

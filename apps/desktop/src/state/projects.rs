@@ -96,6 +96,40 @@ impl GitViewer {
         cx.notify();
     }
 
+    pub(crate) fn open_rename(&mut self, id: i64, cx: &mut Context<Self>) {
+        self.menu = None;
+        let name = self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default();
+        self.rename_input.update(cx, |i, cx| i.set_text(name, cx));
+        self.overlay = Overlay::Rename(id);
+        cx.notify();
+    }
+
+    pub(crate) fn save_rename(&mut self, cx: &mut Context<Self>) {
+        let Overlay::Rename(id) = self.overlay else { return };
+        let name = self.rename_input.read(cx).text().trim().to_string();
+        if name.is_empty() {
+            return;
+        }
+        match self.engine.rename_project(id, &name) {
+            Ok(()) => self.overlay = Overlay::None,
+            Err(e) => self.add_error = Some(err_str(e)),
+        }
+        self.reload_projects();
+        cx.notify();
+    }
+
+    pub(crate) fn delete_project(&mut self, id: i64, cx: &mut Context<Self>) {
+        self.menu = None;
+        if let Err(e) = self.engine.delete_project(id) {
+            self.error = Some(err_str(e));
+        }
+        self.reload_projects();
+        if self.selected.is_none() {
+            self.select_project(None, cx);
+        }
+        cx.notify();
+    }
+
     pub(crate) fn open_alias(&mut self, repo: Option<RepoRef>, cx: &mut Context<Self>) {
         self.overlay = Overlay::Alias;
         self.set_alias_repo(repo, cx);

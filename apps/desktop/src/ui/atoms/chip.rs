@@ -17,6 +17,7 @@ impl Chip {
         Self { id: id.into(), label: label.into(), active: false, on_click: None }
     }
 
+    #[allow(dead_code)]
     pub fn active(mut self, active: bool) -> Self {
         self.active = active;
         self

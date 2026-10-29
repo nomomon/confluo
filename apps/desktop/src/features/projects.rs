@@ -58,3 +58,13 @@ impl GitViewer {
             )
     }
 }
+
+impl GitViewer {
+    pub(super) fn render_rename(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .flex()
+            .gap(theme::SPACE_2)
+            .child(div().flex_1().child(self.rename_input.clone()))
+            .child(Button::new("rename-save", "Save").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.save_rename(cx))))
+    }
+}

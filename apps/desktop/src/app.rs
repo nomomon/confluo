@@ -25,12 +25,13 @@ pub enum Menu {
 }
 
 /// Which modal dialog is open.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Overlay {
     None,
     Settings,
     AddProject,
     Alias,
+    Rename(i64),
 }
 
 pub struct GitViewer {
@@ -41,7 +42,6 @@ pub struct GitViewer {
     pub(crate) projects: Vec<Project>,
     pub(crate) selected: Option<i64>,
     pub(crate) tab: Involvement,
-    pub(crate) needs_you: bool,
     pub(crate) starred_only: bool,
     pub(crate) items: Vec<ChangeRequest>,
     pub(crate) starred: HashSet<ChangeRequestId>,
@@ -79,8 +79,7 @@ pub struct GitViewer {
     pub(crate) add_error: Option<String>,
     pub(crate) alias_repo: Option<RepoRef>,
     pub(crate) alias_input: Entity<TextInput>,
-    pub(crate) bg_input: Entity<TextInput>,
-    pub(crate) tint_input: Entity<TextInput>,
+    pub(crate) rename_input: Entity<TextInput>,
 }
 
 /// Subscribe `f` to the input's Enter key.
@@ -101,10 +100,7 @@ impl GitViewer {
         let add_name = input(cx, "Project name");
         let add_value = input(cx, "Paste a repo or group URL, or a folder path");
         let alias_input = input(cx, "Alias (empty to clear)");
-        let bg_input = input(cx, "/path/to/image.jpg, Enter to apply");
-        let tint_input = input(cx, "#14141c");
-        bg_input.update(cx, |i, cx| i.set_text(settings.background_image.clone().unwrap_or_default(), cx));
-        tint_input.update(cx, |i, cx| i.set_text(settings.tint.clone(), cx));
+        let rename_input = input(cx, "Project name");
 
         cx.subscribe(&search, |_, _, ev: &InputEvent, cx| {
             if matches!(ev, InputEvent::Changed) {
@@ -121,19 +117,7 @@ impl GitViewer {
         })
         .detach();
         on_submit(cx, &alias_input, |this, _, cx| this.save_alias(cx));
-        on_submit(cx, &bg_input, |this, input, cx| {
-            let t = input.read(cx).text().trim().to_string();
-            this.settings.background_image = (!t.is_empty()).then_some(t);
-            this.save_settings(cx);
-        });
-        on_submit(cx, &tint_input, |this, input, cx| {
-            let t = input.read(cx).text();
-            if theme::parse_hex(&t).is_some() {
-                this.settings.tint = t.trim().to_string();
-                this.save_settings(cx);
-            }
-        });
-
+        on_submit(cx, &rename_input, |this, _, cx| this.save_rename(cx));
         let focus = cx.focus_handle();
         window.focus(&focus);
         let mut this = Self {
@@ -143,7 +127,6 @@ impl GitViewer {
             projects: vec![],
             selected: None,
             tab: Involvement::All,
-            needs_you: false,
             starred_only: false,
             items: vec![],
             starred: HashSet::new(),
@@ -174,8 +157,7 @@ impl GitViewer {
             add_error: None,
             alias_repo: None,
             alias_input,
-            bg_input,
-            tint_input,
+            rename_input,
         };
         cx.observe_window_activation(window, |this, window, cx| {
             if window.is_window_active() {

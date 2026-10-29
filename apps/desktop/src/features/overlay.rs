@@ -9,9 +9,10 @@ impl GitViewer {
     pub(crate) fn render_overlay(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
         let (title, content): (&str, AnyElement) = match self.overlay {
             Overlay::None => return None,
-            Overlay::Settings => ("Appearance", self.render_settings(cx).into_any_element()),
+            Overlay::Settings => ("Settings", self.render_settings(cx).into_any_element()),
             Overlay::AddProject => ("Add project", self.render_add_project(cx).into_any_element()),
-            Overlay::Alias => ("Repo aliases", self.render_alias(cx).into_any_element()),
+            Overlay::Alias => ("Repo alias", self.render_alias(cx).into_any_element()),
+            Overlay::Rename(_) => ("Rename project", self.render_rename(cx).into_any_element()),
         };
         Some(
             Dialog::new(title)

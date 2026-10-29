@@ -24,7 +24,7 @@ impl GitViewer {
             project: self.selected,
             filter: Filter { involvement: self.tab, state: StateFilter::Active },
             starred_only: self.starred_only,
-            needs_you_only: self.needs_you,
+            needs_you_only: false,
         };
         match self.engine.list(&q) {
             Ok(v) => self.items = v,

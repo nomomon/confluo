@@ -56,7 +56,7 @@ impl RenderOnce for Dialog {
             .bg(theme::OVERLAY)
             .shadow_lg()
             .child(header)
-            .children(self.content);
+            .children(self.content.map(|c| div().flex().flex_col().min_h(theme::SPACE_0).child(c)));
         let scrim = div()
             .absolute()
             .top_0()

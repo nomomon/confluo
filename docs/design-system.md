@@ -58,6 +58,11 @@ Semantic tokens (`ui::theme::*`), dark / light:
 | `overlay()`        | zinc 900, 97%         | zinc 50, 98%                |
 | `scrim()`          | black 45%             | black 25%                   |
 
+Code tokens: `diff_add_bg()`, `diff_del_bg()`, `diff_hunk_bg()` and `syntax_keyword()`,
+`syntax_string()`, `syntax_number()`, `syntax_type()`, `syntax_comment()` (hues in
+`palette::syntax`, one shade per theme). `tint_preview(c)` lifts a near-black window tint
+to a visible swatch color.
+
 `tint_bg(color)` gives the 14% (12% light) fill used behind pills, badges and
 notices.
 
@@ -112,6 +117,11 @@ The UI should breathe. The list column is centered, capped at
 - Sidebar: `SPACE_3` padding, nav items `SPACE_2` vertical. Detail pane:
   `SPACE_6` padding, cards `SPACE_5` apart, key/value rows in `Card::rows()`.
 
+Code tab: files, hunks and lines flatten into one `Row` list (`state::code_rows`) rendered
+with GPUI `list` so only visible rows paint; each file reads as a rounded card made of
+its rows. Sizes `DIFF_LINE_H`, `DIFF_HEADER_H`, `DIFF_HUNK_H`, `DIFF_GUTTER_W`, `FILE_TREE_W`
+live in `features/shared/layout.rs`. Shortcuts n/p or ]/[ and x act only on the Code tab.
+
 Icons: `ICON_SM` 12 (chevrons), `ICON_MD` 14 (buttons, nav), `ICON_LG` 16 (row state).
 Never use text glyphs as icons; add a Tabler outline SVG (stroke-width 1.75) and an `IconName` variant instead.
 
@@ -154,7 +164,10 @@ Molecules: `Banner` (one-line dismissible error with an action such as Retry),
 `Card` (`.rows()` for flush divided rows), `CopyField`, `Dialog`, `DropdownMenu` (`.on_dismiss` on outside press),
 `EmptyState` (children for extra lines and actions), `Field`, `KeyValueRow`,
 `ListSection` (collapsible header and count above a rounded card of divided rows),
-`SegmentedTabs` (`.floating()` pill for bottom tab bars), `markdown(id, src)`
+`SegmentedTabs` (`.floating()` pill for bottom tab bars),
+`code::{CodeText, DiffRow, Lang}` (mono line with a line-based keyword/string/comment/number/type
+tokenizer for rs, ts/js, py, go, yaml, json, toml, md, sh, Dockerfile; `DiffRow` adds old/new gutters,
+a +/- marker, `diff_add_bg()` / `diff_del_bg()` tints and a 2px accent), `markdown(id, src)`
 (pulldown-cmark; tables as a grid, clickable links, images as muted alt text), `TextInput`
 (`.multiline()`: Enter inserts a newline, Cmd+Enter submits), `Toast`.
 

@@ -21,6 +21,10 @@ cargo run -p gv-cli -- list      # CLI
 cargo test --workspace
 ```
 
+Dev only: `CONFLUO_OPEN=<pr url>` opens that PR's detail at launch (it must already be in the cache),
+and `CONFLUO_TAB=code|activity` picks the tab, e.g.
+`CONFLUO_OPEN=https://github.com/owner/repo/pull/4 CONFLUO_TAB=code cargo run -p gv-desktop`.
+
 ## Layout
 
 - `crates/core` domain types, `Provider` trait, needs-you logic (no IO)
@@ -43,6 +47,7 @@ gv project add work --repo https://github.com/owner/repo
 gv list                      # everything involving you (refreshes first)
 gv list --project work --reviewing --needs-you
 gv show https://github.com/owner/repo/pull/4
+gv files <url> [--diff] [--cat <path>]   # changed files, hunks, or a whole file at head
 gv comment <url> "body" [--thread <id>]
 ```
 

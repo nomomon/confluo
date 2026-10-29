@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use gv_engine::ChangedFile;
+use gv_engine::{ChangedFile, DiffLine, DiffSide, InlineIndex, LineKind};
 
 /// Files with more diff lines than this start collapsed behind "Show diff".
 pub const LARGE_FILE_LINES: usize = 400;
@@ -25,6 +25,12 @@ pub enum Row {
     /// (file, hunk, line).
     Line(usize, usize, usize),
     Notice(usize, Notice),
+    /// Inline review thread: (file, index into `detail.threads`).
+    Thread(usize, usize),
+    /// New-comment composer under the draft's anchor line.
+    Composer(usize),
+    /// "Outdated comments" label: (file, count).
+    Outdated(usize, usize),
     /// Rounded bottom edge of a file card.
     End(usize),
 }
@@ -32,13 +38,43 @@ pub enum Row {
 impl Row {
     pub fn file(self) -> usize {
         match self {
-            Row::Header(f) | Row::Hunk(f, _) | Row::Line(f, _, _) | Row::Notice(f, _) | Row::End(f) => f,
+            Row::Header(f)
+            | Row::Hunk(f, _)
+            | Row::Line(f, _, _)
+            | Row::Notice(f, _)
+            | Row::Thread(f, _)
+            | Row::Composer(f)
+            | Row::Outdated(f, _)
+            | Row::End(f) => f,
         }
     }
 }
 
+/// Inline comment input to the row model: placed threads and the open composer's anchor.
+#[derive(Default, Clone, Copy)]
+pub struct InlineRows<'a> {
+    pub index: Option<&'a InlineIndex>,
+    /// (file, side, line) of the open composer.
+    pub draft: Option<(usize, DiffSide, u32)>,
+}
+
+/// The side and number a new comment on this line anchors to: removed lines the old side, else the new side.
+pub fn line_anchor(l: &DiffLine) -> Option<(DiffSide, u32)> {
+    match l.kind {
+        LineKind::Del => l.old_no.map(|n| (DiffSide::Old, n)),
+        _ => l.new_no.map(|n| (DiffSide::New, n)),
+    }
+}
+
+/// Threads shown under one diff line (both sides for context lines).
+pub fn line_threads<'a>(ix: &'a InlineIndex, path: &str, l: &DiffLine) -> impl Iterator<Item = usize> + 'a {
+    let old = l.old_no.map(|n| ix.at(path, DiffSide::Old, n)).unwrap_or(&[]);
+    let new = l.new_no.map(|n| ix.at(path, DiffSide::New, n)).unwrap_or(&[]);
+    old.iter().chain(new.iter()).copied()
+}
+
 /// Rows of one file given its collapse state.
-pub fn file_rows(fi: usize, f: &ChangedFile, collapsed: bool, show_large: bool) -> Vec<Row> {
+pub fn file_rows(fi: usize, f: &ChangedFile, collapsed: bool, show_large: bool, inline: InlineRows) -> Vec<Row> {
     let mut rows = vec![Row::Header(fi)];
     if !collapsed {
         let lines = f.line_count();
@@ -53,7 +89,19 @@ pub fn file_rows(fi: usize, f: &ChangedFile, collapsed: bool, show_large: bool) 
         } else {
             for (hi, h) in f.hunks.iter().enumerate() {
                 rows.push(Row::Hunk(fi, hi));
-                rows.extend((0..h.lines.len()).map(|li| Row::Line(fi, hi, li)));
+                for (li, l) in h.lines.iter().enumerate() {
+                    rows.push(Row::Line(fi, hi, li));
+                    if let Some(ix) = inline.index {
+                        rows.extend(line_threads(ix, f.path(), l).map(|t| Row::Thread(fi, t)));
+                    }
+                    if inline.draft.is_some_and(|(df, side, n)| df == fi && line_anchor(l) == Some((side, n))) {
+                        rows.push(Row::Composer(fi));
+                    }
+                }
+            }
+            if let Some(old) = inline.index.and_then(|ix| ix.outdated.get(f.path())).filter(|o| !o.is_empty()) {
+                rows.push(Row::Outdated(fi, old.len()));
+                rows.extend(old.iter().map(|t| Row::Thread(fi, *t)));
             }
         }
     }
@@ -62,12 +110,12 @@ pub fn file_rows(fi: usize, f: &ChangedFile, collapsed: bool, show_large: bool) 
 }
 
 /// All rows plus the index of each file's header row.
-pub fn build_rows(files: &[ChangedFile], collapsed: &HashSet<usize>, shown_large: &HashSet<usize>) -> (Vec<Row>, Vec<usize>) {
+pub fn build_rows(files: &[ChangedFile], collapsed: &HashSet<usize>, shown_large: &HashSet<usize>, inline: InlineRows) -> (Vec<Row>, Vec<usize>) {
     let mut rows = vec![];
     let mut starts = vec![];
     for (fi, f) in files.iter().enumerate() {
         starts.push(rows.len());
-        rows.extend(file_rows(fi, f, collapsed.contains(&fi), shown_large.contains(&fi)));
+        rows.extend(file_rows(fi, f, collapsed.contains(&fi), shown_large.contains(&fi), inline));
     }
     (rows, starts)
 }
@@ -107,13 +155,29 @@ mod tests {
     #[test]
     fn rows_for_files() {
         let files = vec![file(2), file(LARGE_FILE_LINES + 1)];
-        let (rows, starts) = build_rows(&files, &HashSet::new(), &HashSet::new());
+        let (rows, starts) = build_rows(&files, &HashSet::new(), &HashSet::new(), InlineRows::default());
         assert_eq!(starts, vec![0, 5]);
         assert_eq!(rows[..5], [Row::Header(0), Row::Hunk(0, 0), Row::Line(0, 0, 0), Row::Line(0, 0, 1), Row::End(0)]);
         assert_eq!(rows[6], Row::Notice(1, Notice::Large(LARGE_FILE_LINES + 1)));
-        let (rows, _) = build_rows(&files, &HashSet::from([0]), &HashSet::from([1]));
+        let (rows, _) = build_rows(&files, &HashSet::from([0]), &HashSet::from([1]), InlineRows::default());
         assert_eq!(rows[..2], [Row::Header(0), Row::End(0)]);
         assert_eq!(rows.len(), 2 + 1 + 1 + LARGE_FILE_LINES + 1 + 1);
         assert!(patch_text(&files[..1]).contains("+l1\n"));
+    }
+
+    #[test]
+    fn threads_and_composer_rows() {
+        let mut t = gv_engine::Thread::conversation("t", vec![]);
+        t.position = Some(gv_engine::DiffPosition::new("a", DiffSide::New, 2));
+        let mut gone = t.clone();
+        gone.position = Some(gv_engine::DiffPosition::new("a", DiffSide::New, 99));
+        let files = vec![file(2)];
+        let ix = gv_engine::index_inline_threads(&[t, gone], &files);
+        let inline = InlineRows { index: Some(&ix), draft: Some((0, DiffSide::New, 1)) };
+        let (rows, _) = build_rows(&files, &HashSet::new(), &HashSet::new(), inline);
+        assert_eq!(
+            rows,
+            [Row::Header(0), Row::Hunk(0, 0), Row::Line(0, 0, 0), Row::Composer(0), Row::Line(0, 0, 1), Row::Thread(0, 0), Row::Outdated(0, 1), Row::Thread(0, 1), Row::End(0)]
+        );
     }
 }

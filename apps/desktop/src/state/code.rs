@@ -6,8 +6,9 @@ use std::sync::Arc;
 use gpui::{px, Context, ListAlignment, ListOffset, ListState, Pixels};
 use gv_engine::ChangedFile;
 
-use super::code_rows::{build_rows, file_rows, Row};
+use super::code_rows::{build_rows, file_rows, InlineRows, Row};
 use super::file_view::FileView;
+use super::inline::InlineState;
 use super::{bridge, err_str, timing};
 use crate::app::GitViewer;
 
@@ -27,6 +28,8 @@ pub struct CodeState {
     /// Horizontal scroll per file card.
     pub scroll_x: HashMap<usize, Pixels>,
     pub viewer: Option<FileView>,
+    /// Inline review threads, the open composer and reply/edit state.
+    pub inline: InlineState,
 }
 
 impl CodeState {
@@ -43,10 +46,27 @@ impl CodeState {
             list: ListState::new(0, ListAlignment::Top, px(800.)),
             scroll_x: HashMap::new(),
             viewer: None,
+            inline: InlineState::default(),
         }
     }
 
-    fn set_files(&mut self, files: Arc<Vec<ChangedFile>>) {
+    pub(crate) fn inline_rows(&self) -> InlineRows<'_> {
+        InlineRows { index: Some(&self.inline.index), draft: self.inline.draft.as_ref().map(|d| (d.fi, d.side, d.line)) }
+    }
+
+    /// Recompute rows and splice only the changed middle, so the scroll position holds.
+    pub fn sync_rows(&mut self) {
+        let Some(files) = &self.files else { return };
+        let (rows, starts) = build_rows(files, &self.collapsed, &self.shown_large, self.inline_rows());
+        let pre = self.rows.iter().zip(&rows).take_while(|(a, b)| a == b).count();
+        let max_suf = self.rows.len().min(rows.len()) - pre;
+        let suf = self.rows.iter().rev().zip(rows.iter().rev()).take(max_suf).take_while(|(a, b)| a == b).count();
+        self.list.splice(pre..self.rows.len() - suf, rows.len() - suf - pre);
+        self.rows = rows;
+        self.starts = starts;
+    }
+
+    pub(crate) fn set_files(&mut self, files: Arc<Vec<ChangedFile>>) {
         let unchanged = self.files.as_ref().is_some_and(|f| **f == *files);
         self.files = Some(files);
         if !unchanged {
@@ -56,7 +76,7 @@ impl CodeState {
 
     pub fn rebuild(&mut self) {
         let Some(files) = &self.files else { return };
-        (self.rows, self.starts) = build_rows(files, &self.collapsed, &self.shown_large);
+        (self.rows, self.starts) = build_rows(files, &self.collapsed, &self.shown_large, self.inline_rows());
         self.list.reset(self.rows.len());
     }
 
@@ -74,7 +94,7 @@ impl CodeState {
         let Some(files) = self.files.clone() else { return };
         let start = self.starts[fi];
         let end = self.starts.get(fi + 1).copied().unwrap_or(self.rows.len());
-        let new = file_rows(fi, &files[fi], self.collapsed.contains(&fi), self.shown_large.contains(&fi));
+        let new = file_rows(fi, &files[fi], self.collapsed.contains(&fi), self.shown_large.contains(&fi), self.inline_rows());
         let delta = new.len() as isize - (end - start) as isize;
         self.list.splice(start..end, new.len());
         self.rows.splice(start..end, new);
@@ -134,6 +154,7 @@ impl GitViewer {
         if d.code.files.is_none() {
             if let Some(f) = self.code_cache.get(&id) {
                 d.code.set_files(f.clone());
+                d.reindex();
             }
         }
         d.code.loading = true;
@@ -166,7 +187,8 @@ impl GitViewer {
                 match (files, r) {
                     (Some(f), _) => {
                         d.code.error = None;
-                        d.code.set_files(f)
+                        d.code.set_files(f);
+                        d.reindex()
                     }
                     (None, Err(e)) => d.code.error = Some(e),
                     (None, Ok(_)) => {}

@@ -13,7 +13,31 @@ use crate::ui::theme;
 impl GitViewer {
     pub(super) fn render_thread(&self, t: &Thread, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
         let mut tc = div().flex().flex_col().gap(theme::SPACE_2).p(theme::SPACE_2).rounded(theme::RADIUS_MD).border_1().border_color(theme::border());
-        if let Some(p) = t.comments.first().and_then(|c| c.position.as_ref()) {
+        if let Some(p) = &t.position {
+            let range = p.start_line.map(|s| format!("{s}-")).unwrap_or_default();
+            let tid = t.id.clone();
+            tc = tc.child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(theme::SPACE_2)
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w(theme::SPACE_0)
+                            .truncate()
+                            .text_size(theme::text_xs())
+                            .font_family(theme::mono_font())
+                            .text_color(theme::text_muted())
+                            .child(format!("{}:{range}{}{}", p.path, p.line, if t.outdated { "  (outdated)" } else { "" })),
+                    )
+                    .when(t.id != "pending", |el| {
+                        el.child(Button::new(format!("show-in-code-{}", t.id), "Show in code").variant(ButtonVariant::Link).on_click(cx.listener(
+                            move |this, _: &ClickEvent, _, cx| this.show_thread_in_code(tid.clone(), cx),
+                        )))
+                    }),
+            );
+        } else if let Some(p) = t.comments.first().and_then(|c| c.position.as_ref()) {
             tc = tc.child(
                 div()
                     .text_size(theme::text_xs())

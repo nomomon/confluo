@@ -113,6 +113,7 @@ impl GitViewer {
                         d.detail = Some(det);
                         d.loaded_at = Some(Utc::now());
                         d.error = None;
+                        d.reindex();
                     }
                     Err(e) => d.error = Some(e),
                 }

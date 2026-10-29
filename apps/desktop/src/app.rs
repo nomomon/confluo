@@ -67,6 +67,8 @@ pub struct GitViewer {
     pub(crate) resizing: bool,
     pub(crate) search: Entity<TextInput>,
     pub(crate) composer: Entity<TextInput>,
+    /// Shared field of the Code tab's inline composer, reply and edit.
+    pub(crate) inline_input: Entity<TextInput>,
     pub(crate) add_name: Entity<TextInput>,
     pub(crate) add_value: Entity<TextInput>,
     pub(crate) add_kind: SourceKind,
@@ -93,6 +95,7 @@ impl GitViewer {
         let input = |cx: &mut Context<Self>, ph: &'static str| cx.new(|cx| TextInput::new(ph, cx));
         let search = input(cx, "Search title, repo, author or branch  /");
         let composer = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post", cx).multiline());
+        let inline_input = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post, Esc to cancel", cx).multiline());
         let add_name = input(cx, "Project name");
         let add_value = input(cx, "Paste a repo or group URL, or a folder path");
         let alias_input = input(cx, "Alias (empty to clear)");
@@ -105,6 +108,7 @@ impl GitViewer {
         })
         .detach();
         on_submit(cx, &composer, |this, _, cx| this.post_comment(cx));
+        on_submit(cx, &inline_input, |this, _, cx| this.submit_inline(cx));
         on_submit(cx, &add_value, |this, _, cx| this.submit_add_project(cx));
         cx.subscribe(&add_value, |this, _, ev: &InputEvent, cx| {
             if matches!(ev, InputEvent::Changed) {
@@ -152,6 +156,7 @@ impl GitViewer {
             resizing: false,
             search,
             composer,
+            inline_input,
             add_name,
             add_value,
             add_kind: SourceKind::Folder,

@@ -143,6 +143,8 @@ impl GitViewer {
             self.menu = None;
         } else if self.overlay != Overlay::None {
             self.overlay = Overlay::None;
+        } else if self.code_tab_active() && self.cancel_inline(cx) {
+            // Closed the inline comment composer; keep the detail open.
         } else if self.search.focus_handle(cx).is_focused(window) || self.detail.is_none() {
             self.search.update(cx, |i, cx| i.set_text("", cx));
         } else {

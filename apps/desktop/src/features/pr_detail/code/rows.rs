@@ -2,16 +2,15 @@
 //!
 //! Rows of a file share left and right borders so together they read as one rounded card.
 
-use gpui::{div, prelude::*, px, AnyElement, ClickEvent, Context, Div, ScrollWheelEvent, SharedString};
-use gv_engine::{ChangeRequest, FileStatus, LineKind, ProviderKind};
+use gpui::{div, prelude::*, AnyElement, ClickEvent, Context, Div, SharedString};
+use gv_engine::{ChangeRequest, FileStatus, ProviderKind};
 
-use super::{diff_counts, status_color};
+use super::{comment_count, diff_counts, status_color};
 use crate::app::GitViewer;
 use crate::features::shared::layout;
 use crate::state::code_rows::{Notice, Row};
 use crate::state::Copied;
 use crate::ui::atoms::{Button, ButtonVariant, Icon, IconName};
-use crate::ui::molecules::code::{DiffRow, Lang, LineMark};
 use crate::ui::theme;
 
 /// The provider's own diff page for files we cannot render.
@@ -23,7 +22,7 @@ fn files_url(c: &ChangeRequest) -> String {
 }
 
 impl GitViewer {
-    fn card_side(&self) -> Div {
+    pub(super) fn card_side(&self) -> Div {
         div().w_full().bg(self.surfaces().card()).border_l_1().border_r_1().border_color(theme::border_subtle()).overflow_hidden()
     }
 
@@ -32,7 +31,7 @@ impl GitViewer {
         let (Some(files), Some(&row)) = (d.code.files.clone(), d.code.rows.get(ix)) else { return div().into_any_element() };
         let f = &files[row.file()];
         match row {
-            Row::Header(fi) => self.render_file_header(fi, f, d.code.collapsed.contains(&fi), cx).into_any_element(),
+            Row::Header(fi) => self.render_file_header(fi, f, d.code.collapsed.contains(&fi), d.code.inline.index.count(f.path()), cx).into_any_element(),
             Row::Hunk(_, hi) => self
                 .card_side()
                 .h(layout::DIFF_HUNK_H)
@@ -46,40 +45,19 @@ impl GitViewer {
                 .whitespace_nowrap()
                 .child(f.hunks[hi].header.clone())
                 .into_any_element(),
-            Row::Line(fi, hi, li) => {
-                let l = &f.hunks[hi].lines[li];
-                let mark = match l.kind {
-                    LineKind::Add => LineMark::Add,
-                    LineKind::Del => LineMark::Del,
-                    LineKind::Context => LineMark::Context,
-                };
-                let x = d.code.scroll_x.get(&fi).copied().unwrap_or(px(0.));
-                let files_for_scroll = files.clone();
-                self.card_side()
-                    .id(("diff-line", ix))
-                    .on_scroll_wheel(cx.listener(move |this, ev: &ScrollWheelEvent, _, cx| {
-                        let delta = ev.delta.pixel_delta(layout::DIFF_LINE_H);
-                        if delta.x.abs() <= delta.y.abs() {
-                            return;
-                        }
-                        cx.stop_propagation();
-                        let max_chars = files_for_scroll[fi].hunks.iter().flat_map(|h| &h.lines).map(|l| l.text.len()).max().unwrap_or(0);
-                        let max_x = (theme::text_xs() * layout::MONO_CHAR_RATIO * max_chars as f32 - layout::DIFF_GUTTER_W * 4.).max(px(0.));
-                        if let Some(d) = this.detail.as_mut() {
-                            let e = d.code.scroll_x.entry(fi).or_insert(px(0.));
-                            *e = (*e - delta.x).clamp(px(0.), max_x);
-                        }
-                        cx.notify()
-                    }))
-                    .child(
-                        DiffRow::new(mark, l.text.clone(), Lang::from_path(f.path()))
-                            .numbers(l.old_no, l.new_no)
-                            .gutter_w(layout::DIFF_GUTTER_W)
-                            .height(layout::DIFF_LINE_H)
-                            .scroll_x(x),
-                    )
-                    .into_any_element()
-            }
+            Row::Line(fi, hi, li) => self.render_diff_line(ix, fi, hi, li, &files, d, cx),
+            Row::Thread(fi, ti) => self.render_inline_thread(fi, ti, d, cx),
+            Row::Composer(_) => self.render_line_composer(d, cx),
+            Row::Outdated(_, n) => self
+                .card_side()
+                .px(theme::SPACE_3)
+                .pt(theme::SPACE_3)
+                .pb(theme::SPACE_1)
+                .border_t_1()
+                .text_size(theme::text_xs())
+                .text_color(theme::text_subtle())
+                .child(format!("Outdated comments ({n})"))
+                .into_any_element(),
             Row::Notice(fi, n) => self.render_notice(fi, n, &d.summary, cx).into_any_element(),
             Row::End(_) => div()
                 .w_full()
@@ -119,7 +97,7 @@ impl GitViewer {
             .child(action)
     }
 
-    fn render_file_header(&self, fi: usize, f: &gv_engine::ChangedFile, collapsed: bool, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_file_header(&self, fi: usize, f: &gv_engine::ChangedFile, collapsed: bool, comments: usize, cx: &mut Context<Self>) -> impl IntoElement {
         let path = f.path().to_string();
         let name: SharedString = if f.status == FileStatus::Renamed { format!("{} -> {}", f.old_path, f.new_path).into() } else { path.clone().into() };
         let copy_path = path.clone();
@@ -156,6 +134,7 @@ impl GitViewer {
                     .text_color(if f.status == FileStatus::Deleted { theme::text_muted() } else { theme::text() })
                     .child(name),
             )
+            .children(comment_count(comments))
             .child(diff_counts(f.additions, f.deletions))
             .child(
                 Button::new(format!("copy-path-{fi}"), "")

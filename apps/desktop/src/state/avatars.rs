@@ -19,13 +19,18 @@ impl GitViewer {
 
     /// Start fetching avatars of listed authors that are not cached yet.
     pub(crate) fn fetch_avatars(&mut self, cx: &mut Context<Self>) {
-        let wanted: Vec<String> = self
+        let threads = self.detail.as_ref().and_then(|d| d.detail.as_ref()).map(|d| d.threads.as_slice()).unwrap_or_default();
+        let mut wanted: Vec<String> = self
             .items
             .iter()
             .chain(self.detail.as_ref().map(|d| &d.summary))
-            .filter_map(|c| c.author.avatar_url.clone())
+            .map(|c| &c.author)
+            .chain(threads.iter().flat_map(|t| &t.comments).map(|c| &c.author))
+            .filter_map(|a| a.avatar_url.clone())
             .filter(|u| !self.avatars.contains_key(u))
             .collect();
+        wanted.sort();
+        wanted.dedup();
         if wanted.is_empty() {
             return;
         }

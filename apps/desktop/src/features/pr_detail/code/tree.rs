@@ -2,7 +2,7 @@
 
 use gpui::{div, prelude::*, ClickEvent, Context};
 
-use super::{diff_counts, status_color};
+use super::{comment_count, diff_counts, status_color};
 use crate::app::GitViewer;
 use crate::features::shared::layout;
 use crate::state::DetailState;
@@ -64,6 +64,7 @@ impl GitViewer {
                             .text_color(status_color(f.status))
                             .child(name.to_string()),
                     )
+                    .children(comment_count(d.code.inline.index.count(f.path())))
                     .child(diff_counts(f.additions, f.deletions)),
             );
         }

@@ -1,6 +1,9 @@
 //! Code tab: toolbar, optional file tree and the virtualized diff of every changed file.
 
+mod line;
+mod line_composer;
 mod rows;
+mod thread_card;
 mod toolbar;
 mod tree;
 mod viewer;
@@ -10,7 +13,7 @@ use gv_engine::FileStatus;
 
 use crate::app::GitViewer;
 use crate::state::DetailState;
-use crate::ui::atoms::ErrorText;
+use crate::ui::atoms::{ErrorText, Icon, IconName};
 use crate::ui::molecules::EmptyState;
 use crate::ui::theme;
 
@@ -34,6 +37,25 @@ pub(super) fn diff_counts(a: u32, d: u32) -> Div {
         .text_size(theme::text_xs())
         .when(a > 0, |el| el.child(div().text_color(theme::success()).child(format!("+{a}"))))
         .when(d > 0, |el| el.child(div().text_color(theme::danger()).child(format!("-{d}"))))
+}
+
+/// Message icon with the number of inline threads on a file; nothing when zero.
+pub(super) fn comment_count(n: usize) -> Option<Div> {
+    (n > 0).then(|| {
+        div()
+            .flex()
+            .flex_shrink_0()
+            .items_center()
+            .gap(theme::SPACE_0P5)
+            .px(theme::SPACE_1P5)
+            .rounded(theme::RADIUS_FULL)
+            .bg(theme::tint_bg(theme::accent()))
+            .text_color(theme::accent())
+            .text_size(theme::text_2xs())
+            .font_weight(theme::WEIGHT_MEDIUM)
+            .child(Icon::new(IconName::Message).size(theme::ICON_SM).color(theme::accent()))
+            .child(n.to_string())
+    })
 }
 
 impl GitViewer {

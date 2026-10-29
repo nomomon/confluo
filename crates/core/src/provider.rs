@@ -31,4 +31,8 @@ pub trait Provider: Send + Sync {
     async fn add_comment(&self, id: &ChangeRequestId, body: &str) -> ProviderResult<Comment>;
     async fn reply_to_thread(&self, id: &ChangeRequestId, thread_id: &str, body: &str) -> ProviderResult<Comment>;
     async fn edit_comment(&self, id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment>;
+    /// Files changed by the PR/MR with parsed hunks.
+    async fn list_changed_files(&self, id: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>>;
+    /// Whole file at `rev` (a commit sha); None when it does not exist there.
+    async fn get_file_content(&self, id: &ChangeRequestId, path: &str, rev: &str) -> ProviderResult<Option<String>>;
 }

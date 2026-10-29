@@ -1,0 +1,8 @@
+[package]
+name = "gv-provider-azure"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+gv-core.workspace = true
+async-trait.workspace = true

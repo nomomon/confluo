@@ -5,4 +5,4 @@ pub mod layout;
 mod status;
 
 pub use format::relative_time;
-pub use status::{checks_summary, provider_badge, review_summary, state_pill};
+pub use status::{checks_summary, checks_text, number_label, provider_badge, review_summary, state_icon, state_pill};

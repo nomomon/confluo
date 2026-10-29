@@ -1,0 +1,38 @@
+//! Groups rows into rounded cards: Inbox sections, or one card elsewhere.
+
+use gpui::{prelude::*, AnyElement, ClickEvent, Context};
+use gv_engine::ChangeRequest;
+
+use crate::app::GitViewer;
+use crate::state::Section;
+use crate::ui::molecules::ListSection;
+
+impl GitViewer {
+    /// Inbox (no project, not starred) is sectioned; other views are one flat card.
+    pub(super) fn render_sections(&self, visible: &[&ChangeRequest], cx: &mut Context<Self>) -> Vec<AnyElement> {
+        let fill = self.surfaces().card();
+        let mut kinds: Vec<_> = visible.iter().map(|c| c.id.repo.kind).collect();
+        kinds.sort();
+        kinds.dedup();
+        let mixed = kinds.len() > 1;
+        if self.selected.is_some() || self.starred_only {
+            let rows = visible.iter().map(|c| self.render_row(c, mixed, cx).into_any_element());
+            return vec![ListSection::new("list-all", fill).children(rows).into_any_element()];
+        }
+        let mut out = vec![];
+        for s in Section::ALL {
+            let items: Vec<&&ChangeRequest> = visible.iter().filter(|c| self.section_of(c) == s).collect();
+            if items.is_empty() {
+                continue;
+            }
+            let open = !self.collapsed.contains(&s);
+            let section = ListSection::new(format!("section-{s:?}"), fill)
+                .header(s.title(), items.len())
+                .open(open)
+                .on_toggle(cx.listener(move |this, _: &ClickEvent, _, cx| this.toggle_section(s, cx)))
+                .when(open, |sec| sec.children(items.iter().map(|c| self.render_row(c, mixed, cx).into_any_element())));
+            out.push(section.into_any_element());
+        }
+        out
+    }
+}

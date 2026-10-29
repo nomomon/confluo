@@ -3,6 +3,7 @@
 mod empty;
 mod filters;
 mod row;
+mod sections;
 
 use gpui::{div, prelude::*, ClickEvent, Context};
 
@@ -45,14 +46,11 @@ impl GitViewer {
                     cx.notify()
                 }))
         });
-        let mut rows = div().id("pr-list").flex().flex_col().flex_1().min_h(theme::SPACE_0).overflow_y_scroll().gap(theme::SPACE_1).pb(theme::SPACE_4);
+        let mut rows = div().id("pr-list").flex().flex_col().flex_1().min_h(theme::SPACE_0).overflow_y_scroll().gap(theme::SPACE_3).pb(theme::SPACE_4);
         if visible.is_empty() {
             rows = rows.child(self.render_empty(cx));
         }
-        let selected_id = self.detail.as_ref().map(|d| d.summary.id.clone());
-        for c in &visible {
-            rows = rows.child(self.render_row(c, selected_id.as_ref() == Some(&c.id), cx));
-        }
+        rows = rows.children(self.render_sections(&visible, cx));
 
         div()
             .flex()

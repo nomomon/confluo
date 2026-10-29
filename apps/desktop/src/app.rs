@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::settings::{Appearance, Settings};
-use crate::state::{DetailState, HostStatus, SourceKind};
+use crate::state::{DetailState, HostStatus, Section, SourceKind};
 use crate::ui::molecules::text_input::{InputEvent, TextInput};
 use crate::ui::theme::{self, Translucency};
 
@@ -44,6 +44,10 @@ pub struct GitViewer {
     pub(crate) hosts: Option<Vec<HostStatus>>,
     /// One-line error for the banner; cleared on the next successful refresh.
     pub(crate) error: Option<String>,
+    /// Inbox sections the user collapsed.
+    pub(crate) collapsed: HashSet<Section>,
+    /// Keyboard selection in the list.
+    pub(crate) cursor: Option<ChangeRequestId>,
     pub(crate) detail: Option<DetailState>,
     pub(crate) overlay: Overlay,
     pub(crate) copied: bool,
@@ -121,6 +125,8 @@ impl GitViewer {
             refreshed_at: None,
             hosts: None,
             error: None,
+            collapsed: Section::ALL.into_iter().filter(|s| s.collapsed_by_default()).collect(),
+            cursor: None,
             detail: None,
             overlay: Overlay::None,
             copied: false,

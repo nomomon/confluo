@@ -1,9 +1,9 @@
 //! Map engine provider, state, review and check data onto `ui` atoms.
 
-use gpui::{div, prelude::*, Div};
+use gpui::{div, prelude::*, Div, Hsla};
 use gv_engine::{ChangeRequest, ChangeRequestState, ProviderKind, ReviewState};
 
-use crate::ui::atoms::{Badge, Pill};
+use crate::ui::atoms::{Badge, Icon, Pill};
 use crate::ui::theme;
 
 pub fn provider_badge(kind: ProviderKind) -> Badge {
@@ -23,6 +23,22 @@ pub fn state_pill(s: ChangeRequestState) -> Pill {
     }
 }
 
+/// Leading state glyph: green open, grey draft, purple merged, red closed.
+pub fn state_icon(s: ChangeRequestState) -> Icon {
+    match s {
+        ChangeRequestState::Open => Icon::new("\u{25CF}").color(theme::SUCCESS),
+        ChangeRequestState::Draft => Icon::new("\u{25CB}").color(theme::TEXT_SUBTLE),
+        ChangeRequestState::Merged => Icon::new("\u{25CF}").color(theme::MERGED),
+        ChangeRequestState::Closed => Icon::new("\u{25CF}").color(theme::DANGER),
+    }
+}
+
+/// `#12` on GitHub and Azure, `!12` on GitLab.
+pub fn number_label(c: &ChangeRequest) -> String {
+    let sep = if c.id.repo.kind == ProviderKind::GitLab { '!' } else { '#' };
+    format!("{sep}{}", c.id.number)
+}
+
 pub fn review_summary(c: &ChangeRequest) -> Div {
     let n = |s: ReviewState| c.reviewers.iter().filter(|r| r.state == s).count();
     let (a, ch, p) = (n(ReviewState::Approved), n(ReviewState::ChangesRequested), n(ReviewState::Pending));
@@ -40,16 +56,21 @@ pub fn review_summary(c: &ChangeRequest) -> Div {
     div().text_size(theme::TEXT_XS).text_color(color).child(text)
 }
 
-pub fn checks_summary(c: &ChangeRequest) -> Div {
+/// Checks in words; red only when something fails.
+pub fn checks_text(c: &ChangeRequest) -> (String, Hsla) {
     let k = c.checks;
-    let (text, color) = if k.total == 0 {
-        ("No checks".to_string(), theme::TEXT_SUBTLE)
+    if k.total == 0 {
+        ("No checks reported".into(), theme::TEXT_SUBTLE)
     } else if k.failed > 0 {
-        (format!("{}/{} checks failed", k.failed, k.total), theme::DANGER)
+        (format!("{} failing", k.failed), theme::DANGER)
     } else if k.pending > 0 {
-        (format!("{}/{} checks pending", k.pending, k.total), theme::WARNING)
+        (format!("{} pending", k.pending), theme::TEXT_MUTED)
     } else {
-        (format!("{}/{} checks passed", k.passed, k.total), theme::SUCCESS)
-    };
+        (format!("{} passed", k.passed), theme::TEXT_MUTED)
+    }
+}
+
+pub fn checks_summary(c: &ChangeRequest) -> Div {
+    let (text, color) = checks_text(c);
     div().text_size(theme::TEXT_XS).text_color(color).child(text)
 }

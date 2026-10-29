@@ -25,6 +25,8 @@ pub const RADIUS_LG: Pixels = px(12.);
 pub const RADIUS_XL: Pixels = px(16.);
 pub const RADIUS_FULL: Pixels = px(9999.);
 
+/// Tiny labels inside avatars and badges.
+pub const TEXT_2XS: Pixels = px(10.);
 pub const TEXT_XS: Pixels = px(12.);
 pub const TEXT_SM: Pixels = px(13.);
 pub const TEXT_BASE: Pixels = px(14.);

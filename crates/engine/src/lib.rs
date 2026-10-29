@@ -6,13 +6,13 @@ use anyhow::{anyhow, bail, Context, Result};
 use chrono::Utc;
 use futures_util::stream::{self, StreamExt};
 use gv_auth::CredentialSource;
-use gv_store::{CacheQuery, RepoOverride, Store};
+use gv_store::{CacheQuery, Store};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 pub use gv_core::*;
-pub use gv_store::{Project, Source};
+pub use gv_store::{Project, RepoOverride, Source};
 
 /// Per-provider concurrency for per-repo refreshes.
 const REPO_CONCURRENCY: usize = 4;

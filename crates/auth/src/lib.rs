@@ -95,12 +95,42 @@ impl CredentialSource {
 }
 
 async fn run(cmd: &str, args: &[&str]) -> Option<String> {
-    let out = Command::new(cmd).args(args).output().await.ok()?;
+    let bin = resolve_cli(cmd).unwrap_or_else(|| PathBuf::from(cmd));
+    let out = Command::new(bin).args(args).output().await.ok()?;
     if !out.status.success() {
         return None;
     }
     let s = String::from_utf8(out.stdout).ok()?.trim().to_string();
     (!s.is_empty()).then_some(s)
+}
+
+/// Directories searched for provider CLIs: `$PATH`, then the usual install dirs.
+/// Apps launched from Finder or the Dock get a minimal PATH without Homebrew, so
+/// the common locations are added explicitly.
+fn cli_search_dirs(path: Option<&std::ffi::OsStr>, home: Option<&std::path::Path>) -> Vec<PathBuf> {
+    let mut dirs: Vec<PathBuf> = path.map(|p| std::env::split_paths(p).collect()).unwrap_or_default();
+    let mut extra = vec![PathBuf::from("/opt/homebrew/bin"), PathBuf::from("/usr/local/bin")];
+    if let Some(h) = home {
+        extra.push(h.join(".local/bin"));
+        extra.push(h.join("bin"));
+    }
+    for d in extra {
+        if !dirs.contains(&d) {
+            dirs.push(d);
+        }
+    }
+    dirs
+}
+
+fn find_in(cmd: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
+    use std::os::unix::fs::PermissionsExt;
+    dirs.iter().map(|d| d.join(cmd)).find(|p| std::fs::metadata(p).map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0).unwrap_or(false))
+}
+
+/// Absolute path of a CLI such as `gh`, `glab` or `az`, if installed.
+pub fn resolve_cli(cmd: &str) -> Option<PathBuf> {
+    let home = std::env::var_os("HOME").map(PathBuf::from);
+    find_in(cmd, &cli_search_dirs(std::env::var_os("PATH").as_deref(), home.as_deref()))
 }
 
 fn glab_config_paths() -> Vec<PathBuf> {
@@ -184,5 +214,36 @@ mod tests {
     #[test]
     fn env_var_names() {
         assert_eq!(env_vars(ProviderKind::GitLab, "gitlab.com")[0], "GV_TOKEN_GITLAB_COM");
+    }
+}
+
+#[cfg(test)]
+mod resolver_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn search_dirs_add_homebrew_without_duplicates() {
+        let dirs = cli_search_dirs(Some(std::ffi::OsStr::new("/usr/bin:/opt/homebrew/bin")), Some(std::path::Path::new("/Users/x")));
+        assert_eq!(dirs[0], PathBuf::from("/usr/bin"));
+        assert_eq!(dirs.iter().filter(|d| d.as_path() == std::path::Path::new("/opt/homebrew/bin")).count(), 1);
+        assert!(dirs.contains(&PathBuf::from("/usr/local/bin")));
+        assert!(dirs.contains(&PathBuf::from("/Users/x/.local/bin")));
+        // Finder-style minimal PATH still finds Homebrew.
+        assert!(cli_search_dirs(Some(std::ffi::OsStr::new("/usr/bin:/bin")), None).contains(&PathBuf::from("/opt/homebrew/bin")));
+    }
+
+    #[test]
+    fn finds_only_executable_files() {
+        let root = std::env::temp_dir().join(format!("gv-resolve-{}", std::process::id()));
+        let (a, b) = (root.join("a"), root.join("b"));
+        std::fs::create_dir_all(&a).unwrap();
+        std::fs::create_dir_all(&b).unwrap();
+        std::fs::write(a.join("gh"), "").unwrap(); // not executable
+        std::fs::write(b.join("gh"), "#!/bin/sh\n").unwrap();
+        std::fs::set_permissions(b.join("gh"), std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(find_in("gh", &[a.clone(), b.clone()]), Some(b.join("gh")));
+        assert_eq!(find_in("glab", &[a, b]), None);
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

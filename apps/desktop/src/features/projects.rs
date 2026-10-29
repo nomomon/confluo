@@ -2,9 +2,9 @@
 
 use gpui::{div, prelude::*, ClickEvent, Context, PathPromptOptions};
 
-use crate::app::GitViewer;
+use crate::app::{GitViewer, Overlay};
 use crate::state::SourceKind;
-use crate::ui::atoms::{Button, Chip, ErrorText};
+use crate::ui::atoms::{Button, ButtonVariant, Chip, ErrorText};
 use crate::ui::molecules::{Field, SegmentedTabs};
 use crate::ui::theme;
 
@@ -66,5 +66,25 @@ impl GitViewer {
             .gap(theme::SPACE_2)
             .child(div().flex_1().child(self.rename_input.clone()))
             .child(Button::new("rename-save", "Save").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.save_rename(cx))))
+    }
+
+    pub(super) fn render_confirm_delete(&self, id: i64, cx: &mut Context<Self>) -> impl IntoElement {
+        let name = self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default();
+        div()
+            .flex()
+            .flex_col()
+            .gap(theme::SPACE_3)
+            .child(div().text_color(theme::TEXT_MUTED).child(format!("Delete \"{name}\"? Its repos and cached pull requests are removed from git-viewer. Nothing changes on the server.")))
+            .child(
+                div()
+                    .flex()
+                    .justify_end()
+                    .gap(theme::SPACE_2)
+                    .child(Button::new("delete-cancel", "Cancel").variant(ButtonVariant::Ghost).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                        this.overlay = Overlay::None;
+                        cx.notify()
+                    })))
+                    .child(Button::new("delete-confirm", "Delete").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.delete_project(id, cx)))),
+            )
     }
 }

@@ -112,8 +112,16 @@ impl GitViewer {
         cx.notify();
     }
 
+    /// Ask before deleting; the dialog calls `delete_project`.
+    pub(crate) fn confirm_delete(&mut self, id: i64, cx: &mut Context<Self>) {
+        self.menu = None;
+        self.overlay = Overlay::ConfirmDelete(id);
+        cx.notify();
+    }
+
     pub(crate) fn delete_project(&mut self, id: i64, cx: &mut Context<Self>) {
         self.menu = None;
+        self.overlay = Overlay::None;
         if let Err(e) = self.engine.delete_project(id) {
             self.error = Some(err_str(e));
         }

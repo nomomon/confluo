@@ -40,7 +40,7 @@ impl GitViewer {
                     cx.notify()
                 }))
                 .child(NavItem::new(format!("rename-{id}"), "Rename").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.open_rename(id, cx))))
-                .child(NavItem::new(format!("delete-{id}"), "Delete").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.delete_project(id, cx))))
+                .child(NavItem::new(format!("delete-{id}"), "Delete").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.confirm_delete(id, cx))))
         });
         div().relative().child(item).children(menu)
     }

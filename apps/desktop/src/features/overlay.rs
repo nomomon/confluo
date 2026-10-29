@@ -13,6 +13,7 @@ impl GitViewer {
             Overlay::AddProject => ("Add project", self.render_add_project(cx).into_any_element()),
             Overlay::Alias => ("Repo alias", self.render_alias(cx).into_any_element()),
             Overlay::Rename(_) => ("Rename project", self.render_rename(cx).into_any_element()),
+            Overlay::ConfirmDelete(id) => ("Delete project", self.render_confirm_delete(id, cx).into_any_element()),
         };
         Some(
             Dialog::new(title)

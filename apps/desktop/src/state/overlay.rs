@@ -15,4 +15,6 @@ pub enum Overlay {
     AddProject,
     Alias,
     Rename(i64),
+    /// Confirm deleting a project.
+    ConfirmDelete(i64),
 }

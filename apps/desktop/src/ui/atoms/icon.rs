@@ -1,4 +1,4 @@
-//! SVG icon from the embedded Lucide set, tinted with one color.
+//! SVG icon from the embedded Tabler set (outline, stroke 1.75), tinted with one color.
 //!
 //! `Icon::new(IconName::ChevronDown).size(theme::SPACE_3).color(theme::TEXT_MUTED)`
 
@@ -61,7 +61,7 @@ impl IconName {
             Self::ChevronDown => "icons/chevron-down.svg",
             Self::ChevronRight => "icons/chevron-right.svg",
             Self::Copy => "icons/copy.svg",
-            Self::Ellipsis => "icons/ellipsis.svg",
+            Self::Ellipsis => "icons/dots.svg",
             Self::ExternalLink => "icons/external-link.svg",
             Self::Folder => "icons/folder.svg",
             Self::GitMerge => "icons/git-merge.svg",
@@ -70,7 +70,7 @@ impl IconName {
             Self::GitPullRequestDraft => "icons/git-pull-request-draft.svg",
             Self::Inbox => "icons/inbox.svg",
             Self::Plus => "icons/plus.svg",
-            Self::Refresh => "icons/refresh-cw.svg",
+            Self::Refresh => "icons/refresh.svg",
             Self::Search => "icons/search.svg",
             Self::Settings => "icons/settings.svg",
             Self::Star => "icons/star.svg",

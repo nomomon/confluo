@@ -10,8 +10,8 @@ macro_rules! icons {
 }
 
 const FILES: &[(&str, &[u8])] = icons![
-    "check", "chevron-down", "chevron-right", "copy", "ellipsis", "external-link", "folder", "git-merge",
-    "git-pull-request", "git-pull-request-closed", "git-pull-request-draft", "inbox", "plus", "refresh-cw",
+    "check", "chevron-down", "chevron-right", "copy", "dots", "external-link", "folder", "git-merge",
+    "git-pull-request", "git-pull-request-closed", "git-pull-request-draft", "inbox", "plus", "refresh",
     "search", "settings", "star", "star-filled", "x",
 ];
 

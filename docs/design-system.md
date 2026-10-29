@@ -74,7 +74,7 @@ Spacing, Tailwind 4px steps: `SPACE_0` 0, `SPACE_0P5` 2, `SPACE_1` 4,
 `SPACE_5` 20, `SPACE_6` 24, `SPACE_8` 32, `SPACE_10` 40, `SPACE_12` 48.
 
 Icons: `ICON_SM` 12 (chevrons), `ICON_MD` 14 (buttons, nav), `ICON_LG` 16 (row state).
-Never use text glyphs as icons; add a Lucide SVG and an `IconName` variant instead.
+Never use text glyphs as icons; add a Tabler outline SVG (stroke-width 1.75) and an `IconName` variant instead.
 
 Radius: `RADIUS_SM` 6, `RADIUS_MD` 8, `RADIUS_LG` 12, `RADIUS_XL` 16,
 `RADIUS_FULL`.
@@ -88,7 +88,7 @@ Type: `TEXT_2XS` 10 (avatar initials), `TEXT_XS` 12, `TEXT_SM` 13 (body default)
 
 Atoms: `Avatar` (`.image(..)` from the in-memory avatar cache, else a subtle initial), `Badge`, `Button` (`.icon(IconName::Refresh)`, `.tooltip("Refresh  ⌘R")`),
 `Chip`, `Icon` (`Icon::new(IconName::ChevronDown).size(ICON_SM).color(..)`, embedded
-Lucide SVGs in `apps/desktop/assets/icons`, ISC license), `NavItem` (`.icon(..)`, `.trailing_on_hover(..)`,
+Tabler outline SVGs in `apps/desktop/assets/icons`, MIT license), `NavItem` (`.icon(..)`, `.trailing_on_hover(..)`,
 `.on_right_click(..)`), `Pill`, `Swatch`, `tooltip(text)` for any stateful element.
 
 Molecules: `Banner` (one-line dismissible error with an action such as Retry),

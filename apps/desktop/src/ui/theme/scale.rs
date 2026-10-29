@@ -44,3 +44,6 @@ pub const WEIGHT_BOLD: FontWeight = FontWeight::BOLD;
 pub const UI_FONT: &str = ".SystemUIFont";
 /// Monospace font for branches, commands and SHAs.
 pub const MONO_FONT: &str = "Menlo";
+
+/// Minimum width of dropdown menus.
+pub const MENU_MIN_W: Pixels = px(180.);

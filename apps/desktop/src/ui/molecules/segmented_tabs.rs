@@ -11,17 +11,24 @@ type SelectHandler = Rc<dyn Fn(&usize, &mut Window, &mut App) + 'static>;
 pub struct SegmentedTabs {
     id: SharedString,
     items: Vec<(SharedString, bool)>,
+    floating: bool,
     on_select: Option<SelectHandler>,
 }
 
 impl SegmentedTabs {
     pub fn new(id: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), items: vec![], on_select: None }
+        Self { id: id.into(), items: vec![], floating: false, on_select: None }
     }
 
     /// Append a tab; `active` marks the selected one.
     pub fn tab(mut self, label: impl Into<SharedString>, active: bool) -> Self {
         self.items.push((label.into(), active));
+        self
+    }
+
+    /// Pill-shaped variant on an overlay fill with a shadow, for bottom tab bars.
+    pub fn floating(mut self) -> Self {
+        self.floating = true;
         self
     }
 
@@ -42,7 +49,9 @@ impl RenderOnce for SegmentedTabs {
             .rounded(theme::RADIUS_MD)
             .bg(theme::SURFACE)
             .border_1()
-            .border_color(theme::BORDER);
+            .border_color(theme::BORDER)
+            .when(self.floating, |d| d.p(theme::SPACE_1).rounded(theme::RADIUS_FULL).bg(theme::OVERLAY).shadow_lg());
+        let floating = self.floating;
         for (i, (label, active)) in self.items.into_iter().enumerate() {
             let on = self.on_select.clone();
             row = row.child(
@@ -50,7 +59,8 @@ impl RenderOnce for SegmentedTabs {
                     .id(ElementId::Name(format!("{}-{i}", self.id).into()))
                     .px(theme::SPACE_2P5)
                     .py(theme::SPACE_0P5)
-                    .rounded(theme::RADIUS_SM)
+                    .rounded(if floating { theme::RADIUS_FULL } else { theme::RADIUS_SM })
+                    .when(floating, |d| d.px(theme::SPACE_3).py(theme::SPACE_1))
                     .text_size(theme::TEXT_XS)
                     .cursor_pointer()
                     .text_color(if active { theme::TEXT } else { theme::TEXT_MUTED })

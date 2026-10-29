@@ -9,4 +9,5 @@ mod pr_list;
 mod projects;
 mod settings;
 mod shared;
+pub(crate) use shared::layout;
 mod sidebar;

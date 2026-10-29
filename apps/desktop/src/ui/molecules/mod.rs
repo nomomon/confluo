@@ -12,6 +12,7 @@ pub mod markdown;
 mod banner;
 mod segmented_tabs;
 pub mod text_input;
+mod toast;
 
 pub use card::Card;
 pub use copy_field::CopyField;
@@ -23,3 +24,4 @@ pub use key_value_row::KeyValueRow;
 pub use list_section::ListSection;
 pub use banner::Banner;
 pub use segmented_tabs::SegmentedTabs;
+pub use toast::Toast;

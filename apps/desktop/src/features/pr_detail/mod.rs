@@ -1,4 +1,4 @@
-//! Right-hand detail panel for the selected PR.
+//! Right-hand detail panel: header, Summary or Activity body, floating tab pill.
 
 mod activity;
 mod checkout;
@@ -7,18 +7,16 @@ mod header;
 mod overview;
 mod tabs;
 
-use gpui::{div, prelude::*, Context};
+use gpui::{div, prelude::*, Context, MouseButton, MouseDownEvent};
 
 use crate::app::GitViewer;
-use crate::state::DetailState;
-use crate::ui::atoms::ErrorText;
-use crate::ui::molecules::Card;
-use crate::ui::{motion, theme};
 use crate::features::shared::layout;
+use crate::state::{DetailState, DetailTab};
+use crate::ui::atoms::ErrorText;
+use crate::ui::{motion, theme};
 
 impl GitViewer {
     pub(crate) fn render_detail(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
-        let tr = self.surfaces();
         let col = div()
             .id("detail-scroll")
             .flex()
@@ -29,27 +27,41 @@ impl GitViewer {
             .gap(theme::SPACE_3)
             .pb(theme::SPACE_4)
             .child(self.render_detail_header(d, cx))
-            .child(overview::overview_card(&d.summary, tr))
-            .child(self.render_checks_card(d, cx))
-            .child(self.render_checkout_card(d, cx))
             .when_some(d.error.clone(), |col, e| col.child(ErrorText::new(e)))
-            .child(self.render_detail_tabs(d, cx))
-            .child(Card::new(tr).child(self.render_detail_body(d, cx)));
-
+            .child(self.render_detail_body(d, cx));
+        let handle = div()
+            .id("detail-resize")
+            .absolute()
+            .top_0()
+            .left_0()
+            .h_full()
+            .w(layout::RESIZE_HANDLE_W)
+            .cursor_col_resize()
+            .hover(|s| s.bg(theme::BORDER))
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.listener(|this, _: &MouseDownEvent, _, cx| {
+                    this.resizing = true;
+                    cx.notify()
+                }),
+            );
         let panel = div()
             .flex()
             .flex_col()
-            .w(layout::DETAIL_W)
+            .w(self.detail_w)
             .flex_shrink_0()
             .h_full()
-            .bg(tr.panel())
+            .bg(self.surfaces().panel())
             .border_l_1()
             .border_color(theme::BORDER_SUBTLE)
             .pt(layout::TITLEBAR_INSET)
             .px(theme::SPACE_4)
-            .gap(theme::SPACE_3)
+            .gap(theme::SPACE_2)
             .child(col)
-            .child(self.render_composer(d, cx));
+            .child(div().flex().justify_center().pb(theme::SPACE_2).child(self.render_detail_tabs(d, cx)))
+            .when(d.tab == DetailTab::Activity, |p| p.child(self.render_composer(d, cx)))
+            .when(d.tab == DetailTab::Summary, |p| p.pb(theme::SPACE_2))
+            .child(handle);
         motion::slide_in_right(panel, "detail-panel", theme::SPACE_6)
     }
 }

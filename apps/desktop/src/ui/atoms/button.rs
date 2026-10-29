@@ -35,12 +35,13 @@ pub struct Button {
     icon: Option<SharedString>,
     variant: ButtonVariant,
     size: Size,
+    tooltip: Option<SharedString>,
     on_click: Option<ClickHandler>,
 }
 
 impl Button {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), label: label.into(), icon: None, variant: ButtonVariant::default(), size: Size::default(), on_click: None }
+        Self { id: id.into(), label: label.into(), icon: None, variant: ButtonVariant::default(), size: Size::default(), tooltip: None, on_click: None }
     }
 
     pub fn variant(mut self, variant: ButtonVariant) -> Self {
@@ -56,6 +57,12 @@ impl Button {
     /// Leading glyph shown before the label.
     pub fn icon(mut self, icon: impl Into<SharedString>) -> Self {
         self.icon = Some(icon.into());
+        self
+    }
+
+    /// Hover label, e.g. the action name and its shortcut.
+    pub fn tooltip(mut self, text: impl Into<SharedString>) -> Self {
+        self.tooltip = Some(text.into());
         self
     }
 
@@ -90,6 +97,7 @@ impl RenderOnce for Button {
             .when(self.size == Size::Md, |el| el.px(theme::SPACE_3).py(theme::SPACE_1P5).text_size(theme::TEXT_SM))
             .children(self.icon)
             .when(!self.label.is_empty(), |el| el.child(self.label))
+            .when_some(self.tooltip, |el, t| el.tooltip(super::tooltip(t)))
             .when_some(self.on_click, |el, f| el.on_click(f))
     }
 }

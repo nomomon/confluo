@@ -1,11 +1,12 @@
-//! Detail header: provider, repo, actions, title and author line.
+//! Detail header: icon actions, big title and a muted meta line.
 
-use gpui::{div, prelude::*, ClickEvent, Context};
+use gpui::{div, prelude::*, ClickEvent, Context, MouseDownEvent};
 
-use crate::app::GitViewer;
-use crate::features::shared::{provider_badge, relative_time};
-use crate::state::DetailState;
-use crate::ui::atoms::{Button, ButtonVariant};
+use crate::app::{GitViewer, Menu};
+use crate::features::shared::{number_label, relative_time};
+use crate::state::{Copied, DetailState};
+use crate::ui::atoms::{Avatar, Button, ButtonVariant, NavItem, Pill};
+use crate::ui::molecules::DropdownMenu;
 use crate::ui::theme;
 
 impl GitViewer {
@@ -17,31 +18,57 @@ impl GitViewer {
             (false, None) => "Cached".into(),
         };
         let url = s.web_url.clone();
-        let repo = s.id.repo.clone();
+        let link = s.web_url.clone();
+        let icon = |id: &'static str, glyph: &'static str, tip: &'static str| Button::new(id, "").icon(glyph).variant(ButtonVariant::Ghost).tooltip(tip);
         let actions = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
-            .child(provider_badge(s.id.repo.kind))
-            .child(div().text_size(theme::TEXT_XS).text_color(theme::TEXT_MUTED).truncate().child(format!("{} #{}", self.repo_label(&s.id.repo), s.id.number)))
+            .gap(theme::SPACE_1)
+            .child(icon("close-detail", "\u{2715}", "Close  esc").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.close_detail(cx))))
             .child(div().flex_1())
-            .child(Button::new("open-browser", "Open in browser").on_click(cx.listener(move |_, _: &ClickEvent, _, cx| cx.open_url(&url))))
+            .child(icon("detail-refresh", "\u{21BB}", "Refresh").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.load_detail(cx))))
             .child(
-                Button::new("alias-btn", "Alias")
-                    .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.open_alias(Some(repo.clone()), cx))),
+                icon("copy-link", if self.copied == Some(Copied::Link) { "\u{2713}" } else { "\u{29C9}" }, "Copy link")
+                    .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.copy(Copied::Link, link.clone(), cx))),
             )
-            .child(Button::new("close-detail", "").icon("\u{2715}").variant(ButtonVariant::Ghost).on_click(cx.listener(
-                |this, _: &ClickEvent, _, cx| {
-                    this.detail = None;
-                    cx.notify()
-                },
-            )));
+            .child(icon("open-browser", "\u{2197}", "Open in browser  o").on_click(cx.listener(move |_, _: &ClickEvent, _, cx| cx.open_url(&url))))
+            .child(icon("detail-more", "\u{22EF}", "More").on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                this.menu = if this.menu == Some(Menu::DetailMore) { None } else { Some(Menu::DetailMore) };
+                cx.notify()
+            })));
+        let meta = div()
+            .flex()
+            .items_center()
+            .gap(theme::SPACE_2)
+            .text_size(theme::TEXT_XS)
+            .text_color(theme::TEXT_MUTED)
+            .child(div().flex().items_center().gap(theme::SPACE_1).child(Avatar::new(s.author.username.clone())).child(s.author.username.clone()))
+            .child(div().truncate().child(self.repo_label(&s.id.repo)))
+            .child(Pill::new(number_label(s), theme::TEXT_MUTED))
+            .child(div().text_color(theme::TEXT_SUBTLE).child(loaded));
         div()
+            .relative()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_1)
+            .gap(theme::SPACE_2)
             .child(actions)
             .child(div().text_size(theme::TEXT_XL).font_weight(theme::WEIGHT_SEMIBOLD).child(s.title.clone()))
-            .child(div().flex().gap(theme::SPACE_2).text_size(theme::TEXT_XS).text_color(theme::TEXT_MUTED).child(format!("by {}", s.author.username)).child("\u{00B7}").child(loaded))
+            .child(meta)
+            .when(self.menu == Some(Menu::DetailMore), |el| el.child(self.render_detail_menu(d, cx)))
+    }
+
+    fn render_detail_menu(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
+        let repo = d.summary.id.repo.clone();
+        DropdownMenu::new("detail-more-menu")
+            .top(theme::SPACE_8)
+            .right(theme::SPACE_0)
+            .on_dismiss(cx.listener(|this, _: &MouseDownEvent, _, cx| {
+                this.menu = None;
+                cx.notify()
+            }))
+            .child(NavItem::new("menu-alias", "Set alias").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+                this.menu = None;
+                this.open_alias(Some(repo.clone()), cx)
+            })))
     }
 }

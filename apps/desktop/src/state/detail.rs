@@ -47,6 +47,12 @@ impl GitViewer {
         self.load_detail(cx);
     }
 
+    pub(crate) fn close_detail(&mut self, cx: &mut Context<Self>) {
+        self.detail = None;
+        self.menu = None;
+        cx.notify();
+    }
+
     pub(crate) fn load_detail(&mut self, cx: &mut Context<Self>) {
         let Some(d) = self.detail.as_mut() else { return };
         d.loading = true;

@@ -4,6 +4,7 @@ use gpui::{div, prelude::*};
 use gv_engine::ChangeRequest;
 
 use crate::features::shared::{review_summary, state_pill};
+
 use crate::ui::molecules::{Card, KeyValueRow};
 use crate::ui::theme::{self, Translucency};
 
@@ -16,6 +17,6 @@ pub(super) fn overview_card(s: &ChangeRequest, surfaces: Translucency) -> impl I
     Card::new(surfaces)
         .child(KeyValueRow::new("Status", state_pill(s.state)))
         .child(KeyValueRow::new("Review", review_summary(s)))
-        .child(KeyValueRow::new("Branch", div().text_size(theme::TEXT_XS).font_family(theme::MONO_FONT).child(branch)))
+        .child(KeyValueRow::new("Branch", div().min_w(theme::SPACE_0).truncate().text_size(theme::TEXT_XS).font_family(theme::MONO_FONT).child(branch)))
         .child(KeyValueRow::new("Changes", div().text_size(theme::TEXT_XS).child(changes)))
 }

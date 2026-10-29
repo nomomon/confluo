@@ -6,6 +6,7 @@ pub mod bridge;
 mod comments;
 mod connection;
 mod detail;
+mod feedback;
 mod inbox;
 mod list;
 mod projects;
@@ -13,6 +14,7 @@ pub mod timing;
 
 pub use connection::{auth_command, HostStatus};
 pub use detail::{DetailState, DetailTab};
+pub use feedback::Copied;
 pub use inbox::Section;
 pub use projects::SourceKind;
 

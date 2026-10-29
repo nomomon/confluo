@@ -1,17 +1,30 @@
 //! Floating menu panel; position it with `Styled` methods such as `.top()` and `.right()`.
+//!
+//! `DropdownMenu::new("detail-more").top(..).right(..).on_dismiss(..).child(NavItem::new(..))`
 
-use gpui::{div, prelude::*, px, AnyElement, App, Div, StyleRefinement, Window};
+use gpui::{div, prelude::*, AnyElement, App, Div, MouseDownEvent, SharedString, StyleRefinement, Window};
 
 use crate::ui::{motion, theme};
 
+type DismissHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut App) + 'static>;
+
 #[derive(IntoElement)]
 pub struct DropdownMenu {
+    id: SharedString,
     base: Div,
+    children: Vec<AnyElement>,
+    on_dismiss: Option<DismissHandler>,
 }
 
 impl DropdownMenu {
-    pub fn new() -> Self {
-        Self { base: div() }
+    pub fn new(id: impl Into<SharedString>) -> Self {
+        Self { id: id.into(), base: div(), children: vec![], on_dismiss: None }
+    }
+
+    /// Called on a mouse press outside the menu.
+    pub fn on_dismiss(mut self, f: impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static) -> Self {
+        self.on_dismiss = Some(Box::new(f));
+        self
     }
 }
 
@@ -23,15 +36,15 @@ impl Styled for DropdownMenu {
 
 impl ParentElement for DropdownMenu {
     fn extend(&mut self, elements: impl IntoIterator<Item = AnyElement>) {
-        self.base.extend(elements)
+        self.children.extend(elements)
     }
 }
 
 impl RenderOnce for DropdownMenu {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let el = self.base
-            .absolute()
-            .w(px(220.)).text_size(theme::TEXT_SM)
+        let panel = div()
+            .min_w(theme::MENU_MIN_W)
+            .text_size(theme::TEXT_SM)
             .p(theme::SPACE_1)
             .flex()
             .flex_col()
@@ -40,7 +53,8 @@ impl RenderOnce for DropdownMenu {
             .border_color(theme::BORDER)
             .bg(theme::OVERLAY)
             .shadow_lg()
-            .occlude();
-        motion::pop_in(el, "dropdown-menu")
+            .children(self.children)
+            .when_some(self.on_dismiss, |el, f| el.on_mouse_down_out(f));
+        self.base.absolute().occlude().child(motion::pop_in(panel, self.id))
     }
 }

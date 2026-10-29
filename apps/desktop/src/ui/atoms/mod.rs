@@ -9,6 +9,7 @@ mod label;
 mod nav_item;
 mod pill;
 mod swatch;
+mod tooltip;
 
 pub use avatar::Avatar;
 pub use badge::Badge;
@@ -19,3 +20,4 @@ pub use label::{ErrorText, SectionLabel};
 pub use nav_item::NavItem;
 pub use pill::Pill;
 pub use swatch::Swatch;
+pub use tooltip::tooltip;

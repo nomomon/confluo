@@ -3,7 +3,7 @@
 //! State transitions live in `state/`, rendering in `features/`.
 
 use chrono::{DateTime, Utc};
-use gpui::{div, img, prelude::*, Context, Entity, ObjectFit, Window};
+use gpui::{div, img, prelude::*, Context, Entity, MouseMoveEvent, MouseUpEvent, ObjectFit, Pixels, Window};
 use gv_engine::{ChangeRequest, ChangeRequestId, Engine, Involvement, Project, RepoRef};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -11,9 +11,18 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::settings::{Appearance, Settings};
-use crate::state::{DetailState, HostStatus, Section, SourceKind};
+use crate::state::{Copied, DetailState, HostStatus, Section, SourceKind};
 use crate::ui::molecules::text_input::{InputEvent, TextInput};
+use crate::features::layout;
+use crate::ui::molecules::Toast;
 use crate::ui::theme::{self, Translucency};
+
+/// Which popover menu is open.
+#[derive(Clone, Copy, PartialEq)]
+pub enum Menu {
+    DetailMore,
+    Project(i64),
+}
 
 /// Which modal dialog is open.
 #[derive(Clone, PartialEq)]
@@ -50,7 +59,14 @@ pub struct GitViewer {
     pub(crate) cursor: Option<ChangeRequestId>,
     pub(crate) detail: Option<DetailState>,
     pub(crate) overlay: Overlay,
-    pub(crate) copied: bool,
+    pub(crate) menu: Option<Menu>,
+    pub(crate) copied: Option<Copied>,
+    pub(crate) copied_gen: u64,
+    pub(crate) toast: Option<String>,
+    pub(crate) toast_gen: u64,
+    pub(crate) detail_w: Pixels,
+    /// Dragging the detail pane's resize handle.
+    pub(crate) resizing: bool,
     pub(crate) search: Entity<TextInput>,
     pub(crate) composer: Entity<TextInput>,
     pub(crate) add_name: Entity<TextInput>,
@@ -129,7 +145,13 @@ impl GitViewer {
             cursor: None,
             detail: None,
             overlay: Overlay::None,
-            copied: false,
+            menu: None,
+            copied: None,
+            copied_gen: 0,
+            toast: None,
+            toast_gen: 0,
+            detail_w: layout::DETAIL_W,
+            resizing: false,
             search,
             composer,
             add_name,
@@ -191,7 +213,19 @@ impl Render for GitViewer {
                 root.child(img(PathBuf::from(p)).absolute().top_0().left_0().size_full().object_fit(ObjectFit::Cover))
                     .child(div().absolute().top_0().left_0().size_full().bg(theme::SCRIM.opacity(self.settings.background_dim / theme::SCRIM.a)))
             })
+            .when(self.resizing, |root| {
+                root.on_mouse_move(cx.listener(|this, ev: &MouseMoveEvent, window, cx| {
+                    let w = window.viewport_size().width - ev.position.x;
+                    this.detail_w = w.clamp(layout::DETAIL_MIN_W, layout::DETAIL_MAX_W);
+                    cx.notify()
+                }))
+                .on_mouse_up(gpui::MouseButton::Left, cx.listener(|this, _: &MouseUpEvent, _, cx| {
+                    this.resizing = false;
+                    cx.notify()
+                }))
+            })
             .child(main)
+            .children(self.toast.clone().map(Toast::new))
             .children(self.render_overlay(cx))
     }
 }

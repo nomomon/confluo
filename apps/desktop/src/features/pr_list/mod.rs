@@ -47,7 +47,7 @@ impl GitViewer {
                     cx.notify()
                 }))
         });
-        let mut rows = div().id("pr-list").flex().flex_col().flex_1().min_h(theme::SPACE_0).overflow_y_scroll().gap(theme::SPACE_3).pb(theme::SPACE_4);
+        let mut rows = div().id("pr-list").track_scroll(&self.list_scroll).flex().flex_col().flex_1().min_h(theme::SPACE_0).overflow_y_scroll().gap(theme::SPACE_3).pb(theme::SPACE_4);
         if visible.is_empty() {
             rows = rows.child(self.render_empty(cx));
         }

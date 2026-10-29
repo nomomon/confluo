@@ -1,9 +1,10 @@
 //! A single PR row: state icon and title, a muted meta line, time and diff size.
 
-use gpui::{div, prelude::*, ClickEvent, Context, SharedString};
+use gpui::{canvas, div, prelude::*, ClickEvent, Context, SharedString};
 use gv_engine::ChangeRequest;
 
 use crate::app::GitViewer;
+use crate::state;
 use crate::features::shared::{checks_text, layout, number_label, provider_badge, relative_time, state_icon};
 use crate::ui::atoms::{Avatar, Pill};
 use crate::ui::theme;
@@ -38,6 +39,22 @@ impl GitViewer {
             ),
             _ => None,
         };
+        let is_cursor = self.cursor.as_ref() == Some(&c.id);
+        let reveal = is_cursor.then(|| {
+            let (flag, handle) = (self.reveal_cursor.clone(), self.list_scroll.clone());
+            canvas(
+                move |bounds, window, _| {
+                    if flag.replace(false) && state::reveal(&handle, bounds, window) {
+                        window.refresh();
+                    }
+                },
+                |_, _, _, _| {},
+            )
+            .absolute()
+            .top_0()
+            .left_0()
+            .size_full()
+        });
         let star = div()
             .id(SharedString::from(format!("star-{}", c.id.key())))
             .px(theme::SPACE_1)
@@ -52,6 +69,7 @@ impl GitViewer {
         div()
             .id(group.clone())
             .group(group)
+            .relative()
             .flex()
             .items_center()
             .gap(theme::SPACE_3)
@@ -98,5 +116,6 @@ impl GitViewer {
                     .children(diff),
             )
             .child(star)
+            .children(reveal)
     }
 }

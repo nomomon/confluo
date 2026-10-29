@@ -19,6 +19,7 @@ pub use connection::{auth_command, HostStatus};
 pub use detail::{DetailState, DetailTab};
 pub use feedback::Copied;
 pub use inbox::Section;
+pub use selection::reveal;
 pub use sources::SourceKind;
 pub use overlay::{Menu, Overlay};
 

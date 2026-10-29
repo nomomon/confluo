@@ -11,7 +11,7 @@ use crate::state::Copied;
 
 actions!(
     git_viewer,
-    [SelectNext, SelectPrev, OpenSelected, Dismiss, FocusSearch, Refresh, OpenInBrowser, CopyCheckout, ToggleStar, TabAuthored, TabReviewing, TabAll, OpenSettings]
+    [SelectNext, SelectPrev, OpenSelected, Dismiss, FocusSearch, Refresh, OpenInBrowser, CopyCheckout, ToggleStar, TabAuthored, TabReviewing, TabAll, OpenSettings, About, Minimize, Zoom]
 );
 
 pub fn bind_keys(cx: &mut App) {
@@ -69,6 +69,12 @@ impl GitViewer {
             .on_action(cx.listener(|this, _: &TabAuthored, _, cx| this.set_tab(Involvement::Authored, cx)))
             .on_action(cx.listener(|this, _: &TabReviewing, _, cx| this.set_tab(Involvement::Reviewing, cx)))
             .on_action(cx.listener(|this, _: &TabAll, _, cx| this.set_tab(Involvement::All, cx)))
+            .on_action(cx.listener(|_, _: &Minimize, window, _| window.minimize_window()))
+            .on_action(cx.listener(|_, _: &Zoom, window, _| window.zoom_window()))
+            .on_action(cx.listener(|_, _: &About, window, cx| {
+                let detail = format!("Version {}\nPRs and MRs across GitHub, GitLab and Azure DevOps.", env!("CARGO_PKG_VERSION"));
+                let _ = window.prompt(gpui::PromptLevel::Info, "Confluo", Some(&detail), &["OK"], cx);
+            }))
             .on_action(cx.listener(|this, _: &OpenSettings, _, cx| {
                 this.overlay = Overlay::Settings;
                 cx.notify()

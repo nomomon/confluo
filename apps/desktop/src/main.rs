@@ -1,4 +1,4 @@
-//! git-viewer desktop app (GPUI).
+//! Confluo desktop app (GPUI).
 
 mod app;
 mod assets;
@@ -7,7 +7,10 @@ mod settings;
 mod state;
 mod ui;
 
-use gpui::{actions, point, px, size, App, AppContext, Application, Bounds, KeyBinding, TitlebarOptions, WindowBounds, WindowOptions};
+use gpui::{
+    actions, point, px, size, App, AppContext, Application, Bounds, KeyBinding, Menu, MenuItem, OsAction, SystemMenuType, TitlebarOptions,
+    WindowBounds, WindowOptions,
+};
 use std::sync::Arc;
 
 actions!(git_viewer, [Quit]);
@@ -16,7 +19,7 @@ fn main() {
     let engine = match gv_engine::Engine::open_default() {
         Ok(e) => Arc::new(e),
         Err(e) => {
-            eprintln!("git-viewer: cannot open cache: {e:#}");
+            eprintln!("confluo: cannot open cache: {e:#}");
             std::process::exit(1);
         }
     };
@@ -29,12 +32,13 @@ fn main() {
         cx.on_action(|_: &Quit, cx| cx.quit());
         cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
         cx.on_window_closed(|cx| cx.quit()).detach();
+        set_menus(cx);
 
         let bounds = Bounds::centered(None, size(px(1280.), px(820.)), cx);
         let opts = WindowOptions {
             window_bounds: Some(WindowBounds::Windowed(bounds)),
             titlebar: Some(TitlebarOptions {
-                title: Some("git-viewer".into()),
+                title: Some("Confluo".into()),
                 appears_transparent: true,
                 traffic_light_position: Some(point(px(14.), px(14.))),
             }),
@@ -46,4 +50,35 @@ fn main() {
             .expect("open window");
         cx.activate(true);
     });
+}
+
+fn set_menus(cx: &mut App) {
+    use features::keyboard::{About, Minimize, OpenSettings, Zoom};
+    use ui::molecules::text_input as ti;
+    cx.bind_keys([KeyBinding::new("cmd-m", Minimize, None)]);
+    cx.set_menus(vec![
+        Menu {
+            name: "Confluo".into(),
+            items: vec![
+                MenuItem::action("About Confluo", About),
+                MenuItem::separator(),
+                MenuItem::action("Settings...", OpenSettings),
+                MenuItem::separator(),
+                MenuItem::os_submenu("Services", SystemMenuType::Services),
+                MenuItem::separator(),
+                MenuItem::action("Quit Confluo", Quit),
+            ],
+        },
+        Menu {
+            name: "Edit".into(),
+            items: vec![
+                MenuItem::os_action("Cut", ti::Cut, OsAction::Cut),
+                MenuItem::os_action("Copy", ti::Copy, OsAction::Copy),
+                MenuItem::os_action("Paste", ti::Paste, OsAction::Paste),
+                MenuItem::separator(),
+                MenuItem::os_action("Select All", ti::SelectAll, OsAction::SelectAll),
+            ],
+        },
+        Menu { name: "Window".into(), items: vec![MenuItem::action("Minimize", Minimize), MenuItem::action("Zoom", Zoom)] },
+    ]);
 }

@@ -1,0 +1,15 @@
+//! Non-animation timings: refresh cadence and feedback resets.
+
+use std::time::Duration;
+
+/// Background refresh cadence.
+pub const AUTO_REFRESH: Duration = Duration::from_secs(5 * 60);
+/// How often the clock ticks to re-render relative times and check `AUTO_REFRESH`.
+pub const TICK: Duration = Duration::from_secs(30);
+/// Minimum gap between refreshes triggered by the window becoming active.
+pub const ACTIVATE_MIN_GAP: Duration = Duration::from_secs(60);
+/// Loading indicators appear only if work takes longer than this.
+pub const LOADING_DELAY: Duration = Duration::from_millis(150);
+/// "Copied" feedback and toasts reset after this.
+pub const COPIED_RESET: Duration = Duration::from_millis(1500);
+pub const TOAST: Duration = Duration::from_millis(2500);

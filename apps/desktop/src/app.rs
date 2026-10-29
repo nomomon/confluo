@@ -2,14 +2,16 @@
 //!
 //! State transitions live in `state/`, rendering in `features/`.
 
+use chrono::{DateTime, Utc};
 use gpui::{div, img, prelude::*, Context, Entity, ObjectFit, Window};
 use gv_engine::{ChangeRequest, ChangeRequestId, Engine, Involvement, Project, RepoRef};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Instant;
 
 use crate::settings::{Appearance, Settings};
-use crate::state::{DetailState, SourceKind};
+use crate::state::{DetailState, HostStatus, SourceKind};
 use crate::ui::molecules::text_input::{InputEvent, TextInput};
 use crate::ui::theme::{self, Translucency};
 
@@ -34,10 +36,16 @@ pub struct GitViewer {
     pub(crate) starred: HashSet<ChangeRequestId>,
     pub(crate) aliases: HashMap<RepoRef, String>,
     pub(crate) refreshing: bool,
-    pub(crate) status: Option<String>,
+    /// Set `LOADING_DELAY` after a refresh starts, so quick refreshes show nothing.
+    pub(crate) show_loading: bool,
+    pub(crate) last_attempt: Option<Instant>,
+    pub(crate) refreshed_at: Option<DateTime<Utc>>,
+    /// Signed-in hosts; `None` while checking.
+    pub(crate) hosts: Option<Vec<HostStatus>>,
+    /// One-line error for the banner; cleared on the next successful refresh.
+    pub(crate) error: Option<String>,
     pub(crate) detail: Option<DetailState>,
     pub(crate) overlay: Overlay,
-    pub(crate) picker_open: bool,
     pub(crate) copied: bool,
     pub(crate) search: Entity<TextInput>,
     pub(crate) composer: Entity<TextInput>,
@@ -62,7 +70,7 @@ fn on_submit(cx: &mut Context<GitViewer>, input: &Entity<TextInput>, f: impl Fn(
 }
 
 impl GitViewer {
-    pub fn new(engine: Arc<Engine>, settings: Settings, cx: &mut Context<Self>) -> Self {
+    pub fn new(engine: Arc<Engine>, settings: Settings, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let input = |cx: &mut Context<Self>, ph: &'static str| cx.new(|cx| TextInput::new(ph, cx));
         let search = input(cx, "Search pull requests");
         let composer = input(cx, "Leave a comment, Enter to post");
@@ -108,10 +116,13 @@ impl GitViewer {
             starred: HashSet::new(),
             aliases: HashMap::new(),
             refreshing: false,
-            status: None,
+            show_loading: false,
+            last_attempt: None,
+            refreshed_at: None,
+            hosts: None,
+            error: None,
             detail: None,
             overlay: Overlay::None,
-            picker_open: false,
             copied: false,
             search,
             composer,
@@ -124,9 +135,18 @@ impl GitViewer {
             bg_input,
             tint_input,
         };
+        cx.observe_window_activation(window, |this, window, cx| {
+            if window.is_window_active() {
+                this.on_activated(cx)
+            }
+        })
+        .detach();
         this.reload_projects();
+        this.refreshed_at = this.engine.last_refreshed(&gv_engine::RefreshTarget::InvolvingMe);
         this.reload();
+        this.check_hosts(cx);
         this.refresh(cx);
+        this.start_clock(cx);
         this
     }
 
@@ -166,7 +186,6 @@ impl Render for GitViewer {
                     .child(div().absolute().top_0().left_0().size_full().bg(theme::SCRIM.opacity(self.settings.background_dim / theme::SCRIM.a)))
             })
             .child(main)
-            .when(self.picker_open, |root| root.child(self.render_picker(cx)))
             .children(self.render_overlay(cx))
     }
 }

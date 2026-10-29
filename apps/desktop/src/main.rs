@@ -40,7 +40,7 @@ fn main() {
             window_min_size: Some(size(px(820.), px(520.))),
             ..Default::default()
         };
-        cx.open_window(opts, |_, cx| cx.new(|cx| app::GitViewer::new(engine.clone(), settings.clone(), cx)))
+        cx.open_window(opts, |window, cx| cx.new(|cx| app::GitViewer::new(engine.clone(), settings.clone(), window, cx)))
             .expect("open window");
         cx.activate(true);
     });

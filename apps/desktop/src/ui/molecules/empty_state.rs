@@ -1,6 +1,8 @@
 //! Centered placeholder shown when a list has nothing to display.
+//!
+//! Extra lines or actions go in as children, stacked under the hint.
 
-use gpui::{div, prelude::*, App, SharedString, Window};
+use gpui::{div, prelude::*, AnyElement, App, SharedString, Window};
 
 use crate::ui::theme;
 
@@ -8,11 +10,18 @@ use crate::ui::theme;
 pub struct EmptyState {
     title: SharedString,
     hint: SharedString,
+    children: Vec<AnyElement>,
 }
 
 impl EmptyState {
     pub fn new(title: impl Into<SharedString>, hint: impl Into<SharedString>) -> Self {
-        Self { title: title.into(), hint: hint.into() }
+        Self { title: title.into(), hint: hint.into(), children: vec![] }
+    }
+}
+
+impl ParentElement for EmptyState {
+    fn extend(&mut self, elements: impl IntoIterator<Item = AnyElement>) {
+        self.children.extend(elements)
     }
 }
 
@@ -27,5 +36,6 @@ impl RenderOnce for EmptyState {
             .gap(theme::SPACE_1)
             .child(div().text_color(theme::TEXT_MUTED).child(self.title))
             .child(div().text_size(theme::TEXT_XS).text_color(theme::TEXT_SUBTLE).child(self.hint))
+            .when(!self.children.is_empty(), |d| d.child(div().flex().flex_col().items_center().gap(theme::SPACE_2).pt(theme::SPACE_3).children(self.children)))
     }
 }

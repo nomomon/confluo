@@ -9,14 +9,7 @@ use crate::features::shared::layout;
 
 impl GitViewer {
     pub(crate) fn render_sidebar(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let add_project = Button::new("add-project", "").icon("+").variant(ButtonVariant::Ghost).on_click(cx.listener(
-            |this, _: &ClickEvent, _, cx| {
-                this.overlay = Overlay::AddProject;
-                let n = this.selected.map(|_| this.project_name()).unwrap_or_default();
-                this.add_name.update(cx, |i, cx| i.set_text(n, cx));
-                cx.notify();
-            },
-        ));
+        let add_project = Button::new("add-project", "").icon("+").variant(ButtonVariant::Ghost).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.open_add_project(cx)));
         let mut col = div()
             .flex()
             .flex_col()

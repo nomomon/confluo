@@ -4,10 +4,13 @@
 
 pub mod bridge;
 mod comments;
+mod connection;
 mod detail;
 mod list;
 mod projects;
+pub mod timing;
 
+pub use connection::{auth_command, HostStatus};
 pub use detail::{DetailState, DetailTab};
 pub use projects::SourceKind;
 

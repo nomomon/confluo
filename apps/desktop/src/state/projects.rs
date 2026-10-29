@@ -58,6 +58,14 @@ impl GitViewer {
         }
     }
 
+    pub(crate) fn open_add_project(&mut self, cx: &mut Context<Self>) {
+        self.overlay = Overlay::AddProject;
+        self.add_error = None;
+        let n = self.selected.map(|_| self.project_name()).unwrap_or_default();
+        self.add_name.update(cx, |i, cx| i.set_text(n, cx));
+        cx.notify();
+    }
+
     pub(crate) fn open_alias(&mut self, repo: Option<RepoRef>, cx: &mut Context<Self>) {
         self.overlay = Overlay::Alias;
         self.set_alias_repo(repo, cx);
@@ -87,7 +95,7 @@ impl GitViewer {
         let mut o = self.engine.repo_override(&repo).unwrap_or_default();
         o.alias = (!alias.is_empty()).then_some(alias);
         if let Err(e) = self.engine.set_repo_override(&repo, o) {
-            self.status = Some(err_str(e));
+            self.error = Some(err_str(e));
         }
         self.reload();
         cx.notify();

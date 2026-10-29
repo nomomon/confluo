@@ -9,7 +9,5 @@ pub const SIDEBAR_TOP: Pixels = px(44.);
 /// Top padding of the list and detail columns, under the transparent titlebar.
 pub const TITLEBAR_INSET: Pixels = px(36.);
 pub const TIME_COL_W: Pixels = px(56.);
-pub const PICKER_TOP: Pixels = px(70.);
-pub const PICKER_RIGHT: Pixels = px(110.);
 pub const TINT_INPUT_W: Pixels = px(110.);
 pub const ALIAS_LIST_MAX_H: Pixels = px(300.);

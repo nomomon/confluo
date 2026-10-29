@@ -8,7 +8,7 @@ mod empty_state;
 mod field;
 mod key_value_row;
 pub mod markdown;
-mod notice;
+mod banner;
 mod segmented_tabs;
 pub mod text_input;
 
@@ -19,5 +19,5 @@ pub use dropdown_menu::DropdownMenu;
 pub use empty_state::EmptyState;
 pub use field::Field;
 pub use key_value_row::KeyValueRow;
-pub use notice::Notice;
+pub use banner::Banner;
 pub use segmented_tabs::SegmentedTabs;

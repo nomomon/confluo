@@ -3,8 +3,9 @@
 use gpui::Context;
 use gv_engine::{ChangeRequestId, Filter, Involvement, ListQuery, RefreshTarget, RepoOverride, RepoRef, StateFilter};
 use std::collections::HashSet;
+use std::time::Instant;
 
-use super::{bridge, err_str};
+use super::{bridge, err_str, timing};
 use crate::app::GitViewer;
 
 impl GitViewer {
@@ -27,7 +28,7 @@ impl GitViewer {
         };
         match self.engine.list(&q) {
             Ok(v) => self.items = v,
-            Err(e) => self.status = Some(err_str(e)),
+            Err(e) => self.error = Some(err_str(e)),
         }
         let starred_q = ListQuery {
             project: None,
@@ -45,32 +46,44 @@ impl GitViewer {
         }
     }
 
+    fn refresh_target(&self) -> RefreshTarget {
+        match self.selected {
+            None => RefreshTarget::InvolvingMe,
+            Some(id) => RefreshTarget::Project(id),
+        }
+    }
+
     /// Fetch from providers in the background, then reload from cache.
+    /// The cached list stays on screen; a loading hint shows only after `LOADING_DELAY`.
     pub(crate) fn refresh(&mut self, cx: &mut Context<Self>) {
         if self.refreshing {
             return;
         }
         self.refreshing = true;
+        self.last_attempt = Some(Instant::now());
         let engine = self.engine.clone();
-        let target = match self.selected {
-            None => RefreshTarget::InvolvingMe,
-            Some(id) => RefreshTarget::Project(id),
-        };
+        let target = self.refresh_target();
         let rx = bridge::spawn(async move { engine.refresh(target).await.map_err(err_str) });
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(timing::LOADING_DELAY).await;
+            this.update(cx, |v, cx| {
+                v.show_loading = v.refreshing;
+                cx.notify()
+            })
+            .ok();
+        })
+        .detach();
         cx.spawn(async move |this, cx| {
             let r = rx.await;
             this.update(cx, |v, cx| {
                 v.refreshing = false;
-                v.status = match r {
-                    Ok(Ok(rep)) if rep.errors.is_empty() => None,
-                    Ok(Ok(rep)) => Some(format!(
-                        "{} source(s) failed: {}",
-                        rep.errors.len(),
-                        rep.errors.iter().map(|(l, e)| format!("{l}: {e}")).collect::<Vec<_>>().join("; ")
-                    )),
-                    Ok(Err(e)) => Some(e),
-                    Err(_) => Some("refresh cancelled".into()),
+                v.show_loading = false;
+                v.error = match r {
+                    Ok(Ok(rep)) => v.summarize_errors(&rep.errors),
+                    Ok(Err(e)) => v.summarize_errors(&[("refresh".into(), e)]),
+                    Err(_) => Some("Refresh cancelled".into()),
                 };
+                v.refreshed_at = v.engine.last_refreshed(&v.refresh_target());
                 v.reload();
                 cx.notify();
             })
@@ -80,10 +93,41 @@ impl GitViewer {
         cx.notify();
     }
 
+    /// Re-render relative times and refresh when the data is older than `AUTO_REFRESH`.
+    pub(crate) fn start_clock(&mut self, cx: &mut Context<Self>) {
+        cx.spawn(async move |this, cx| loop {
+            cx.background_executor().timer(timing::TICK).await;
+            let alive = this.update(cx, |v, cx| {
+                if v.last_attempt.is_none_or(|t| t.elapsed() >= timing::AUTO_REFRESH) {
+                    v.refresh(cx);
+                }
+                cx.notify();
+            });
+            if alive.is_err() {
+                break;
+            }
+        })
+        .detach();
+    }
+
+    /// Refresh when the window becomes active, at most once per `ACTIVATE_MIN_GAP`.
+    pub(crate) fn on_activated(&mut self, cx: &mut Context<Self>) {
+        if self.last_attempt.is_none_or(|t| t.elapsed() >= timing::ACTIVATE_MIN_GAP) {
+            self.refresh(cx);
+        }
+    }
+
+    /// Retry from the error banner: re-check sign-in and refresh.
+    pub(crate) fn retry(&mut self, cx: &mut Context<Self>) {
+        self.error = None;
+        self.check_hosts(cx);
+        self.refresh(cx);
+    }
+
     pub(crate) fn select_project(&mut self, id: Option<i64>, cx: &mut Context<Self>) {
         self.selected = id;
-        self.picker_open = false;
         self.detail = None;
+        self.refreshed_at = self.engine.last_refreshed(&self.refresh_target());
         self.reload();
         self.refresh(cx);
     }
@@ -91,7 +135,7 @@ impl GitViewer {
     pub(crate) fn toggle_star(&mut self, id: ChangeRequestId, cx: &mut Context<Self>) {
         let on = !self.starred.contains(&id);
         if let Err(e) = self.engine.set_starred(&id, on) {
-            self.status = Some(err_str(e));
+            self.error = Some(err_str(e));
         }
         self.reload();
         cx.notify();
@@ -99,7 +143,7 @@ impl GitViewer {
 
     pub(crate) fn save_settings(&mut self, cx: &mut Context<Self>) {
         if let Err(e) = self.settings.save() {
-            self.status = Some(format!("saving settings: {e:#}"));
+            self.error = Some(format!("Saving settings failed: {e:#}"));
         }
         cx.notify();
     }

@@ -1,0 +1,7 @@
+[package]
+name = "gv-discovery"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+gv-core.workspace = true

@@ -1,6 +1,6 @@
 //! Very small markdown renderer: headings, bullets, code fences, quotes, paragraphs.
 
-use gpui::{div, prelude::*, px, AnyElement, FontWeight};
+use gpui::{div, prelude::*, px, AnyElement};
 
 use crate::ui::theme;
 
@@ -14,10 +14,10 @@ pub fn markdown(src: &str) -> Vec<AnyElement> {
             if in_code {
                 out.push(
                     div()
-                        .p_2()
-                        .rounded_md()
-                        .bg(theme::field())
-                        .text_xs()
+                        .p(theme::SPACE_2)
+                        .rounded(theme::RADIUS_MD)
+                        .bg(theme::SURFACE)
+                        .text_size(theme::TEXT_XS)
                         .font_family(theme::MONO_FONT)
                         .child(std::mem::take(&mut code))
                         .into_any_element(),
@@ -35,29 +35,29 @@ pub fn markdown(src: &str) -> Vec<AnyElement> {
         }
         let trimmed = t.trim_start();
         let el = if trimmed.is_empty() {
-            div().h(px(4.))
+            div().h(theme::SPACE_1)
         } else if let Some(h) = trimmed.strip_prefix("### ").or_else(|| trimmed.strip_prefix("#### ")) {
-            div().pt_1().text_sm().font_weight(FontWeight::SEMIBOLD).child(strip_inline(h))
+            div().pt(theme::SPACE_1).text_size(theme::TEXT_SM).font_weight(theme::WEIGHT_SEMIBOLD).child(strip_inline(h))
         } else if let Some(h) = trimmed.strip_prefix("## ") {
-            div().pt_1().text_base().font_weight(FontWeight::SEMIBOLD).child(strip_inline(h))
+            div().pt(theme::SPACE_1).text_size(theme::TEXT_BASE).font_weight(theme::WEIGHT_SEMIBOLD).child(strip_inline(h))
         } else if let Some(h) = trimmed.strip_prefix("# ") {
-            div().pt_1().text_lg().font_weight(FontWeight::SEMIBOLD).child(strip_inline(h))
+            div().pt(theme::SPACE_1).text_size(theme::TEXT_LG).font_weight(theme::WEIGHT_SEMIBOLD).child(strip_inline(h))
         } else if let Some(b) = trimmed.strip_prefix("- [ ] ").or_else(|| trimmed.strip_prefix("* [ ] ")) {
-            div().flex().gap_2().child("\u{2610}").child(strip_inline(b))
+            div().flex().gap(theme::SPACE_2).child("\u{2610}").child(strip_inline(b))
         } else if let Some(b) = trimmed.strip_prefix("- [x] ").or_else(|| trimmed.strip_prefix("* [x] ")) {
-            div().flex().gap_2().child("\u{2611}").child(strip_inline(b))
+            div().flex().gap(theme::SPACE_2).child("\u{2611}").child(strip_inline(b))
         } else if let Some(b) = trimmed.strip_prefix("- ").or_else(|| trimmed.strip_prefix("* ")) {
             let indent = (t.len() - trimmed.len()) as f32 * 6.;
-            div().flex().gap_2().pl(px(indent)).child(div().text_color(theme::muted()).child("\u{2022}")).child(strip_inline(b))
+            div().flex().gap(theme::SPACE_2).pl(px(indent)).child(div().text_color(theme::TEXT_MUTED).child("\u{2022}")).child(strip_inline(b))
         } else if let Some(q) = trimmed.strip_prefix("> ") {
-            div().pl_2().border_l_2().border_color(theme::border()).text_color(theme::muted()).child(strip_inline(q))
+            div().pl(theme::SPACE_2).border_l_2().border_color(theme::BORDER).text_color(theme::TEXT_MUTED).child(strip_inline(q))
         } else {
             div().child(strip_inline(trimmed))
         };
-        out.push(el.text_sm().into_any_element());
+        out.push(el.text_size(theme::TEXT_SM).into_any_element());
     }
     if in_code && !code.is_empty() {
-        out.push(div().p_2().rounded_md().bg(theme::field()).text_xs().font_family(theme::MONO_FONT).child(code).into_any_element());
+        out.push(div().p(theme::SPACE_2).rounded(theme::RADIUS_MD).bg(theme::SURFACE).text_size(theme::TEXT_XS).font_family(theme::MONO_FONT).child(code).into_any_element());
     }
     out
 }

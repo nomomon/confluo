@@ -1,19 +1,19 @@
 //! Bordered translucent card container.
 
-use gpui::{div, prelude::*, AnyElement, App, Div, Window};
+use gpui::{div, prelude::*, AnyElement, App, Div, Hsla, Window};
 
-use crate::ui::theme;
+use crate::ui::theme::{self, Translucency};
 
 #[derive(IntoElement)]
 pub struct Card {
     base: Div,
-    opacity: f32,
+    fill: Hsla,
 }
 
 impl Card {
-    /// `opacity` is the panel opacity from settings; cards render slightly lighter.
-    pub fn new(opacity: f32) -> Self {
-        Self { base: div(), opacity }
+    /// Cards take their fill from the appearance-derived translucency.
+    pub fn new(surfaces: Translucency) -> Self {
+        Self { base: div(), fill: surfaces.card() }
     }
 }
 
@@ -28,11 +28,11 @@ impl RenderOnce for Card {
         self.base
             .flex()
             .flex_col()
-            .gap_2()
-            .p_3()
-            .rounded_lg()
+            .gap(theme::SPACE_2)
+            .p(theme::SPACE_3)
+            .rounded(theme::RADIUS_LG)
             .border_1()
-            .border_color(theme::border())
-            .bg(theme::card(self.opacity * 0.8))
+            .border_color(theme::BORDER_SUBTLE)
+            .bg(self.fill)
     }
 }

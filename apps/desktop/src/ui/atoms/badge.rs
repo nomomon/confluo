@@ -1,6 +1,7 @@
 //! Small square badge with short bold text on a tinted background.
 
-use gpui::{div, prelude::*, px, App, FontWeight, Hsla, SharedString, Window};
+use gpui::{div, prelude::*, App, Hsla, SharedString, Window};
+use crate::ui::theme;
 
 #[derive(IntoElement)]
 pub struct Badge {
@@ -21,12 +22,12 @@ impl RenderOnce for Badge {
             .flex_shrink_0()
             .items_center()
             .justify_center()
-            .size(px(26.))
-            .rounded_md()
-            .bg(self.color.opacity(0.14))
+            .size(theme::SPACE_6)
+            .rounded(theme::RADIUS_MD)
+            .bg(theme::tint_bg(self.color))
             .text_color(self.color)
-            .text_xs()
-            .font_weight(FontWeight::BOLD)
+            .text_size(theme::TEXT_XS)
+            .font_weight(theme::WEIGHT_BOLD)
             .child(self.label)
     }
 }

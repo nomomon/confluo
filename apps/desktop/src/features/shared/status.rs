@@ -8,18 +8,18 @@ use crate::ui::theme;
 
 pub fn provider_badge(kind: ProviderKind) -> Badge {
     match kind {
-        ProviderKind::GitHub => Badge::new("GH", gpui::hsla(0., 0., 0.85, 1.)),
-        ProviderKind::GitLab => Badge::new("GL", gpui::hsla(20. / 360., 0.9, 0.6, 1.)),
-        ProviderKind::Azure => Badge::new("AZ", gpui::hsla(205. / 360., 0.85, 0.6, 1.)),
+        ProviderKind::GitHub => Badge::new("GH", theme::TEXT_MUTED),
+        ProviderKind::GitLab => Badge::new("GL", theme::TEXT_MUTED),
+        ProviderKind::Azure => Badge::new("AZ", theme::TEXT_MUTED),
     }
 }
 
 pub fn state_pill(s: ChangeRequestState) -> Pill {
     match s {
-        ChangeRequestState::Open => Pill::new("Open", theme::green()),
-        ChangeRequestState::Draft => Pill::new("Draft", theme::muted()),
-        ChangeRequestState::Merged => Pill::new("Merged", theme::purple()),
-        ChangeRequestState::Closed => Pill::new("Closed", theme::red()),
+        ChangeRequestState::Open => Pill::new("Open", theme::SUCCESS),
+        ChangeRequestState::Draft => Pill::new("Draft", theme::TEXT_SUBTLE),
+        ChangeRequestState::Merged => Pill::new("Merged", theme::MERGED),
+        ChangeRequestState::Closed => Pill::new("Closed", theme::DANGER),
     }
 }
 
@@ -27,29 +27,29 @@ pub fn review_summary(c: &ChangeRequest) -> Div {
     let n = |s: ReviewState| c.reviewers.iter().filter(|r| r.state == s).count();
     let (a, ch, p) = (n(ReviewState::Approved), n(ReviewState::ChangesRequested), n(ReviewState::Pending));
     let (text, color) = if ch > 0 {
-        (format!("{ch} changes requested"), theme::red())
+        (format!("{ch} changes requested"), theme::DANGER)
     } else if a > 0 {
-        (format!("{a} approved"), theme::green())
+        (format!("{a} approved"), theme::SUCCESS)
     } else if p > 0 {
-        (format!("{p} pending review"), theme::yellow())
+        (format!("{p} pending review"), theme::WARNING)
     } else if c.reviewers.is_empty() {
-        ("No reviewers".into(), theme::faint())
+        ("No reviewers".into(), theme::TEXT_SUBTLE)
     } else {
-        ("Commented".into(), theme::muted())
+        ("Commented".into(), theme::TEXT_MUTED)
     };
-    div().text_xs().text_color(color).child(text)
+    div().text_size(theme::TEXT_XS).text_color(color).child(text)
 }
 
 pub fn checks_summary(c: &ChangeRequest) -> Div {
     let k = c.checks;
     let (text, color) = if k.total == 0 {
-        ("No checks".to_string(), theme::faint())
+        ("No checks".to_string(), theme::TEXT_SUBTLE)
     } else if k.failed > 0 {
-        (format!("{}/{} checks failed", k.failed, k.total), theme::red())
+        (format!("{}/{} checks failed", k.failed, k.total), theme::DANGER)
     } else if k.pending > 0 {
-        (format!("{}/{} checks pending", k.pending, k.total), theme::yellow())
+        (format!("{}/{} checks pending", k.pending, k.total), theme::WARNING)
     } else {
-        (format!("{}/{} checks passed", k.passed, k.total), theme::green())
+        (format!("{}/{} checks passed", k.passed, k.total), theme::SUCCESS)
     };
-    div().text_xs().text_color(color).child(text)
+    div().text_size(theme::TEXT_XS).text_color(color).child(text)
 }

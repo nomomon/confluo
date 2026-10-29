@@ -1,6 +1,6 @@
 //! Round color swatch with an active ring.
 
-use gpui::{div, prelude::*, px, App, ClickEvent, ElementId, Hsla, SharedString, Window};
+use gpui::{div, prelude::*, App, ClickEvent, ElementId, Hsla, SharedString, Window};
 
 use crate::ui::{theme, ClickHandler};
 
@@ -32,10 +32,10 @@ impl RenderOnce for Swatch {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         div()
             .id(ElementId::Name(self.id))
-            .size(px(22.))
-            .rounded_full()
+            .size(theme::SPACE_5)
+            .rounded(theme::RADIUS_FULL)
             .border_2()
-            .border_color(if self.active { theme::accent() } else { theme::border() })
+            .border_color(if self.active { theme::FOCUS_RING } else { theme::BORDER })
             .bg(self.color)
             .cursor_pointer()
             .when_some(self.on_click, |el, f| el.on_click(f))

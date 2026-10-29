@@ -6,6 +6,7 @@ use gv_engine::{ChangeRequest, Involvement};
 use crate::app::GitViewer;
 use crate::ui::atoms::Chip;
 use crate::ui::molecules::SegmentedTabs;
+use crate::ui::theme;
 
 const INVOLVEMENTS: [(&str, Involvement); 3] =
     [("Authored", Involvement::Authored), ("Reviewing", Involvement::Reviewing), ("All", Involvement::All)];
@@ -41,7 +42,7 @@ impl GitViewer {
     pub(super) fn render_filter_chips(&self, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .flex()
-            .gap_2()
+            .gap(theme::SPACE_2)
             .child(Chip::new("chip-needs", "Needs you").active(self.needs_you).on_click(cx.listener(
                 |this, _: &ClickEvent, _, cx| {
                     this.needs_you = !this.needs_you;

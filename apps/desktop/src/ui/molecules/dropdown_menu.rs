@@ -31,14 +31,14 @@ impl RenderOnce for DropdownMenu {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         self.base
             .absolute()
-            .w(px(220.))
-            .p_1()
+            .w(px(220.)).text_size(theme::TEXT_SM)
+            .p(theme::SPACE_1)
             .flex()
             .flex_col()
-            .rounded_lg()
+            .rounded(theme::RADIUS_LG)
             .border_1()
-            .border_color(theme::border())
-            .bg(theme::card(0.97))
+            .border_color(theme::BORDER)
+            .bg(theme::OVERLAY)
             .shadow_lg()
             .occlude()
     }

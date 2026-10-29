@@ -1,6 +1,6 @@
 //! Detail header: provider, repo, actions, title and author line.
 
-use gpui::{div, prelude::*, ClickEvent, Context, FontWeight};
+use gpui::{div, prelude::*, ClickEvent, Context};
 
 use crate::app::GitViewer;
 use crate::features::shared::{provider_badge, relative_time};
@@ -21,9 +21,9 @@ impl GitViewer {
         let actions = div()
             .flex()
             .items_center()
-            .gap_2()
+            .gap(theme::SPACE_2)
             .child(provider_badge(s.id.repo.kind))
-            .child(div().text_xs().text_color(theme::muted()).truncate().child(format!("{} #{}", self.repo_label(&s.id.repo), s.id.number)))
+            .child(div().text_size(theme::TEXT_XS).text_color(theme::TEXT_MUTED).truncate().child(format!("{} #{}", self.repo_label(&s.id.repo), s.id.number)))
             .child(div().flex_1())
             .child(Button::new("open-browser", "Open in browser").on_click(cx.listener(move |_, _: &ClickEvent, _, cx| cx.open_url(&url))))
             .child(
@@ -39,9 +39,9 @@ impl GitViewer {
         div()
             .flex()
             .flex_col()
-            .gap_1()
+            .gap(theme::SPACE_1)
             .child(actions)
-            .child(div().text_lg().font_weight(FontWeight::SEMIBOLD).child(s.title.clone()))
-            .child(div().flex().gap_2().text_xs().text_color(theme::muted()).child(format!("by {}", s.author.username)).child("\u{00B7}").child(loaded))
+            .child(div().text_size(theme::TEXT_XL).font_weight(theme::WEIGHT_SEMIBOLD).child(s.title.clone()))
+            .child(div().flex().gap(theme::SPACE_2).text_size(theme::TEXT_XS).text_color(theme::TEXT_MUTED).child(format!("by {}", s.author.username)).child("\u{00B7}").child(loaded))
     }
 }

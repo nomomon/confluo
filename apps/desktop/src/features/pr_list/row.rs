@@ -1,11 +1,12 @@
 //! A single PR row in the list.
 
-use gpui::{div, prelude::*, px, ClickEvent, Context, FontWeight, SharedString};
+use gpui::{div, prelude::*, ClickEvent, Context, SharedString};
 use gv_engine::ChangeRequest;
 
 use crate::app::GitViewer;
 use crate::features::shared::{checks_summary, provider_badge, relative_time, review_summary, state_pill};
 use crate::ui::theme;
+use crate::features::shared::layout;
 
 impl GitViewer {
     pub(super) fn render_row(&self, c: &ChangeRequest, is_selected: bool, cx: &mut Context<Self>) -> impl IntoElement {
@@ -14,18 +15,18 @@ impl GitViewer {
         let sid = c.id.clone();
         let meta = div()
             .flex()
-            .gap_2()
-            .text_xs()
-            .text_color(theme::muted())
+            .gap(theme::SPACE_2)
+            .text_size(theme::TEXT_XS)
+            .text_color(theme::TEXT_MUTED)
             .child(div().truncate().child(self.repo_label(&c.id.repo)))
             .child(format!("#{}", c.id.number))
             .child(c.author.username.clone())
-            .when(c.needs_you, |d| d.child(div().text_color(theme::accent()).child("needs you")));
+            .when(c.needs_you, |d| d.child(div().text_color(theme::ACCENT).child("needs you")));
         let star = div()
             .id(SharedString::from(format!("star-{}", c.id.key())))
-            .px_1()
-            .text_color(if starred { theme::yellow() } else { theme::faint() })
-            .hover(|s| s.text_color(theme::yellow()))
+            .px(theme::SPACE_1)
+            .text_color(if starred { theme::WARNING } else { theme::TEXT_SUBTLE })
+            .hover(|s| s.text_color(theme::WARNING))
             .child(if starred { "\u{2605}" } else { "\u{2606}" })
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 cx.stop_propagation();
@@ -35,14 +36,14 @@ impl GitViewer {
             .id(SharedString::from(format!("row-{}", c.id.key())))
             .flex()
             .items_center()
-            .gap_3()
-            .px_3()
-            .py_2()
-            .rounded_lg()
+            .gap(theme::SPACE_3)
+            .px(theme::SPACE_3)
+            .py(theme::SPACE_2)
+            .rounded(theme::RADIUS_LG)
             .border_1()
-            .border_color(if is_selected { theme::accent().opacity(0.5) } else { theme::border() })
-            .bg(if is_selected { theme::selected() } else { theme::card(self.settings.panel_opacity * 0.6) })
-            .hover(|s| s.bg(theme::hover()))
+            .border_color(if is_selected { theme::BORDER } else { theme::BORDER_SUBTLE })
+            .bg(if is_selected { theme::SURFACE_ACTIVE } else { self.surfaces().card() })
+            .hover(|s| s.bg(theme::SURFACE_HOVER))
             .cursor_pointer()
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.open_detail(cr.clone(), cx)))
             .child(provider_badge(c.id.repo.kind))
@@ -51,14 +52,14 @@ impl GitViewer {
                     .flex()
                     .flex_col()
                     .flex_1()
-                    .min_w(px(0.))
-                    .gap_0p5()
-                    .child(div().text_sm().font_weight(FontWeight::MEDIUM).truncate().child(c.title.clone()))
+                    .min_w(theme::SPACE_0)
+                    .gap(theme::SPACE_0P5)
+                    .child(div().text_size(theme::TEXT_SM).font_weight(theme::WEIGHT_MEDIUM).truncate().child(c.title.clone()))
                     .child(meta),
             )
-            .child(div().flex().flex_col().items_end().gap_0p5().flex_shrink_0().text_xs().child(review_summary(c)).child(checks_summary(c)))
+            .child(div().flex().flex_col().items_end().gap(theme::SPACE_0P5).flex_shrink_0().text_size(theme::TEXT_XS).child(review_summary(c)).child(checks_summary(c)))
             .child(state_pill(c.state))
-            .child(div().w(px(56.)).flex_shrink_0().text_xs().text_color(theme::faint()).child(relative_time(c.updated_at)))
+            .child(div().w(layout::TIME_COL_W).flex_shrink_0().text_size(theme::TEXT_XS).text_color(theme::TEXT_SUBTLE).child(relative_time(c.updated_at)))
             .child(star)
     }
 }

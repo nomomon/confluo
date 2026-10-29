@@ -67,25 +67,25 @@ impl Button {
 
 impl RenderOnce for Button {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let base = div().id(ElementId::Name(self.id)).flex().items_center().gap_1().cursor_pointer();
+        let base = div().id(ElementId::Name(self.id)).flex().items_center().gap(theme::SPACE_1).cursor_pointer();
         let styled = match self.variant {
             ButtonVariant::Outline => base
                 .flex_shrink_0()
-                .px_2p5()
-                .py_1()
-                .rounded_md()
+                .px(theme::SPACE_2P5)
+                .py(theme::SPACE_1)
+                .rounded(theme::RADIUS_MD)
                 .border_1()
-                .border_color(theme::border())
-                .bg(theme::field())
-                .text_xs()
-                .hover(|s| s.bg(theme::hover())),
+                .border_color(theme::BORDER)
+                .bg(theme::SURFACE)
+                .text_size(theme::TEXT_XS)
+                .hover(|s| s.bg(theme::SURFACE_HOVER)),
             ButtonVariant::Ghost => {
-                base.px_1p5().rounded_md().text_color(theme::muted()).hover(|s| s.bg(theme::hover()).text_color(theme::text()))
+                base.px(theme::SPACE_1P5).rounded(theme::RADIUS_MD).text_color(theme::TEXT_MUTED).hover(|s| s.bg(theme::SURFACE_HOVER).text_color(theme::TEXT))
             }
-            ButtonVariant::Link => base.text_xs().text_color(theme::accent()).hover(|s| s.text_color(theme::text())),
+            ButtonVariant::Link => base.text_size(theme::TEXT_XS).text_color(theme::ACCENT).hover(|s| s.text_color(theme::TEXT)),
         };
         styled
-            .when(self.size == Size::Md, |el| el.px_3().py_1p5().text_sm())
+            .when(self.size == Size::Md, |el| el.px(theme::SPACE_3).py(theme::SPACE_1P5).text_size(theme::TEXT_SM))
             .children(self.icon)
             .when(!self.label.is_empty(), |el| el.child(self.label))
             .when_some(self.on_click, |el, f| el.on_click(f))

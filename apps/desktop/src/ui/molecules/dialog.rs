@@ -1,9 +1,12 @@
 //! Modal dialog: dimmed full-window scrim with a titled panel and close button.
 
-use gpui::{div, prelude::*, px, AnyElement, App, ClickEvent, FontWeight, SharedString, Window};
+use gpui::{div, prelude::*, px, AnyElement, Pixels, App, ClickEvent, SharedString, Window};
 
 use crate::ui::atoms::{Button, ButtonVariant, Size};
 use crate::ui::{theme, ClickHandler};
+
+const DIALOG_W: Pixels = px(520.);
+const DIALOG_MAX_H: Pixels = px(620.);
 
 #[derive(IntoElement)]
 pub struct Dialog {
@@ -37,7 +40,7 @@ impl RenderOnce for Dialog {
         let header = div()
             .flex()
             .items_center()
-            .child(div().text_base().font_weight(FontWeight::SEMIBOLD).child(self.title))
+            .child(div().text_size(theme::TEXT_BASE).font_weight(theme::WEIGHT_SEMIBOLD).child(self.title))
             .child(div().flex_1())
             .child(close);
         div()
@@ -48,20 +51,20 @@ impl RenderOnce for Dialog {
             .flex()
             .items_center()
             .justify_center()
-            .bg(theme::scrim())
+            .bg(theme::SCRIM)
             .occlude()
             .child(
                 div()
-                    .w(px(520.))
-                    .max_h(px(620.))
+                    .w(DIALOG_W)
+                    .max_h(DIALOG_MAX_H)
                     .flex()
                     .flex_col()
-                    .gap_3()
-                    .p_4()
-                    .rounded_xl()
+                    .gap(theme::SPACE_3)
+                    .p(theme::SPACE_4)
+                    .rounded(theme::RADIUS_XL)
                     .border_1()
-                    .border_color(theme::border())
-                    .bg(theme::card(0.97))
+                    .border_color(theme::BORDER_SUBTLE)
+                    .bg(theme::OVERLAY)
                     .shadow_lg()
                     .child(header)
                     .children(self.content),

@@ -21,8 +21,8 @@ impl RenderOnce for KeyValueRow {
         div()
             .flex()
             .items_center()
-            .gap_2()
-            .child(div().w(px(80.)).text_xs().text_color(theme::muted()).child(self.key))
+            .gap(theme::SPACE_2)
+            .child(div().w(px(80.)).text_size(theme::TEXT_XS).text_color(theme::TEXT_MUTED).child(self.key))
             .child(self.value)
     }
 }

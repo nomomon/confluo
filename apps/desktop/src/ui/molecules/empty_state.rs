@@ -1,6 +1,6 @@
 //! Centered placeholder shown when a list has nothing to display.
 
-use gpui::{div, prelude::*, px, App, SharedString, Window};
+use gpui::{div, prelude::*, App, SharedString, Window};
 
 use crate::ui::theme;
 
@@ -23,9 +23,9 @@ impl RenderOnce for EmptyState {
             .flex_col()
             .items_center()
             .justify_center()
-            .py(px(80.))
-            .gap_1()
-            .child(div().text_color(theme::muted()).child(self.title))
-            .child(div().text_xs().text_color(theme::faint()).child(self.hint))
+            .py(theme::SPACE_12 + theme::SPACE_8)
+            .gap(theme::SPACE_1)
+            .child(div().text_color(theme::TEXT_MUTED).child(self.title))
+            .child(div().text_size(theme::TEXT_XS).text_color(theme::TEXT_SUBTLE).child(self.hint))
     }
 }

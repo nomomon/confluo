@@ -40,15 +40,15 @@ impl RenderOnce for NavItem {
         let active = self.active;
         self.base
             .id(ElementId::Name(self.id))
-            .px_2()
-            .py_1()
-            .rounded_md()
-            .text_sm()
+            .px(theme::SPACE_2)
+            .py(theme::SPACE_1)
+            .rounded(theme::RADIUS_MD)
+            .text_size(theme::TEXT_SM)
             .truncate()
             .cursor_pointer()
-            .text_color(if active { theme::text() } else { theme::muted() })
-            .when(active, |d| d.bg(theme::selected()))
-            .hover(|s| s.bg(theme::hover()))
+            .text_color(if active { theme::TEXT } else { theme::TEXT_MUTED })
+            .when(active, |d| d.bg(theme::SURFACE_ACTIVE))
+            .hover(|s| s.bg(theme::SURFACE_HOVER))
             .child(self.label)
             .when_some(self.on_click, |el, f| el.on_click(f))
     }

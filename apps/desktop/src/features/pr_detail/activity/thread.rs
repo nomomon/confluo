@@ -1,6 +1,6 @@
 //! One review thread: location, resolved flag, comments and reply link.
 
-use gpui::{div, prelude::*, ClickEvent, Context, Focusable, FontWeight};
+use gpui::{div, prelude::*, ClickEvent, Context, Focusable};
 use gv_engine::{Comment, Thread};
 
 use crate::app::GitViewer;
@@ -12,18 +12,18 @@ use crate::ui::theme;
 
 impl GitViewer {
     pub(super) fn render_thread(&self, t: &Thread, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
-        let mut tc = div().flex().flex_col().gap_2().p_2().rounded_md().border_1().border_color(theme::border());
+        let mut tc = div().flex().flex_col().gap(theme::SPACE_2).p(theme::SPACE_2).rounded(theme::RADIUS_MD).border_1().border_color(theme::BORDER);
         if let Some(p) = t.comments.first().and_then(|c| c.position.as_ref()) {
             tc = tc.child(
                 div()
-                    .text_xs()
+                    .text_size(theme::TEXT_XS)
                     .font_family(theme::MONO_FONT)
-                    .text_color(theme::muted())
+                    .text_color(theme::TEXT_MUTED)
                     .child(format!("{}{}", p.path, p.line.map(|l| format!(":{l}")).unwrap_or_default())),
             );
         }
         if t.resolved == Some(true) {
-            tc = tc.child(div().text_xs().text_color(theme::green()).child("Resolved"));
+            tc = tc.child(div().text_size(theme::TEXT_XS).text_color(theme::SUCCESS).child("Resolved"));
         }
         for c in &t.comments {
             tc = tc.child(self.render_comment(c, d, cx));
@@ -52,10 +52,10 @@ impl GitViewer {
         let mut head = div()
             .flex()
             .items_center()
-            .gap_2()
-            .text_xs()
-            .child(div().font_weight(FontWeight::SEMIBOLD).child(c.author.username.clone()))
-            .child(div().text_color(theme::faint()).child(when))
+            .gap(theme::SPACE_2)
+            .text_size(theme::TEXT_XS)
+            .child(div().font_weight(theme::WEIGHT_SEMIBOLD).child(c.author.username.clone()))
+            .child(div().text_color(theme::TEXT_SUBTLE).child(when))
             .child(div().flex_1());
         if mine && c.id != "pending" {
             head = head.child(Button::new(format!("edit-{}", c.id), "Edit").variant(ButtonVariant::Link).on_click(cx.listener(
@@ -70,6 +70,6 @@ impl GitViewer {
                 },
             )));
         }
-        div().flex().flex_col().gap_1().child(head).child(div().flex().flex_col().gap_1().children(markdown(&c.body)))
+        div().flex().flex_col().gap(theme::SPACE_1).child(head).child(div().flex().flex_col().gap(theme::SPACE_1).children(markdown(&c.body)))
     }
 }

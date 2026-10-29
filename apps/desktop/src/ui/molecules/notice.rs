@@ -16,12 +16,12 @@ impl Notice {
 impl RenderOnce for Notice {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         div()
-            .text_xs()
-            .text_color(theme::yellow())
-            .px_2()
-            .py_1()
-            .rounded_md()
-            .bg(theme::yellow().opacity(0.08))
+            .text_size(theme::TEXT_XS)
+            .text_color(theme::WARNING)
+            .px(theme::SPACE_2)
+            .py(theme::SPACE_1)
+            .rounded(theme::RADIUS_MD)
+            .bg(theme::tint_bg(theme::WARNING))
             .line_clamp(3)
             .child(self.0)
     }

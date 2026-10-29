@@ -25,14 +25,14 @@ impl GitViewer {
     pub(super) fn render_detail_body(&self, d: &DetailState, cx: &mut Context<Self>) -> AnyElement {
         match (&d.detail, d.tab) {
             (None, _) => div()
-                .text_sm()
-                .text_color(theme::muted())
+                .text_size(theme::TEXT_SM)
+                .text_color(theme::TEXT_MUTED)
                 .child(if d.loading { "Loading..." } else { "No detail available" })
                 .into_any_element(),
             (Some(det), DetailTab::Summary) if det.description.trim().is_empty() => {
-                div().text_sm().text_color(theme::faint()).child("No description").into_any_element()
+                div().text_size(theme::TEXT_SM).text_color(theme::TEXT_SUBTLE).child("No description").into_any_element()
             }
-            (Some(det), DetailTab::Summary) => div().flex().flex_col().gap_1().children(markdown(&det.description)).into_any_element(),
+            (Some(det), DetailTab::Summary) => div().flex().flex_col().gap(theme::SPACE_1).children(markdown(&det.description)).into_any_element(),
             (Some(det), DetailTab::Activity) => self.render_threads(det, d, cx).into_any_element(),
         }
     }

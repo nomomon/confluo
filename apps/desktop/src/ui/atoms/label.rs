@@ -1,6 +1,6 @@
 //! Text helpers: section headings and inline error text.
 
-use gpui::{div, prelude::*, App, FontWeight, SharedString, Window};
+use gpui::{div, prelude::*, App, SharedString, Window};
 
 use crate::ui::theme;
 
@@ -16,7 +16,7 @@ impl SectionLabel {
 
 impl RenderOnce for SectionLabel {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        div().px_2().pt_3().pb_1().text_xs().font_weight(FontWeight::MEDIUM).text_color(theme::faint()).child(self.0)
+        div().px(theme::SPACE_2).pt(theme::SPACE_3).pb(theme::SPACE_1).text_size(theme::TEXT_XS).font_weight(theme::WEIGHT_MEDIUM).text_color(theme::TEXT_SUBTLE).child(self.0)
     }
 }
 
@@ -32,6 +32,6 @@ impl ErrorText {
 
 impl RenderOnce for ErrorText {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        div().text_xs().text_color(theme::red()).child(self.0)
+        div().text_size(theme::TEXT_XS).text_color(theme::DANGER).child(self.0)
     }
 }

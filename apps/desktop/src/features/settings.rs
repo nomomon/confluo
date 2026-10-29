@@ -1,12 +1,13 @@
 //! Appearance dialog: window background, opacity, image, dim and tint.
 
-use gpui::{div, prelude::*, px, ClickEvent, Context, PathPromptOptions};
+use gpui::{div, prelude::*, ClickEvent, Context, PathPromptOptions};
 
 use crate::app::GitViewer;
 use crate::settings::Appearance;
 use crate::ui::atoms::{Button, Swatch};
 use crate::ui::molecules::{Field, SegmentedTabs};
 use crate::ui::theme;
+use crate::features::shared::layout;
 
 const OPS: [f32; 6] = [0.25, 0.4, 0.55, 0.7, 0.85, 1.0];
 const DIMS: [f32; 5] = [0.0, 0.25, 0.45, 0.65, 0.8];
@@ -34,9 +35,9 @@ impl GitViewer {
             this.settings.background_dim = DIMS[*i];
             this.save_settings(cx);
         }));
-        let swatches = div().flex().gap_2().children(TINTS.iter().map(|t| {
+        let swatches = div().flex().gap(theme::SPACE_2).children(TINTS.iter().map(|t| {
             let t = *t;
-            Swatch::new(format!("tint-{t}"), theme::parse_hex(t).unwrap_or(theme::panel(1.)))
+            Swatch::new(format!("tint-{t}"), theme::parse_hex(t).unwrap_or(theme::BG))
                 .active(s.tint.eq_ignore_ascii_case(t))
                 .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                     this.settings.tint = t.to_string();
@@ -47,19 +48,19 @@ impl GitViewer {
         div()
             .flex()
             .flex_col()
-            .gap_3()
+            .gap(theme::SPACE_3)
             .child(Field::new("Window background", appearance))
             .child(Field::new("Panel opacity", opacity))
             .child(Field::new("Background image", self.render_bg_image_row(cx)))
             .child(Field::new("Image dim", dim))
-            .child(Field::new("Tint", div().flex().gap_3().items_center().child(swatches).child(div().w(px(110.)).child(self.tint_input.clone()))))
-            .child(div().text_xs().text_color(theme::faint()).child(format!("Saved to {}", crate::settings::path().display())))
+            .child(Field::new("Tint", div().flex().gap(theme::SPACE_3).items_center().child(swatches).child(div().w(layout::TINT_INPUT_W).child(self.tint_input.clone()))))
+            .child(div().text_size(theme::TEXT_XS).text_color(theme::TEXT_SUBTLE).child(format!("Saved to {}", crate::settings::path().display())))
     }
 
     fn render_bg_image_row(&self, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .flex()
-            .gap_2()
+            .gap(theme::SPACE_2)
             .items_center()
             .child(div().flex_1().child(self.bg_input.clone()))
             .child(Button::new("bg-browse", "Choose...").on_click(cx.listener(|_, _: &ClickEvent, _, cx| {

@@ -37,25 +37,25 @@ impl RenderOnce for SegmentedTabs {
         let mut row = div()
             .flex()
             .flex_shrink_0()
-            .p_0p5()
-            .gap_0p5()
-            .rounded_md()
-            .bg(theme::field())
+            .p(theme::SPACE_0P5)
+            .gap(theme::SPACE_0P5)
+            .rounded(theme::RADIUS_MD)
+            .bg(theme::SURFACE)
             .border_1()
-            .border_color(theme::border());
+            .border_color(theme::BORDER);
         for (i, (label, active)) in self.items.into_iter().enumerate() {
             let on = self.on_select.clone();
             row = row.child(
                 div()
                     .id(ElementId::Name(format!("{}-{i}", self.id).into()))
-                    .px_2p5()
-                    .py_0p5()
-                    .rounded_sm()
-                    .text_xs()
+                    .px(theme::SPACE_2P5)
+                    .py(theme::SPACE_0P5)
+                    .rounded(theme::RADIUS_SM)
+                    .text_size(theme::TEXT_XS)
                     .cursor_pointer()
-                    .text_color(if active { theme::text() } else { theme::muted() })
-                    .when(active, |d| d.bg(theme::selected()))
-                    .hover(|s| s.text_color(theme::text()))
+                    .text_color(if active { theme::TEXT } else { theme::TEXT_MUTED })
+                    .when(active, |d| d.bg(theme::SURFACE_ACTIVE))
+                    .hover(|s| s.text_color(theme::TEXT))
                     .child(label)
                     .on_click(move |_: &ClickEvent, window, cx| {
                         if let Some(on) = &on {

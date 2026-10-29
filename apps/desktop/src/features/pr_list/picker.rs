@@ -1,6 +1,7 @@
 //! Project picker dropdown opened from the list header.
 
-use gpui::{prelude::*, px, ClickEvent, Context};
+use crate::features::shared::layout;
+use gpui::{prelude::*, ClickEvent, Context};
 
 use crate::app::GitViewer;
 use crate::ui::atoms::NavItem;
@@ -8,7 +9,7 @@ use crate::ui::molecules::DropdownMenu;
 
 impl GitViewer {
     pub(crate) fn render_picker(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let mut menu = DropdownMenu::new().top(px(70.)).right(px(110.)).child(
+        let mut menu = DropdownMenu::new().top(layout::PICKER_TOP).right(layout::PICKER_RIGHT).child(
             NavItem::new("pick-inbox", "Inbox")
                 .active(self.selected.is_none())
                 .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.select_project(None, cx))),

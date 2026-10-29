@@ -6,6 +6,7 @@ use crate::app::GitViewer;
 use crate::state::SourceKind;
 use crate::ui::atoms::{Button, Chip, ErrorText};
 use crate::ui::molecules::{Field, SegmentedTabs};
+use crate::ui::theme;
 
 const KINDS: [(&str, SourceKind, &str); 3] = [
     ("Folder", SourceKind::Folder, "/path/to/folder"),
@@ -27,7 +28,7 @@ impl GitViewer {
                 });
                 cx.notify();
             }));
-        let mut existing = div().flex().flex_wrap().gap_1();
+        let mut existing = div().flex().flex_wrap().gap(theme::SPACE_1);
         for p in &self.projects {
             let n = p.name.clone();
             existing = existing.child(Chip::new(format!("existing-{}", p.id), p.name.clone()).on_click(cx.listener(
@@ -49,12 +50,12 @@ impl GitViewer {
                 .detach();
             }))
         });
-        let value_row = div().flex().gap_2().items_center().child(div().flex_1().child(self.add_value.clone())).children(browse);
+        let value_row = div().flex().gap(theme::SPACE_2).items_center().child(div().flex_1().child(self.add_value.clone())).children(browse);
         div()
             .flex()
             .flex_col()
-            .gap_3()
-            .child(Field::new("Project", div().flex().flex_col().gap_1().child(self.add_name.clone()).child(existing)))
+            .gap(theme::SPACE_3)
+            .child(Field::new("Project", div().flex().flex_col().gap(theme::SPACE_1).child(self.add_name.clone()).child(existing)))
             .child(Field::new("Source", kinds))
             .child(Field::new("Value", value_row))
             .when_some(self.add_error.clone(), |col, e| col.child(ErrorText::new(e)))

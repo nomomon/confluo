@@ -11,7 +11,7 @@ use std::sync::Arc;
 use crate::settings::{Appearance, Settings};
 use crate::state::{DetailState, SourceKind};
 use crate::ui::molecules::text_input::{InputEvent, TextInput};
-use crate::ui::theme;
+use crate::ui::theme::{self, Translucency};
 
 /// Which modal dialog is open.
 #[derive(Clone, PartialEq)]
@@ -130,12 +130,14 @@ impl GitViewer {
         this
     }
 
-    fn base_alpha(&self) -> f32 {
-        match self.settings.appearance {
+    /// Panel, card and window fills derived from the appearance settings.
+    pub(crate) fn surfaces(&self) -> Translucency {
+        let base_alpha = match self.settings.appearance {
             Appearance::Opaque => 1.0,
             Appearance::Blurred => 0.35,
             Appearance::Transparent => 0.55,
-        }
+        };
+        Translucency::new(self.settings.panel_opacity, theme::parse_hex(&self.settings.tint), base_alpha)
     }
 }
 
@@ -155,13 +157,13 @@ impl Render for GitViewer {
         div()
             .relative()
             .size_full()
-            .font_family(".SystemUIFont")
-            .text_color(theme::text())
-            .text_sm()
-            .bg(theme::window_bg(&self.settings.tint, self.base_alpha()))
+            .font_family(theme::UI_FONT)
+            .text_color(theme::TEXT)
+            .text_size(theme::TEXT_SM)
+            .bg(self.surfaces().window_bg())
             .when_some(bg_image, |root, p| {
                 root.child(img(PathBuf::from(p)).absolute().top_0().left_0().size_full().object_fit(ObjectFit::Cover))
-                    .child(div().absolute().top_0().left_0().size_full().bg(gpui::hsla(0., 0., 0., self.settings.background_dim)))
+                    .child(div().absolute().top_0().left_0().size_full().bg(theme::SCRIM.opacity(self.settings.background_dim / theme::SCRIM.a)))
             })
             .child(main)
             .when(self.picker_open, |root| root.child(self.render_picker(cx)))

@@ -18,6 +18,6 @@ impl Field {
 
 impl RenderOnce for Field {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        div().flex().flex_col().gap_1().child(div().text_xs().text_color(theme::muted()).child(self.label)).child(self.control)
+        div().flex().flex_col().gap(theme::SPACE_1).child(div().text_size(theme::TEXT_XS).text_color(theme::TEXT_MUTED).child(self.label)).child(self.control)
     }
 }

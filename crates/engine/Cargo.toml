@@ -1,0 +1,17 @@
+[package]
+name = "gv-engine"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+gv-core.workspace = true
+gv-auth.workspace = true
+gv-discovery.workspace = true
+gv-provider-github.workspace = true
+gv-provider-gitlab.workspace = true
+gv-provider-azure.workspace = true
+gv-store.workspace = true
+anyhow.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+futures-util.workspace = true

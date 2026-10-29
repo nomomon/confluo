@@ -122,7 +122,8 @@ impl Engine {
         let _ = self.store.set_meta(&format!("me:{kind}:{host}"), username);
     }
 
-    fn me(&self, kind: ProviderKind, host: &str) -> Option<String> {
+    /// Cached username on a host, if a previous call to the provider learned it.
+    pub fn me(&self, kind: ProviderKind, host: &str) -> Option<String> {
         let key = (kind, host.to_ascii_lowercase());
         if let Some(u) = self.me_cache.lock().unwrap_or_else(|e| e.into_inner()).get(&key) {
             return Some(u.clone());
@@ -273,7 +274,7 @@ impl Engine {
         let jobs = plan.into_iter().map(|((kind, host), scopes)| async move {
             let prov = match self.provider(kind, &host).await {
                 Ok(p) => p,
-                Err(e) => return vec![(format!("{kind}:{host}"), Err(e))],
+                Err(e) => return vec![(host.clone(), Err(e))],
             };
             if let Ok(me) = prov.whoami().await {
                 self.remember_me(kind, &host, &me.username);
@@ -282,7 +283,7 @@ impl Engine {
                 .map(|scope| {
                     let prov = prov.clone();
                     async move {
-                        let label = format!("{scope:?}");
+                        let label = scope_label(&scope);
                         let r = prov.list_change_requests(&scope, &filter).await.map(|v| (scope, v)).map_err(anyhow::Error::from);
                         (label, r)
                     }
@@ -310,7 +311,16 @@ impl Engine {
                 Err(e) => report.errors.push((label, format!("{e:#}"))),
             }
         }
+        if report.errors.is_empty() || report.fetched > 0 {
+            let _ = self.store.set_meta(&refresh_key(&target), &Utc::now().to_rfc3339());
+        }
         Ok(report)
+    }
+
+    /// When `target` last refreshed successfully (persisted in the cache).
+    pub fn last_refreshed(&self, target: &RefreshTarget) -> Option<chrono::DateTime<Utc>> {
+        let v = self.store.get_meta(&refresh_key(target)).ok().flatten()?;
+        chrono::DateTime::parse_from_rfc3339(&v).ok().map(|t| t.with_timezone(&Utc))
     }
 
     // ---------- queries ----------
@@ -326,14 +336,15 @@ impl Engine {
             .into_iter()
             .filter_map(|(k, h)| self.me(k, &h).map(|u| (k, h, u)))
             .collect();
-        Ok(self.store.query(&CacheQuery {
+        let items = self.store.query(&CacheQuery {
             repos,
             filter: q.filter,
             me,
             starred_only: q.starred_only,
             needs_you_only: q.needs_you_only,
             include_hidden: false,
-        })?)
+        })?;
+        Ok(dedupe_by_id(items))
     }
 
     /// Accept a web URL or a cache key (`gitlab:gitlab.com/g/p#12`).
@@ -387,6 +398,28 @@ impl Engine {
     }
 }
 
+fn refresh_key(target: &RefreshTarget) -> String {
+    match target {
+        RefreshTarget::InvolvingMe => "refreshed:inbox".into(),
+        RefreshTarget::Project(id) => format!("refreshed:project:{id}"),
+    }
+}
+
+/// Short human label for a refresh scope, used in error reports.
+fn scope_label(scope: &Scope) -> String {
+    match scope {
+        Scope::Repo(r) => format!("{}/{}", r.host, r.path),
+        Scope::Group { host, owner, .. } => format!("{host}/{owner}"),
+        Scope::InvolvingMe { host, .. } => host.clone(),
+    }
+}
+
+/// Keep the first occurrence of each id (the list is sorted newest first).
+fn dedupe_by_id(items: Vec<ChangeRequest>) -> Vec<ChangeRequest> {
+    let mut seen = std::collections::HashSet::new();
+    items.into_iter().filter(|c| seen.insert(c.id.clone())).collect()
+}
+
 /// Whether a cached item belongs to the scope just refreshed (used for pruning).
 fn scope_contains(scope: &Scope, cr: &ChangeRequest, me: Option<&str>) -> bool {
     let r = &cr.id.repo;
@@ -416,6 +449,46 @@ mod tests {
         let repos = e.resolve_project_repos(p.id).await.unwrap();
         assert_eq!(repos, vec![RepoRef::new(ProviderKind::GitLab, "gitlab.com", "g/sub/p")]);
         assert_eq!(e.parse_repo_url("https://gitlab.com/g/p/-/merge_requests").unwrap().path, "g/p");
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    fn cr(n: u64, title: &str) -> ChangeRequest {
+        ChangeRequest {
+            id: ChangeRequestId { repo: RepoRef::new(ProviderKind::GitLab, "gitlab.com", "g/p"), number: n },
+            title: title.into(),
+            author: User::named("a"),
+            state: ChangeRequestState::Open,
+            source_branch: "a".into(),
+            target_branch: "b".into(),
+            reviewers: vec![],
+            checks: CheckSummary::default(),
+            labels: vec![],
+            comments_count: 0,
+            additions: None,
+            deletions: None,
+            changed_files: None,
+            updated_at: Utc::now(),
+            created_at: Utc::now(),
+            web_url: String::new(),
+            needs_you: false,
+        }
+    }
+
+    #[test]
+    fn dedupes_by_id_keeping_first() {
+        let v = dedupe_by_id(vec![cr(1, "new"), cr(2, "other"), cr(1, "old")]);
+        assert_eq!(v.iter().map(|c| c.title.as_str()).collect::<Vec<_>>(), vec!["new", "other"]);
+    }
+
+    #[test]
+    fn list_has_unique_ids() {
+        let dir = std::env::temp_dir().join(format!("gv-engine-list-{}", std::process::id()));
+        let e = Engine::open(&dir.join("t.db")).unwrap();
+        e.store().upsert_change_requests(&[cr(1, "x"), cr(1, "y"), cr(2, "z")]).unwrap();
+        let v = e.list(&ListQuery::default()).unwrap();
+        let ids: std::collections::HashSet<_> = v.iter().map(|c| c.id.clone()).collect();
+        assert_eq!(ids.len(), v.len());
+        assert_eq!(v.len(), 2);
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

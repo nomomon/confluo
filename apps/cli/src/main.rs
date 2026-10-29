@@ -25,6 +25,16 @@ enum Cmd {
         #[arg(long)]
         json: bool,
     },
+    /// List the files a PR/MR changes with +/- counts (read-only).
+    Files {
+        target: String,
+        /// Print each file's hunks too.
+        #[arg(long)]
+        diff: bool,
+        /// Print the whole content of this path at the head sha.
+        #[arg(long)]
+        cat: Option<String>,
+    },
     /// Post a top-level comment (or a reply with --thread).
     Comment {
         target: String,
@@ -288,6 +298,33 @@ async fn main() -> Result<()> {
                     println!("  @{} {} ago{pos} [{}]", c.author.username, ago(c.created_at), c.id);
                     for l in c.body.lines() {
                         println!("    {l}");
+                    }
+                }
+            }
+        }
+        Cmd::Files { target, diff, cat } => {
+            let id = engine.resolve_id(&target)?;
+            if let Some(path) = cat {
+                let sha = engine.detail(&id, true).await?.head_sha.unwrap_or_default();
+                match engine.file_content(&id, &path, &sha).await? {
+                    Some(c) => print!("{c}"),
+                    None => bail!("{path} not found at {sha}"),
+                }
+                return Ok(());
+            }
+            let files = engine.changed_files(&id).await?;
+            let (a, d) = totals(&files);
+            println!("{} files  +{a} -{d}", files.len());
+            for f in &files {
+                let flag = if f.binary { " [binary]" } else if f.too_large { " [too large]" } else { "" };
+                let name = if f.old_path != f.new_path { format!("{} -> {}", f.old_path, f.new_path) } else { f.path().to_string() };
+                println!("{:?}\t+{} -{}\t{} hunks\t{name}{flag}", f.status, f.additions, f.deletions, f.hunks.len());
+                for h in f.hunks.iter().filter(|_| diff) {
+                    println!("  {}", h.header);
+                    for l in &h.lines {
+                        let m = match l.kind { LineKind::Add => '+', LineKind::Del => '-', LineKind::Context => ' ' };
+                        let n = |x: Option<u32>| x.map(|x| x.to_string()).unwrap_or_default();
+                        println!("  {:>5} {:>5} {m}{}", n(l.old_no), n(l.new_no), l.text);
                     }
                 }
             }

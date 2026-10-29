@@ -60,6 +60,16 @@ pub fn path() -> PathBuf {
 }
 
 impl Settings {
+    /// Panel, card and window fills derived from the appearance.
+    pub fn surfaces(&self) -> crate::ui::theme::Translucency {
+        let base_alpha = match self.appearance {
+            Appearance::Opaque => 1.0,
+            Appearance::Blurred => 0.35,
+            Appearance::Transparent => 0.55,
+        };
+        crate::ui::theme::Translucency::new(self.panel_opacity, crate::ui::theme::parse_hex(&self.tint), base_alpha)
+    }
+
     pub fn load() -> Self {
         std::fs::read_to_string(path()).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default()
     }

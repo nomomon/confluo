@@ -9,7 +9,7 @@ mod tabs;
 
 pub(crate) use checkout::checkout_command;
 
-use gpui::{div, prelude::*, Context, MouseButton, MouseDownEvent};
+use gpui::{div, prelude::*, Context, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Stateful, Div};
 
 use crate::app::GitViewer;
 use crate::features::shared::layout;
@@ -18,6 +18,22 @@ use crate::ui::atoms::ErrorText;
 use crate::ui::{motion, theme};
 
 impl GitViewer {
+    /// Root listeners while the resize handle is dragged.
+    pub(crate) fn resize_handlers(&self, root: Stateful<Div>, cx: &mut Context<Self>) -> Stateful<Div> {
+        root.on_mouse_move(cx.listener(|this, ev: &MouseMoveEvent, window, cx| {
+            let w = window.viewport_size().width - ev.position.x;
+            this.detail_w = w.clamp(layout::DETAIL_MIN_W, layout::DETAIL_MAX_W);
+            cx.notify()
+        }))
+        .on_mouse_up(
+            MouseButton::Left,
+            cx.listener(|this, _: &MouseUpEvent, _, cx| {
+                this.resizing = false;
+                cx.notify()
+            }),
+        )
+    }
+
     pub(crate) fn render_detail(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
         let col = div()
             .id("detail-scroll")

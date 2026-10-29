@@ -7,7 +7,10 @@ pub mod molecules;
 pub mod motion;
 pub mod theme;
 
-use gpui::{App, ClickEvent, Window};
+use gpui::{App, ClickEvent, MouseDownEvent, Window};
 
 /// Boxed click callback shared by interactive components.
 pub type ClickHandler = Box<dyn Fn(&ClickEvent, &mut Window, &mut App) + 'static>;
+
+/// Boxed mouse-down callback (right clicks, dismiss on outside press).
+pub type MouseDownHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut App) + 'static>;

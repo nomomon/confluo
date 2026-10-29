@@ -4,16 +4,14 @@
 
 use gpui::{div, prelude::*, AnyElement, App, Div, MouseDownEvent, SharedString, StyleRefinement, Window};
 
-use crate::ui::{motion, theme};
-
-type DismissHandler = Box<dyn Fn(&MouseDownEvent, &mut Window, &mut App) + 'static>;
+use crate::ui::{motion, theme, MouseDownHandler};
 
 #[derive(IntoElement)]
 pub struct DropdownMenu {
     id: SharedString,
     base: Div,
     children: Vec<AnyElement>,
-    on_dismiss: Option<DismissHandler>,
+    on_dismiss: Option<MouseDownHandler>,
 }
 
 impl DropdownMenu {

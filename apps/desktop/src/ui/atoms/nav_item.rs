@@ -2,7 +2,7 @@
 
 use gpui::{div, prelude::*, AnyElement, App, ClickEvent, Div, ElementId, MouseButton, MouseDownEvent, SharedString, StyleRefinement, Window};
 
-use crate::ui::{theme, ClickHandler};
+use crate::ui::{theme, ClickHandler, MouseDownHandler};
 
 #[derive(IntoElement)]
 pub struct NavItem {
@@ -12,7 +12,7 @@ pub struct NavItem {
     active: bool,
     trailing: Option<AnyElement>,
     on_click: Option<ClickHandler>,
-    on_right_click: Option<Box<dyn Fn(&MouseDownEvent, &mut Window, &mut App) + 'static>>,
+    on_right_click: Option<MouseDownHandler>,
 }
 
 impl NavItem {

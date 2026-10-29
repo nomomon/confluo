@@ -9,14 +9,17 @@ mod detail;
 mod feedback;
 mod inbox;
 mod list;
+mod overlay;
 mod projects;
+mod sources;
 pub mod timing;
 
 pub use connection::{auth_command, HostStatus};
 pub use detail::{DetailState, DetailTab};
 pub use feedback::Copied;
 pub use inbox::Section;
-pub use projects::SourceKind;
+pub use sources::SourceKind;
+pub use overlay::{Menu, Overlay};
 
 /// Format an error with its full context chain.
 pub fn err_str(e: anyhow::Error) -> String {

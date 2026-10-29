@@ -67,8 +67,7 @@ impl GitViewer {
         let star = div()
             .id(SharedString::from(format!("star-{}", c.id.key())))
             .px(theme::SPACE_2)
-            .when(!starred, |d| d.opacity(0.))
-            .group_hover(group.clone(), |s| s.opacity(1.))
+            .cursor_pointer()
             .child(Icon::new(if starred { IconName::StarFilled } else { IconName::Star }).color(if starred { theme::warning() } else { theme::text_subtle() }))
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 cx.stop_propagation();

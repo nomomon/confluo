@@ -248,7 +248,7 @@ impl Provider for GitHubProvider {
                 }
             }
         }
-        out.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        out.sort_by_key(|c| std::cmp::Reverse(c.updated_at));
         Ok(out)
     }
 

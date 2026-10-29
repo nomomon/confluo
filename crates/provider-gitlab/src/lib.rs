@@ -113,7 +113,7 @@ fn summarize_jobs(jobs: &[Value]) -> CheckSummary {
     // Retried jobs appear multiple times; the API returns the latest by default unless include_retried.
     for j in jobs {
         let st = j["status"].as_str().unwrap_or_default();
-        if st == "skipped" || st == "manual" && j["allow_failure"] == true {
+        if st == "skipped" || (st == "manual" && j["allow_failure"] == true) {
             continue;
         }
         c.total += 1;
@@ -281,7 +281,7 @@ impl Provider for GitLabProvider {
             }
         }
         let mut out = self.enrich_all(raw, &me).await;
-        out.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        out.sort_by_key(|c| std::cmp::Reverse(c.updated_at));
         Ok(out)
     }
 

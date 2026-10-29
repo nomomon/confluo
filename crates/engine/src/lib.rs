@@ -342,7 +342,7 @@ impl Engine {
             .or_else(|| ChangeRequestId::parse_key(s))
             .ok_or_else(|| anyhow!("not a PR/MR URL or id: {s}"))?;
         // `/pull/` on a self-hosted GitLab-like host: trust our known GitLab hosts.
-        if self.gitlab_hosts.iter().any(|h| *h == id.repo.host) {
+        if self.gitlab_hosts.contains(&id.repo.host) {
             id.repo.kind = ProviderKind::GitLab;
         }
         Ok(id)

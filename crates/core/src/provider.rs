@@ -31,6 +31,10 @@ pub trait Provider: Send + Sync {
     async fn add_comment(&self, id: &ChangeRequestId, body: &str) -> ProviderResult<Comment>;
     async fn reply_to_thread(&self, id: &ChangeRequestId, thread_id: &str, body: &str) -> ProviderResult<Comment>;
     async fn edit_comment(&self, id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment>;
+    /// Start an inline review thread on a diff line (or range); returns the first comment.
+    async fn add_line_comment(&self, id: &ChangeRequestId, position: &DiffPosition, body: &str) -> ProviderResult<Comment>;
+    /// Mark an inline thread resolved or unresolved.
+    async fn resolve_thread(&self, id: &ChangeRequestId, thread_id: &str, resolved: bool) -> ProviderResult<()>;
     /// Files changed by the PR/MR with parsed hunks.
     async fn list_changed_files(&self, id: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>>;
     /// Whole file at `rev` (a commit sha); None when it does not exist there.

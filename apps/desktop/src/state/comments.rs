@@ -31,7 +31,7 @@ impl GitViewer {
                     t.comments.push(optimistic);
                 }
             } else {
-                det.threads.push(Thread { id: "pending".into(), resolved: None, comments: vec![optimistic] });
+                det.threads.push(Thread::conversation("pending", vec![optimistic]));
             }
         }
         d.posting = true;

@@ -211,11 +211,66 @@ pub struct Comment {
     pub position: Option<InlinePosition>,
 }
 
+/// Which side of a diff a line belongs to: the base (old) or the head (new) file.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum DiffSide {
+    Old,
+    #[default]
+    New,
+}
+
+impl DiffSide {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.to_ascii_lowercase().as_str() {
+            "old" | "left" | "base" => Some(Self::Old),
+            "new" | "right" | "head" => Some(Self::New),
+            _ => None,
+        }
+    }
+}
+
+/// Where an inline review comment is anchored in a diff.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct DiffPosition {
+    /// Path on the anchored side (new path for New, old path for Old).
+    pub path: String,
+    /// Path before a rename, when it differs.
+    pub old_path: Option<String>,
+    pub side: DiffSide,
+    /// Last line of the range (the anchor line).
+    pub line: u32,
+    /// First line of a multi-line range on the same side.
+    pub start_line: Option<u32>,
+    /// For context lines: the line number on the other side (GitLab needs both).
+    pub other_line: Option<u32>,
+    pub head_sha: Option<String>,
+    pub base_sha: Option<String>,
+    pub start_sha: Option<String>,
+}
+
+impl DiffPosition {
+    pub fn new(path: impl Into<String>, side: DiffSide, line: u32) -> Self {
+        Self { path: path.into(), side, line, ..Default::default() }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Thread {
     pub id: String,
     pub resolved: Option<bool>,
     pub comments: Vec<Comment>,
+    /// Anchor of an inline review thread; None for conversation comments.
+    #[serde(default)]
+    pub position: Option<DiffPosition>,
+    /// The anchored line is no longer part of the current diff.
+    #[serde(default)]
+    pub outdated: bool,
+}
+
+impl Thread {
+    pub fn conversation(id: impl Into<String>, comments: Vec<Comment>) -> Self {
+        Self { id: id.into(), resolved: None, comments, position: None, outdated: false }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

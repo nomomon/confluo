@@ -46,6 +46,12 @@ impl Provider for AzureProvider {
     async fn edit_comment(&self, _: &ChangeRequestId, _: &str, _: &str) -> ProviderResult<Comment> {
         unsupported()
     }
+    async fn add_line_comment(&self, _: &ChangeRequestId, _: &DiffPosition, _: &str) -> ProviderResult<Comment> {
+        unsupported()
+    }
+    async fn resolve_thread(&self, _: &ChangeRequestId, _: &str, _: bool) -> ProviderResult<()> {
+        unsupported()
+    }
     async fn list_changed_files(&self, _: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>> {
         unsupported()
     }

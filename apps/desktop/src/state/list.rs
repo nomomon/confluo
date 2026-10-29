@@ -148,8 +148,9 @@ impl GitViewer {
         cx.notify();
     }
 
+    /// The repo alias, else the last path segment (`group/sub/base-front` -> `base-front`).
     pub(crate) fn repo_label(&self, r: &RepoRef) -> String {
-        self.aliases.get(r).cloned().unwrap_or_else(|| r.path.clone())
+        self.aliases.get(r).cloned().unwrap_or_else(|| short_repo(&r.path).to_string())
     }
 
     pub(crate) fn project_name(&self) -> String {
@@ -157,5 +158,20 @@ impl GitViewer {
             None => "Inbox".into(),
             Some(id) => self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default(),
         }
+    }
+}
+
+fn short_repo(path: &str) -> &str {
+    path.trim_end_matches('/').rsplit('/').next().unwrap_or(path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::short_repo;
+
+    #[test]
+    fn short_repo_keeps_last_segment() {
+        assert_eq!(short_repo("acme/projects/demo/base-front"), "base-front");
+        assert_eq!(short_repo("solo"), "solo");
     }
 }

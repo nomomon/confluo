@@ -6,7 +6,7 @@ use gv_engine::ChangeRequest;
 use crate::app::GitViewer;
 use crate::state;
 use crate::features::shared::{checks_text, layout, number_label, provider_badge, relative_time, state_icon};
-use crate::ui::atoms::{Avatar, Icon, IconName, Pill};
+use crate::ui::atoms::{tooltip, Avatar, Icon, IconName, Pill};
 use crate::ui::theme;
 
 impl GitViewer {
@@ -26,7 +26,14 @@ impl GitViewer {
             .text_color(theme::TEXT_MUTED)
             .when(show_provider, |d| d.child(provider_badge(c.id.repo.kind)))
             .child(div().flex().items_center().gap(theme::SPACE_1).flex_shrink_0().child(Avatar::new(c.author.username.clone())).child(c.author.username.clone()))
-            .child(div().truncate().child(self.repo_label(&c.id.repo)))
+            .child(
+                div()
+                    .id(SharedString::from(format!("repo-{}", c.id.key())))
+                    .min_w(theme::SPACE_0)
+                    .truncate()
+                    .tooltip(tooltip(c.id.repo.path.clone()))
+                    .child(self.repo_label(&c.id.repo)),
+            )
             .child(Pill::new(number_label(c), theme::TEXT_MUTED))
             .child(div().flex_shrink_0().text_color(checks_color).child(checks));
         let diff = match (c.additions, c.deletions) {
@@ -94,12 +101,14 @@ impl GitViewer {
                     .child(
                         div()
                             .flex()
+                            .w_full()
+                            .min_w(theme::SPACE_0)
                             .items_center()
                             .gap(theme::SPACE_2)
                             .child(state_icon(c.state))
                             .child(div().flex_1().min_w(theme::SPACE_0).text_size(theme::TEXT_SM).font_weight(theme::WEIGHT_MEDIUM).truncate().child(c.title.clone())),
                     )
-                    .child(div().pl(theme::SPACE_6).child(meta)),
+                    .child(div().w_full().min_w(theme::SPACE_0).overflow_hidden().pl(theme::SPACE_6).child(meta)),
             )
             .child(
                 div()

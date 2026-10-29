@@ -5,7 +5,7 @@ use gpui::{div, prelude::*, ClickEvent, Context, MouseDownEvent};
 use crate::app::{GitViewer, Menu};
 use crate::features::shared::{number_label, relative_time};
 use crate::state::{Copied, DetailState};
-use crate::ui::atoms::{Avatar, Button, ButtonVariant, IconName, NavItem, Pill};
+use crate::ui::atoms::{tooltip, Avatar, Button, ButtonVariant, IconName, NavItem, Pill};
 use crate::ui::molecules::DropdownMenu;
 use crate::ui::theme;
 
@@ -43,7 +43,7 @@ impl GitViewer {
             .text_size(theme::TEXT_XS)
             .text_color(theme::TEXT_MUTED)
             .child(div().flex().items_center().gap(theme::SPACE_1).child(Avatar::new(s.author.username.clone())).child(s.author.username.clone()))
-            .child(div().truncate().child(self.repo_label(&s.id.repo)))
+            .child(div().id("detail-repo").min_w(theme::SPACE_0).truncate().tooltip(tooltip(s.id.repo.path.clone())).child(self.repo_label(&s.id.repo)))
             .child(Pill::new(number_label(s), theme::TEXT_MUTED))
             .child(div().text_color(theme::TEXT_SUBTLE).child(loaded));
         div()

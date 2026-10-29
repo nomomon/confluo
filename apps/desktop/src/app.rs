@@ -96,7 +96,7 @@ fn on_submit(cx: &mut Context<GitViewer>, input: &Entity<TextInput>, f: impl Fn(
 impl GitViewer {
     pub fn new(engine: Arc<Engine>, settings: Settings, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let input = |cx: &mut Context<Self>, ph: &'static str| cx.new(|cx| TextInput::new(ph, cx));
-        let search = input(cx, "Search pull requests");
+        let search = input(cx, "Search title, repo, author or branch  /");
         let composer = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post", cx).multiline());
         let add_name = input(cx, "Project name");
         let add_value = input(cx, "Paste a repo or group URL, or a folder path");

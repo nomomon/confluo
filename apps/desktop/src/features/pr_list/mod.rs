@@ -63,7 +63,7 @@ impl GitViewer {
             .px(theme::SPACE_4)
             .gap(theme::SPACE_3)
             .child(self.render_list_header(visible.len(), cx))
-            .child(div().flex().items_center().gap(theme::SPACE_3).child(self.render_involvement_tabs(cx)).child(div().flex_1().child(self.search.clone())))
+            .child(div().flex().items_center().gap(theme::SPACE_3).child(self.render_involvement_tabs(cx)).child(self.render_search(cx)))
             .child(self.render_filter_chips(cx))
             .children(banner)
             .child(rows)

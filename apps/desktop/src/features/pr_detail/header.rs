@@ -5,7 +5,7 @@ use gpui::{div, prelude::*, ClickEvent, Context, MouseDownEvent};
 use crate::app::{GitViewer, Menu};
 use crate::features::shared::{number_label, relative_time};
 use crate::state::{Copied, DetailState};
-use crate::ui::atoms::{Avatar, Button, ButtonVariant, NavItem, Pill};
+use crate::ui::atoms::{Avatar, Button, ButtonVariant, IconName, NavItem, Pill};
 use crate::ui::molecules::DropdownMenu;
 use crate::ui::theme;
 
@@ -19,20 +19,20 @@ impl GitViewer {
         };
         let url = s.web_url.clone();
         let link = s.web_url.clone();
-        let icon = |id: &'static str, glyph: &'static str, tip: &'static str| Button::new(id, "").icon(glyph).variant(ButtonVariant::Ghost).tooltip(tip);
+        let icon = |id: &'static str, glyph: IconName, tip: &'static str| Button::new(id, "").icon(glyph).variant(ButtonVariant::Ghost).tooltip(tip);
         let actions = div()
             .flex()
             .items_center()
             .gap(theme::SPACE_1)
-            .child(icon("close-detail", "\u{2715}", "Close  esc").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.close_detail(cx))))
+            .child(icon("close-detail", IconName::X, "Close  esc").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.close_detail(cx))))
             .child(div().flex_1())
-            .child(icon("detail-refresh", "\u{21BB}", "Refresh").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.load_detail(cx))))
+            .child(icon("detail-refresh", IconName::Refresh, "Refresh").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.load_detail(cx))))
             .child(
-                icon("copy-link", if self.copied == Some(Copied::Link) { "\u{2713}" } else { "\u{29C9}" }, "Copy link")
+                icon("copy-link", if self.copied == Some(Copied::Link) { IconName::Check } else { IconName::Copy }, "Copy link")
                     .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.copy(Copied::Link, link.clone(), cx))),
             )
-            .child(icon("open-browser", "\u{2197}", "Open in browser  o").on_click(cx.listener(move |_, _: &ClickEvent, _, cx| cx.open_url(&url))))
-            .child(icon("detail-more", "\u{22EF}", "More").on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+            .child(icon("open-browser", IconName::ExternalLink, "Open in browser  o").on_click(cx.listener(move |_, _: &ClickEvent, _, cx| cx.open_url(&url))))
+            .child(icon("detail-more", IconName::Ellipsis, "More").on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
                 this.menu = if this.menu == Some(Menu::DetailMore) { None } else { Some(Menu::DetailMore) };
                 cx.notify()
             })));

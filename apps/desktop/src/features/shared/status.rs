@@ -3,7 +3,7 @@
 use gpui::{div, prelude::*, Div, Hsla};
 use gv_engine::{ChangeRequest, ChangeRequestState, ProviderKind, ReviewState};
 
-use crate::ui::atoms::{Badge, Icon, Pill};
+use crate::ui::atoms::{Badge, Icon, IconName, Pill};
 use crate::ui::theme;
 
 pub fn provider_badge(kind: ProviderKind) -> Badge {
@@ -23,14 +23,15 @@ pub fn state_pill(s: ChangeRequestState) -> Pill {
     }
 }
 
-/// Leading state glyph: green open, grey draft, purple merged, red closed.
+/// Leading pull request icon: green open, grey draft, purple merged, red closed.
 pub fn state_icon(s: ChangeRequestState) -> Icon {
-    match s {
-        ChangeRequestState::Open => Icon::new("\u{25CF}").color(theme::SUCCESS),
-        ChangeRequestState::Draft => Icon::new("\u{25CB}").color(theme::TEXT_SUBTLE),
-        ChangeRequestState::Merged => Icon::new("\u{25CF}").color(theme::MERGED),
-        ChangeRequestState::Closed => Icon::new("\u{25CF}").color(theme::DANGER),
-    }
+    let (name, color) = match s {
+        ChangeRequestState::Open => (IconName::GitPullRequest, theme::SUCCESS),
+        ChangeRequestState::Draft => (IconName::GitPullRequestDraft, theme::TEXT_SUBTLE),
+        ChangeRequestState::Merged => (IconName::GitMerge, theme::MERGED),
+        ChangeRequestState::Closed => (IconName::GitPullRequestClosed, theme::DANGER),
+    };
+    Icon::new(name).size(theme::ICON_LG).color(color)
 }
 
 /// `#12` on GitHub and Azure, `!12` on GitLab.

@@ -1,9 +1,10 @@
 //! Clickable button with outline, ghost and link variants.
 //!
-//! `Button::new(id, label).variant(ButtonVariant::Ghost).size(Size::Sm).icon("+").on_click(..)`
+//! `Button::new(id, label).variant(ButtonVariant::Ghost).size(Size::Sm).icon(IconName::Plus).on_click(..)`
 
 use gpui::{div, prelude::*, App, ClickEvent, ElementId, SharedString, Window};
 
+use super::{Icon, IconName};
 use crate::ui::{theme, ClickHandler};
 
 #[derive(Clone, Copy, PartialEq, Default)]
@@ -32,7 +33,7 @@ pub enum Size {
 pub struct Button {
     id: SharedString,
     label: SharedString,
-    icon: Option<SharedString>,
+    icon: Option<IconName>,
     variant: ButtonVariant,
     size: Size,
     tooltip: Option<SharedString>,
@@ -55,8 +56,8 @@ impl Button {
     }
 
     /// Leading glyph shown before the label.
-    pub fn icon(mut self, icon: impl Into<SharedString>) -> Self {
-        self.icon = Some(icon.into());
+    pub fn icon(mut self, icon: IconName) -> Self {
+        self.icon = Some(icon);
         self
     }
 
@@ -95,7 +96,8 @@ impl RenderOnce for Button {
         };
         styled
             .when(self.size == Size::Md, |el| el.px(theme::SPACE_3).py(theme::SPACE_1P5).text_size(theme::TEXT_SM))
-            .children(self.icon)
+            .children(self.icon.map(|n| Icon::new(n).color(if self.variant == ButtonVariant::Outline { theme::TEXT } else { theme::TEXT_MUTED })))
+            .when(self.icon.is_some() && self.label.is_empty(), |el| el.py(theme::SPACE_1P5))
             .when(!self.label.is_empty(), |el| el.child(self.label))
             .when_some(self.tooltip, |el, t| el.tooltip(super::tooltip(t)))
             .when_some(self.on_click, |el, f| el.on_click(f))

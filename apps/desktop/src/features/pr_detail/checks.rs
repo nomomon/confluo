@@ -5,6 +5,7 @@ use gpui::{div, prelude::*, ClickEvent, Context};
 use crate::app::GitViewer;
 use crate::features::shared::checks_summary;
 use crate::state::DetailState;
+use crate::ui::atoms::{Icon, IconName};
 use crate::ui::molecules::{Card, KeyValueRow};
 use crate::ui::theme;
 
@@ -20,7 +21,7 @@ impl GitViewer {
             .child(div().text_size(theme::TEXT_SM).font_weight(theme::WEIGHT_MEDIUM).child("Checks"))
             .child(checks_summary(&d.summary))
             .child(div().flex_1())
-            .child(div().text_size(theme::TEXT_XS).text_color(theme::TEXT_SUBTLE).child(if d.checks_open { "\u{25BE}" } else { "\u{25B8}" }))
+            .child(Icon::new(if d.checks_open { IconName::ChevronDown } else { IconName::ChevronRight }).size(theme::ICON_SM).color(theme::TEXT_SUBTLE))
             .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
                 if let Some(d) = this.detail.as_mut() {
                     d.checks_open = !d.checks_open;

@@ -4,7 +4,7 @@ use gpui::{div, prelude::*, App, ClickEvent, Context};
 use gv_engine::{ChangeRequest, Involvement};
 
 use crate::app::GitViewer;
-use crate::ui::atoms::{Button, ButtonVariant};
+use crate::ui::atoms::{Button, ButtonVariant, IconName};
 use crate::ui::molecules::SegmentedTabs;
 use crate::ui::theme;
 
@@ -37,7 +37,7 @@ impl GitViewer {
             d.child(
                 div().absolute().top_0().bottom_0().right(theme::SPACE_1).flex().items_center().child(
                     Button::new("search-clear", "")
-                        .icon("\u{2715}")
+                        .icon(IconName::X)
                         .variant(ButtonVariant::Ghost)
                         .tooltip("Clear  esc")
                         .on_click(cx.listener(|this, _: &ClickEvent, window, cx| {

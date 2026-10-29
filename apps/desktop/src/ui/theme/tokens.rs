@@ -43,8 +43,6 @@ pub const WARNING: Hsla = AMBER;
 pub const MERGED: Hsla = PURPLE;
 /// Floating layers (dialogs, menus): near-opaque so text stays legible.
 pub const OVERLAY: Hsla = alpha(zinc::Z900, 0.97);
-/// Fully transparent, for content revealed on hover.
-pub const TRANSPARENT: Hsla = alpha(BLACK, 0.0);
 /// Dimmed backdrop behind modal dialogs.
 pub const SCRIM: Hsla = alpha(BLACK, 0.45);
 

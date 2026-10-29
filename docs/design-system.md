@@ -54,7 +54,6 @@ Semantic tokens (`ui::theme::*`):
 | `TEXT_SUBTLE`    | hints, timestamps, placeholders (zinc 500)|
 | `OVERLAY`        | dialogs and menus (zinc 900, 97%)         |
 | `SCRIM`          | modal backdrop (black 45%)                |
-| `TRANSPARENT`    | content revealed on hover (row star)      |
 
 `tint_bg(color)` gives the 14% fill used behind pills, badges and notices.
 
@@ -74,6 +73,9 @@ Spacing, Tailwind 4px steps: `SPACE_0` 0, `SPACE_0P5` 2, `SPACE_1` 4,
 `SPACE_1P5` 6, `SPACE_2` 8, `SPACE_2P5` 10, `SPACE_3` 12, `SPACE_4` 16,
 `SPACE_5` 20, `SPACE_6` 24, `SPACE_8` 32, `SPACE_10` 40, `SPACE_12` 48.
 
+Icons: `ICON_SM` 12 (chevrons), `ICON_MD` 14 (buttons, nav), `ICON_LG` 16 (row state).
+Never use text glyphs as icons; add a Lucide SVG and an `IconName` variant instead.
+
 Radius: `RADIUS_SM` 6, `RADIUS_MD` 8, `RADIUS_LG` 12, `RADIUS_XL` 16,
 `RADIUS_FULL`.
 
@@ -84,8 +86,9 @@ Type: `TEXT_2XS` 10 (avatar initials), `TEXT_XS` 12, `TEXT_SM` 13 (body default)
 
 ## Components
 
-Atoms: `Avatar` (initial letter), `Badge`, `Button` (`.tooltip("Refresh  ⌘R")`),
-`Chip`, `Icon` (tinted glyph), `NavItem` (`.trailing_on_hover(..)`,
+Atoms: `Avatar` (initial letter), `Badge`, `Button` (`.icon(IconName::Refresh)`, `.tooltip("Refresh  ⌘R")`),
+`Chip`, `Icon` (`Icon::new(IconName::ChevronDown).size(ICON_SM).color(..)`, embedded
+Lucide SVGs in `apps/desktop/assets/icons`, ISC license), `NavItem` (`.icon(..)`, `.trailing_on_hover(..)`,
 `.on_right_click(..)`), `Pill`, `Swatch`, `tooltip(text)` for any stateful element.
 
 Molecules: `Banner` (one-line dismissible error with an action such as Retry),
@@ -96,7 +99,7 @@ Molecules: `Banner` (one-line dismissible error with an action such as Retry),
 (`.multiline()`: Enter inserts a newline, Cmd+Enter submits), `Toast`.
 
 Show on hover with `.group(..)` plus `.group_hover(..)`; GPUI has no visibility
-toggle, so hidden content uses `opacity(0.)` or `TRANSPARENT` text.
+toggle, so hidden content uses `opacity(0.)`.
 
 Timers that are not animations (auto refresh, loading delay, "Copied" reset,
 toasts) live in `state::timing`.

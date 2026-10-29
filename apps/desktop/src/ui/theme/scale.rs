@@ -25,6 +25,11 @@ pub const RADIUS_LG: Pixels = px(12.);
 pub const RADIUS_XL: Pixels = px(16.);
 pub const RADIUS_FULL: Pixels = px(9999.);
 
+/// Icon sizes: inline chevrons, buttons and row state.
+pub const ICON_SM: Pixels = px(12.);
+pub const ICON_MD: Pixels = px(14.);
+pub const ICON_LG: Pixels = px(16.);
+
 /// Tiny labels inside avatars and badges.
 pub const TEXT_2XS: Pixels = px(10.);
 pub const TEXT_XS: Pixels = px(12.);

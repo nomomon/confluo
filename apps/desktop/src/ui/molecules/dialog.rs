@@ -2,7 +2,7 @@
 
 use gpui::{div, prelude::*, px, AnyElement, Pixels, App, ClickEvent, SharedString, Window};
 
-use crate::ui::atoms::{Button, ButtonVariant, Size};
+use crate::ui::atoms::{Button, ButtonVariant, IconName, Size};
 use crate::ui::{motion, theme, ClickHandler};
 
 const DIALOG_W: Pixels = px(520.);
@@ -33,7 +33,7 @@ impl Dialog {
 
 impl RenderOnce for Dialog {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let mut close = Button::new("close-overlay", "").icon("\u{2715}").variant(ButtonVariant::Ghost).size(Size::Sm);
+        let mut close = Button::new("close-overlay", "").icon(IconName::X).variant(ButtonVariant::Ghost).size(Size::Sm);
         if let Some(f) = self.on_close {
             close = close.on_click(f);
         }

@@ -4,7 +4,7 @@
 
 use gpui::{div, prelude::*, App, ClickEvent, SharedString, Window};
 
-use crate::ui::atoms::{Button, ButtonVariant};
+use crate::ui::atoms::{Button, ButtonVariant, IconName};
 use crate::ui::{motion, theme, ClickHandler};
 
 #[derive(IntoElement)]
@@ -35,7 +35,7 @@ impl Banner {
 impl RenderOnce for Banner {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         let action = self.action.map(|(label, f)| Button::new(format!("{}-action", self.id), label).variant(ButtonVariant::Link).on_click(f));
-        let dismiss = self.on_dismiss.map(|f| Button::new(format!("{}-dismiss", self.id), "").icon("\u{2715}").variant(ButtonVariant::Ghost).on_click(f));
+        let dismiss = self.on_dismiss.map(|f| Button::new(format!("{}-dismiss", self.id), "").icon(IconName::X).variant(ButtonVariant::Ghost).on_click(f));
         let el = div()
             .flex()
             .items_center()

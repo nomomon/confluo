@@ -9,7 +9,7 @@ use gpui::{div, prelude::*, ClickEvent, Context};
 
 use crate::app::GitViewer;
 use crate::features::shared::{layout, relative_time};
-use crate::ui::atoms::{Button, ButtonVariant};
+use crate::ui::atoms::{Button, ButtonVariant, IconName};
 use crate::ui::molecules::Banner;
 use crate::ui::theme;
 
@@ -30,7 +30,7 @@ impl GitViewer {
             .child(div().flex_1())
             .child(
                 Button::new("refresh", "")
-                    .icon("\u{21BB}")
+                    .icon(IconName::Refresh)
                     .variant(ButtonVariant::Ghost)
                     .tooltip("Refresh  \u{2318}R")
                     .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.refresh(cx))),

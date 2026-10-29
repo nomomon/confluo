@@ -4,6 +4,7 @@
 
 use gpui::{div, prelude::*, AnyElement, App, ClickEvent, ElementId, Hsla, SharedString, Window};
 
+use crate::ui::atoms::{Icon, IconName};
 use crate::ui::{theme, ClickHandler};
 
 #[derive(IntoElement)]
@@ -58,7 +59,7 @@ impl RenderOnce for ListSection {
                 .text_size(theme::TEXT_XS)
                 .text_color(theme::TEXT_MUTED)
                 .hover(|s| s.text_color(theme::TEXT))
-                .child(div().w(theme::SPACE_3).child(if open { "\u{25BE}" } else { "\u{25B8}" }))
+                .child(Icon::new(if open { IconName::ChevronDown } else { IconName::ChevronRight }).size(theme::ICON_SM).color(theme::TEXT_SUBTLE))
                 .child(div().font_weight(theme::WEIGHT_MEDIUM).child(title))
                 .child(div().text_color(theme::TEXT_SUBTLE).child(count.to_string()))
                 .when_some(self.on_toggle, |el, f| el.on_click(f))

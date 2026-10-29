@@ -15,7 +15,7 @@ pub use avatar::Avatar;
 pub use badge::Badge;
 pub use button::{Button, ButtonVariant, Size};
 pub use chip::Chip;
-pub use icon::Icon;
+pub use icon::{Icon, IconName};
 pub use label::{ErrorText, SectionLabel};
 pub use nav_item::NavItem;
 pub use pill::Pill;

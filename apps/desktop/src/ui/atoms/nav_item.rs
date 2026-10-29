@@ -2,6 +2,7 @@
 
 use gpui::{div, prelude::*, AnyElement, App, ClickEvent, Div, ElementId, MouseButton, MouseDownEvent, SharedString, StyleRefinement, Window};
 
+use super::{Icon, IconName};
 use crate::ui::{theme, ClickHandler, MouseDownHandler};
 
 #[derive(IntoElement)]
@@ -10,6 +11,7 @@ pub struct NavItem {
     id: SharedString,
     label: SharedString,
     active: bool,
+    icon: Option<IconName>,
     trailing: Option<AnyElement>,
     on_click: Option<ClickHandler>,
     on_right_click: Option<MouseDownHandler>,
@@ -17,11 +19,17 @@ pub struct NavItem {
 
 impl NavItem {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { base: div(), id: id.into(), label: label.into(), active: false, trailing: None, on_click: None, on_right_click: None }
+        Self { base: div(), id: id.into(), label: label.into(), active: false, icon: None, trailing: None, on_click: None, on_right_click: None }
     }
 
     pub fn active(mut self, active: bool) -> Self {
         self.active = active;
+        self
+    }
+
+    /// Leading icon.
+    pub fn icon(mut self, icon: IconName) -> Self {
+        self.icon = Some(icon);
         self
     }
 
@@ -57,7 +65,7 @@ impl RenderOnce for NavItem {
             .group(group.clone())
             .flex()
             .items_center()
-            .gap(theme::SPACE_1)
+            .gap(theme::SPACE_2)
             .px(theme::SPACE_2)
             .py(theme::SPACE_1)
             .rounded(theme::RADIUS_MD)
@@ -67,6 +75,7 @@ impl RenderOnce for NavItem {
             .when(active, |d| d.bg(theme::SURFACE_ACTIVE))
             .hover(|s| s.bg(theme::SURFACE_HOVER))
             .active(|s| s.bg(theme::SURFACE_ACTIVE))
+            .children(self.icon.map(|n| Icon::new(n).color(if active { theme::TEXT } else { theme::TEXT_SUBTLE })))
             .child(div().flex_1().min_w(theme::SPACE_0).truncate().child(self.label))
             .when_some(self.trailing, |el, t| el.child(div().flex_shrink_0().opacity(0.).group_hover(group, |s| s.opacity(1.)).child(t)))
             .when_some(self.on_click, |el, f| el.on_click(f))

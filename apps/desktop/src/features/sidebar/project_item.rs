@@ -4,7 +4,7 @@ use gpui::{div, prelude::*, ClickEvent, Context, MouseDownEvent};
 use gv_engine::Project;
 
 use crate::app::{GitViewer, Menu};
-use crate::ui::atoms::{tooltip, NavItem};
+use crate::ui::atoms::{tooltip, Icon, IconName, NavItem};
 use crate::ui::molecules::DropdownMenu;
 use crate::ui::theme;
 
@@ -18,12 +18,13 @@ impl GitViewer {
             .text_color(theme::TEXT_SUBTLE)
             .hover(|s| s.text_color(theme::TEXT).bg(theme::SURFACE_HOVER))
             .tooltip(tooltip("More"))
-            .child("\u{22EF}")
+            .child(Icon::new(IconName::Ellipsis).size(theme::ICON_SM).color(theme::TEXT_SUBTLE))
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 cx.stop_propagation();
                 this.toggle_project_menu(id, cx)
             }));
         let item = NavItem::new(format!("nav-{id}"), p.name.clone())
+            .icon(IconName::Folder)
             .active(self.selected == Some(id))
             .trailing_on_hover(kebab)
             .on_right_click(cx.listener(move |this, _: &MouseDownEvent, _, cx| this.toggle_project_menu(id, cx)))

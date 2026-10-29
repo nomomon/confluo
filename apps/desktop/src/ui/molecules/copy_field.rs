@@ -2,7 +2,7 @@
 
 use gpui::{div, prelude::*, px, App, ClickEvent, ClipboardItem, SharedString, Window};
 
-use crate::ui::atoms::Button;
+use crate::ui::atoms::{Button, IconName};
 use crate::ui::{theme, ClickHandler};
 
 #[derive(IntoElement)]
@@ -52,7 +52,7 @@ impl RenderOnce for CopyField {
                     .truncate()
                     .child(self.value),
             )
-            .child(Button::new(self.id, if self.copied { "\u{2713} Copied" } else { "Copy" }).on_click(move |ev, window, cx| {
+            .child(Button::new(self.id, if self.copied { "Copied" } else { "Copy" }).icon(if self.copied { IconName::Check } else { IconName::Copy }).on_click(move |ev, window, cx| {
                 cx.write_to_clipboard(ClipboardItem::new_string(value.to_string()));
                 if let Some(f) = &on_copy {
                     f(ev, window, cx)

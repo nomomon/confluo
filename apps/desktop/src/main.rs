@@ -1,6 +1,7 @@
 //! git-viewer desktop app (GPUI).
 
 mod app;
+mod assets;
 mod features;
 mod settings;
 mod state;
@@ -22,7 +23,7 @@ fn main() {
     let settings = settings::Settings::load();
     ui::motion::init();
 
-    Application::new().run(move |cx: &mut App| {
+    Application::new().with_assets(assets::Assets).run(move |cx: &mut App| {
         ui::molecules::text_input::bind_keys(cx);
         features::keyboard::bind_keys(cx);
         cx.on_action(|_: &Quit, cx| cx.quit());

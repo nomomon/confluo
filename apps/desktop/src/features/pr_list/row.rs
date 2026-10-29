@@ -6,7 +6,7 @@ use gv_engine::ChangeRequest;
 use crate::app::GitViewer;
 use crate::state;
 use crate::features::shared::{checks_text, layout, number_label, provider_badge, relative_time, state_icon};
-use crate::ui::atoms::{Avatar, Pill};
+use crate::ui::atoms::{Avatar, Icon, IconName, Pill};
 use crate::ui::theme;
 
 impl GitViewer {
@@ -58,10 +58,9 @@ impl GitViewer {
         let star = div()
             .id(SharedString::from(format!("star-{}", c.id.key())))
             .px(theme::SPACE_1)
-            .text_color(if starred { theme::WARNING } else { theme::TRANSPARENT })
-            .group_hover(group.clone(), |s| s.text_color(if starred { theme::WARNING } else { theme::TEXT_SUBTLE }))
-            .hover(|s| s.text_color(theme::WARNING))
-            .child(if starred { "\u{2605}" } else { "\u{2606}" })
+            .when(!starred, |d| d.opacity(0.))
+            .group_hover(group.clone(), |s| s.opacity(1.))
+            .child(Icon::new(if starred { IconName::StarFilled } else { IconName::Star }).color(if starred { theme::WARNING } else { theme::TEXT_SUBTLE }))
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 cx.stop_propagation();
                 this.toggle_star(sid.clone(), cx)

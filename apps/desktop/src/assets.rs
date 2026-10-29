@@ -10,9 +10,7 @@ macro_rules! icons {
 }
 
 const FILES: &[(&str, &[u8])] = icons![
-    "check", "chevron-down", "chevron-right", "copy", "dots", "external-link", "folder", "git-merge",
-    "git-pull-request", "git-pull-request-closed", "git-pull-request-draft", "inbox", "plus", "refresh",
-    "search", "settings", "star", "star-filled", "x",
+    "arrow-left", "check", "chevron-down", "chevron-right", "chevron-up", "copy", "dots", "external-link", "file", "file-code", "file-text", "fold", "folder", "git-merge", "git-pull-request", "git-pull-request-closed", "git-pull-request-draft", "inbox", "layout-columns", "layout-rows", "layout-sidebar", "message", "plus", "refresh", "search", "settings", "star", "star-filled", "x",
 ];
 
 pub struct Assets;

@@ -1,6 +1,7 @@
 //! Molecules: small compositions of atoms (inputs, tabs, cards, dialogs).
 
 mod card;
+pub mod code;
 mod copy_field;
 mod dialog;
 mod dropdown_menu;

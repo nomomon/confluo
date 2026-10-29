@@ -5,11 +5,13 @@
 pub mod palette;
 mod runtime;
 mod scale;
+mod syntax;
 mod tokens;
 mod translucency;
 
 pub use runtime::{mono_font, set_light, set_typography, ui_font, Typography};
 pub use scale::*;
+pub use syntax::*;
 pub use tokens::*;
 pub use translucency::Translucency;
 

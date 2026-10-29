@@ -52,3 +52,16 @@ pub mod light {
 }
 pub const WHITE: Hsla = c(0., 0., 1.);
 pub const BLACK: Hsla = c(0., 0., 0.);
+
+/// Syntax highlighting hues for code views, dark and light variants.
+pub mod syntax {
+    use super::{c, Hsla};
+    pub const KEYWORD_DARK: Hsla = c(330., 0.75, 0.72);
+    pub const KEYWORD_LIGHT: Hsla = c(330., 0.65, 0.42);
+    pub const STRING_DARK: Hsla = c(160., 0.55, 0.62);
+    pub const STRING_LIGHT: Hsla = c(160., 0.70, 0.28);
+    pub const NUMBER_DARK: Hsla = c(28., 0.85, 0.66);
+    pub const NUMBER_LIGHT: Hsla = c(28., 0.85, 0.38);
+    pub const TYPE_DARK: Hsla = c(195., 0.70, 0.68);
+    pub const TYPE_LIGHT: Hsla = c(205., 0.75, 0.38);
+}

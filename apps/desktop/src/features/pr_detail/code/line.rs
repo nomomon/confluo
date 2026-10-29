@@ -1,8 +1,9 @@
-//! One diff line row: horizontal scroll, the hover "+" comment button, a dot on commented lines and range highlight.
+//! One diff line row: horizontal scroll, the hover "+" comment button, a dot on commented lines,
+//! mouse line selection (click, Shift+click, drag) and the selection toolbar.
 
 use std::sync::Arc;
 
-use gpui::{div, prelude::*, px, AnyElement, ClickEvent, Context, ScrollWheelEvent};
+use gpui::{div, prelude::*, px, AnyElement, ClickEvent, Context, MouseButton, MouseDownEvent, MouseMoveEvent, ScrollWheelEvent};
 use gv_engine::{ChangedFile, LineKind};
 
 use crate::app::GitViewer;
@@ -28,7 +29,9 @@ impl GitViewer {
         let x = d.code.scroll_x.get(&fi).copied().unwrap_or(px(0.));
         let has_threads = line_threads(&d.code.inline.index, f.path(), l).next().is_some();
         let anchor = line_anchor(l);
-        let selected = anchor.is_some_and(|(side, n)| d.code.inline.draft.as_ref().is_some_and(|dr| dr.covers(fi, side, n)));
+        let in_sel = d.code.sel.is_some_and(|s| s.covers(fi, hi, li));
+        let selected = in_sel || anchor.is_some_and(|(side, n)| d.code.inline.draft.as_ref().is_some_and(|dr| dr.covers(fi, side, n)));
+        let bar = d.code.sel.filter(|s| s.fi == fi && s.hi == hi && s.range.hi() == li && !d.code.dragging).map(|_| self.selection_bar(true, !d.code.sel_kbd, cx));
         let plus = anchor.map(|_| {
             div()
                 .id(("add-line-comment", ix))
@@ -41,10 +44,11 @@ impl GitViewer {
                 .opacity(0.)
                 .group_hover(LINE_GROUP, |s| s.opacity(1.))
                 .cursor_pointer()
-                .tooltip(tooltip("Comment, \u{21e7}click to select a range"))
-                .on_click(cx.listener(move |this, ev: &ClickEvent, window, cx| {
+                .tooltip(tooltip("Comment on this line"))
+                .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
                     cx.stop_propagation();
-                    this.open_line_draft(fi, hi, li, ev.modifiers().shift, window, cx)
+                    this.open_line_draft(fi, hi, li, li, window, cx)
                 }))
                 .child(Icon::new(IconName::Plus).size(theme::ICON_SM).color(theme::bg()))
         });
@@ -62,6 +66,17 @@ impl GitViewer {
         self.card_side()
             .id(("diff-line", ix))
             .group(LINE_GROUP)
+            .relative()
+            .cursor_pointer()
+            .on_mouse_down(MouseButton::Left, cx.listener(move |this, ev: &MouseDownEvent, window, cx| {
+                cx.stop_propagation();
+                window.focus(&this.focus);
+                this.press_diff_line(fi, hi, li, ev.modifiers.shift, cx)
+            }))
+            .on_mouse_move(cx.listener(move |this, ev: &MouseMoveEvent, _, cx| match ev.pressed_button {
+                Some(MouseButton::Left) => this.drag_diff_line(fi, hi, li, cx),
+                _ => this.end_line_drag(cx),
+            }))
             .on_scroll_wheel(cx.listener(move |this, ev: &ScrollWheelEvent, _, cx| {
                 let delta = ev.delta.pixel_delta(layout::DIFF_LINE_H);
                 if delta.x.abs() <= delta.y.abs() {
@@ -77,6 +92,7 @@ impl GitViewer {
                 cx.notify()
             }))
             .child(row)
+            .children(bar)
             .into_any_element()
     }
 }

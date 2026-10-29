@@ -19,3 +19,4 @@ reqwest.workspace = true
 pulldown-cmark = { version = "0.12", default-features = false }
 gpui = { version = "=0.2.2", default-features = false, features = ["font-kit", "runtime_shaders"] }
 unicode-segmentation = "1"
+sha2 = "0.10"

@@ -3,12 +3,13 @@
 mod line;
 mod line_composer;
 mod rows;
+mod selection_bar;
 mod thread_card;
 mod toolbar;
 mod tree;
 mod viewer;
 
-use gpui::{div, list, prelude::*, AnyElement, Context, Div, Hsla};
+use gpui::{div, list, prelude::*, AnyElement, Context, Div, Hsla, MouseButton, MouseMoveEvent, MouseUpEvent};
 use gv_engine::FileStatus;
 
 use crate::app::GitViewer;
@@ -77,7 +78,26 @@ impl GitViewer {
                     .min_h(theme::SPACE_0)
                     .gap(theme::SPACE_3)
                     .when(self.code_tree, |el| el.child(self.render_file_tree(d, cx)))
-                    .child(div().flex().flex_col().flex_1().min_w(theme::SPACE_0).h_full().pr(theme::SPACE_0P5).child(rows))
+                    .child(
+                        div()
+                            .id("diff-list")
+                            .flex()
+                            .flex_col()
+                            .flex_1()
+                            .min_w(theme::SPACE_0)
+                            .h_full()
+                            .pr(theme::SPACE_0P5)
+                            .on_mouse_down(MouseButton::Left, cx.listener(|this, _, _, cx| {
+                                this.clear_line_selection(cx);
+                            }))
+                            .on_mouse_move(cx.listener(|this, ev: &MouseMoveEvent, _, cx| {
+                                if ev.pressed_button == Some(MouseButton::Left) {
+                                    this.drag_autoscroll(ev.position.y, cx)
+                                }
+                            }))
+                            .on_mouse_up(MouseButton::Left, cx.listener(|this, _: &MouseUpEvent, _, cx| this.end_line_drag(cx)))
+                            .child(rows),
+                    )
                     .into_any_element()
             }
         };

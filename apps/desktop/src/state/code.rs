@@ -3,14 +3,13 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use gpui::{px, Context, ListAlignment, ListOffset, ListState, Pixels};
+use gpui::{px, ListAlignment, ListOffset, ListState, Pixels};
 use gv_engine::ChangedFile;
 
 use super::code_rows::{build_rows, file_rows, InlineRows, Row};
 use super::file_view::FileView;
 use super::inline::InlineState;
-use super::{bridge, err_str, timing};
-use crate::app::GitViewer;
+use super::line_select::{DiffSel, PendingSelect};
 
 pub struct CodeState {
     pub files: Option<Arc<Vec<ChangedFile>>>,
@@ -30,6 +29,14 @@ pub struct CodeState {
     pub viewer: Option<FileView>,
     /// Inline review threads, the open composer and reply/edit state.
     pub inline: InlineState,
+    /// Selected diff lines, independent of the comment composer.
+    pub sel: Option<DiffSel>,
+    /// A mouse drag is extending `sel`.
+    pub dragging: bool,
+    /// The selection last moved by keyboard; its toolbar appears without animation.
+    pub sel_kbd: bool,
+    /// Dev only (`CONFLUO_SELECT`): lines to select once files load.
+    pub pending_select: Option<PendingSelect>,
 }
 
 impl CodeState {
@@ -47,6 +54,10 @@ impl CodeState {
             scroll_x: HashMap::new(),
             viewer: None,
             inline: InlineState::default(),
+            sel: None,
+            dragging: false,
+            sel_kbd: false,
+            pending_select: None,
         }
     }
 
@@ -140,64 +151,5 @@ impl CodeState {
             let next = (self.current_file() as isize + delta).clamp(0, n as isize - 1) as usize;
             self.goto(next);
         }
-    }
-}
-
-impl GitViewer {
-    /// Load changed files for the open PR: memory cache first, then the engine (sha-keyed cache).
-    pub(crate) fn load_code(&mut self, cx: &mut Context<Self>) {
-        let Some(d) = self.detail.as_mut() else { return };
-        if d.code.loading {
-            return;
-        }
-        let id = d.summary.id.clone();
-        if d.code.files.is_none() {
-            if let Some(f) = self.code_cache.get(&id) {
-                d.code.set_files(f.clone());
-                d.reindex();
-            }
-        }
-        d.code.loading = true;
-        d.code.show_skeleton = false;
-        let engine = self.engine.clone();
-        let fid = id.clone();
-        let rx = bridge::spawn(async move { engine.changed_files(&fid).await.map_err(err_str) });
-        cx.spawn(async move |this, cx| {
-            cx.background_executor().timer(timing::LOADING_DELAY).await;
-            this.update(cx, |v, cx| {
-                if let Some(d) = v.detail.as_mut().filter(|d| d.code.loading && d.code.files.is_none()) {
-                    d.code.show_skeleton = true;
-                    cx.notify()
-                }
-            })
-            .ok();
-        })
-        .detach();
-        cx.spawn(async move |this, cx| {
-            let Ok(r) = rx.await else { return };
-            this.update(cx, |v, cx| {
-                let files = r.as_ref().ok().map(|f| Arc::new(f.clone()));
-                if let Some(f) = &files {
-                    v.code_cache.insert(id.clone(), f.clone());
-                    v.apply_file_totals(&id, f);
-                }
-                let Some(d) = v.detail.as_mut().filter(|d| d.summary.id == id) else { return };
-                d.code.loading = false;
-                d.code.show_skeleton = false;
-                match (files, r) {
-                    (Some(f), _) => {
-                        d.code.error = None;
-                        d.code.set_files(f);
-                        d.reindex()
-                    }
-                    (None, Err(e)) => d.code.error = Some(e),
-                    (None, Ok(_)) => {}
-                }
-                cx.notify()
-            })
-            .ok();
-        })
-        .detach();
-        cx.notify();
     }
 }

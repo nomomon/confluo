@@ -14,6 +14,8 @@ pub struct FileView {
     pub lines: Option<Arc<Vec<String>>>,
     pub error: Option<String>,
     pub scroll: UniformListScrollHandle,
+    /// Selected lines (0-based indices).
+    pub sel: Option<super::line_select::LineRange>,
 }
 
 impl GitViewer {
@@ -37,7 +39,7 @@ impl GitViewer {
         let Some(d) = self.detail.as_mut() else { return };
         let id = d.summary.id.clone();
         let sha = d.detail.as_ref().and_then(|x| x.head_sha.clone()).unwrap_or_default();
-        d.code.viewer = Some(FileView { path: path.clone(), lines: None, error: None, scroll: UniformListScrollHandle::new() });
+        d.code.viewer = Some(FileView { path: path.clone(), lines: None, error: None, scroll: UniformListScrollHandle::new(), sel: None });
         let engine = self.engine.clone();
         let p = path.clone();
         let rx = bridge::spawn(async move { engine.file_content(&id, &p, &sha).await.map_err(err_str) });

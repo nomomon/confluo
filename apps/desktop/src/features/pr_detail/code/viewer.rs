@@ -1,6 +1,6 @@
-//! Whole-file viewer: mono lines with a line number gutter, virtualized.
+//! Whole-file viewer: mono lines with a line number gutter, virtualized, with line selection.
 
-use gpui::{div, prelude::*, uniform_list, AnyElement, ClickEvent, Context};
+use gpui::{div, prelude::*, uniform_list, AnyElement, ClickEvent, Context, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 
 use crate::app::GitViewer;
 use crate::features::shared::layout;
@@ -32,18 +32,46 @@ impl GitViewer {
                 let lang = Lang::from_path(&v.path);
                 let digits = lines.len().to_string().len() as f32;
                 let gutter = (theme::text_xs() * layout::MONO_CHAR_RATIO * digits + theme::SPACE_4).max(layout::DIFF_GUTTER_W);
-                uniform_list("file-viewer", lines.len(), move |range, _, _| {
-                    range
-                        .map(|i| {
-                            DiffRow::new(LineMark::Context, lines[i].clone(), lang)
-                                .numbers(None, Some(i as u32 + 1))
-                                .single_gutter()
-                                .gutter_w(gutter)
-                                .height(layout::DIFF_LINE_H)
-                        })
-                        .collect()
-                })
+                uniform_list(
+                    "file-viewer",
+                    lines.len(),
+                    cx.processor(move |this, range: std::ops::Range<usize>, _, cx| {
+                        let Some(c) = this.detail.as_ref().map(|d| &d.code) else { return vec![] };
+                        let sel = c.viewer.as_ref().and_then(|v| v.sel);
+                        let (dragging, kbd) = (c.dragging, c.sel_kbd);
+                        range
+                            .map(|i| {
+                                let row = DiffRow::new(LineMark::Context, lines[i].clone(), lang)
+                                    .numbers(None, Some(i as u32 + 1))
+                                    .single_gutter()
+                                    .gutter_w(gutter)
+                                    .height(layout::DIFF_LINE_H)
+                                    .selected(sel.is_some_and(|r| r.contains(i)));
+                                let bar = sel.filter(|r| r.hi() == i && !dragging).map(|_| this.selection_bar(false, !kbd, cx));
+                                div()
+                                    .id(("view-line", i))
+                                    .relative()
+                                    .cursor_pointer()
+                                    .on_mouse_down(MouseButton::Left, cx.listener(move |this, ev: &MouseDownEvent, window, cx| {
+                                        cx.stop_propagation();
+                window.focus(&this.focus);
+                                        this.press_view_line(i, ev.modifiers.shift, false, cx)
+                                    }))
+                                    .on_mouse_move(cx.listener(move |this, ev: &MouseMoveEvent, _, cx| match ev.pressed_button {
+                                        Some(MouseButton::Left) => this.press_view_line(i, false, true, cx),
+                                        _ => this.end_line_drag(cx),
+                                    }))
+                                    .child(row)
+                                    .children(bar)
+                            })
+                            .collect()
+                    }),
+                )
                 .track_scroll(v.scroll.clone())
+                .on_mouse_down(MouseButton::Left, cx.listener(|this, _, _, cx| {
+                    this.clear_line_selection(cx);
+                }))
+                .on_mouse_up(MouseButton::Left, cx.listener(|this, _: &MouseUpEvent, _, cx| this.end_line_drag(cx)))
                 .flex_1()
                 .h_full()
                 .py(theme::SPACE_2)

@@ -31,6 +31,7 @@ pub enum IconName {
     LayoutColumns,
     LayoutRows,
     LayoutSidebar,
+    Link,
     Message,
     Plus,
     Refresh,
@@ -43,7 +44,7 @@ pub enum IconName {
 
 impl IconName {
     #[cfg_attr(not(test), allow(dead_code))]
-    pub const ALL: [IconName; 29] = [
+    pub const ALL: [IconName; 30] = [
         Self::ArrowLeft,
         Self::Check,
         Self::ChevronDown,
@@ -65,6 +66,7 @@ impl IconName {
         Self::LayoutColumns,
         Self::LayoutRows,
         Self::LayoutSidebar,
+        Self::Link,
         Self::Message,
         Self::Plus,
         Self::Refresh,
@@ -98,6 +100,7 @@ impl IconName {
             Self::LayoutColumns => "icons/layout-columns.svg",
             Self::LayoutRows => "icons/layout-rows.svg",
             Self::LayoutSidebar => "icons/layout-sidebar.svg",
+            Self::Link => "icons/link.svg",
             Self::Message => "icons/message.svg",
             Self::Plus => "icons/plus.svg",
             Self::Refresh => "icons/refresh.svg",

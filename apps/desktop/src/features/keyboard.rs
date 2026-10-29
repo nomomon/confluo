@@ -19,9 +19,7 @@ pub fn bind_keys(cx: &mut App) {
     let any = Some("GitViewer");
     cx.bind_keys([
         KeyBinding::new("j", SelectNext, list),
-        KeyBinding::new("down", SelectNext, list),
         KeyBinding::new("k", SelectPrev, list),
-        KeyBinding::new("up", SelectPrev, list),
         KeyBinding::new("enter", OpenSelected, list),
         KeyBinding::new("/", FocusSearch, list),
         KeyBinding::new("o", OpenInBrowser, list),
@@ -39,17 +37,21 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("cmd-r", Refresh, any),
         KeyBinding::new("cmd-,", OpenSettings, any),
     ]);
+    super::code_keys::bind_keys(cx);
 }
 
 impl GitViewer {
     /// Attach the handlers to the root element.
     pub(crate) fn key_handlers<E: InteractiveElement>(&self, el: E, cx: &mut Context<Self>) -> E {
+        let el = self.code_key_handlers(el, cx);
         el.key_context("GitViewer")
             .track_focus(&self.focus)
             .on_action(cx.listener(|this, _: &SelectNext, _, cx| this.move_cursor(1, cx)))
             .on_action(cx.listener(|this, _: &SelectPrev, _, cx| this.move_cursor(-1, cx)))
-            .on_action(cx.listener(|this, _: &OpenSelected, _, cx| {
-                if let Some(c) = this.cursor_item(cx) {
+            .on_action(cx.listener(|this, _: &OpenSelected, window, cx| {
+                if this.code_tab_active() && this.has_line_selection() {
+                    this.comment_on_selection(window, cx)
+                } else if let Some(c) = this.cursor_item(cx) {
                     this.open_detail(c, cx)
                 }
             }))
@@ -61,8 +63,10 @@ impl GitViewer {
                     cx.open_url(&c.web_url)
                 }
             }))
-            .on_action(cx.listener(|this, _: &CopyCheckout, _, cx| {
-                if let Some(c) = this.target_item(cx) {
+            .on_action(cx.listener(|this, _: &CopyCheckout, window, cx| {
+                if this.code_tab_active() && this.has_line_selection() {
+                    this.comment_on_selection(window, cx)
+                } else if let Some(c) = this.target_item(cx) {
                     this.copy(Copied::Checkout, checkout_command(&c.id), cx)
                 }
             }))
@@ -116,7 +120,7 @@ impl GitViewer {
         self.detail.as_ref().map(|d| d.summary.clone()).or_else(|| self.cursor_item(cx))
     }
 
-    fn move_cursor(&mut self, delta: isize, cx: &mut Context<Self>) {
+    pub(crate) fn move_cursor(&mut self, delta: isize, cx: &mut Context<Self>) {
         let order = self.nav_order(cx);
         if order.is_empty() {
             return;
@@ -145,6 +149,8 @@ impl GitViewer {
             self.overlay = Overlay::None;
         } else if self.code_tab_active() && self.cancel_inline(cx) {
             // Closed the inline comment composer; keep the detail open.
+        } else if self.code_lines_active() && self.clear_line_selection(cx) {
+            // Cleared the line selection.
         } else if self.search.focus_handle(cx).is_focused(window) || self.detail.is_none() {
             self.search.update(cx, |i, cx| i.set_text("", cx));
         } else {

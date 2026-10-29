@@ -58,7 +58,8 @@ Semantic tokens (`ui::theme::*`), dark / light:
 | `overlay()`        | zinc 900, 97%         | zinc 50, 98%                |
 | `scrim()`          | black 45%             | black 25%                   |
 
-Code tokens: `diff_add_bg()`, `diff_del_bg()`, `diff_hunk_bg()` and `syntax_keyword()`,
+Code tokens: `diff_add_bg()`, `diff_del_bg()`, `diff_hunk_bg()`, `line_selected_bg()` (accent 16% dark /
+14% light, layered over the add/del fill of selected lines) and `syntax_keyword()`,
 `syntax_string()`, `syntax_number()`, `syntax_type()`, `syntax_comment()` (hues in
 `palette::syntax`, one shade per theme). `tint_preview(c)` lifts a near-black window tint
 to a visible swatch color.
@@ -122,6 +123,19 @@ with GPUI `list` so only visible rows paint; each file reads as a rounded card m
 its rows. Sizes `DIFF_LINE_H`, `DIFF_HEADER_H`, `DIFF_HUNK_H`, `DIFF_GUTTER_W`, `FILE_TREE_W`
 live in `features/shared/layout.rs`. Shortcuts n/p or ]/[ and x act only on the Code tab.
 
+Line selection (Code tab and "View file"): `state::line_select` holds the model, an anchor and a
+head over one hunk of one file (`DiffSel`) or the viewer's lines (`LineRange`); extending past the
+hunk clamps to its edge, so a selection never spans files. It is independent of the comment
+composer. Mouse: click a line (gutter or code) selects it, Shift+click extends, drag selects a range
+and scrolls the list near its edges; a click on empty space or Esc clears. Keyboard (Code tab only):
+up/down move a one-line cursor across hunks and files and keep it in view, Shift+up/down extends,
+`c` or Enter opens the composer on the range, Cmd+C copies; j/k still switch PRs and n/p files.
+Selected lines get `line_selected_bg()` and a 2px `accent()` bar in the gutter (`DiffRow::selected`).
+The hover "+" comments on one line. A `FloatingToolbar` hangs under the last selected line
+(Comment, Copy, Copy link, Open in browser); links are GitHub `{pr}/files#diff-{sha256(path)}R3-R7`
+in the diff, else blob permalinks at the head sha (`state::permalink`). Character-level text
+selection inside a line is not implemented. Dev: `CONFLUO_SELECT=path:start-end` preselects lines.
+
 Icons: `ICON_SM` 12 (chevrons), `ICON_MD` 14 (buttons, nav), `ICON_LG` 16 (row state).
 Never use text glyphs as icons; add a Tabler outline SVG (stroke-width 1.75) and an `IconName` variant instead.
 
@@ -162,7 +176,10 @@ Tabler outline SVGs in `apps/desktop/assets/icons`, MIT license), `NavItem` (`.i
 
 Molecules: `Banner` (one-line dismissible error with an action such as Retry),
 `Card` (`.rows()` for flush divided rows), `CopyField`, `Dialog`, `DropdownMenu` (`.on_dismiss` on outside press),
-`EmptyState` (children for extra lines and actions), `Field`, `KeyValueRow`,
+`EmptyState` (children for extra lines and actions), `Field`,
+`FloatingToolbar` (small pill of ghost buttons for a selection; `.animate(false)` for keyboard-driven
+appearances; occludes and swallows mouse downs; the caller positions it, usually absolute inside
+`deferred(..)` so it paints above later list rows), `KeyValueRow`,
 `ListSection` (collapsible header and count above a rounded card of divided rows),
 `SegmentedTabs` (`.floating()` pill for bottom tab bars),
 `code::{CodeText, DiffRow, Lang}` (mono line with a line-based keyword/string/comment/number/type
@@ -201,7 +218,7 @@ Helpers wrap GPUI `with_animation` with `Animation::new(d).with_easing(..)`
 - `Motion::duration()` / `Motion::animation()` for custom cases
 
 Where it is applied: detail pane slides in on open; dialogs fade the scrim and
-pop the panel; dropdown menus pop; status notices fade in. Buttons, chips, nav
+pop the panel; dropdown menus pop; the line selection toolbar pops (not on keyboard moves); status notices fade in. Buttons, chips, nav
 items and list rows use `.hover()` with `SURFACE_HOVER` and `.active()` with
 `SURFACE_ACTIVE`.
 

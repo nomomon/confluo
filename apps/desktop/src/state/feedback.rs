@@ -14,6 +14,8 @@ pub enum Copied {
     Path,
     /// The whole diff as a patch.
     Diff,
+    /// Selected code lines.
+    Lines,
 }
 
 impl GitViewer {
@@ -43,6 +45,7 @@ impl GitViewer {
             Copied::Link => self.show_toast("Link copied", cx),
             Copied::Path => self.show_toast("Path copied", cx),
             Copied::Diff => self.show_toast("Diff copied", cx),
+            Copied::Lines => self.show_toast("Copied", cx),
             Copied::Checkout => {}
         }
     }

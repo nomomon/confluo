@@ -1,6 +1,7 @@
 //! One diff or file line: old and new line number gutters, a +/- marker and code.
 //!
-//! Added lines get a green tint and a 2px green accent, removed lines a red tint.
+//! Added lines get a green tint and a 2px green accent, removed lines a red tint;
+//! selected lines add an accent tint on top and turn the bar accent.
 
 use gpui::{div, prelude::*, px, AnyElement, App, Pixels, SharedString, Window};
 
@@ -29,7 +30,7 @@ pub struct DiffRow {
     action: Option<AnyElement>,
     /// Small dot in the gutter: the line has comments.
     dot: bool,
-    /// Highlighted as part of a selected range.
+    /// Selected: `line_selected_bg()` over the add/del tint and a 2px accent bar.
     selected: bool,
 }
 
@@ -125,9 +126,9 @@ impl RenderOnce for DiffRow {
             .font_family(theme::mono_font())
             .text_size(theme::text_xs())
             .when_some(bg, |d, c| d.bg(c))
-            .when(self.selected, |d| d.bg(theme::tint_bg(theme::accent())))
+            .when(self.selected, |d| d.child(div().absolute().inset_0().bg(theme::line_selected_bg())))
             .when(self.dot, |d| d.child(dot))
-            .child(div().flex_shrink_0().w(theme::SPACE_0P5).h_full().when_some(accent, |d, c| d.bg(c)))
+            .child(div().flex_shrink_0().w(theme::SPACE_0P5).h_full().when_some(if self.selected { Some(theme::accent()) } else { accent }, |d, c| d.bg(c)))
             .when(self.show_marker, |d| d.child(num(self.old_no)))
             .child(num(self.new_no))
             .when(self.show_marker, |d| {

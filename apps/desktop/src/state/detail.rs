@@ -62,7 +62,8 @@ impl GitViewer {
     }
 
     /// Dev only: `CONFLUO_OPEN=<pr url>` opens that PR at launch, `CONFLUO_TAB=code|activity` picks the tab,
-    /// `CONFLUO_REVEAL=<thread id>` scrolls the Code tab to that inline thread.
+    /// `CONFLUO_REVEAL=<thread id>` scrolls the Code tab to that inline thread,
+    /// `CONFLUO_SELECT=path:start-end` selects those new-side diff lines.
     pub(crate) fn open_from_env(&mut self, cx: &mut Context<Self>) {
         let Ok(url) = std::env::var("CONFLUO_OPEN") else { return };
         let Ok(id) = self.engine.resolve_id(&url) else { return };
@@ -77,6 +78,10 @@ impl GitViewer {
         self.set_detail_tab(tab, cx);
         if let (Ok(t), Some(d)) = (std::env::var("CONFLUO_REVEAL"), self.detail.as_mut()) {
             d.code.inline.reveal = Some(t);
+        }
+        if let Some(d) = self.detail.as_mut() {
+            d.code.pending_select = std::env::var("CONFLUO_SELECT").ok().and_then(|s| super::line_select::PendingSelect::parse(&s));
+            d.code.apply_pending_select();
         }
     }
 

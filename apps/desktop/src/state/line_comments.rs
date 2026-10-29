@@ -4,7 +4,7 @@ use chrono::Utc;
 use gpui::{Context, Focusable, Window};
 use gv_engine::{Comment, Thread, User};
 
-use super::code_rows::line_anchor;
+use super::line_select::comment_span;
 use super::{bridge, err_str, DetailTab, LineDraft};
 use crate::app::GitViewer;
 
@@ -16,42 +16,26 @@ enum Mode {
 }
 
 impl GitViewer {
-    /// Open the composer under a diff line; with `extend`, grow the open draft into a range instead.
-    pub(crate) fn open_line_draft(&mut self, fi: usize, hi: usize, li: usize, extend: bool, window: &mut Window, cx: &mut Context<Self>) {
+    /// Open the composer on lines `lo..=last` of one hunk, anchored on the last line's side.
+    pub(crate) fn open_line_draft(&mut self, fi: usize, hi: usize, lo: usize, last: usize, window: &mut Window, cx: &mut Context<Self>) {
         let Some(d) = self.detail.as_mut() else { return };
         let Some(files) = d.code.files.clone() else { return };
         let f = &files[fi];
-        let l = &f.hunks[hi].lines[li];
-        let Some((side, n)) = line_anchor(l) else { return };
-        let other = match side {
-            gv_engine::DiffSide::New if l.kind == gv_engine::LineKind::Context => l.old_no,
-            _ => None,
-        };
+        let Some(lines) = f.hunks.get(hi).and_then(|h| h.lines.get(lo..=last)) else { return };
+        let Some((side, start, line, other_line)) = comment_span(lines) else { return };
         let inline = &mut d.code.inline;
         let keep_text = inline.draft.is_some();
-        match inline.draft.as_mut().filter(|dr| extend && dr.fi == fi && dr.side == side) {
-            Some(dr) => {
-                let lo = dr.start.unwrap_or(dr.line).min(n);
-                let hi_n = dr.line.max(n);
-                if hi_n == n {
-                    dr.other_line = other;
-                }
-                dr.line = hi_n;
-                dr.start = (lo < hi_n).then_some(lo);
-            }
-            None => {
-                inline.clear_modes();
-                let path = match side {
-                    gv_engine::DiffSide::Old => f.old_path.clone(),
-                    gv_engine::DiffSide::New => f.new_path.clone(),
-                };
-                let old_path = (f.old_path != f.new_path).then(|| f.old_path.clone());
-                inline.draft = Some(LineDraft { fi, path, old_path, side, line: n, start: None, other_line: other });
-                if !keep_text {
-                    self.inline_input.update(cx, |i, cx| i.set_text("", cx));
-                }
-            }
+        inline.clear_modes();
+        let path = match side {
+            gv_engine::DiffSide::Old => f.old_path.clone(),
+            gv_engine::DiffSide::New => f.new_path.clone(),
+        };
+        let old_path = (f.old_path != f.new_path).then(|| f.old_path.clone());
+        inline.draft = Some(LineDraft { fi, path, old_path, side, line, start, other_line });
+        if !keep_text {
+            self.inline_input.update(cx, |i, cx| i.set_text("", cx));
         }
+        d.code.sel = None;
         d.code.sync_rows();
         window.focus(&self.inline_input.focus_handle(cx));
         cx.notify();

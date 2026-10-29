@@ -4,7 +4,7 @@ use gpui::Hsla;
 
 use super::palette::syntax;
 use super::runtime::is_light;
-use super::tokens::{danger, success, surface, text_subtle};
+use super::tokens::{accent, danger, success, surface, text_subtle};
 
 fn pick(dark: Hsla, light: Hsla) -> Hsla {
     if is_light() {
@@ -21,6 +21,10 @@ pub fn diff_add_bg() -> Hsla {
 /// Background of a removed line.
 pub fn diff_del_bg() -> Hsla {
     danger().opacity(if is_light() { 0.10 } else { 0.08 })
+}
+/// Selected lines: an accent tint layered over the add/del fill.
+pub fn line_selected_bg() -> Hsla {
+    accent().opacity(if is_light() { 0.14 } else { 0.16 })
 }
 /// The subtle band behind `@@` hunk headers.
 pub fn diff_hunk_bg() -> Hsla {

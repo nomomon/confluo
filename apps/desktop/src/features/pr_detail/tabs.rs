@@ -35,7 +35,7 @@ impl GitViewer {
             Some(det) if det.description.trim().is_empty() => {
                 div().text_size(theme::TEXT_SM).text_color(theme::TEXT_SUBTLE).child("No description").into_any_element()
             }
-            Some(det) => div().flex().flex_col().gap(theme::SPACE_1).children(markdown(&det.description)).into_any_element(),
+            Some(det) => div().flex().flex_col().gap(theme::SPACE_2).children(markdown("desc", &det.description)).into_any_element(),
         };
         div()
             .flex()

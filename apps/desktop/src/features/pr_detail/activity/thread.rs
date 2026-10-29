@@ -70,6 +70,6 @@ impl GitViewer {
                 },
             )));
         }
-        div().flex().flex_col().gap(theme::SPACE_1).child(head).child(div().flex().flex_col().gap(theme::SPACE_1).children(markdown(&c.body)))
+        div().flex().flex_col().gap(theme::SPACE_1).child(head).child(div().flex().flex_col().gap(theme::SPACE_1).children(markdown(format!("c-{}", c.id), &c.body)))
     }
 }

@@ -95,7 +95,8 @@ Molecules: `Banner` (one-line dismissible error with an action such as Retry),
 `Card`, `CopyField`, `Dialog`, `DropdownMenu` (`.on_dismiss` on outside press),
 `EmptyState` (children for extra lines and actions), `Field`, `KeyValueRow`,
 `ListSection` (rounded card of rows with a collapsible header and count),
-`SegmentedTabs` (`.floating()` pill for bottom tab bars), `TextInput`
+`SegmentedTabs` (`.floating()` pill for bottom tab bars), `markdown(id, src)`
+(pulldown-cmark; tables as a grid, clickable links, images as muted alt text), `TextInput`
 (`.multiline()`: Enter inserts a newline, Cmd+Enter submits), `Toast`.
 
 Show on hover with `.group(..)` plus `.group_hover(..)`; GPUI has no visibility

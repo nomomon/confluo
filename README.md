@@ -11,6 +11,7 @@ One place for PRs and MRs across GitHub, GitLab and Azure DevOps.
 - `crates/store` SQLite cache
 - `crates/engine` facade for UIs
 - `apps/cli` the `gv` binary
+- `apps/desktop` the `git-viewer` desktop app (GPUI)
 
 ## CLI
 
@@ -25,3 +26,20 @@ gv comment <url> "body" [--thread <id>]
 ```
 
 The cache lives in `~/Library/Application Support/git-viewer/cache.db` (override with `GV_DB`).
+
+## Desktop app
+
+```sh
+cargo run -p gv-desktop --release   # binary: git-viewer
+```
+
+Built on GPUI (`gpui = 0.2.2` from crates.io, `runtime_shaders` feature so no full Xcode `metal` tool is needed).
+The engine runs on a background tokio runtime; results are bridged back to the UI thread.
+
+- Sidebar: Inbox (everything involving you) and projects; `+` adds a folder, repo URL or group (`provider:host/path`) to a project.
+- List: Authored / Reviewing / All tabs, search, "Needs you" and "Starred" chips, star toggle per row.
+- Detail: status, review, branch, changes, checks, copyable checkout command, description, activity threads.
+  Comment, reply (Reply on a thread) and edit your own comments (Edit) from the composer; Enter posts.
+- Repo aliases: rename how a repo is shown (sidebar "Repo aliases", or "Alias" in the detail header).
+- Appearance: Blurred / Transparent / Opaque window, panel opacity, background image with dim, tint.
+  Saved to `~/Library/Application Support/git-viewer/settings.json`.

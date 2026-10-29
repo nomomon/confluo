@@ -114,6 +114,29 @@ fn count_lines(diff: &str) -> (u32, u32) {
     })
 }
 
+/// One entry of `/merge_requests/:iid/diffs` (or `/changes`).
+fn changed_file(v: &Value) -> ChangedFile {
+    let status = if v["new_file"] == true {
+        FileStatus::Added
+    } else if v["deleted_file"] == true {
+        FileStatus::Deleted
+    } else if v["renamed_file"] == true {
+        FileStatus::Renamed
+    } else {
+        FileStatus::Modified
+    };
+    let diff = v["diff"].as_str().unwrap_or_default();
+    let mut f = ChangedFile::from_patch(&s(&v["old_path"]), &s(&v["new_path"]), status, diff);
+    let flagged = v["too_large"] == true || v["collapsed"] == true;
+    if diff.is_empty() && status != FileStatus::Renamed {
+        f.too_large = flagged;
+        f.binary = !flagged;
+    } else if flagged && f.hunks.is_empty() {
+        f.too_large = true;
+    }
+    f
+}
+
 fn reviewer_state(s: &str) -> ReviewState {
     match s {
         "approved" => ReviewState::Approved,
@@ -238,14 +261,32 @@ impl GitLabProvider {
         cr
     }
 
+    /// Raw MR diff entries. Falls back to the older `changes` endpoint on GitLab before 15.7.
+    async fn raw_diffs(&self, base: &str) -> ProviderResult<Vec<Value>> {
+        match self.get_all(&format!("{base}/diffs")).await {
+            Ok(d) => Ok(d),
+            Err(_) => Ok(self.get(&format!("{base}/changes")).await?["changes"].as_array().cloned().unwrap_or_default()),
+        }
+    }
+
     /// Added and removed line counts from the MR diffs (detail only; the list has none).
-    /// Falls back to the older `changes` endpoint on GitLab before 15.7.
     async fn diff_stats(&self, base: &str) -> Option<(u32, u32)> {
-        let diffs = match self.get_all(&format!("{base}/diffs")).await {
-            Ok(d) => d,
-            Err(_) => self.get(&format!("{base}/changes")).await.ok()?["changes"].as_array()?.clone(),
-        };
+        let diffs = self.raw_diffs(base).await.ok()?;
         Some(diffs.iter().filter_map(|d| d["diff"].as_str()).map(count_lines).fold((0, 0), |(a, d), (x, y)| (a + x, d + y)))
+    }
+
+    /// GET returning raw text; None on 404.
+    async fn get_text(&self, path: &str) -> ProviderResult<Option<String>> {
+        let token = self.token.read().await.clone();
+        let resp = self.http.get(format!("{}{}", self.api, path)).bearer_auth(token).send().await.map_err(|e| ProviderError::Network(e.to_string()))?;
+        let status = resp.status().as_u16();
+        let text = resp.text().await.map_err(|e| ProviderError::Network(e.to_string()))?;
+        match status {
+            200..=299 => Ok(Some(text)),
+            404 => Ok(None),
+            401 => Err(ProviderError::Unauthenticated(self.host.clone())),
+            _ => Err(ProviderError::Http { status, body: text }),
+        }
     }
 
     async fn enrich_all(&self, items: Vec<ChangeRequest>, me: &str) -> Vec<ChangeRequest> {
@@ -364,6 +405,15 @@ impl Provider for GitLabProvider {
         Ok(note_to_comment(&v))
     }
 
+    async fn list_changed_files(&self, id: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>> {
+        Ok(self.raw_diffs(&Self::mr_path(id)).await?.iter().map(changed_file).collect())
+    }
+
+    async fn get_file_content(&self, id: &ChangeRequestId, path: &str, rev: &str) -> ProviderResult<Option<String>> {
+        let p = path.replace('%', "%25").replace('/', "%2F").replace(' ', "%20").replace('#', "%23").replace('?', "%3F").replace('&', "%26");
+        self.get_text(&format!("/projects/{}/repository/files/{p}/raw?ref={rev}", enc(&id.repo.path))).await
+    }
+
     async fn edit_comment(&self, id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment> {
         let path = format!("{}/notes/{comment_id}", Self::mr_path(id));
         let (v, _) = self.call(reqwest::Method::PUT, &path, Some(&json!({"body": body}))).await?;
@@ -390,6 +440,16 @@ mod tests {
     #[test]
     fn counts_diff_lines() {
         assert_eq!(count_lines("@@ -1,2 +1,2 @@\n-old\n+new\n+more\n ctx"), (2, 1));
+    }
+
+    #[test]
+    fn parses_changed_file() {
+        let f = changed_file(&json!({"old_path": "a", "new_path": "b", "renamed_file": true, "diff": "@@ -1 +1 @@\n-x\n+y\n"}));
+        assert_eq!((f.status, f.additions, f.deletions), (FileStatus::Renamed, 1, 1));
+        let big = changed_file(&json!({"old_path": "a", "new_path": "a", "diff": "", "too_large": true}));
+        assert!(big.too_large && !big.binary);
+        let bin = changed_file(&json!({"old_path": "i.png", "new_path": "i.png", "new_file": true, "diff": ""}));
+        assert!(bin.binary);
     }
 
     #[test]

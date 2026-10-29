@@ -54,6 +54,26 @@ impl GitHubProvider {
         }
     }
 
+    /// GET returning raw text (`Accept: raw`); None on 404.
+    async fn get_raw(&self, url: &str) -> ProviderResult<Option<String>> {
+        let resp = self
+            .http
+            .get(url)
+            .bearer_auth(&self.token)
+            .header("Accept", "application/vnd.github.raw")
+            .send()
+            .await
+            .map_err(|e| ProviderError::Network(e.to_string()))?;
+        let status = resp.status().as_u16();
+        let body = resp.text().await.map_err(|e| ProviderError::Network(e.to_string()))?;
+        match status {
+            200..=299 => Ok(Some(body)),
+            404 => Ok(None),
+            401 => Err(ProviderError::Unauthenticated(self.host.clone())),
+            _ => Err(ProviderError::Http { status, body }),
+        }
+    }
+
     async fn gql(&self, query: &str, variables: Value) -> ProviderResult<Value> {
         let v = self.send(self.http.post(&self.graphql).json(&json!({"query": query, "variables": variables}))).await?;
         if let Some(errs) = v.get("errors").and_then(|e| e.as_array()).filter(|e| !e.is_empty()) {
@@ -199,6 +219,38 @@ fn comment(v: &Value) -> Comment {
     }
 }
 
+/// One entry of `GET /pulls/{n}/files`.
+fn changed_file(v: &Value) -> ChangedFile {
+    let status = match v["status"].as_str().unwrap_or_default() {
+        "added" => FileStatus::Added,
+        "removed" => FileStatus::Deleted,
+        "renamed" => FileStatus::Renamed,
+        _ => FileStatus::Modified,
+    };
+    let new_path = s(&v["filename"]);
+    let old_path = v["previous_filename"].as_str().map(str::to_string).unwrap_or_else(|| new_path.clone());
+    let patch = v["patch"].as_str();
+    let mut f = ChangedFile::from_patch(&old_path, &new_path, status, patch.unwrap_or_default());
+    f.additions = v["additions"].as_u64().unwrap_or(0) as u32;
+    f.deletions = v["deletions"].as_u64().unwrap_or(0) as u32;
+    if patch.is_none() {
+        // GitHub omits the patch for binaries and very large diffs.
+        let changes = v["changes"].as_u64().unwrap_or(0);
+        f.binary = changes == 0 && status != FileStatus::Renamed;
+        f.too_large = changes > 0;
+    }
+    f
+}
+
+fn urlencoding_seg(p: &str) -> String {
+    p.bytes()
+        .map(|b| match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => (b as char).to_string(),
+            _ => format!("%{b:02X}"),
+        })
+        .collect()
+}
+
 fn split_repo(r: &RepoRef) -> ProviderResult<(&str, &str)> {
     r.path.split_once('/').ok_or_else(|| ProviderError::NotFound(r.path.clone()))
 }
@@ -342,6 +394,27 @@ impl Provider for GitHubProvider {
         Ok(comment(&d["addPullRequestReviewThreadReply"]["comment"]))
     }
 
+    async fn list_changed_files(&self, id: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>> {
+        let (owner, name) = split_repo(&id.repo)?;
+        let mut out = vec![];
+        for page in 1..=30 {
+            let url = format!("{}/repos/{owner}/{name}/pulls/{}/files?per_page=100&page={page}", self.api, id.number);
+            let v = self.send(self.http.get(url)).await?;
+            let items = v.as_array().cloned().unwrap_or_default();
+            out.extend(items.iter().map(changed_file));
+            if items.len() < 100 {
+                break;
+            }
+        }
+        Ok(out)
+    }
+
+    async fn get_file_content(&self, id: &ChangeRequestId, path: &str, rev: &str) -> ProviderResult<Option<String>> {
+        let (owner, name) = split_repo(&id.repo)?;
+        let path: String = path.split('/').map(urlencoding_seg).collect::<Vec<_>>().join("/");
+        self.get_raw(&format!("{}/repos/{owner}/{name}/contents/{path}?ref={rev}", self.api)).await
+    }
+
     async fn edit_comment(&self, _id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment> {
         let (mutation, field) = if comment_id.starts_with("PRRC_") {
             ("updatePullRequestReviewComment(input: {pullRequestReviewCommentId: $c, body: $b}) { pullRequestReviewComment { id body createdAt path line author { login avatarUrl } } }", "pullRequestReviewComment")
@@ -359,6 +432,18 @@ impl Provider for GitHubProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_changed_file() {
+        let f = changed_file(&json!({"filename": "b.rs", "previous_filename": "a.rs", "status": "renamed",
+            "additions": 1, "deletions": 0, "changes": 1, "patch": "@@ -1 +1,2 @@\n a\n+b"}));
+        assert_eq!((f.old_path.as_str(), f.status, f.additions), ("a.rs", FileStatus::Renamed, 1));
+        assert_eq!(f.hunks[0].lines.len(), 2);
+        let big = changed_file(&json!({"filename": "x", "status": "modified", "changes": 9000}));
+        assert!(big.too_large && !big.binary);
+        let bin = changed_file(&json!({"filename": "x.png", "status": "added", "changes": 0}));
+        assert!(bin.binary);
+    }
 
     #[test]
     fn parses_pr_node() {

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/core", "crates/auth", "crates/discovery", "crates/provider-github", "crates/provider-gitlab", "crates/provider-azure"]
+members = ["crates/core", "crates/auth", "crates/discovery", "crates/provider-github", "crates/provider-gitlab", "crates/provider-azure", "crates/store"]
 
 [workspace.package]
 version = "0.1.0"

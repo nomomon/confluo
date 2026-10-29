@@ -1,4 +1,4 @@
-//! "Add to project" dialog: name, source kind and value.
+//! "Add project" dialog: paste a source, the kind and name are inferred.
 
 use gpui::{div, prelude::*, ClickEvent, Context, PathPromptOptions};
 
@@ -8,24 +8,15 @@ use crate::ui::atoms::{Button, Chip, ErrorText};
 use crate::ui::molecules::{Field, SegmentedTabs};
 use crate::ui::theme;
 
-const KINDS: [(&str, SourceKind, &str); 3] = [
-    ("Folder", SourceKind::Folder, "/path/to/folder"),
-    ("Repo URL", SourceKind::Repo, "https://github.com/owner/repo"),
-    ("Group", SourceKind::Group, "gitlab:gitlab.com/my-group"),
-];
+const KINDS: [(&str, SourceKind); 3] = [("Folder", SourceKind::Folder), ("Repo", SourceKind::Repo), ("Group", SourceKind::Group)];
 
 impl GitViewer {
     pub(super) fn render_add_project(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let kinds = KINDS
             .iter()
-            .fold(SegmentedTabs::new("add-kind"), |t, (label, k, _)| t.tab(*label, self.add_kind == *k))
+            .fold(SegmentedTabs::new("add-kind"), |t, (label, k)| t.tab(*label, self.add_kind == *k))
             .on_select(cx.listener(|this, i: &usize, _, cx| {
-                let (_, kind, ph) = KINDS[*i];
-                this.add_kind = kind;
-                this.add_value.update(cx, |inp, cx| {
-                    inp.set_placeholder(ph);
-                    cx.notify()
-                });
+                this.add_kind = KINDS[*i].1;
                 cx.notify();
             }));
         let mut existing = div().flex().flex_wrap().gap(theme::SPACE_1);
@@ -55,9 +46,9 @@ impl GitViewer {
             .flex()
             .flex_col()
             .gap(theme::SPACE_3)
+            .child(Field::new("Source", value_row))
+            .child(Field::new("Kind (detected)", kinds))
             .child(Field::new("Project", div().flex().flex_col().gap(theme::SPACE_1).child(self.add_name.clone()).child(existing)))
-            .child(Field::new("Source", kinds))
-            .child(Field::new("Value", value_row))
             .when_some(self.add_error.clone(), |col, e| col.child(ErrorText::new(e)))
             .child(
                 div()

@@ -74,6 +74,8 @@ pub struct GitViewer {
     pub(crate) add_name: Entity<TextInput>,
     pub(crate) add_value: Entity<TextInput>,
     pub(crate) add_kind: SourceKind,
+    /// Project name we filled in from the pasted source; replaced while it is unedited.
+    pub(crate) auto_name: Option<String>,
     pub(crate) add_error: Option<String>,
     pub(crate) alias_repo: Option<RepoRef>,
     pub(crate) alias_input: Entity<TextInput>,
@@ -97,7 +99,7 @@ impl GitViewer {
         let search = input(cx, "Search pull requests");
         let composer = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post", cx).multiline());
         let add_name = input(cx, "Project name");
-        let add_value = input(cx, "/path/to/folder");
+        let add_value = input(cx, "Paste a repo or group URL, or a folder path");
         let alias_input = input(cx, "Alias (empty to clear)");
         let bg_input = input(cx, "/path/to/image.jpg, Enter to apply");
         let tint_input = input(cx, "#14141c");
@@ -112,6 +114,12 @@ impl GitViewer {
         .detach();
         on_submit(cx, &composer, |this, _, cx| this.post_comment(cx));
         on_submit(cx, &add_value, |this, _, cx| this.submit_add_project(cx));
+        cx.subscribe(&add_value, |this, _, ev: &InputEvent, cx| {
+            if matches!(ev, InputEvent::Changed) {
+                this.on_add_value_changed(cx)
+            }
+        })
+        .detach();
         on_submit(cx, &alias_input, |this, _, cx| this.save_alias(cx));
         on_submit(cx, &bg_input, |this, input, cx| {
             let t = input.read(cx).text().trim().to_string();
@@ -162,6 +170,7 @@ impl GitViewer {
             add_name,
             add_value,
             add_kind: SourceKind::Folder,
+            auto_name: None,
             add_error: None,
             alias_repo: None,
             alias_input,

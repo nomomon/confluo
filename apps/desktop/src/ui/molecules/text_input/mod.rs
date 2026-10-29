@@ -102,10 +102,6 @@ impl TextInput {
         self.multiline = true;
         self
     }
-
-    pub fn set_placeholder(&mut self, s: impl Into<SharedString>) {
-        self.placeholder = s.into();
-    }
 }
 
 impl Render for TextInput {

@@ -10,7 +10,7 @@ impl GitViewer {
         let (title, content): (&str, AnyElement) = match self.overlay {
             Overlay::None => return None,
             Overlay::Settings => ("Appearance", self.render_settings(cx).into_any_element()),
-            Overlay::AddProject => ("Add to project", self.render_add_project(cx).into_any_element()),
+            Overlay::AddProject => ("Add project", self.render_add_project(cx).into_any_element()),
             Overlay::Alias => ("Repo aliases", self.render_alias(cx).into_any_element()),
         };
         Some(

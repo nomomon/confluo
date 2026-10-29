@@ -10,8 +10,8 @@ use tokio::sync::{OnceCell, RwLock};
 
 mod inline;
 
-/// Max concurrent per-MR enrichment requests.
-const CONCURRENCY: usize = 8;
+/// Concurrent per-MR enrichments; the host governor caps requests in flight anyway.
+const CONCURRENCY: usize = 4;
 const MAX_PAGES: usize = 10;
 
 pub struct GitLabProvider {
@@ -41,6 +41,7 @@ fn user(v: &Value) -> User {
         username: v["username"].as_str().unwrap_or("unknown").to_string(),
         name: v["name"].as_str().map(str::to_string),
         avatar_url: v["avatar_url"].as_str().map(str::to_string),
+        bot: v["bot"] == true,
     }
 }
 
@@ -190,16 +191,16 @@ impl GitLabProvider {
             if let Some(b) = body {
                 req = req.json(b);
             }
-            let resp = req.send().await.map_err(|e| ProviderError::Network(e.to_string()))?;
-            let status = resp.status().as_u16();
+            let resp = gv_http::send(req).await?;
+            let status = resp.status;
             if status == 401 && attempt == 0 && self.refreshable {
                 if let Ok(c) = self.creds.refresh_gitlab(&self.host).await {
                     *self.token.write().await = c.token;
                     continue;
                 }
             }
-            let next = resp.headers().get("x-next-page").and_then(|h| h.to_str().ok()).filter(|s| !s.is_empty()).map(str::to_string);
-            let text = resp.text().await.map_err(|e| ProviderError::Network(e.to_string()))?;
+            let next = resp.header("x-next-page").filter(|s| !s.is_empty()).map(str::to_string);
+            let text = resp.text();
             return match status {
                 200..=299 => Ok((serde_json::from_str(&text).map_err(|e| ProviderError::Decode(e.to_string()))?, next)),
                 401 => Err(ProviderError::Unauthenticated(self.host.clone())),
@@ -239,28 +240,30 @@ impl GitLabProvider {
         format!("/projects/{}/merge_requests/{}", enc(&id.repo.path), id.number)
     }
 
-    /// Fill in reviewer states, check summary and change count with extra calls.
-    async fn enrich(&self, mut cr: ChangeRequest, me: &str) -> ChangeRequest {
+    /// Fill in reviewer states, check summary and change count with extra calls (up to three).
+    /// `full` is the single-MR payload when the caller already has it.
+    async fn enrich_one(&self, mut cr: ChangeRequest, me: &str, full: Option<&Value>) -> ProviderResult<ChangeRequest> {
         let base = Self::mr_path(&cr.id);
-        if let Ok(rs) = self.get(&format!("{base}/reviewers")).await {
-            cr.reviewers = rs
-                .as_array()
-                .into_iter()
-                .flatten()
-                .map(|r| Review { user: user(&r["user"]), state: reviewer_state(r["state"].as_str().unwrap_or_default()) })
-                .collect();
-        }
-        if let Ok(full) = self.get(&base).await {
+        let rs = self.get(&format!("{base}/reviewers")).await?;
+        cr.reviewers = rs
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|r| Review { user: user(&r["user"]), state: reviewer_state(r["state"].as_str().unwrap_or_default()) })
+            .collect();
+        let fetched = match full {
+            Some(_) => None,
+            None => Some(self.get(&base).await?),
+        };
+        if let Some(full) = full.or(fetched.as_ref()) {
             cr.changed_files = full["changes_count"].as_str().and_then(|c| c.trim_end_matches('+').parse().ok());
             if let Some(pid) = full["head_pipeline"]["id"].as_u64() {
                 let proj = full["head_pipeline"]["project_id"].as_u64().map(|p| p.to_string()).unwrap_or_else(|| enc(&cr.id.repo.path));
-                if let Ok(jobs) = self.get_all(&format!("/projects/{proj}/pipelines/{pid}/jobs")).await {
-                    cr.checks = summarize_jobs(&jobs);
-                }
+                cr.checks = summarize_jobs(&self.get_all(&format!("/projects/{proj}/pipelines/{pid}/jobs")).await?);
             }
         }
         cr.needs_you = compute_needs_you(&cr, me);
-        cr
+        Ok(cr)
     }
 
     /// Raw MR diff entries. Falls back to the older `changes` endpoint on GitLab before 15.7.
@@ -280,9 +283,8 @@ impl GitLabProvider {
     /// GET returning raw text; None on 404.
     async fn get_text(&self, path: &str) -> ProviderResult<Option<String>> {
         let token = self.token.read().await.clone();
-        let resp = self.http.get(format!("{}{}", self.api, path)).bearer_auth(token).send().await.map_err(|e| ProviderError::Network(e.to_string()))?;
-        let status = resp.status().as_u16();
-        let text = resp.text().await.map_err(|e| ProviderError::Network(e.to_string()))?;
+        let resp = gv_http::send(self.http.get(format!("{}{}", self.api, path)).bearer_auth(token)).await?;
+        let (status, text) = (resp.status, resp.text());
         match status {
             200..=299 => Ok(Some(text)),
             404 => Ok(None),
@@ -291,8 +293,8 @@ impl GitLabProvider {
         }
     }
 
-    async fn enrich_all(&self, items: Vec<ChangeRequest>, me: &str) -> Vec<ChangeRequest> {
-        stream::iter(items).map(|cr| self.enrich(cr, me)).buffer_unordered(CONCURRENCY).collect().await
+    async fn enrich_all(&self, items: Vec<ChangeRequest>, me: &str) -> Vec<ProviderResult<ChangeRequest>> {
+        stream::iter(items).map(|cr| self.enrich_one(cr, me, None)).buffered(CONCURRENCY).collect().await
     }
 }
 
@@ -308,6 +310,21 @@ impl Provider for GitLabProvider {
 
     async fn whoami(&self) -> ProviderResult<User> {
         Ok(self.me().await?.clone())
+    }
+
+    fn lists_need_enrich(&self) -> bool {
+        true
+    }
+
+    async fn enrich(&self, items: Vec<ChangeRequest>) -> Vec<ProviderResult<ChangeRequest>> {
+        let me = match self.me().await {
+            Ok(u) => u.username.clone(),
+            Err(e) => {
+                let msg = e.to_string();
+                return items.into_iter().map(|_| Err(ProviderError::Network(msg.clone()))).collect();
+            }
+        };
+        self.enrich_all(items, &me).await
     }
 
     async fn list_change_requests(&self, scope: &Scope, filter: &Filter) -> ProviderResult<Vec<ChangeRequest>> {
@@ -348,7 +365,12 @@ impl Provider for GitLabProvider {
                 }
             }
         }
-        let mut out = self.enrich_all(raw, &me).await;
+        // Reviewer states and checks come from `enrich`, which the engine calls only for MRs
+        // that changed since the cache.
+        let mut out = raw;
+        for cr in &mut out {
+            cr.needs_you = compute_needs_you(cr, &me);
+        }
         out.sort_by_key(|c| std::cmp::Reverse(c.updated_at));
         Ok(out)
     }
@@ -357,7 +379,7 @@ impl Provider for GitLabProvider {
         let me = self.me().await?.username.clone();
         let base = Self::mr_path(id);
         let v = self.get(&base).await?;
-        let mut summary = self.enrich(parse_mr(&self.host, &v), &me).await;
+        let mut summary = self.enrich_one(parse_mr(&self.host, &v), &me, Some(&v)).await?;
         if let Some((a, d)) = self.diff_stats(&base).await {
             summary.additions = Some(a);
             summary.deletions = Some(d);

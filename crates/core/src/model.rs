@@ -124,6 +124,9 @@ pub struct User {
     pub username: String,
     pub name: Option<String>,
     pub avatar_url: Option<String>,
+    /// The provider marks this account as a bot (GitHub `Bot`, GitLab `bot: true`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub bot: bool,
 }
 
 impl User {

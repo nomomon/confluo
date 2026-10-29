@@ -1,0 +1,13 @@
+[package]
+name = "gv-http"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+gv-core.workspace = true
+chrono.workspace = true
+reqwest.workspace = true
+tokio = { workspace = true, features = ["time"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["time", "test-util"] }

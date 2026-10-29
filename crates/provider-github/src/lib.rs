@@ -4,8 +4,12 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use gv_core::*;
 use serde_json::{json, Value};
+use tokio::sync::OnceCell;
 
 mod inline;
+
+/// GitHub rejects search queries longer than this.
+const MAX_QUERY_LEN: usize = 250;
 
 pub struct GitHubProvider {
     host: String,
@@ -13,13 +17,14 @@ pub struct GitHubProvider {
     graphql: String,
     token: String,
     http: reqwest::Client,
+    viewer: OnceCell<User>,
 }
 
 const PR_FIELDS: &str = r#"
   number title url isDraft state createdAt updatedAt headRefName baseRefName
   additions deletions changedFiles totalCommentsCount
   repository { nameWithOwner }
-  author { login avatarUrl ... on User { name } }
+  author { __typename login avatarUrl ... on User { name } }
   labels(first: 20) { nodes { name } }
   reviewRequests(first: 20) { nodes { requestedReviewer { ... on User { login name avatarUrl } ... on Team { slug } } } }
   latestReviews(first: 20) { nodes { state author { login avatarUrl ... on User { name } } } }
@@ -36,18 +41,12 @@ impl GitHubProvider {
             (format!("https://{host}/api/v3"), format!("https://{host}/api/graphql"))
         };
         let http = reqwest::Client::builder().user_agent("git-viewer").build().expect("http client");
-        Self { host, api, graphql, token, http }
+        Self { host, api, graphql, token, http, viewer: OnceCell::new() }
     }
 
     async fn send(&self, req: reqwest::RequestBuilder) -> ProviderResult<Value> {
-        let resp = req
-            .bearer_auth(&self.token)
-            .header("Accept", "application/vnd.github+json")
-            .send()
-            .await
-            .map_err(|e| ProviderError::Network(e.to_string()))?;
-        let status = resp.status().as_u16();
-        let body = resp.text().await.map_err(|e| ProviderError::Network(e.to_string()))?;
+        let resp = gv_http::send(req.bearer_auth(&self.token).header("Accept", "application/vnd.github+json")).await?;
+        let (status, body) = (resp.status, resp.text());
         match status {
             200..=299 => serde_json::from_str(&body).map_err(|e| ProviderError::Decode(e.to_string())),
             401 => Err(ProviderError::Unauthenticated(self.host.clone())),
@@ -58,16 +57,8 @@ impl GitHubProvider {
 
     /// GET returning raw text (`Accept: raw`); None on 404.
     async fn get_raw(&self, url: &str) -> ProviderResult<Option<String>> {
-        let resp = self
-            .http
-            .get(url)
-            .bearer_auth(&self.token)
-            .header("Accept", "application/vnd.github.raw")
-            .send()
-            .await
-            .map_err(|e| ProviderError::Network(e.to_string()))?;
-        let status = resp.status().as_u16();
-        let body = resp.text().await.map_err(|e| ProviderError::Network(e.to_string()))?;
+        let resp = gv_http::send(self.http.get(url).bearer_auth(&self.token).header("Accept", "application/vnd.github.raw")).await?;
+        let (status, body) = (resp.status, resp.text());
         match status {
             200..=299 => Ok(Some(body)),
             404 => Ok(None),
@@ -91,12 +82,17 @@ impl GitHubProvider {
     async fn search(&self, q: &str, me: &str) -> ProviderResult<Vec<ChangeRequest>> {
         let query = format!(
             "query($q: String!, $after: String) {{ search(query: $q, type: ISSUE, first: 50, after: $after) {{
-               pageInfo {{ hasNextPage endCursor }} nodes {{ ... on PullRequest {{ {PR_FIELDS} }} }} }} }}"
+               pageInfo {{ hasNextPage endCursor }} nodes {{ ... on PullRequest {{ {PR_FIELDS} }} }} }}
+               rateLimit {{ cost remaining resetAt }} }}"
         );
         let mut out = vec![];
         let mut after = Value::Null;
         for _ in 0..4 {
             let d = self.gql(&query, json!({"q": q, "after": after})).await?;
+            if gv_http::debug_enabled() {
+                let r = &d["rateLimit"];
+                eprintln!("github search cost {} remaining {} reset {}", r["cost"], r["remaining"], r["resetAt"]);
+            }
             for n in d["search"]["nodes"].as_array().into_iter().flatten() {
                 if n.get("number").is_some() {
                     out.push(self.parse_pr(n, me)?);
@@ -190,6 +186,32 @@ impl GitHubProvider {
     async fn me(&self) -> ProviderResult<String> {
         Ok(self.whoami().await?.username)
     }
+
+    /// One search per chunk of repos (`repo:a repo:b ...` is an OR), split back per repo.
+    async fn list_repos_batched(&self, repos: Vec<RepoRef>, filter: &Filter) -> Vec<(Scope, ProviderResult<Vec<ChangeRequest>>)> {
+        let me = match self.me().await {
+            Ok(m) => m,
+            Err(e) => {
+                let msg = e.to_string();
+                return repos.into_iter().map(|r| (Scope::Repo(r), Err(ProviderError::Network(msg.clone())))).collect();
+            }
+        };
+        let base = format!("is:pr archived:false{}", state_qualifier(filter.state));
+        let mut out = vec![];
+        for chunk in chunk_repos(&repos, MAX_QUERY_LEN - base.len()) {
+            let q = format!("{base} {}", chunk.iter().map(|r| format!("repo:{}", r.path)).collect::<Vec<_>>().join(" "));
+            let res = self.search(&q, &me).await;
+            for r in chunk {
+                let scoped = match &res {
+                    Ok(items) => Ok(items.iter().filter(|c| c.id.repo.path.eq_ignore_ascii_case(&r.path)).cloned().collect()),
+                    Err(ProviderError::RateLimited { host, until }) => Err(ProviderError::RateLimited { host: host.clone(), until: *until }),
+                    Err(e) => Err(ProviderError::Network(e.to_string())),
+                };
+                out.push((Scope::Repo(r.clone()), scoped));
+            }
+        }
+        out
+    }
 }
 
 fn s(v: &Value) -> String {
@@ -201,11 +223,38 @@ fn time(v: &Value) -> DateTime<Utc> {
 }
 
 fn user(v: &Value) -> User {
+    let username = v["login"].as_str().unwrap_or("ghost").to_string();
     User {
-        username: v["login"].as_str().unwrap_or("ghost").to_string(),
+        bot: v["__typename"] == "Bot" || username.ends_with("[bot]"),
+        username,
         name: v["name"].as_str().filter(|x| !x.is_empty()).map(str::to_string),
         avatar_url: v["avatarUrl"].as_str().map(str::to_string),
     }
+}
+
+fn state_qualifier(s: StateFilter) -> &'static str {
+    match s {
+        StateFilter::Active => " is:open",
+        StateFilter::Merged => " is:merged",
+        StateFilter::Closed => " is:closed is:unmerged",
+        StateFilter::Any => "",
+    }
+}
+
+/// Split repos into groups whose `repo:` qualifiers fit in `budget` characters.
+fn chunk_repos(repos: &[RepoRef], budget: usize) -> Vec<Vec<&RepoRef>> {
+    let mut out: Vec<Vec<&RepoRef>> = vec![];
+    let mut len = 0;
+    for r in repos {
+        let add = r.path.len() + 6;
+        if out.is_empty() || len + add > budget {
+            out.push(vec![]);
+            len = 0;
+        }
+        out.last_mut().expect("pushed").push(r);
+        len += add;
+    }
+    out
 }
 
 fn comment(v: &Value) -> Comment {
@@ -225,7 +274,12 @@ fn comment(v: &Value) -> Comment {
 fn rest_comment(v: &Value) -> Comment {
     Comment {
         id: s(&v["node_id"]),
-        author: User { username: s(&v["user"]["login"]), name: None, avatar_url: v["user"]["avatar_url"].as_str().map(str::to_string) },
+        author: User {
+            username: s(&v["user"]["login"]),
+            name: None,
+            avatar_url: v["user"]["avatar_url"].as_str().map(str::to_string),
+            bot: v["user"]["type"] == "Bot",
+        },
         body: s(&v["body"]),
         created_at: time(&v["created_at"]),
         position: v["path"].as_str().map(|p| InlinePosition { path: p.into(), line: v["line"].as_u64().map(|l| l as u32) }),
@@ -287,18 +341,30 @@ impl Provider for GitHubProvider {
     }
 
     async fn whoami(&self) -> ProviderResult<User> {
-        let d = self.gql("query { viewer { login name avatarUrl } }", json!({})).await?;
-        Ok(user(&d["viewer"]))
+        let u = self
+            .viewer
+            .get_or_try_init(|| async { Ok::<_, ProviderError>(user(&self.gql("query { viewer { login name avatarUrl } }", json!({})).await?["viewer"])) })
+            .await?;
+        Ok(u.clone())
+    }
+
+    async fn list_many(&self, scopes: Vec<Scope>, filter: &Filter) -> Vec<(Scope, ProviderResult<Vec<ChangeRequest>>)> {
+        let (repos, other): (Vec<Scope>, Vec<Scope>) = scopes.into_iter().partition(|s| matches!(s, Scope::Repo(_)) && filter.involvement == Involvement::All);
+        let mut out = vec![];
+        for s in other {
+            let r = self.list_change_requests(&s, filter).await;
+            out.push((s, r));
+        }
+        let repos = repos.into_iter().filter_map(|s| if let Scope::Repo(r) = s { Some(r) } else { None }).collect::<Vec<_>>();
+        if !repos.is_empty() {
+            out.extend(self.list_repos_batched(repos, filter).await);
+        }
+        out
     }
 
     async fn list_change_requests(&self, scope: &Scope, filter: &Filter) -> ProviderResult<Vec<ChangeRequest>> {
         let me = self.me().await?;
-        let state = match filter.state {
-            StateFilter::Active => " is:open",
-            StateFilter::Merged => " is:merged",
-            StateFilter::Closed => " is:closed is:unmerged",
-            StateFilter::Any => "",
-        };
+        let state = state_qualifier(filter.state);
         let base = format!("is:pr archived:false {}{state}", search_qualifiers(scope));
         let queries: Vec<String> = match filter.involvement {
             Involvement::Authored => vec![format!("{base} author:@me")],
@@ -467,8 +533,21 @@ mod tests {
     }
 
     #[test]
+    fn chunks_repo_qualifiers() {
+        let repos: Vec<RepoRef> = (0..30).map(|i| RepoRef::new(ProviderKind::GitHub, "github.com", format!("org/repo-{i}"))).collect();
+        let chunks = chunk_repos(&repos, 200);
+        assert!(chunks.len() > 1);
+        assert_eq!(chunks.iter().map(Vec::len).sum::<usize>(), 30);
+        for c in &chunks {
+            assert!(c.iter().map(|r| r.path.len() + 6).sum::<usize>() <= 200);
+        }
+    }
+
+    #[test]
     fn parses_pr_node() {
         let p = GitHubProvider::new("github.com", "x".into());
+        assert!(user(&json!({"__typename": "Bot", "login": "renovate"})).bot);
+        assert!(!user(&json!({"__typename": "User", "login": "bob"})).bot);
         let n = json!({
             "number": 4, "title": "T", "url": "https://github.com/a/b/pull/4", "isDraft": false, "state": "OPEN",
             "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-02T00:00:00Z",

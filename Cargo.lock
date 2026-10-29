@@ -2141,7 +2141,6 @@ dependencies = [
  "gpui",
  "gv-engine",
  "pulldown-cmark",
- "reqwest",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -2166,10 +2165,23 @@ dependencies = [
  "gv-auth",
  "gv-core",
  "gv-discovery",
+ "gv-http",
  "gv-provider-azure",
  "gv-provider-github",
  "gv-provider-gitlab",
  "gv-store",
+ "reqwest",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "gv-http"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "gv-core",
+ "reqwest",
  "tokio",
 ]
 
@@ -2188,6 +2200,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "gv-core",
+ "gv-http",
  "reqwest",
  "serde_json",
  "tokio",
@@ -2202,6 +2215,7 @@ dependencies = [
  "futures-util",
  "gv-auth",
  "gv-core",
+ "gv-http",
  "reqwest",
  "serde_json",
  "tokio",

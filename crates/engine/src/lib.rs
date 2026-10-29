@@ -4,18 +4,25 @@
 
 use anyhow::{anyhow, bail, Context, Result};
 use chrono::Utc;
-use futures_util::stream::{self, StreamExt};
 use gv_auth::CredentialSource;
 use gv_store::{CacheQuery, Store};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
+mod avatars;
+mod bot_settings;
+
+pub use avatars::small_avatar_url;
+pub use bot_settings::bot_filter_from_settings;
 pub use gv_core::*;
 pub use gv_store::{Project, RepoOverride, Source};
 
-/// Per-provider concurrency for per-repo refreshes.
-const REPO_CONCURRENCY: usize = 4;
+/// Group repo listings are re-resolved at most this often (the group MR query covers new repos).
+const GROUP_REPOS_TTL: chrono::Duration = chrono::Duration::hours(6);
+/// A detail fetched this recently is served from the cache.
+const DETAIL_FRESH: Duration = Duration::from_secs(60);
 
 /// What to refresh.
 #[derive(Debug, Clone)]
@@ -32,6 +39,12 @@ pub struct RefreshReport {
     pub fetched: usize,
     pub pruned: usize,
     pub errors: Vec<(String, String)>,
+    /// Items whose reviewer states and checks were re-fetched (changed since the cache).
+    pub enriched: usize,
+    /// Set when a host is rate limited: nothing more is sent to it before this time.
+    pub paused_until: Option<chrono::DateTime<Utc>>,
+    /// The same target was already refreshing; this call did nothing.
+    pub coalesced: bool,
 }
 
 /// Query over the cache.
@@ -41,6 +54,8 @@ pub struct ListQuery {
     pub filter: Filter,
     pub starred_only: bool,
     pub needs_you_only: bool,
+    /// Bot PRs matching this filter are left out (see [`Engine::list_counted`]).
+    pub bots: BotFilter,
 }
 
 type ProviderKey = (ProviderKind, String);
@@ -51,6 +66,23 @@ pub struct Engine {
     providers: tokio::sync::Mutex<HashMap<ProviderKey, Arc<dyn Provider>>>,
     gitlab_hosts: Vec<String>,
     me_cache: Mutex<HashMap<ProviderKey, String>>,
+    /// Refresh targets in flight; a second request for the same target is coalesced.
+    in_flight: Mutex<BTreeSet<String>>,
+    /// When each detail was last fetched from the provider.
+    detail_fetched: Mutex<HashMap<ChangeRequestId, Instant>>,
+}
+
+/// Removes a refresh target from the in-flight set when dropped.
+struct InFlight<'a>(&'a Mutex<BTreeSet<String>>, String);
+
+impl Drop for InFlight<'_> {
+    fn drop(&mut self) {
+        self.0.lock().unwrap_or_else(|e| e.into_inner()).remove(&self.1);
+    }
+}
+
+fn later(a: Option<chrono::DateTime<Utc>>, b: chrono::DateTime<Utc>) -> Option<chrono::DateTime<Utc>> {
+    Some(a.map_or(b, |a| a.max(b)))
 }
 
 /// App data dir: `~/Library/Application Support/Confluo` (XDG data dir on other platforms).
@@ -125,6 +157,8 @@ impl Engine {
             providers: Default::default(),
             gitlab_hosts,
             me_cache: Default::default(),
+            in_flight: Default::default(),
+            detail_fetched: Default::default(),
         })
     }
 
@@ -222,10 +256,12 @@ impl Engine {
         }
         let p = self.ensure_project(project)?;
         self.store.add_source(p.id, &source)?;
+        let _ = self.store.set_meta(&resolved_key(p.id), "");
         self.project(project)
     }
 
     pub fn remove_source(&self, project_id: i64, source: &Source) -> Result<()> {
+        let _ = self.store.set_meta(&resolved_key(project_id), "");
         Ok(self.store.remove_source(project_id, source)?)
     }
 
@@ -277,14 +313,44 @@ impl Engine {
         }
         let repos: Vec<RepoRef> = repos.into_iter().collect();
         self.store.set_project_repos(project_id, &repos)?;
+        let _ = self.store.set_meta(&resolved_key(project_id), &Utc::now().to_rfc3339());
         Ok(repos)
+    }
+
+    /// The project's repos from the cache when resolved within `GROUP_REPOS_TTL`, else resolved now.
+    /// Folder-only projects are always rescanned (local, no requests).
+    async fn project_repos_cached(&self, p: &Project) -> Result<Vec<RepoRef>> {
+        let has_group = p.sources.iter().any(|s| matches!(s, Source::Group { .. }));
+        let resolved = self.store.get_meta(&resolved_key(p.id)).ok().flatten().and_then(|v| chrono::DateTime::parse_from_rfc3339(&v).ok());
+        if has_group {
+            if let Some(t) = resolved {
+                if Utc::now() - t.with_timezone(&Utc) < GROUP_REPOS_TTL {
+                    let repos = self.store.project_repos(p.id)?;
+                    if !repos.is_empty() {
+                        return Ok(repos);
+                    }
+                }
+            }
+        }
+        self.resolve_project_repos(p.id).await
     }
 
     // ---------- refresh ----------
 
     /// Fetch from providers into the cache. Providers run concurrently; failures are collected, not fatal.
+    ///
+    /// Requests go through the per-host governor. Rate limited hosts are skipped and reported in
+    /// `paused_until`, not as errors. A second call for a target that is already refreshing returns
+    /// at once with `coalesced`. GitLab reviewer states and checks are re-fetched only for MRs whose
+    /// `updated_at` moved (or whose checks were still running).
     pub async fn refresh(&self, target: RefreshTarget) -> Result<RefreshReport> {
+        let key = refresh_key(&target);
+        if !self.in_flight.lock().unwrap_or_else(|e| e.into_inner()).insert(key.clone()) {
+            return Ok(RefreshReport { coalesced: true, ..Default::default() });
+        }
+        let _in_flight = InFlight(&self.in_flight, key);
         let started = Utc::now();
+        let mut report = RefreshReport::default();
         // (provider key) -> scopes to fetch
         let mut plan: BTreeMap<ProviderKey, Vec<Scope>> = BTreeMap::new();
         match &target {
@@ -295,7 +361,16 @@ impl Engine {
             }
             RefreshTarget::Project(id) => {
                 let p = self.store.projects()?.into_iter().find(|p| p.id == *id).ok_or_else(|| anyhow!("no project {id}"))?;
-                let repos = self.resolve_project_repos(*id).await?;
+                let repos = match self.project_repos_cached(&p).await {
+                    Ok(r) => r,
+                    Err(e) => match e.downcast_ref::<ProviderError>() {
+                        Some(ProviderError::RateLimited { until, .. }) => {
+                            report.paused_until = later(report.paused_until, *until);
+                            self.store.project_repos(*id)?
+                        }
+                        _ => return Err(e),
+                    },
+                };
                 let groups: Vec<(ProviderKind, String, String)> = p
                     .sources
                     .iter()
@@ -315,51 +390,130 @@ impl Engine {
                 }
             }
         }
+        // Hosts in a rate limit pause are not contacted at all.
+        plan.retain(|(_, host), _| match gv_http::governor(host).paused_until() {
+            Some(t) => {
+                report.paused_until = later(report.paused_until, t);
+                false
+            }
+            None => true,
+        });
         let filter = Filter { involvement: Involvement::All, state: StateFilter::Active };
         let jobs = plan.into_iter().map(|((kind, host), scopes)| async move {
             let prov = match self.provider(kind, &host).await {
                 Ok(p) => p,
-                Err(e) => return vec![(host.clone(), Err(e))],
+                Err(e) => return (None, vec![(host.clone(), None, Err(e))]),
             };
             if let Ok(me) = prov.whoami().await {
                 self.remember_me(kind, &host, &me.username);
             }
-            stream::iter(scopes)
-                .map(|scope| {
-                    let prov = prov.clone();
-                    async move {
-                        let label = scope_label(&scope);
-                        let r = prov.list_change_requests(&scope, &filter).await.map(|v| (scope, v)).map_err(anyhow::Error::from);
-                        (label, r)
-                    }
-                })
-                .buffer_unordered(REPO_CONCURRENCY)
-                .collect::<Vec<_>>()
+            let results = prov
+                .list_many(scopes, &filter)
                 .await
+                .into_iter()
+                .map(|(scope, r)| (scope_label(&scope), Some(scope), r.map_err(anyhow::Error::from)))
+                .collect::<Vec<_>>();
+            (Some(prov), results)
         });
-        let results: Vec<_> = futures_util::future::join_all(jobs).await.into_iter().flatten().collect();
+        let per_host: Vec<_> = futures_util::future::join_all(jobs).await;
 
-        let mut report = RefreshReport::default();
-        for (label, r) in results {
-            match r {
-                Ok((scope, items)) => {
-                    report.fetched += items.len();
-                    self.store.upsert_change_requests(&items)?;
-                    let seen: Vec<ChangeRequestId> = items.iter().map(|c| c.id.clone()).collect();
-                    let me = match &scope {
-                        Scope::InvolvingMe { kind, host } => self.me(*kind, host),
-                        _ => None,
-                    };
-                    let in_scope = |cr: &ChangeRequest| scope_contains(&scope, cr, me.as_deref());
-                    report.pruned += self.store.prune_stale(in_scope, &seen, started)?;
+        for (prov, results) in per_host {
+            let mut ok: Vec<(Scope, Vec<ChangeRequest>)> = vec![];
+            for (label, scope, r) in results {
+                match (scope, r) {
+                    (Some(scope), Ok(items)) => ok.push((scope, items)),
+                    (_, Err(e)) => match e.downcast_ref::<ProviderError>() {
+                        Some(ProviderError::RateLimited { until, .. }) => report.paused_until = later(report.paused_until, *until),
+                        _ => report.errors.push((label, format!("{e:#}"))),
+                    },
+                    (None, Ok(_)) => {}
                 }
-                Err(e) => report.errors.push((label, format!("{e:#}"))),
+            }
+            if let Some(prov) = prov.filter(|p| p.lists_need_enrich()) {
+                let (n, paused) = self.enrich_changed(prov.as_ref(), &mut ok).await;
+                report.enriched += n;
+                if let Some(t) = paused {
+                    report.paused_until = later(report.paused_until, t);
+                }
+            }
+            for (scope, items) in ok {
+                report.fetched += items.len();
+                self.store.upsert_change_requests(&items)?;
+                let seen: Vec<ChangeRequestId> = items.iter().map(|c| c.id.clone()).collect();
+                let me = match &scope {
+                    Scope::InvolvingMe { kind, host } => self.me(*kind, host),
+                    _ => None,
+                };
+                let in_scope = |cr: &ChangeRequest| scope_contains(&scope, cr, me.as_deref());
+                report.pruned += self.store.prune_stale(in_scope, &seen, started)?;
             }
         }
-        if report.errors.is_empty() || report.fetched > 0 {
+        if (report.errors.is_empty() && report.paused_until.is_none()) || report.fetched > 0 {
             let _ = self.store.set_meta(&refresh_key(&target), &Utc::now().to_rfc3339());
         }
         Ok(report)
+    }
+
+    /// Carry cached reviewer states and checks onto unchanged items; enrich the rest.
+    /// Returns how many were enriched and the end of a rate limit pause, if one hit.
+    async fn enrich_changed(&self, prov: &dyn Provider, batches: &mut [(Scope, Vec<ChangeRequest>)]) -> (usize, Option<chrono::DateTime<Utc>>) {
+        let me = self.me(prov.kind(), prov.host());
+        // Hidden bot PRs are not worth requests; their detail view fetches what it needs.
+        let bots = bot_filter_from_settings();
+        let mut todo: Vec<ChangeRequest> = vec![];
+        let mut todo_ids: BTreeSet<String> = BTreeSet::new();
+        for (_, items) in batches.iter_mut() {
+            for cr in items.iter_mut() {
+                let cached = self.store.get_change_request(&cr.id).ok().flatten();
+                let marker = self.store.get_meta(&enrich_key(&cr.id)).ok().flatten();
+                let fresh = marker.as_deref() == Some(cr.updated_at.to_rfc3339().as_str());
+                match cached {
+                    Some(c) if fresh && c.checks.pending == 0 => carry_enrichment(cr, &c, me.as_deref()),
+                    cached => {
+                        // Until the new data arrives, stale enrichment beats none.
+                        if let Some(c) = cached {
+                            carry_enrichment(cr, &c, me.as_deref());
+                        }
+                        if !bots.hides(cr) && todo_ids.insert(cr.id.key()) {
+                            todo.push(cr.clone());
+                        }
+                    }
+                }
+            }
+        }
+        if todo.is_empty() {
+            return (0, None);
+        }
+        let mut paused = None;
+        let mut done: HashMap<ChangeRequestId, ChangeRequest> = HashMap::new();
+        for (orig, r) in todo.iter().zip(prov.enrich(todo.clone()).await) {
+            match r {
+                Ok(e) => {
+                    let _ = self.store.set_meta(&enrich_key(&e.id), &orig.updated_at.to_rfc3339());
+                    done.insert(e.id.clone(), e);
+                }
+                Err(ProviderError::RateLimited { until, .. }) => paused = later(paused, until),
+                Err(_) => {}
+            }
+        }
+        for (_, items) in batches.iter_mut() {
+            for cr in items.iter_mut() {
+                if let Some(e) = done.get(&cr.id) {
+                    *cr = e.clone();
+                }
+            }
+        }
+        (done.len(), paused)
+    }
+
+    /// End of the latest rate limit pause across hosts, if any host is paused now.
+    pub fn paused_until(&self) -> Option<chrono::DateTime<Utc>> {
+        gv_http::paused().into_iter().map(|(_, t)| t).max()
+    }
+
+    /// Request counts per host and endpoint since start (for `GV_DEBUG_HTTP=1`).
+    pub fn http_summary(&self) -> String {
+        gv_http::stats_summary()
     }
 
     /// When `target` last refreshed successfully (persisted in the cache).
@@ -372,6 +526,11 @@ impl Engine {
 
     /// Read change requests from the cache.
     pub fn list(&self, q: &ListQuery) -> Result<Vec<ChangeRequest>> {
+        Ok(self.list_counted(q)?.0)
+    }
+
+    /// Like [`Engine::list`], also returning how many bot PRs `q.bots` hid.
+    pub fn list_counted(&self, q: &ListQuery) -> Result<(Vec<ChangeRequest>, usize)> {
         let repos = match q.project {
             Some(id) => Some(self.store.project_repos(id)?),
             None => None,
@@ -389,7 +548,8 @@ impl Engine {
             needs_you_only: q.needs_you_only,
             include_hidden: false,
         })?;
-        Ok(dedupe_by_id(items))
+        let (hidden, shown): (Vec<_>, Vec<_>) = dedupe_by_id(items).into_iter().partition(|c| q.bots.hides(c));
+        Ok((shown, hidden.len()))
     }
 
     /// Accept a web URL or a cache key (`gitlab:gitlab.com/g/p#12`).
@@ -405,7 +565,15 @@ impl Engine {
     }
 
     /// Fetch full detail from the provider and cache it. Falls back to the cache on network errors when `allow_stale`.
+    /// A detail fetched within `DETAIL_FRESH` is served from the cache; when the host is rate
+    /// limited the cached detail is returned if there is one.
     pub async fn detail(&self, id: &ChangeRequestId, allow_stale: bool) -> Result<ChangeRequestDetail> {
+        let recent = self.detail_fetched.lock().unwrap_or_else(|e| e.into_inner()).get(id).is_some_and(|t| t.elapsed() < DETAIL_FRESH);
+        if recent {
+            if let Some(d) = self.store.get_detail(id)? {
+                return Ok(d);
+            }
+        }
         let fetched = async {
             let prov = self.provider(id.repo.kind, &id.repo.host).await?;
             if let Ok(me) = prov.whoami().await {
@@ -417,9 +585,12 @@ impl Engine {
         match fetched {
             Ok(d) => {
                 self.store.put_detail(&d)?;
+                self.detail_fetched.lock().unwrap_or_else(|e| e.into_inner()).insert(id.clone(), Instant::now());
                 Ok(d)
             }
-            Err(e) if allow_stale => self.store.get_detail(id)?.ok_or(e),
+            Err(e) if allow_stale || matches!(e.downcast_ref::<ProviderError>(), Some(ProviderError::RateLimited { .. })) => {
+                self.store.get_detail(id)?.ok_or(e)
+            }
             Err(e) => Err(e),
         }
     }
@@ -522,6 +693,26 @@ fn context_partner(files: &[ChangedFile], pos: &DiffPosition) -> Option<u32> {
     }
 }
 
+fn resolved_key(project_id: i64) -> String {
+    format!("resolved:project:{project_id}")
+}
+
+fn enrich_key(id: &ChangeRequestId) -> String {
+    format!("enriched:{}", id.key())
+}
+
+/// Copy the enrichment (reviewer states, checks, counts) of a cached item onto a freshly listed one.
+fn carry_enrichment(cr: &mut ChangeRequest, cached: &ChangeRequest, me: Option<&str>) {
+    cr.reviewers = cached.reviewers.clone();
+    cr.checks = cached.checks;
+    cr.changed_files = cached.changed_files.or(cr.changed_files);
+    cr.additions = cached.additions;
+    cr.deletions = cached.deletions;
+    if let Some(me) = me {
+        cr.needs_you = compute_needs_you(cr, me);
+    }
+}
+
 fn refresh_key(target: &RefreshTarget) -> String {
     match target {
         RefreshTarget::InvolvingMe => "refreshed:inbox".into(),
@@ -602,6 +793,32 @@ mod tests {
     fn dedupes_by_id_keeping_first() {
         let v = dedupe_by_id(vec![cr(1, "new"), cr(2, "other"), cr(1, "old")]);
         assert_eq!(v.iter().map(|c| c.title.as_str()).collect::<Vec<_>>(), vec!["new", "other"]);
+    }
+
+    #[test]
+    fn list_counted_hides_bots() {
+        let dir = std::env::temp_dir().join(format!("gv-engine-bots-{}", std::process::id()));
+        let e = Engine::open(&dir.join("t.db")).unwrap();
+        let mut bot = cr(3, "Update react");
+        bot.author = User::named("acme-bot");
+        bot.source_branch = "renovate/react".into();
+        e.store().upsert_change_requests(&[cr(1, "x"), bot]).unwrap();
+        let (v, hidden) = e.list_counted(&ListQuery::default()).unwrap();
+        assert_eq!((v.len(), hidden), (1, 1));
+        let (v, hidden) = e.list_counted(&ListQuery { bots: BotFilter::off(), ..Default::default() }).unwrap();
+        assert_eq!((v.len(), hidden), (2, 0));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn carries_enrichment_and_recomputes_needs_you() {
+        let mut cached = cr(1, "x");
+        cached.reviewers = vec![Review { user: User::named("me"), state: ReviewState::Pending }];
+        cached.checks = CheckSummary { total: 2, passed: 2, failed: 0, pending: 0 };
+        let mut fresh = cr(1, "x");
+        carry_enrichment(&mut fresh, &cached, Some("me"));
+        assert_eq!(fresh.checks.total, 2);
+        assert!(fresh.needs_you);
     }
 
     #[test]

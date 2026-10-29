@@ -117,6 +117,9 @@ struct ListArgs {
     /// Do not refresh; read the local cache only.
     #[arg(long)]
     cached: bool,
+    /// Include bot PRs (Renovate, Dependabot, project bots) that are hidden by default.
+    #[arg(long)]
+    include_bots: bool,
     #[arg(long)]
     json: bool,
 }
@@ -126,6 +129,10 @@ fn parse_group(s: &str) -> Result<Source> {
     let Some(provider) = ProviderKind::parse(prov) else { bail!("unknown provider {prov}") };
     let Some((host, path)) = rest.split_once('/') else { bail!("expected <host>/<path>") };
     Ok(Source::Group { provider, host: host.to_ascii_lowercase(), path: path.trim_matches('/').to_string() })
+}
+
+fn gv_http_debug() -> bool {
+    std::env::var("GV_DEBUG_HTTP").is_ok_and(|v| !v.is_empty() && v != "0")
 }
 
 fn ago(t: chrono::DateTime<Utc>) -> String {
@@ -246,6 +253,13 @@ async fn main() -> Result<()> {
                 for (scope, err) in &rep.errors {
                     eprintln!("warning: {scope}: {}", err.lines().next().unwrap_or_default());
                 }
+                if let Some(t) = rep.paused_until {
+                    eprintln!("paused until {} (rate limit); showing cached data", t.with_timezone(&chrono::Local).format("%H:%M"));
+                }
+                if gv_http_debug() {
+                    eprintln!("refresh: {} fetched, {} enriched, {} pruned", rep.fetched, rep.enriched, rep.pruned);
+                    eprint!("{}", engine.http_summary());
+                }
             }
             let state = match a.state.as_str() {
                 "open" | "active" => StateFilter::Active,
@@ -261,11 +275,12 @@ async fn main() -> Result<()> {
             } else {
                 Involvement::All
             };
-            let items = engine.list(&ListQuery {
+            let (items, hidden) = engine.list_counted(&ListQuery {
                 project,
                 filter: Filter { involvement, state },
                 starred_only: a.starred,
                 needs_you_only: a.needs_you,
+                bots: if a.include_bots { BotFilter::off() } else { bot_filter_from_settings() },
             })?;
             if a.json {
                 println!("{}", serde_json::to_string_pretty(&items)?);
@@ -273,7 +288,8 @@ async fn main() -> Result<()> {
                 for cr in &items {
                     print_row(cr);
                 }
-                eprintln!("{} item(s); * = needs you", items.len());
+                let bots = if hidden > 0 { format!(", {hidden} bot PR(s) hidden (--include-bots)") } else { String::new() };
+                eprintln!("{} item(s){bots}; * = needs you", items.len());
             }
         }
         Cmd::Show { target, json } => {

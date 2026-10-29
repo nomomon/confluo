@@ -1,11 +1,13 @@
 //! Domain types and the provider trait. No IO here.
 
+mod bots;
 mod diff;
 mod inline;
 mod model;
 mod needs_you;
 mod provider;
 
+pub use bots::{glob, BotFilter, DEFAULT_BOT_AUTHORS, DEFAULT_BOT_BRANCHES};
 pub use diff::*;
 pub use inline::{index_inline_threads, InlineIndex, LineKey};
 pub use model::*;

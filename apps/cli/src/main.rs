@@ -1,0 +1,323 @@
+use anyhow::{bail, Result};
+use chrono::Utc;
+use clap::{Args, Parser, Subcommand};
+use gv_engine::*;
+use std::path::PathBuf;
+
+#[derive(Parser)]
+#[command(name = "gv", about = "Your PRs and MRs from GitHub, GitLab and Azure DevOps in one place")]
+struct Cli {
+    #[command(subcommand)]
+    cmd: Cmd,
+}
+
+#[derive(Subcommand)]
+enum Cmd {
+    /// Manage projects (named groups of repos).
+    #[command(subcommand)]
+    Project(ProjectCmd),
+    /// List PRs/MRs. Refreshes from providers unless --cached.
+    List(ListArgs),
+    /// Show one PR/MR with its discussion.
+    Show {
+        /// Web URL or id like gitlab:gitlab.com/group/proj#12
+        target: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Post a top-level comment (or a reply with --thread).
+    Comment {
+        target: String,
+        body: String,
+        #[arg(long)]
+        thread: Option<String>,
+    },
+    /// Edit an existing comment you wrote.
+    EditComment { target: String, comment_id: String, body: String },
+    /// Show the authenticated user for each known host.
+    Whoami,
+    /// Star or unstar a PR/MR.
+    Star {
+        target: String,
+        #[arg(long)]
+        off: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum ProjectCmd {
+    /// Add a project or add a source to an existing one.
+    Add {
+        name: String,
+        /// Local folder to scan for git repos.
+        #[arg(long, group = "src")]
+        folder: Option<PathBuf>,
+        /// Scan depth for --folder.
+        #[arg(long, default_value_t = 3)]
+        depth: usize,
+        /// A repo URL (web or git remote).
+        #[arg(long, group = "src")]
+        repo: Option<String>,
+        /// A group or org as <provider>:<host>/<path>, e.g. gitlab:gitlab.com/my-group/sub.
+        #[arg(long, group = "src")]
+        group: Option<String>,
+    },
+    /// List projects and their sources.
+    List,
+    /// Show the repos a project resolves to.
+    Repos { name: String },
+    /// Delete a project.
+    Rm { name: String },
+}
+
+#[derive(Args)]
+struct ListArgs {
+    #[arg(long)]
+    project: Option<String>,
+    #[arg(long, conflicts_with = "reviewing")]
+    authored: bool,
+    #[arg(long)]
+    reviewing: bool,
+    /// open (default), merged, closed, any
+    #[arg(long, default_value = "open")]
+    state: String,
+    /// Only items waiting on you.
+    #[arg(long)]
+    needs_you: bool,
+    #[arg(long)]
+    starred: bool,
+    /// Do not refresh; read the local cache only.
+    #[arg(long)]
+    cached: bool,
+    #[arg(long)]
+    json: bool,
+}
+
+fn parse_group(s: &str) -> Result<Source> {
+    let Some((prov, rest)) = s.split_once(':') else { bail!("expected <provider>:<host>/<path>") };
+    let Some(provider) = ProviderKind::parse(prov) else { bail!("unknown provider {prov}") };
+    let Some((host, path)) = rest.split_once('/') else { bail!("expected <host>/<path>") };
+    Ok(Source::Group { provider, host: host.to_ascii_lowercase(), path: path.trim_matches('/').to_string() })
+}
+
+fn ago(t: chrono::DateTime<Utc>) -> String {
+    let d = Utc::now() - t;
+    if d.num_days() > 0 {
+        format!("{}d", d.num_days())
+    } else if d.num_hours() > 0 {
+        format!("{}h", d.num_hours())
+    } else {
+        format!("{}m", d.num_minutes().max(0))
+    }
+}
+
+fn state_str(s: ChangeRequestState) -> &'static str {
+    match s {
+        ChangeRequestState::Open => "open",
+        ChangeRequestState::Draft => "draft",
+        ChangeRequestState::Merged => "merged",
+        ChangeRequestState::Closed => "closed",
+    }
+}
+
+fn checks_str(c: &CheckSummary) -> String {
+    if c.total == 0 {
+        "-".into()
+    } else if c.failed > 0 {
+        format!("x{}/{}", c.failed, c.total)
+    } else if c.pending > 0 {
+        format!("~{}/{}", c.passed, c.total)
+    } else {
+        format!("ok{}", c.total)
+    }
+}
+
+fn print_row(cr: &ChangeRequest) {
+    let flag = if cr.needs_you { "*" } else { " " };
+    let reviews: String = cr
+        .reviewers
+        .iter()
+        .map(|r| {
+            let m = match r.state {
+                ReviewState::Approved => "+",
+                ReviewState::ChangesRequested => "!",
+                ReviewState::Pending => "?",
+                ReviewState::Commented => "c",
+            };
+            format!("{m}{}", r.user.username)
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    println!(
+        "{flag} {:<6} {:>4} {:<7} {:<40} {:<55} @{:<14} {:<6} [{}]",
+        cr.id.repo.kind.as_str(),
+        ago(cr.updated_at),
+        state_str(cr.state),
+        format!("{}", cr.id),
+        cr.title.chars().take(55).collect::<String>(),
+        cr.author.username,
+        checks_str(&cr.checks),
+        reviews
+    );
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let cli = Cli::parse();
+    let engine = Engine::open_default()?;
+    match cli.cmd {
+        Cmd::Project(p) => match p {
+            ProjectCmd::Add { name, folder, depth, repo, group } => {
+                let src = if let Some(f) = folder {
+                    Source::Folder { path: std::fs::canonicalize(&f).unwrap_or(f), depth }
+                } else if let Some(r) = repo {
+                    Source::Repo { url: r }
+                } else if let Some(g) = group {
+                    parse_group(&g)?
+                } else {
+                    engine.ensure_project(&name)?;
+                    println!("project {name} created (no sources yet)");
+                    return Ok(());
+                };
+                let p = engine.add_source(&name, src)?;
+                let repos = engine.resolve_project_repos(p.id).await?;
+                println!("project {} now has {} source(s), {} repo(s)", p.name, p.sources.len(), repos.len());
+            }
+            ProjectCmd::List => {
+                for p in engine.projects()? {
+                    println!("{} (id {})", p.name, p.id);
+                    for s in p.sources {
+                        match s {
+                            Source::Folder { path, depth } => println!("  folder {} depth {depth}", path.display()),
+                            Source::Repo { url } => println!("  repo   {url}"),
+                            Source::Group { provider, host, path } => println!("  group  {provider}:{host}/{path}"),
+                        }
+                    }
+                }
+            }
+            ProjectCmd::Repos { name } => {
+                let p = engine.project(&name)?;
+                for r in engine.resolve_project_repos(p.id).await? {
+                    println!("{r}");
+                }
+            }
+            ProjectCmd::Rm { name } => {
+                let p = engine.project(&name)?;
+                engine.delete_project(p.id)?;
+                println!("deleted {name}");
+            }
+        },
+        Cmd::List(a) => {
+            let project = match &a.project {
+                Some(n) => Some(engine.project(n)?.id),
+                None => None,
+            };
+            if !a.cached {
+                let target = project.map(RefreshTarget::Project).unwrap_or(RefreshTarget::InvolvingMe);
+                let rep = engine.refresh(target).await?;
+                for (scope, err) in &rep.errors {
+                    eprintln!("warning: {scope}: {}", err.lines().next().unwrap_or_default());
+                }
+            }
+            let state = match a.state.as_str() {
+                "open" | "active" => StateFilter::Active,
+                "merged" => StateFilter::Merged,
+                "closed" => StateFilter::Closed,
+                "any" | "all" => StateFilter::Any,
+                s => bail!("unknown state {s}"),
+            };
+            let involvement = if a.authored {
+                Involvement::Authored
+            } else if a.reviewing {
+                Involvement::Reviewing
+            } else {
+                Involvement::All
+            };
+            let items = engine.list(&ListQuery {
+                project,
+                filter: Filter { involvement, state },
+                starred_only: a.starred,
+                needs_you_only: a.needs_you,
+            })?;
+            if a.json {
+                println!("{}", serde_json::to_string_pretty(&items)?);
+            } else {
+                for cr in &items {
+                    print_row(cr);
+                }
+                eprintln!("{} item(s); * = needs you", items.len());
+            }
+        }
+        Cmd::Show { target, json } => {
+            let id = engine.resolve_id(&target)?;
+            let d = engine.detail(&id, true).await?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&d)?);
+                return Ok(());
+            }
+            let s = &d.summary;
+            println!("{}  [{}]{}", s.title, state_str(s.state), if s.needs_you { "  (needs you)" } else { "" });
+            println!("{}", s.web_url);
+            println!("{} by @{}  {} -> {}", s.id, s.author.username, s.source_branch, s.target_branch);
+            println!("created {} ago, updated {} ago", ago(s.created_at), ago(s.updated_at));
+            if let (Some(a), Some(dl)) = (s.additions, s.deletions) {
+                println!("+{a} -{dl} in {} file(s)", s.changed_files.unwrap_or(0));
+            } else if let Some(f) = s.changed_files {
+                println!("{f} file(s) changed");
+            }
+            println!("checks: {} passed, {} failed, {} pending (of {})", s.checks.passed, s.checks.failed, s.checks.pending, s.checks.total);
+            for r in &s.reviewers {
+                println!("reviewer @{}: {:?}", r.user.username, r.state);
+            }
+            if !s.labels.is_empty() {
+                println!("labels: {}", s.labels.join(", "));
+            }
+            if let Some(sha) = &d.head_sha {
+                println!("head {sha}");
+            }
+            println!("\n{}\n", if d.description.trim().is_empty() { "(no description)" } else { d.description.trim() });
+            for t in &d.threads {
+                let res = match t.resolved {
+                    Some(true) => " (resolved)",
+                    Some(false) => " (unresolved)",
+                    None => "",
+                };
+                println!("--- thread {}{res}", t.id);
+                for c in &t.comments {
+                    let pos = c.position.as_ref().map(|p| format!(" on {}:{}", p.path, p.line.map(|l| l.to_string()).unwrap_or_default())).unwrap_or_default();
+                    println!("  @{} {} ago{pos} [{}]", c.author.username, ago(c.created_at), c.id);
+                    for l in c.body.lines() {
+                        println!("    {l}");
+                    }
+                }
+            }
+        }
+        Cmd::Comment { target, body, thread } => {
+            let id = engine.resolve_id(&target)?;
+            let c = match thread {
+                Some(t) => engine.reply_to_thread(&id, &t, &body).await?,
+                None => engine.add_comment(&id, &body).await?,
+            };
+            println!("posted comment {}", c.id);
+        }
+        Cmd::EditComment { target, comment_id, body } => {
+            let id = engine.resolve_id(&target)?;
+            let c = engine.edit_comment(&id, &comment_id, &body).await?;
+            println!("edited comment {}", c.id);
+        }
+        Cmd::Whoami => {
+            for (k, h) in engine.known_hosts() {
+                match engine.whoami(k, &h).await {
+                    Ok(u) => println!("{k}:{h} @{}", u.username),
+                    Err(e) => println!("{k}:{h} error: {e}"),
+                }
+            }
+        }
+        Cmd::Star { target, off } => {
+            let id = engine.resolve_id(&target)?;
+            engine.set_starred(&id, !off)?;
+            println!("{} {}", if off { "unstarred" } else { "starred" }, id);
+        }
+    }
+    Ok(())
+}

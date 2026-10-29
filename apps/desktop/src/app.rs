@@ -48,6 +48,10 @@ pub struct GitViewer {
     /// Keyboard selection in the list.
     pub(crate) cursor: Option<ChangeRequestId>,
     pub(crate) detail: Option<DetailState>,
+    /// Changed files per PR, so reopening the Code tab is instant.
+    /// Code tab shows the file tree beside the diff.
+    pub(crate) code_tree: bool,
+    pub(crate) code_cache: HashMap<ChangeRequestId, Arc<Vec<gv_engine::ChangedFile>>>,
     pub(crate) list_scroll: ScrollHandle,
     pub(crate) detail_scroll: ScrollHandle,
     /// Set by j/k; the highlighted row scrolls itself into view on the next paint.
@@ -133,6 +137,8 @@ impl GitViewer {
             collapsed: Section::ALL.into_iter().filter(|s| s.collapsed_by_default()).collect(),
             cursor: None,
             detail: None,
+            code_tree: false,
+            code_cache: HashMap::new(),
             list_scroll: ScrollHandle::new(),
             detail_scroll: ScrollHandle::new(),
             reveal_cursor: Rc::new(Cell::new(false)),
@@ -169,6 +175,7 @@ impl GitViewer {
         this.check_hosts(cx);
         this.refresh(cx);
         this.start_clock(cx);
+        this.open_from_env(cx);
         this
     }
 

@@ -387,7 +387,7 @@ mod tests {
         let id = cr(1, "me", ChangeRequestState::Open).id;
         assert!(s.get_files(&id).unwrap().is_none());
         let f = ChangedFile::from_patch("a", "a", FileStatus::Modified, "@@ -1 +1 @@\n-x\n+y\n");
-        s.put_files(&id, "abc", &[f.clone()]).unwrap();
+        s.put_files(&id, "abc", std::slice::from_ref(&f)).unwrap();
         assert_eq!(s.get_files(&id).unwrap(), Some(("abc".into(), vec![f])));
     }
 

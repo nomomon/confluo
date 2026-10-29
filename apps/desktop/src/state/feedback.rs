@@ -10,6 +10,10 @@ use crate::app::GitViewer;
 pub enum Copied {
     Link,
     Checkout,
+    /// A file path in the Code tab.
+    Path,
+    /// The whole diff as a patch.
+    Diff,
 }
 
 impl GitViewer {
@@ -35,8 +39,11 @@ impl GitViewer {
     pub(crate) fn copy(&mut self, what: Copied, text: String, cx: &mut Context<Self>) {
         cx.write_to_clipboard(ClipboardItem::new_string(text));
         self.mark_copied(what, cx);
-        if what == Copied::Link {
-            self.show_toast("Link copied", cx);
+        match what {
+            Copied::Link => self.show_toast("Link copied", cx),
+            Copied::Path => self.show_toast("Path copied", cx),
+            Copied::Diff => self.show_toast("Diff copied", cx),
+            Copied::Checkout => {}
         }
     }
 

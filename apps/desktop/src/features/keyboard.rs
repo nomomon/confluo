@@ -11,7 +11,7 @@ use crate::state::Copied;
 
 actions!(
     git_viewer,
-    [SelectNext, SelectPrev, OpenSelected, Dismiss, FocusSearch, Refresh, OpenInBrowser, CopyCheckout, ToggleStar, TabAuthored, TabReviewing, TabAll, OpenSettings, About, Minimize, Zoom]
+    [SelectNext, SelectPrev, OpenSelected, Dismiss, FocusSearch, Refresh, OpenInBrowser, CopyCheckout, ToggleStar, TabAuthored, TabReviewing, TabAll, NextFile, PrevFile, ToggleFile, OpenSettings, About, Minimize, Zoom]
 );
 
 pub fn bind_keys(cx: &mut App) {
@@ -30,6 +30,11 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("1", TabAuthored, list),
         KeyBinding::new("2", TabReviewing, list),
         KeyBinding::new("3", TabAll, list),
+        KeyBinding::new("n", NextFile, list),
+        KeyBinding::new("]", NextFile, list),
+        KeyBinding::new("p", PrevFile, list),
+        KeyBinding::new("[", PrevFile, list),
+        KeyBinding::new("x", ToggleFile, list),
         KeyBinding::new("escape", Dismiss, any),
         KeyBinding::new("cmd-r", Refresh, any),
         KeyBinding::new("cmd-,", OpenSettings, any),
@@ -69,6 +74,21 @@ impl GitViewer {
             .on_action(cx.listener(|this, _: &TabAuthored, _, cx| this.set_tab(Involvement::Authored, cx)))
             .on_action(cx.listener(|this, _: &TabReviewing, _, cx| this.set_tab(Involvement::Reviewing, cx)))
             .on_action(cx.listener(|this, _: &TabAll, _, cx| this.set_tab(Involvement::All, cx)))
+            .on_action(cx.listener(|this, _: &NextFile, _, cx| {
+                if this.code_tab_active() {
+                    this.step_file(1, cx)
+                }
+            }))
+            .on_action(cx.listener(|this, _: &PrevFile, _, cx| {
+                if this.code_tab_active() {
+                    this.step_file(-1, cx)
+                }
+            }))
+            .on_action(cx.listener(|this, _: &ToggleFile, _, cx| {
+                if this.code_tab_active() {
+                    this.toggle_current_file(cx)
+                }
+            }))
             .on_action(cx.listener(|_, _: &Minimize, window, _| window.minimize_window()))
             .on_action(cx.listener(|_, _: &Zoom, window, _| window.zoom_window()))
             .on_action(cx.listener(|_, _: &About, window, cx| {
@@ -79,6 +99,11 @@ impl GitViewer {
                 this.overlay = Overlay::Settings;
                 cx.notify()
             }))
+    }
+
+    /// Code tab shortcuts (n/p, ]/[, x) act only while the diff is showing.
+    fn code_tab_active(&self) -> bool {
+        self.detail.as_ref().is_some_and(|d| d.tab == crate::state::DetailTab::Code && d.code.viewer.is_none())
     }
 
     fn cursor_item(&self, cx: &App) -> Option<ChangeRequest> {

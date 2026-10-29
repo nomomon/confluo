@@ -4,10 +4,13 @@
 
 mod avatars;
 pub mod bridge;
+mod code;
+pub mod code_rows;
 mod comments;
 mod connection;
 mod detail;
 mod feedback;
+mod file_view;
 mod inbox;
 mod list;
 mod overlay;
@@ -17,7 +20,9 @@ mod sources;
 pub mod timing;
 
 pub use connection::{auth_command, HostStatus};
+pub use code::CodeState;
 pub use detail::{DetailState, DetailTab};
+pub use file_view::FileView;
 pub use feedback::Copied;
 pub use inbox::Section;
 pub use selection::reveal;

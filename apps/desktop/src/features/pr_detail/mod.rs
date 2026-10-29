@@ -1,8 +1,9 @@
-//! Right-hand detail panel: header, Summary or Activity body, floating tab pill.
+//! Right-hand detail panel: header, Summary, Code or Activity body, floating tab pill.
 
 mod activity;
 mod checkout;
 mod checks;
+mod code;
 mod header;
 mod overview;
 mod tabs;
@@ -35,6 +36,7 @@ impl GitViewer {
     }
 
     pub(crate) fn render_detail(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
+        let code = d.tab == DetailTab::Code;
         let col = div()
             .id("detail-scroll")
             .track_scroll(&self.detail_scroll)
@@ -42,9 +44,9 @@ impl GitViewer {
             .flex_col()
             .flex_1()
             .min_h(theme::SPACE_0)
-            .overflow_y_scroll()
+            .when(!code, |c| c.overflow_y_scroll())
             .gap(theme::SPACE_5)
-            .pb(theme::SPACE_8)
+            .when(!code, |c| c.pb(theme::SPACE_8))
             .child(self.render_detail_header(d, cx))
             .when_some(d.error.clone(), |col, e| col.child(ErrorText::new(e)))
             .child(self.render_detail_body(d, cx));

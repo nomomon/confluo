@@ -16,3 +16,12 @@ pub const SIDEBAR_TOP: Pixels = px(52.);
 pub const TITLEBAR_INSET: Pixels = px(48.);
 pub const TIME_COL_W: Pixels = px(72.);
 pub const ALIAS_LIST_MAX_H: Pixels = px(300.);
+/// Code tab: one diff line, the file card header, the `@@` band and line number gutters.
+pub const DIFF_LINE_H: Pixels = px(20.);
+pub const DIFF_HEADER_H: Pixels = px(40.);
+pub const DIFF_HUNK_H: Pixels = px(28.);
+pub const DIFF_GUTTER_W: Pixels = px(40.);
+/// Width of the Code tab's file tree.
+pub const FILE_TREE_W: Pixels = px(200.);
+/// Approximate mono glyph width as a fraction of the font size, for horizontal scroll limits.
+pub const MONO_CHAR_RATIO: f32 = 0.62;

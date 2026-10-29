@@ -8,6 +8,8 @@ use gv_core::*;
 use serde_json::{json, Value};
 use tokio::sync::{OnceCell, RwLock};
 
+mod inline;
+
 /// Max concurrent per-MR enrichment requests.
 const CONCURRENCY: usize = 8;
 const MAX_PAGES: usize = 10;
@@ -371,8 +373,10 @@ impl Provider for GitLabProvider {
                 let resolvable = notes.iter().any(|n| n["resolvable"] == true);
                 Some(Thread {
                     id: s(&d["id"]),
-                    resolved: resolvable.then(|| notes.iter().all(|n| n["resolved"] == true)),
+                    resolved: resolvable.then(|| notes.iter().filter(|n| n["resolvable"] == true).all(|n| n["resolved"] == true)),
+                    position: inline::parse_position(&notes[0]["position"]),
                     comments: notes.into_iter().map(note_to_comment).collect(),
+                    outdated: false,
                 })
             })
             .collect();
@@ -403,6 +407,26 @@ impl Provider for GitLabProvider {
         let path = format!("{}/discussions/{thread_id}/notes", Self::mr_path(id));
         let (v, _) = self.call(reqwest::Method::POST, &path, Some(&json!({"body": body}))).await?;
         Ok(note_to_comment(&v))
+    }
+
+    async fn add_line_comment(&self, id: &ChangeRequestId, position: &DiffPosition, body: &str) -> ProviderResult<Comment> {
+        let base = Self::mr_path(id);
+        let mr = self.get(&base).await?;
+        let r = &mr["diff_refs"];
+        let refs = (
+            r["base_sha"].as_str().unwrap_or_default(),
+            r["start_sha"].as_str().unwrap_or_default(),
+            r["head_sha"].as_str().unwrap_or_default(),
+        );
+        let payload = inline::discussion_payload(position, refs, body);
+        let (v, _) = self.call(reqwest::Method::POST, &format!("{base}/discussions"), Some(&payload)).await?;
+        Ok(note_to_comment(&v["notes"][0]))
+    }
+
+    async fn resolve_thread(&self, id: &ChangeRequestId, thread_id: &str, resolved: bool) -> ProviderResult<()> {
+        let path = format!("{}/discussions/{thread_id}?resolved={resolved}", Self::mr_path(id));
+        self.call(reqwest::Method::PUT, &path, None).await?;
+        Ok(())
     }
 
     async fn list_changed_files(&self, id: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>> {

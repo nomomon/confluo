@@ -78,9 +78,11 @@ impl RenderOnce for Button {
                 .border_color(theme::BORDER)
                 .bg(theme::SURFACE)
                 .text_size(theme::TEXT_XS)
-                .hover(|s| s.bg(theme::SURFACE_HOVER)),
+                .hover(|s| s.bg(theme::SURFACE_HOVER))
+                .active(|s| s.bg(theme::SURFACE_ACTIVE)),
             ButtonVariant::Ghost => {
                 base.px(theme::SPACE_1P5).rounded(theme::RADIUS_MD).text_color(theme::TEXT_MUTED).hover(|s| s.bg(theme::SURFACE_HOVER).text_color(theme::TEXT))
+                .active(|s| s.bg(theme::SURFACE_ACTIVE))
             }
             ButtonVariant::Link => base.text_size(theme::TEXT_XS).text_color(theme::ACCENT).hover(|s| s.text_color(theme::TEXT)),
         };

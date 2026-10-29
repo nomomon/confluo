@@ -2,7 +2,7 @@
 
 use gpui::{div, prelude::*, App, SharedString, Window};
 
-use crate::ui::theme;
+use crate::ui::{motion, theme};
 
 #[derive(IntoElement)]
 pub struct Notice(SharedString);
@@ -15,7 +15,7 @@ impl Notice {
 
 impl RenderOnce for Notice {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        div()
+        let el = div()
             .text_size(theme::TEXT_XS)
             .text_color(theme::WARNING)
             .px(theme::SPACE_2)
@@ -23,6 +23,7 @@ impl RenderOnce for Notice {
             .rounded(theme::RADIUS_MD)
             .bg(theme::tint_bg(theme::WARNING))
             .line_clamp(3)
-            .child(self.0)
+            .child(self.0);
+        motion::fade_in(el, "notice")
     }
 }

@@ -20,6 +20,7 @@ fn main() {
         }
     };
     let settings = settings::Settings::load();
+    ui::motion::init();
 
     Application::new().run(move |cx: &mut App| {
         ui::molecules::text_input::bind_keys(cx);

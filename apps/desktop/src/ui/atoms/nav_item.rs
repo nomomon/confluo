@@ -49,6 +49,7 @@ impl RenderOnce for NavItem {
             .text_color(if active { theme::TEXT } else { theme::TEXT_MUTED })
             .when(active, |d| d.bg(theme::SURFACE_ACTIVE))
             .hover(|s| s.bg(theme::SURFACE_HOVER))
+            .active(|s| s.bg(theme::SURFACE_ACTIVE))
             .child(self.label)
             .when_some(self.on_click, |el, f| el.on_click(f))
     }

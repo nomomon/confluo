@@ -44,6 +44,7 @@ impl GitViewer {
             .border_color(if is_selected { theme::BORDER } else { theme::BORDER_SUBTLE })
             .bg(if is_selected { theme::SURFACE_ACTIVE } else { self.surfaces().card() })
             .hover(|s| s.bg(theme::SURFACE_HOVER))
+            .active(|s| s.bg(theme::SURFACE_ACTIVE))
             .cursor_pointer()
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.open_detail(cr.clone(), cx)))
             .child(provider_badge(c.id.repo.kind))

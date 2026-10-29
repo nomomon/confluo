@@ -3,7 +3,7 @@
 use gpui::{div, prelude::*, px, AnyElement, Pixels, App, ClickEvent, SharedString, Window};
 
 use crate::ui::atoms::{Button, ButtonVariant, Size};
-use crate::ui::{theme, ClickHandler};
+use crate::ui::{motion, theme, ClickHandler};
 
 const DIALOG_W: Pixels = px(520.);
 const DIALOG_MAX_H: Pixels = px(620.);
@@ -43,7 +43,21 @@ impl RenderOnce for Dialog {
             .child(div().text_size(theme::TEXT_BASE).font_weight(theme::WEIGHT_SEMIBOLD).child(self.title))
             .child(div().flex_1())
             .child(close);
-        div()
+        let panel = div()
+            .w(DIALOG_W)
+            .max_h(DIALOG_MAX_H)
+            .flex()
+            .flex_col()
+            .gap(theme::SPACE_3)
+            .p(theme::SPACE_4)
+            .rounded(theme::RADIUS_XL)
+            .border_1()
+            .border_color(theme::BORDER_SUBTLE)
+            .bg(theme::OVERLAY)
+            .shadow_lg()
+            .child(header)
+            .children(self.content);
+        let scrim = div()
             .absolute()
             .top_0()
             .left_0()
@@ -53,21 +67,7 @@ impl RenderOnce for Dialog {
             .justify_center()
             .bg(theme::SCRIM)
             .occlude()
-            .child(
-                div()
-                    .w(DIALOG_W)
-                    .max_h(DIALOG_MAX_H)
-                    .flex()
-                    .flex_col()
-                    .gap(theme::SPACE_3)
-                    .p(theme::SPACE_4)
-                    .rounded(theme::RADIUS_XL)
-                    .border_1()
-                    .border_color(theme::BORDER_SUBTLE)
-                    .bg(theme::OVERLAY)
-                    .shadow_lg()
-                    .child(header)
-                    .children(self.content),
-            )
+            .child(motion::pop_in(panel, "dialog-panel"));
+        motion::fade_in(scrim, "dialog-scrim")
     }
 }

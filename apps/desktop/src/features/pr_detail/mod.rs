@@ -13,7 +13,7 @@ use crate::app::GitViewer;
 use crate::state::DetailState;
 use crate::ui::atoms::ErrorText;
 use crate::ui::molecules::Card;
-use crate::ui::theme;
+use crate::ui::{motion, theme};
 use crate::features::shared::layout;
 
 impl GitViewer {
@@ -36,7 +36,7 @@ impl GitViewer {
             .child(self.render_detail_tabs(d, cx))
             .child(Card::new(tr).child(self.render_detail_body(d, cx)));
 
-        div()
+        let panel = div()
             .flex()
             .flex_col()
             .w(layout::DETAIL_W)
@@ -49,6 +49,7 @@ impl GitViewer {
             .px(theme::SPACE_4)
             .gap(theme::SPACE_3)
             .child(col)
-            .child(self.render_composer(d, cx))
+            .child(self.render_composer(d, cx));
+        motion::slide_in_right(panel, "detail-panel", theme::SPACE_6)
     }
 }

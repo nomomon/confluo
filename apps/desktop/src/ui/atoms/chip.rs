@@ -43,6 +43,7 @@ impl RenderOnce for Chip {
             .bg(if active { theme::SURFACE_ACTIVE } else { theme::SURFACE })
             .text_color(if active { theme::TEXT } else { theme::TEXT_MUTED })
             .hover(|s| s.bg(theme::SURFACE_HOVER))
+            .active(|s| s.bg(theme::SURFACE_ACTIVE))
             .child(self.label)
             .when_some(self.on_click, |el, f| el.on_click(f))
     }

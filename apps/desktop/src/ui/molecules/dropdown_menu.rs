@@ -2,7 +2,7 @@
 
 use gpui::{div, prelude::*, px, AnyElement, App, Div, StyleRefinement, Window};
 
-use crate::ui::theme;
+use crate::ui::{motion, theme};
 
 #[derive(IntoElement)]
 pub struct DropdownMenu {
@@ -29,7 +29,7 @@ impl ParentElement for DropdownMenu {
 
 impl RenderOnce for DropdownMenu {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        self.base
+        let el = self.base
             .absolute()
             .w(px(220.)).text_size(theme::TEXT_SM)
             .p(theme::SPACE_1)
@@ -40,6 +40,7 @@ impl RenderOnce for DropdownMenu {
             .border_color(theme::BORDER)
             .bg(theme::OVERLAY)
             .shadow_lg()
-            .occlude()
+            .occlude();
+        motion::pop_in(el, "dropdown-menu")
     }
 }

@@ -153,3 +153,21 @@ pub fn scrim() -> Hsla {
 pub fn tint_bg(c: Hsla) -> Hsla {
     c.opacity(if is_light() { 0.12 } else { 0.14 })
 }
+
+/// Display color for a background tint swatch. Tints are near-black, so the
+/// swatch keeps the hue but lifts lightness and saturation so choices stay
+/// distinct in both themes; a neutral tint stays grey.
+pub fn tint_preview(c: Hsla) -> Hsla {
+    let s = match c.s {
+        s if s < 0.05 => 0.,
+        s if s < 0.2 => 0.12,
+        s => s.max(0.5),
+    };
+    let l = match (is_light(), c.l < 0.02) {
+        (true, true) => 0.15,
+        (false, true) => 0.05,
+        (true, false) => 0.72,
+        (false, false) => 0.38,
+    };
+    Hsla { h: c.h, s, l, a: 1. }
+}

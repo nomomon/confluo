@@ -61,7 +61,7 @@ impl GitViewer {
         ));
         let swatches = div().flex().gap(theme::SPACE_2).children(TINTS.iter().map(|t| {
             let t = *t;
-            Swatch::new(format!("tint-{t}"), theme::parse_hex(t).unwrap_or(theme::bg())).active(s.tint.eq_ignore_ascii_case(t)).on_click(cx.listener(
+            Swatch::new(format!("tint-{t}"), theme::tint_preview(theme::parse_hex(t).unwrap_or(theme::bg()))).active(s.tint.eq_ignore_ascii_case(t)).on_click(cx.listener(
                 move |this, _: &ClickEvent, _, cx| {
                     this.settings.tint = t.to_string();
                     this.save_settings(cx);

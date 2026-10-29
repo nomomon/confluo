@@ -55,3 +55,16 @@ pub fn parse_hex(s: &str) -> Option<Hsla> {
     let v = u32::from_str_radix(s, 16).ok()?;
     Some(gpui::rgb(v).into())
 }
+
+/// Dimmed backdrop behind modal dialogs.
+pub fn scrim() -> Hsla {
+    hsla(0., 0., 0., 0.45)
+}
+
+/// Monospace font for code and branch names.
+pub const MONO_FONT: &str = "Menlo";
+
+/// Window base color: the configured `#rrggbb` tint at the given alpha.
+pub fn window_bg(tint: &str, alpha: f32) -> Hsla {
+    Hsla { a: alpha, ..parse_hex(tint).unwrap_or(panel(1.)) }
+}

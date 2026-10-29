@@ -1,0 +1,44 @@
+//! Collapsible checks card.
+
+use gpui::{div, prelude::*, ClickEvent, Context, FontWeight};
+
+use crate::app::GitViewer;
+use crate::features::shared::checks_summary;
+use crate::state::DetailState;
+use crate::ui::molecules::{Card, KeyValueRow};
+use crate::ui::theme;
+
+impl GitViewer {
+    pub(super) fn render_checks_card(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
+        let ch = d.summary.checks;
+        let toggle = div()
+            .id("checks-toggle")
+            .flex()
+            .items_center()
+            .gap_2()
+            .cursor_pointer()
+            .child(div().text_sm().font_weight(FontWeight::MEDIUM).child("Checks"))
+            .child(checks_summary(&d.summary))
+            .child(div().flex_1())
+            .child(div().text_xs().text_color(theme::faint()).child(if d.checks_open { "\u{25BE}" } else { "\u{25B8}" }))
+            .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                if let Some(d) = this.detail.as_mut() {
+                    d.checks_open = !d.checks_open;
+                }
+                cx.notify()
+            }));
+        Card::new(self.settings.panel_opacity).child(toggle).when(d.checks_open, |card| {
+            card.child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap_1()
+                    .text_xs()
+                    .child(KeyValueRow::new("Passed", div().text_color(theme::green()).child(ch.passed.to_string())))
+                    .child(KeyValueRow::new("Failed", div().text_color(theme::red()).child(ch.failed.to_string())))
+                    .child(KeyValueRow::new("Pending", div().text_color(theme::yellow()).child(ch.pending.to_string())))
+                    .child(KeyValueRow::new("Total", div().child(ch.total.to_string()))),
+            )
+        })
+    }
+}

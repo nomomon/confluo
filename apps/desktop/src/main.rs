@@ -1,8 +1,9 @@
 //! git-viewer desktop app (GPUI).
 
 mod app;
-mod bridge;
+mod features;
 mod settings;
+mod state;
 mod ui;
 
 use gpui::{actions, point, px, size, App, AppContext, Application, Bounds, KeyBinding, TitlebarOptions, WindowBounds, WindowOptions};

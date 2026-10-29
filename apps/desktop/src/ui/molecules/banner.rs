@@ -40,7 +40,7 @@ impl RenderOnce for Banner {
             .flex()
             .items_center()
             .gap(theme::SPACE_2)
-            .text_size(theme::TEXT_XS)
+            .text_size(theme::text_xs())
             .text_color(theme::WARNING)
             .px(theme::SPACE_2)
             .py(theme::SPACE_1)

@@ -139,7 +139,7 @@ impl Render for TextInput {
             .border_1()
             .border_color(if focused { theme::FOCUS_RING } else { theme::BORDER })
             .bg(theme::SURFACE)
-            .text_size(theme::TEXT_SM)
+            .text_size(theme::text_sm())
             .text_color(theme::TEXT)
             .overflow_hidden()
             .when(!self.multiline, |d| d.child(TextElement { input: cx.entity() }))

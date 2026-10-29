@@ -69,7 +69,7 @@ impl RenderOnce for NavItem {
             .px(theme::SPACE_2)
             .py(theme::SPACE_1)
             .rounded(theme::RADIUS_MD)
-            .text_size(theme::TEXT_SM)
+            .text_size(theme::text_sm())
             .cursor_pointer()
             .text_color(if active { theme::TEXT } else { theme::TEXT_MUTED })
             .when(active, |d| d.bg(theme::SURFACE_ACTIVE))

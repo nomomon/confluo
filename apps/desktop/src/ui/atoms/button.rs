@@ -85,17 +85,17 @@ impl RenderOnce for Button {
                 .border_1()
                 .border_color(theme::BORDER)
                 .bg(theme::SURFACE)
-                .text_size(theme::TEXT_XS)
+                .text_size(theme::text_xs())
                 .hover(|s| s.bg(theme::SURFACE_HOVER))
                 .active(|s| s.bg(theme::SURFACE_ACTIVE)),
             ButtonVariant::Ghost => {
                 base.px(theme::SPACE_1P5).rounded(theme::RADIUS_MD).text_color(theme::TEXT_MUTED).hover(|s| s.bg(theme::SURFACE_HOVER).text_color(theme::TEXT))
                 .active(|s| s.bg(theme::SURFACE_ACTIVE))
             }
-            ButtonVariant::Link => base.text_size(theme::TEXT_XS).text_color(theme::ACCENT).hover(|s| s.text_color(theme::TEXT)),
+            ButtonVariant::Link => base.text_size(theme::text_xs()).text_color(theme::ACCENT).hover(|s| s.text_color(theme::TEXT)),
         };
         styled
-            .when(self.size == Size::Md, |el| el.px(theme::SPACE_3).py(theme::SPACE_1P5).text_size(theme::TEXT_SM))
+            .when(self.size == Size::Md, |el| el.px(theme::SPACE_3).py(theme::SPACE_1P5).text_size(theme::text_sm()))
             .children(self.icon.map(|n| Icon::new(n).color(if self.variant == ButtonVariant::Outline { theme::TEXT } else { theme::TEXT_MUTED })))
             .when(self.icon.is_some() && self.label.is_empty(), |el| el.py(theme::SPACE_1P5))
             .when(!self.label.is_empty(), |el| el.child(self.label))

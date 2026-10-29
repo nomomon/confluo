@@ -3,10 +3,12 @@
 //! See `docs/design-system.md`.
 
 pub mod palette;
+mod runtime;
 mod scale;
 mod tokens;
 mod translucency;
 
+pub use runtime::{mono_font, set_typography, ui_font, Typography};
 pub use scale::*;
 pub use tokens::*;
 pub use translucency::Translucency;

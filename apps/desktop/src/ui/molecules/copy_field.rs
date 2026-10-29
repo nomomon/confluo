@@ -47,8 +47,8 @@ impl RenderOnce for CopyField {
                     .py(theme::SPACE_1)
                     .rounded(theme::RADIUS_MD)
                     .bg(theme::SURFACE)
-                    .text_size(theme::TEXT_XS)
-                    .font_family(theme::MONO_FONT)
+                    .text_size(theme::text_xs())
+                    .font_family(theme::mono_font())
                     .truncate()
                     .child(self.value),
             )

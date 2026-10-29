@@ -56,7 +56,7 @@ impl RenderOnce for ListSection {
                 .px(theme::SPACE_3)
                 .py(theme::SPACE_2)
                 .cursor_pointer()
-                .text_size(theme::TEXT_XS)
+                .text_size(theme::text_xs())
                 .text_color(theme::TEXT_MUTED)
                 .hover(|s| s.text_color(theme::TEXT))
                 .child(Icon::new(if open { IconName::ChevronDown } else { IconName::ChevronRight }).size(theme::ICON_SM).color(theme::TEXT_SUBTLE))

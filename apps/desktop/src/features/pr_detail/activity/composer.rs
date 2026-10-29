@@ -40,7 +40,7 @@ impl GitViewer {
             .border_t_1()
             .border_color(theme::BORDER)
             .when_some(mode, |c, m| {
-                c.child(div().flex().gap(theme::SPACE_2).text_size(theme::TEXT_XS).text_color(theme::TEXT_MUTED).child(div().flex_1().min_w(theme::SPACE_0).truncate().child(m)).child(cancel))
+                c.child(div().flex().gap(theme::SPACE_2).text_size(theme::text_xs()).text_color(theme::TEXT_MUTED).child(div().flex_1().min_w(theme::SPACE_0).truncate().child(m)).child(cancel))
             })
             .child(
                 div()

@@ -22,7 +22,7 @@ impl RenderOnce for Pill {
             .px(theme::SPACE_2)
             .py(theme::SPACE_0P5)
             .rounded(theme::RADIUS_FULL)
-            .text_size(theme::TEXT_XS)
+            .text_size(theme::text_xs())
             .bg(theme::tint_bg(self.color))
             .text_color(self.color)
             .child(self.label)

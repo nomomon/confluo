@@ -22,7 +22,7 @@ impl GitViewer {
             .items_center()
             .gap(theme::SPACE_2)
             .min_w(theme::SPACE_0)
-            .text_size(theme::TEXT_XS)
+            .text_size(theme::text_xs())
             .text_color(theme::TEXT_MUTED)
             .when(show_provider, |d| d.child(provider_badge(c.id.repo.kind)))
             .child(div().flex().items_center().gap(theme::SPACE_1).flex_shrink_0().child(Avatar::new(c.author.username.clone()).image(self.avatar(c.author.avatar_url.as_deref()))).child(c.author.username.clone()))
@@ -106,7 +106,7 @@ impl GitViewer {
                             .items_center()
                             .gap(theme::SPACE_2)
                             .child(state_icon(c.state))
-                            .child(div().flex_1().min_w(theme::SPACE_0).text_size(theme::TEXT_SM).font_weight(theme::WEIGHT_MEDIUM).truncate().child(c.title.clone())),
+                            .child(div().flex_1().min_w(theme::SPACE_0).text_size(theme::text_sm()).font_weight(theme::WEIGHT_MEDIUM).truncate().child(c.title.clone())),
                     )
                     .child(div().w_full().min_w(theme::SPACE_0).overflow_hidden().pl(theme::SPACE_6).child(meta)),
             )
@@ -118,7 +118,7 @@ impl GitViewer {
                     .gap(theme::SPACE_1)
                     .w(layout::TIME_COL_W)
                     .flex_shrink_0()
-                    .text_size(theme::TEXT_XS)
+                    .text_size(theme::text_xs())
                     .text_color(theme::TEXT_SUBTLE)
                     .child(relative_time(c.updated_at))
                     .children(diff),

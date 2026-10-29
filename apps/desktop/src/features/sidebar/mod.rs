@@ -50,7 +50,7 @@ impl GitViewer {
             col = col.child(self.render_project_item(p, cx));
         }
         if self.projects.is_empty() {
-            col = col.child(div().px(theme::SPACE_2).py(theme::SPACE_1).text_size(theme::TEXT_XS).text_color(theme::TEXT_SUBTLE).child("No projects yet"));
+            col = col.child(div().px(theme::SPACE_2).py(theme::SPACE_1).text_size(theme::text_xs()).text_color(theme::TEXT_SUBTLE).child("No projects yet"));
         }
         col.child(div().flex_1()).child(NavItem::new("nav-settings", "Settings").icon(IconName::Settings).active(self.overlay == Overlay::Settings).mb(theme::SPACE_2).on_click(cx.listener(
             |this, _: &ClickEvent, _, cx| {

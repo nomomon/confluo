@@ -61,7 +61,7 @@ impl RenderOnce for SegmentedTabs {
                     .py(theme::SPACE_0P5)
                     .rounded(if floating { theme::RADIUS_FULL } else { theme::RADIUS_SM })
                     .when(floating, |d| d.px(theme::SPACE_3).py(theme::SPACE_1))
-                    .text_size(theme::TEXT_XS)
+                    .text_size(theme::text_xs())
                     .cursor_pointer()
                     .text_color(if active { theme::TEXT } else { theme::TEXT_MUTED })
                     .when(active, |d| d.bg(theme::SURFACE_ACTIVE))

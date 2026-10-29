@@ -3,6 +3,7 @@
 mod app;
 mod assets;
 mod features;
+mod fonts;
 mod settings;
 mod state;
 mod ui;
@@ -27,6 +28,8 @@ fn main() {
     ui::motion::init();
 
     Application::new().with_assets(assets::Assets).run(move |cx: &mut App| {
+        fonts::register(cx);
+        ui::theme::set_typography(settings.typography());
         ui::molecules::text_input::bind_keys(cx);
         features::keyboard::bind_keys(cx);
         cx.on_action(|_: &Quit, cx| cx.quit());

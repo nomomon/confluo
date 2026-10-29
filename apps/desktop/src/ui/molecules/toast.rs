@@ -23,7 +23,7 @@ impl RenderOnce for Toast {
             .border_color(theme::BORDER)
             .bg(theme::OVERLAY)
             .shadow_lg()
-            .text_size(theme::TEXT_XS)
+            .text_size(theme::text_xs())
             .child(self.0);
         div().absolute().bottom(theme::SPACE_6).left_0().right_0().flex().justify_center().child(motion::fade_in(pill, "toast"))
     }

@@ -29,7 +29,7 @@ impl RenderOnce for Avatar {
             Some(image) => base.child(img(image).size_full().rounded(theme::RADIUS_FULL)),
             None => {
                 let initial: String = self.name.chars().next().map(|c| c.to_uppercase().collect()).unwrap_or_default();
-                base.bg(theme::SURFACE).text_color(theme::TEXT_SUBTLE).text_size(theme::TEXT_2XS).child(initial)
+                base.bg(theme::SURFACE).text_color(theme::TEXT_SUBTLE).text_size(theme::text_2xs()).child(initial)
             }
         }
     }

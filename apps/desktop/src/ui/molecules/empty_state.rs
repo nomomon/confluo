@@ -35,7 +35,7 @@ impl RenderOnce for EmptyState {
             .py(theme::SPACE_12 + theme::SPACE_8)
             .gap(theme::SPACE_1)
             .child(div().text_color(theme::TEXT_MUTED).child(self.title))
-            .child(div().text_size(theme::TEXT_XS).text_color(theme::TEXT_SUBTLE).child(self.hint))
+            .child(div().text_size(theme::text_xs()).text_color(theme::TEXT_SUBTLE).child(self.hint))
             .when(!self.children.is_empty(), |d| d.child(div().flex().flex_col().items_center().gap(theme::SPACE_2).pt(theme::SPACE_3).children(self.children)))
     }
 }

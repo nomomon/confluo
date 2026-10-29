@@ -40,7 +40,7 @@ impl RenderOnce for Dialog {
         let header = div()
             .flex()
             .items_center()
-            .child(div().text_size(theme::TEXT_BASE).font_weight(theme::WEIGHT_SEMIBOLD).child(self.title))
+            .child(div().text_size(theme::text_base()).font_weight(theme::WEIGHT_SEMIBOLD).child(self.title))
             .child(div().flex_1())
             .child(close);
         let panel = div()

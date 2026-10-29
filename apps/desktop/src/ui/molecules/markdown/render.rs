@@ -31,19 +31,19 @@ fn block(ids: &Ids, b: &Block) -> AnyElement {
     match b {
         Block::Heading(level, text) => {
             let size = match level {
-                1 => theme::TEXT_LG,
-                2 => theme::TEXT_BASE,
-                _ => theme::TEXT_SM,
+                1 => theme::text_lg(),
+                2 => theme::text_base(),
+                _ => theme::text_sm(),
             };
             div().pt(theme::SPACE_1).text_size(size).child(inline(ids, text, theme::WEIGHT_SEMIBOLD)).into_any_element()
         }
-        Block::Paragraph(text) => div().text_size(theme::TEXT_SM).child(inline(ids, text, theme::WEIGHT_NORMAL)).into_any_element(),
+        Block::Paragraph(text) => div().text_size(theme::text_sm()).child(inline(ids, text, theme::WEIGHT_NORMAL)).into_any_element(),
         Block::Code(code) => div()
             .p(theme::SPACE_2)
             .rounded(theme::RADIUS_MD)
             .bg(theme::SURFACE)
-            .text_size(theme::TEXT_XS)
-            .font_family(theme::MONO_FONT)
+            .text_size(theme::text_xs())
+            .font_family(theme::mono_font())
             .overflow_hidden()
             .child(code.clone())
             .into_any_element(),
@@ -61,7 +61,7 @@ fn block(ids: &Ids, b: &Block) -> AnyElement {
             .border_l_2()
             .border_color(if alert.is_some() { theme::WARNING } else { theme::BORDER })
             .text_color(theme::TEXT_MUTED)
-            .when_some(*alert, |d, a| d.child(div().text_size(theme::TEXT_XS).font_weight(theme::WEIGHT_SEMIBOLD).text_color(theme::WARNING).child(a)))
+            .when_some(*alert, |d, a| d.child(div().text_size(theme::text_xs()).font_weight(theme::WEIGHT_SEMIBOLD).text_color(theme::WARNING).child(a)))
             .children(blocks.iter().map(|b| block(ids, b)))
             .into_any_element(),
         Block::Table { head, rows } => table(ids, head, rows),
@@ -88,7 +88,7 @@ fn list_item(ids: &Ids, start: Option<u64>, i: usize, item: &Item) -> AnyElement
     div()
         .flex()
         .gap(theme::SPACE_2)
-        .text_size(theme::TEXT_SM)
+        .text_size(theme::text_sm())
         .child(div().flex().justify_end().w(theme::SPACE_4).flex_shrink_0().child(marker))
         .child(div().flex().flex_col().flex_1().min_w(theme::SPACE_0).gap(theme::SPACE_1).children(item.blocks.iter().map(|b| block(ids, b))))
         .into_any_element()
@@ -117,7 +117,7 @@ fn table(ids: &Ids, head: &[Inline], rows: &[Vec<Inline>]) -> AnyElement {
         .border_1()
         .border_color(theme::BORDER_SUBTLE)
         .overflow_hidden()
-        .text_size(theme::TEXT_XS)
+        .text_size(theme::text_xs())
         .child(row(head, true))
         .children(rows.iter().map(|r| row(r, false)))
         .into_any_element()
@@ -129,7 +129,7 @@ fn inline(ids: &Ids, text: &Inline, weight: FontWeight) -> AnyElement {
         .runs
         .iter()
         .map(|(r, s)| {
-            let mut f = font(if s.code { theme::MONO_FONT } else { theme::UI_FONT });
+            let mut f = font(if s.code { theme::mono_font() } else { theme::ui_font() });
             f.weight = if s.bold { theme::WEIGHT_SEMIBOLD } else { weight };
             if s.italic {
                 f.style = FontStyle::Italic;

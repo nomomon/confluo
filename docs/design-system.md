@@ -79,10 +79,30 @@ Never use text glyphs as icons; add a Tabler outline SVG (stroke-width 1.75) and
 Radius: `RADIUS_SM` 6, `RADIUS_MD` 8, `RADIUS_LG` 12, `RADIUS_XL` 16,
 `RADIUS_FULL`.
 
-Type: `TEXT_2XS` 10 (avatar initials), `TEXT_XS` 12, `TEXT_SM` 13 (body default), `TEXT_BASE` 14, `TEXT_LG` 16,
-`TEXT_XL` 20 (detail title), `TEXT_2XL` 26 (page title). Weights:
-`WEIGHT_NORMAL`, `WEIGHT_MEDIUM`, `WEIGHT_SEMIBOLD`, `WEIGHT_BOLD`. Fonts:
-`UI_FONT` (system), `MONO_FONT` (Menlo) for branches, commands and SHAs.
+Type (functions, so the user's text size applies live): `text_2xs()` 10,
+`text_xs()` 12, `text_sm()` 13 (body default), `text_base()` 14, `text_lg()` 16,
+`text_xl()` 20 (detail title), `text_2xl()` 28 (page title). Settings > Text size
+(13/14/15) adds 0/1/2 px to every step. Weights: `WEIGHT_NORMAL`,
+`WEIGHT_MEDIUM`, `WEIGHT_SEMIBOLD`, `WEIGHT_BOLD`.
+
+### Fonts
+
+Bundled in `apps/desktop/assets/fonts` (SIL OFL 1.1, license next to each
+family), weights 400/500/600/700, embedded and registered by `fonts::register`
+via `cx.text_system().add_fonts` at startup:
+
+| Family          | Source                         | Role             |
+|-----------------|--------------------------------|------------------|
+| Inter           | rsms/inter v4.1                | UI (default)     |
+| Geist           | vercel/geist-font v1.8.2       | UI               |
+| JetBrains Mono  | JetBrains/JetBrainsMono v2.304 | mono (default)   |
+| Geist Mono      | vercel/geist-font v1.8.2       | mono             |
+
+Settings offers UI font System (`.SystemUIFont`, SF Pro) / Inter / Geist and
+mono font Menlo / JetBrains Mono / Geist Mono. Read the live families with
+`theme::ui_font()` and `theme::mono_font()` (branches, commands, SHAs). The app
+pushes `Settings::typography()` into the theme each frame, so changes apply
+without a restart.
 
 ## Components
 

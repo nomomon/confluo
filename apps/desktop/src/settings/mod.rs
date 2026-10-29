@@ -3,6 +3,9 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+mod options;
+pub use options::{MonoFont, UiFont, FONT_SIZES};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Appearance {
     #[default]
@@ -41,13 +44,27 @@ pub struct Settings {
     pub background_dim: f32,
     /// `#rrggbb` tint drawn behind the panels.
     pub tint: String,
+    pub ui_font: UiFont,
+    pub mono_font: MonoFont,
+    /// Body text size in px: 13, 14 or 15.
+    pub font_size: u8,
     /// Key of the last highlighted PR, restored as a highlight only.
     pub last_selected: Option<String>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Self { appearance: Appearance::Blurred, panel_opacity: 0.7, background_image: None, background_dim: 0.45, tint: "#14141c".into(), last_selected: None }
+        Self {
+            appearance: Appearance::Blurred,
+            panel_opacity: 0.7,
+            background_image: None,
+            background_dim: 0.45,
+            tint: "#14141c".into(),
+            ui_font: UiFont::Inter,
+            mono_font: MonoFont::JetBrainsMono,
+            font_size: 13,
+            last_selected: None,
+        }
     }
 }
 
@@ -64,6 +81,12 @@ impl Settings {
             Appearance::Transparent => 0.55,
         };
         crate::ui::theme::Translucency::new(self.panel_opacity, crate::ui::theme::parse_hex(&self.tint), base_alpha)
+    }
+
+    /// Fonts and text step for the live theme.
+    pub fn typography(&self) -> crate::ui::theme::Typography {
+        let size = FONT_SIZES.iter().copied().find(|s| *s == self.font_size).unwrap_or(13);
+        crate::ui::theme::Typography { ui_font: self.ui_font.family(), mono_font: self.mono_font.family(), step: f32::from(size - 13) }
     }
 
     pub fn load() -> Self {

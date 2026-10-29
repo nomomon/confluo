@@ -26,7 +26,7 @@ impl RenderOnce for Badge {
             .rounded(theme::RADIUS_MD)
             .bg(theme::tint_bg(self.color))
             .text_color(self.color)
-            .text_size(theme::TEXT_XS)
+            .text_size(theme::text_xs())
             .font_weight(theme::WEIGHT_BOLD)
             .child(self.label)
     }

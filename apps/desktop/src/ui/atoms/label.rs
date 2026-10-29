@@ -16,7 +16,7 @@ impl SectionLabel {
 
 impl RenderOnce for SectionLabel {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        div().px(theme::SPACE_2).pt(theme::SPACE_3).pb(theme::SPACE_1).text_size(theme::TEXT_XS).font_weight(theme::WEIGHT_MEDIUM).text_color(theme::TEXT_SUBTLE).child(self.0)
+        div().px(theme::SPACE_2).pt(theme::SPACE_3).pb(theme::SPACE_1).text_size(theme::text_xs()).font_weight(theme::WEIGHT_MEDIUM).text_color(theme::TEXT_SUBTLE).child(self.0)
     }
 }
 
@@ -32,6 +32,6 @@ impl ErrorText {
 
 impl RenderOnce for ErrorText {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        div().text_size(theme::TEXT_XS).text_color(theme::DANGER).child(self.0)
+        div().text_size(theme::text_xs()).text_color(theme::DANGER).child(self.0)
     }
 }

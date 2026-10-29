@@ -54,7 +54,7 @@ pub fn review_summary(c: &ChangeRequest) -> Div {
     } else {
         ("Commented".into(), theme::TEXT_MUTED)
     };
-    div().text_size(theme::TEXT_XS).text_color(color).child(text)
+    div().text_size(theme::text_xs()).text_color(color).child(text)
 }
 
 /// Checks in words; red only when something fails.
@@ -73,5 +73,5 @@ pub fn checks_text(c: &ChangeRequest) -> (String, Hsla) {
 
 pub fn checks_summary(c: &ChangeRequest) -> Div {
     let (text, color) = checks_text(c);
-    div().text_size(theme::TEXT_XS).text_color(color).child(text)
+    div().text_size(theme::text_xs()).text_color(color).child(text)
 }

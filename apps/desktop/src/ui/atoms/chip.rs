@@ -38,7 +38,7 @@ impl RenderOnce for Chip {
             .py(theme::SPACE_0P5)
             .rounded(theme::RADIUS_FULL)
             .border_1()
-            .text_size(theme::TEXT_XS)
+            .text_size(theme::text_xs())
             .cursor_pointer()
             .border_color(if active { theme::BORDER } else { theme::BORDER_SUBTLE })
             .bg(if active { theme::SURFACE_ACTIVE } else { theme::SURFACE })

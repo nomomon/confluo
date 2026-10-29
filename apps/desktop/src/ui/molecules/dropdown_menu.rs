@@ -42,7 +42,7 @@ impl RenderOnce for DropdownMenu {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         let panel = div()
             .min_w(theme::MENU_MIN_W)
-            .text_size(theme::TEXT_SM)
+            .text_size(theme::text_sm())
             .p(theme::SPACE_1)
             .flex()
             .flex_col()

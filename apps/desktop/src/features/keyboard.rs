@@ -73,7 +73,7 @@ impl GitViewer {
             .on_action(cx.listener(|_, _: &Zoom, window, _| window.zoom_window()))
             .on_action(cx.listener(|_, _: &About, window, cx| {
                 let detail = format!("Version {}\nPRs and MRs across GitHub, GitLab and Azure DevOps.", env!("CARGO_PKG_VERSION"));
-                let _ = window.prompt(gpui::PromptLevel::Info, "Confluo", Some(&detail), &["OK"], cx);
+                drop(window.prompt(gpui::PromptLevel::Info, "Confluo", Some(&detail), &["OK"], cx));
             }))
             .on_action(cx.listener(|this, _: &OpenSettings, _, cx| {
                 this.overlay = Overlay::Settings;

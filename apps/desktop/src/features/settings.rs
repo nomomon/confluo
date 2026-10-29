@@ -1,10 +1,10 @@
-//! Settings dialog: appearance preset, panel opacity, background image, tint and repo aliases.
+//! Settings dialog: appearance preset, fonts, text size, panel opacity, background image, tint and repo aliases.
 
 use gpui::{div, prelude::*, ClickEvent, Context, PathPromptOptions};
 use std::path::Path;
 
 use crate::app::GitViewer;
-use crate::settings::Appearance;
+use crate::settings::{Appearance, MonoFont, UiFont, FONT_SIZES};
 use crate::ui::atoms::{Button, Swatch};
 use crate::ui::molecules::{Field, SegmentedTabs};
 use crate::ui::theme;
@@ -35,6 +35,24 @@ impl GitViewer {
             this.settings.background_dim = DIMS[*i];
             this.save_settings(cx);
         }));
+        let ui_font = UiFont::ALL.iter().fold(SegmentedTabs::new("ui-font"), |t, f| t.tab(f.label(), *f == s.ui_font)).on_select(cx.listener(
+            |this, i: &usize, _, cx| {
+                this.settings.ui_font = UiFont::ALL[*i];
+                this.save_settings(cx);
+            },
+        ));
+        let mono_font = MonoFont::ALL.iter().fold(SegmentedTabs::new("mono-font"), |t, f| t.tab(f.label(), *f == s.mono_font)).on_select(cx.listener(
+            |this, i: &usize, _, cx| {
+                this.settings.mono_font = MonoFont::ALL[*i];
+                this.save_settings(cx);
+            },
+        ));
+        let size = FONT_SIZES.iter().fold(SegmentedTabs::new("font-size"), |t, v| t.tab(format!("{v}"), *v == s.font_size)).on_select(cx.listener(
+            |this, i: &usize, _, cx| {
+                this.settings.font_size = FONT_SIZES[*i];
+                this.save_settings(cx);
+            },
+        ));
         let swatches = div().flex().gap(theme::SPACE_2).children(TINTS.iter().map(|t| {
             let t = *t;
             Swatch::new(format!("tint-{t}"), theme::parse_hex(t).unwrap_or(theme::BG)).active(s.tint.eq_ignore_ascii_case(t)).on_click(cx.listener(
@@ -52,6 +70,9 @@ impl GitViewer {
             .overflow_y_scroll()
             .child(Field::new("Window", appearance))
             .child(Field::new("Panel opacity", opacity))
+            .child(Field::new("UI font", ui_font))
+            .child(Field::new("Mono font", mono_font))
+            .child(Field::new("Text size", size))
             .child(Field::new("Tint", swatches))
             .child(Field::new("Background image", self.render_bg_image_row(cx)))
             .when(s.background_image.is_some(), |d| d.child(Field::new("Image dim", dim)))
@@ -64,7 +85,7 @@ impl GitViewer {
             .flex()
             .gap(theme::SPACE_2)
             .items_center()
-            .child(div().flex_1().min_w(theme::SPACE_0).truncate().text_size(theme::TEXT_XS).text_color(theme::TEXT_MUTED).child(name.clone().unwrap_or_else(|| "None".into())))
+            .child(div().flex_1().min_w(theme::SPACE_0).truncate().text_size(theme::text_xs()).text_color(theme::TEXT_MUTED).child(name.clone().unwrap_or_else(|| "None".into())))
             .child(Button::new("bg-browse", "Choose...").on_click(cx.listener(|_, _: &ClickEvent, _, cx| {
                 let rx = cx.prompt_for_paths(PathPromptOptions { files: true, directories: false, multiple: false, prompt: Some("Choose".into()) });
                 cx.spawn(async move |this, cx| {

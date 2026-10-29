@@ -33,7 +33,7 @@ impl GitViewer {
         let description = match &d.detail {
             None => self.placeholder(d).into_any_element(),
             Some(det) if det.description.trim().is_empty() => {
-                div().text_size(theme::TEXT_SM).text_color(theme::TEXT_SUBTLE).child("No description").into_any_element()
+                div().text_size(theme::text_sm()).text_color(theme::TEXT_SUBTLE).child("No description").into_any_element()
             }
             Some(det) => div().flex().flex_col().gap(theme::SPACE_2).children(markdown("desc", &det.description)).into_any_element(),
         };
@@ -49,6 +49,6 @@ impl GitViewer {
     }
 
     fn placeholder(&self, d: &DetailState) -> impl IntoElement {
-        div().text_size(theme::TEXT_SM).text_color(theme::TEXT_MUTED).child(if d.loading { "Loading..." } else { "No detail available" })
+        div().text_size(theme::text_sm()).text_color(theme::TEXT_MUTED).child(if d.loading { "Loading..." } else { "No detail available" })
     }
 }

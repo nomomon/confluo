@@ -30,25 +30,40 @@ pub const ICON_SM: Pixels = px(12.);
 pub const ICON_MD: Pixels = px(14.);
 pub const ICON_LG: Pixels = px(16.);
 
+/// Type scale. Sizes follow the user's text step (Settings, 13/14/15 body).
+fn sized(base: f32) -> Pixels {
+    px(base + super::runtime::typography().step)
+}
 /// Tiny labels inside avatars and badges.
-pub const TEXT_2XS: Pixels = px(10.);
-pub const TEXT_XS: Pixels = px(12.);
-pub const TEXT_SM: Pixels = px(13.);
-pub const TEXT_BASE: Pixels = px(14.);
-pub const TEXT_LG: Pixels = px(16.);
-pub const TEXT_XL: Pixels = px(20.);
+pub fn text_2xs() -> Pixels {
+    sized(10.)
+}
+pub fn text_xs() -> Pixels {
+    sized(12.)
+}
+/// Body default.
+pub fn text_sm() -> Pixels {
+    sized(13.)
+}
+pub fn text_base() -> Pixels {
+    sized(14.)
+}
+pub fn text_lg() -> Pixels {
+    sized(16.)
+}
+pub fn text_xl() -> Pixels {
+    sized(20.)
+}
 /// Page titles.
-pub const TEXT_2XL: Pixels = px(26.);
+pub fn text_2xl() -> Pixels {
+    sized(28.)
+}
 
 pub const WEIGHT_NORMAL: FontWeight = FontWeight::NORMAL;
 pub const WEIGHT_MEDIUM: FontWeight = FontWeight::MEDIUM;
 pub const WEIGHT_SEMIBOLD: FontWeight = FontWeight::SEMIBOLD;
 pub const WEIGHT_BOLD: FontWeight = FontWeight::BOLD;
 
-/// System UI font.
-pub const UI_FONT: &str = ".SystemUIFont";
-/// Monospace font for branches, commands and SHAs.
-pub const MONO_FONT: &str = "Menlo";
 
 /// Minimum width of dropdown menus.
 pub const MENU_MIN_W: Pixels = px(180.);

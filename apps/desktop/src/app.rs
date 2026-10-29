@@ -180,6 +180,7 @@ impl GitViewer {
 impl Render for GitViewer {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.fetch_avatars(cx);
+        theme::set_typography(self.settings.typography());
         window.set_background_appearance(self.settings.appearance.to_gpui());
         let bg_image = self.settings.background_image.clone().filter(|p| Path::new(p).is_file());
         let main = div()
@@ -195,9 +196,9 @@ impl Render for GitViewer {
         self.key_handlers(root, cx)
             .relative()
             .size_full()
-            .font_family(theme::UI_FONT)
+            .font_family(theme::ui_font())
             .text_color(theme::TEXT)
-            .text_size(theme::TEXT_SM)
+            .text_size(theme::text_sm())
             .bg(self.surfaces().window_bg())
             .when_some(bg_image, |root, p| {
                 root.child(img(PathBuf::from(p)).absolute().top_0().left_0().size_full().object_fit(ObjectFit::Cover))

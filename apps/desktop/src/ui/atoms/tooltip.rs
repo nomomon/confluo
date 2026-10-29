@@ -15,9 +15,9 @@ impl Render for Tooltip {
             .border_1()
             .border_color(theme::BORDER)
             .bg(theme::OVERLAY)
-            .text_size(theme::TEXT_XS)
+            .text_size(theme::text_xs())
             .text_color(theme::TEXT_MUTED)
-            .font_family(theme::UI_FONT)
+            .font_family(theme::ui_font())
             .child(self.0.clone())
     }
 }

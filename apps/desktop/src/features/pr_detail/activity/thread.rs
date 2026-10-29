@@ -16,14 +16,14 @@ impl GitViewer {
         if let Some(p) = t.comments.first().and_then(|c| c.position.as_ref()) {
             tc = tc.child(
                 div()
-                    .text_size(theme::TEXT_XS)
-                    .font_family(theme::MONO_FONT)
+                    .text_size(theme::text_xs())
+                    .font_family(theme::mono_font())
                     .text_color(theme::TEXT_MUTED)
                     .child(format!("{}{}", p.path, p.line.map(|l| format!(":{l}")).unwrap_or_default())),
             );
         }
         if t.resolved == Some(true) {
-            tc = tc.child(div().text_size(theme::TEXT_XS).text_color(theme::SUCCESS).child("Resolved"));
+            tc = tc.child(div().text_size(theme::text_xs()).text_color(theme::SUCCESS).child("Resolved"));
         }
         for c in &t.comments {
             tc = tc.child(self.render_comment(c, d, cx));
@@ -53,7 +53,7 @@ impl GitViewer {
             .flex()
             .items_center()
             .gap(theme::SPACE_2)
-            .text_size(theme::TEXT_XS)
+            .text_size(theme::text_xs())
             .child(div().font_weight(theme::WEIGHT_SEMIBOLD).child(c.author.username.clone()))
             .child(div().text_color(theme::TEXT_SUBTLE).child(when))
             .child(div().flex_1());

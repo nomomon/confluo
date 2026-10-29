@@ -1,6 +1,8 @@
-//! Single-line text input, adapted from gpui's `examples/input.rs`.
+//! Text input adapted from gpui's `examples/input.rs`; single-line, or multi-line
+//! via `multiline()` (Enter inserts a newline, Cmd+Enter submits).
 
 mod actions;
+mod area;
 mod element;
 mod ime;
 
@@ -15,7 +17,7 @@ use element::TextElement;
 
 actions!(
     text_input,
-    [Backspace, Delete, Left, Right, SelectLeft, SelectRight, SelectAll, Home, End, Paste, Cut, Copy, Submit]
+    [Backspace, Delete, Left, Right, SelectLeft, SelectRight, SelectAll, Home, End, Paste, Cut, Copy, Submit, Newline]
 );
 
 pub fn bind_keys(cx: &mut App) {
@@ -36,6 +38,9 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("cmd-left", Home, ctx),
         KeyBinding::new("cmd-right", End, ctx),
         KeyBinding::new("enter", Submit, ctx),
+        // Later bindings win at equal depth, so multi-line inputs get a newline on Enter.
+        KeyBinding::new("enter", Newline, Some("TextInput && multiline")),
+        KeyBinding::new("cmd-enter", Submit, ctx),
     ]);
 }
 
@@ -54,6 +59,9 @@ pub struct TextInput {
     last_layout: Option<ShapedLine>,
     last_bounds: Option<Bounds<Pixels>>,
     is_selecting: bool,
+    multiline: bool,
+    last_paras: Vec<area::Para>,
+    last_line_height: Pixels,
 }
 
 impl EventEmitter<InputEvent> for TextInput {}
@@ -70,6 +78,9 @@ impl TextInput {
             last_layout: None,
             last_bounds: None,
             is_selecting: false,
+            multiline: false,
+            last_paras: vec![],
+            last_line_height: px(0.),
         }
     }
 
@@ -86,6 +97,12 @@ impl TextInput {
         cx.notify();
     }
 
+    /// Grow to several soft-wrapped lines; Enter inserts a newline.
+    pub fn multiline(mut self) -> Self {
+        self.multiline = true;
+        self
+    }
+
     pub fn set_placeholder(&mut self, s: impl Into<SharedString>) {
         self.placeholder = s.into();
     }
@@ -97,7 +114,7 @@ impl Render for TextInput {
         div()
             .flex()
             .items_center()
-            .key_context("TextInput")
+            .key_context(if self.multiline { "TextInput multiline" } else { "TextInput" })
             .track_focus(&self.focus_handle(cx))
             .cursor(CursorStyle::IBeam)
             .on_action(cx.listener(Self::backspace))
@@ -113,12 +130,14 @@ impl Render for TextInput {
             .on_action(cx.listener(Self::cut))
             .on_action(cx.listener(Self::copy))
             .on_action(cx.listener(Self::submit))
+            .on_action(cx.listener(Self::newline))
             .on_mouse_down(MouseButton::Left, cx.listener(Self::on_mouse_down))
             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_move(cx.listener(Self::on_mouse_move))
             .w_full()
-            .h(px(30.))
+            .when(!self.multiline, |d| d.h(px(30.)))
+            .when(self.multiline, |d| d.items_start().min_h(px(30.)).py(theme::SPACE_1P5))
             .px(theme::SPACE_2)
             .rounded(theme::RADIUS_MD)
             .border_1()
@@ -127,7 +146,8 @@ impl Render for TextInput {
             .text_size(theme::TEXT_SM)
             .text_color(theme::TEXT)
             .overflow_hidden()
-            .child(TextElement { input: cx.entity() })
+            .when(!self.multiline, |d| d.child(TextElement { input: cx.entity() }))
+            .when(self.multiline, |d| d.child(area::AreaElement { input: cx.entity() }))
     }
 }
 

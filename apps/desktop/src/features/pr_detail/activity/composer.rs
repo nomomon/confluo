@@ -10,11 +10,9 @@ use crate::ui::theme;
 impl GitViewer {
     pub(in crate::features::pr_detail) fn render_composer(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
         let mode = if d.editing.is_some() {
-            Some("Editing your comment")
-        } else if d.reply_to.is_some() {
-            Some("Replying to thread")
+            Some("Editing your comment".to_string())
         } else {
-            None
+            d.reply_to.as_ref().map(|tid| reply_label(d, tid))
         };
         let label = if d.posting {
             "Posting..."
@@ -41,14 +39,25 @@ impl GitViewer {
             .pt(theme::SPACE_2)
             .border_t_1()
             .border_color(theme::BORDER)
-            .when_some(mode, |c, m| c.child(div().flex().gap(theme::SPACE_2).text_size(theme::TEXT_XS).text_color(theme::TEXT_MUTED).child(m).child(cancel)))
+            .when_some(mode, |c, m| {
+                c.child(div().flex().gap(theme::SPACE_2).text_size(theme::TEXT_XS).text_color(theme::TEXT_MUTED).child(div().flex_1().min_w(theme::SPACE_0).truncate().child(m)).child(cancel))
+            })
             .child(
                 div()
                     .flex()
                     .gap(theme::SPACE_2)
-                    .items_center()
+                    .items_end()
                     .child(div().flex_1().child(self.composer.clone()))
                     .child(Button::new("post", label).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.post_comment(cx)))),
             )
+    }
+}
+
+/// "Replying to @user: > first line of the parent comment".
+fn reply_label(d: &DetailState, thread_id: &str) -> String {
+    let parent = d.detail.as_ref().and_then(|det| det.threads.iter().find(|t| t.id == thread_id)).and_then(|t| t.comments.first());
+    match parent {
+        Some(c) => format!("Replying to @{}: > {}", c.author.username, c.body.lines().find(|l| !l.trim().is_empty()).unwrap_or("").trim()),
+        None => "Replying to thread".into(),
     }
 }

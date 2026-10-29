@@ -4,7 +4,7 @@ use gpui::{ClipboardItem, Context, EntityInputHandler, MouseDownEvent, MouseMove
 use std::ops::Range;
 use unicode_segmentation::UnicodeSegmentation;
 
-use super::{Backspace, Copy, Cut, Delete, End, Home, InputEvent, Left, Paste, Right, SelectAll, SelectLeft, SelectRight, Submit, TextInput};
+use super::{Backspace, Copy, Cut, Delete, End, Home, InputEvent, Left, Paste, Right, SelectAll, SelectLeft, SelectRight, Submit, TextInput, Newline};
 
 impl TextInput {
     pub(super) fn left(&mut self, _: &Left, _: &mut Window, cx: &mut Context<Self>) {
@@ -52,6 +52,9 @@ impl TextInput {
     pub(super) fn submit(&mut self, _: &Submit, _: &mut Window, cx: &mut Context<Self>) {
         cx.emit(InputEvent::Submit);
     }
+    pub(super) fn newline(&mut self, _: &Newline, window: &mut Window, cx: &mut Context<Self>) {
+        self.replace_text_in_range(None, "\n", window, cx)
+    }
     pub(super) fn on_mouse_down(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.focus_handle);
         self.is_selecting = true;
@@ -71,7 +74,8 @@ impl TextInput {
     }
     pub(super) fn paste(&mut self, _: &Paste, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
-            self.replace_text_in_range(None, &text.replace('\n', " "), window, cx);
+            let text = if self.multiline { text } else { text.replace('\n', " ") };
+            self.replace_text_in_range(None, &text, window, cx);
         }
     }
     pub(super) fn copy(&mut self, _: &Copy, _: &mut Window, cx: &mut Context<Self>) {
@@ -99,6 +103,10 @@ impl TextInput {
     pub(super) fn index_for_mouse_position(&self, position: Point<Pixels>) -> usize {
         if self.content.is_empty() {
             return 0;
+        }
+        if self.multiline {
+            let Some(b) = self.last_bounds else { return 0 };
+            return super::area::index_at(&self.last_paras, position - b.origin, self.last_line_height);
         }
         let (Some(bounds), Some(line)) = (self.last_bounds.as_ref(), self.last_layout.as_ref()) else {
             return 0;

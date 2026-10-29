@@ -95,7 +95,7 @@ impl GitViewer {
     pub fn new(engine: Arc<Engine>, settings: Settings, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let input = |cx: &mut Context<Self>, ph: &'static str| cx.new(|cx| TextInput::new(ph, cx));
         let search = input(cx, "Search pull requests");
-        let composer = input(cx, "Leave a comment, Enter to post");
+        let composer = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post", cx).multiline());
         let add_name = input(cx, "Project name");
         let add_value = input(cx, "/path/to/folder");
         let alias_input = input(cx, "Alias (empty to clear)");

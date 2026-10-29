@@ -52,13 +52,7 @@ impl Default for Settings {
 }
 
 pub fn path() -> PathBuf {
-    let home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()));
-    let base = if cfg!(target_os = "macos") {
-        home.join("Library/Application Support")
-    } else {
-        std::env::var("XDG_CONFIG_HOME").map(PathBuf::from).unwrap_or_else(|_| home.join(".config"))
-    };
-    base.join("git-viewer/settings.json")
+    gv_engine::data_dir().join("settings.json")
 }
 
 impl Settings {

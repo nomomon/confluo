@@ -53,19 +53,64 @@ pub struct Engine {
     me_cache: Mutex<HashMap<ProviderKey, String>>,
 }
 
-/// Default cache location: `$GV_DB` or `~/Library/Application Support/git-viewer/cache.db`
-/// (XDG data dir on other platforms).
-pub fn default_db_path() -> PathBuf {
-    if let Ok(p) = std::env::var("GV_DB") {
-        return PathBuf::from(p);
-    }
+/// App data dir: `~/Library/Application Support/Confluo` (XDG data dir on other platforms).
+/// On first use, copies `settings.json` and `cache.db` from the old `git-viewer` dir,
+/// which is left in place.
+pub fn data_dir() -> PathBuf {
     let home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()));
     let base = if cfg!(target_os = "macos") {
         home.join("Library/Application Support")
     } else {
         std::env::var("XDG_DATA_HOME").map(PathBuf::from).unwrap_or_else(|_| home.join(".local/share"))
     };
-    base.join("git-viewer/cache.db")
+    let dir = base.join("Confluo");
+    migrate_legacy_dir(&base.join("git-viewer"), &dir);
+    dir
+}
+
+/// Copy the files we own from `old` into `new` when `new` does not exist yet.
+pub fn migrate_legacy_dir(old: &Path, new: &Path) {
+    if new.exists() || !old.is_dir() {
+        return;
+    }
+    if std::fs::create_dir_all(new).is_err() {
+        return;
+    }
+    // SQLite sidecars too, so writes not yet checkpointed into cache.db survive.
+    for f in ["settings.json", "cache.db", "cache.db-wal", "cache.db-shm"] {
+        let src = old.join(f);
+        if src.is_file() {
+            let _ = std::fs::copy(&src, new.join(f));
+        }
+    }
+}
+
+/// Default cache location: `$GV_DB` or `<data_dir>/cache.db`.
+pub fn default_db_path() -> PathBuf {
+    if let Ok(p) = std::env::var("GV_DB") {
+        return PathBuf::from(p);
+    }
+    data_dir().join("cache.db")
+}
+
+#[cfg(test)]
+mod data_dir_tests {
+    use super::migrate_legacy_dir;
+
+    #[test]
+    fn migrates_once_and_keeps_old() {
+        let root = std::env::temp_dir().join(format!("gv-mig-{}", std::process::id()));
+        let (old, new) = (root.join("old"), root.join("new"));
+        std::fs::create_dir_all(&old).unwrap();
+        std::fs::write(old.join("settings.json"), "{}").unwrap();
+        migrate_legacy_dir(&old, &new);
+        assert_eq!(std::fs::read_to_string(new.join("settings.json")).unwrap(), "{}");
+        assert!(old.join("settings.json").exists());
+        std::fs::write(old.join("settings.json"), "changed").unwrap();
+        migrate_legacy_dir(&old, &new);
+        assert_eq!(std::fs::read_to_string(new.join("settings.json")).unwrap(), "{}");
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }
 
 impl Engine {

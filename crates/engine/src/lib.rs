@@ -480,6 +480,27 @@ impl Engine {
     pub async fn edit_comment(&self, id: &ChangeRequestId, comment_id: &str, body: &str) -> Result<Comment> {
         Ok(self.provider(id.repo.kind, &id.repo.host).await?.edit_comment(id, comment_id, body).await?)
     }
+
+    /// Start an inline thread at `position`. Fills the head sha from the cached detail when missing.
+    pub async fn add_line_comment(&self, id: &ChangeRequestId, position: &DiffPosition, body: &str) -> Result<Comment> {
+        let mut pos = position.clone();
+        if pos.head_sha.is_none() {
+            pos.head_sha = self.store.get_detail(id)?.and_then(|d| d.head_sha);
+        }
+        Ok(self.provider(id.repo.kind, &id.repo.host).await?.add_line_comment(id, &pos, body).await?)
+    }
+
+    pub async fn resolve_thread(&self, id: &ChangeRequestId, thread_id: &str, resolved: bool) -> Result<()> {
+        Ok(self.provider(id.repo.kind, &id.repo.host).await?.resolve_thread(id, thread_id, resolved).await?)
+    }
+
+    /// Inline threads of the cached detail placed on the cached diff (per path, side and line).
+    pub fn inline_index(&self, id: &ChangeRequestId) -> InlineIndex {
+        match (self.cached_detail(id).ok().flatten(), self.cached_changed_files(id)) {
+            (Some(d), Some(f)) => index_inline_threads(&d.threads, &f),
+            _ => InlineIndex::default(),
+        }
+    }
 }
 
 fn refresh_key(target: &RefreshTarget) -> String {

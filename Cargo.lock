@@ -2140,6 +2140,7 @@ dependencies = [
  "futures",
  "gpui",
  "gv-engine",
+ "reqwest",
  "serde",
  "serde_json",
  "tokio",

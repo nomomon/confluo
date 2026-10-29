@@ -2,6 +2,7 @@
 //!
 //! Each file adds an `impl GitViewer` block for one concern; rendering lives in `features/`.
 
+mod avatars;
 pub mod bridge;
 mod comments;
 mod connection;

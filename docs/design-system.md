@@ -86,7 +86,7 @@ Type: `TEXT_2XS` 10 (avatar initials), `TEXT_XS` 12, `TEXT_SM` 13 (body default)
 
 ## Components
 
-Atoms: `Avatar` (initial letter), `Badge`, `Button` (`.icon(IconName::Refresh)`, `.tooltip("Refresh  ⌘R")`),
+Atoms: `Avatar` (`.image(..)` from the in-memory avatar cache, else a subtle initial), `Badge`, `Button` (`.icon(IconName::Refresh)`, `.tooltip("Refresh  ⌘R")`),
 `Chip`, `Icon` (`Icon::new(IconName::ChevronDown).size(ICON_SM).color(..)`, embedded
 Lucide SVGs in `apps/desktop/assets/icons`, ISC license), `NavItem` (`.icon(..)`, `.trailing_on_hover(..)`,
 `.on_right_click(..)`), `Pill`, `Swatch`, `tooltip(text)` for any stateful element.

@@ -25,7 +25,7 @@ impl GitViewer {
             .text_size(theme::TEXT_XS)
             .text_color(theme::TEXT_MUTED)
             .when(show_provider, |d| d.child(provider_badge(c.id.repo.kind)))
-            .child(div().flex().items_center().gap(theme::SPACE_1).flex_shrink_0().child(Avatar::new(c.author.username.clone())).child(c.author.username.clone()))
+            .child(div().flex().items_center().gap(theme::SPACE_1).flex_shrink_0().child(Avatar::new(c.author.username.clone()).image(self.avatar(c.author.avatar_url.as_deref()))).child(c.author.username.clone()))
             .child(
                 div()
                     .id(SharedString::from(format!("repo-{}", c.id.key())))

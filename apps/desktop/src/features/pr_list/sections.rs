@@ -28,7 +28,9 @@ impl GitViewer {
     /// Inbox (no project, not starred) is sectioned; other views are one flat card.
     pub(super) fn render_sections(&self, visible: &[&ChangeRequest], cx: &mut Context<Self>) -> Vec<AnyElement> {
         let fill = self.surfaces().card();
-        let mut kinds: Vec<_> = visible.iter().map(|c| c.id.repo.kind).collect();
+        // Provider badges only when the rows on screen mix providers.
+        let shown = self.nav_order(cx);
+        let mut kinds: Vec<_> = visible.iter().filter(|c| shown.contains(&c.id)).map(|c| c.id.repo.kind).collect();
         kinds.sort();
         kinds.dedup();
         let mixed = kinds.len() > 1;

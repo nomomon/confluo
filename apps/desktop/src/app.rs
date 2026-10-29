@@ -32,6 +32,8 @@ pub struct GitViewer {
     pub(crate) items: Vec<ChangeRequest>,
     pub(crate) starred: HashSet<ChangeRequestId>,
     pub(crate) aliases: HashMap<RepoRef, String>,
+    /// Avatar URL to image; `None` while loading or after a failed fetch.
+    pub(crate) avatars: HashMap<String, Option<Arc<gpui::Image>>>,
     pub(crate) refreshing: bool,
     /// Set `LOADING_DELAY` after a refresh starts, so quick refreshes show nothing.
     pub(crate) show_loading: bool,
@@ -121,6 +123,7 @@ impl GitViewer {
             items: vec![],
             starred: HashSet::new(),
             aliases: HashMap::new(),
+            avatars: HashMap::new(),
             refreshing: false,
             show_loading: false,
             last_attempt: None,
@@ -176,6 +179,7 @@ impl GitViewer {
 
 impl Render for GitViewer {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.fetch_avatars(cx);
         window.set_background_appearance(self.settings.appearance.to_gpui());
         let bg_image = self.settings.background_image.clone().filter(|p| Path::new(p).is_file());
         let main = div()

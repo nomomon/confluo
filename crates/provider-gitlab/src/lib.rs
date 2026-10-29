@@ -99,6 +99,21 @@ fn parse_mr(host: &str, v: &Value) -> ChangeRequest {
     }
 }
 
+/// Added and removed lines in one unified diff hunk text.
+fn count_lines(diff: &str) -> (u32, u32) {
+    diff.lines().fold((0, 0), |(a, d), l| {
+        if l.starts_with("+++") || l.starts_with("---") {
+            (a, d)
+        } else if l.starts_with('+') {
+            (a + 1, d)
+        } else if l.starts_with('-') {
+            (a, d + 1)
+        } else {
+            (a, d)
+        }
+    })
+}
+
 fn reviewer_state(s: &str) -> ReviewState {
     match s {
         "approved" => ReviewState::Approved,
@@ -223,6 +238,16 @@ impl GitLabProvider {
         cr
     }
 
+    /// Added and removed line counts from the MR diffs (detail only; the list has none).
+    /// Falls back to the older `changes` endpoint on GitLab before 15.7.
+    async fn diff_stats(&self, base: &str) -> Option<(u32, u32)> {
+        let diffs = match self.get_all(&format!("{base}/diffs")).await {
+            Ok(d) => d,
+            Err(_) => self.get(&format!("{base}/changes")).await.ok()?["changes"].as_array()?.clone(),
+        };
+        Some(diffs.iter().filter_map(|d| d["diff"].as_str()).map(count_lines).fold((0, 0), |(a, d), (x, y)| (a + x, d + y)))
+    }
+
     async fn enrich_all(&self, items: Vec<ChangeRequest>, me: &str) -> Vec<ChangeRequest> {
         stream::iter(items).map(|cr| self.enrich(cr, me)).buffer_unordered(CONCURRENCY).collect().await
     }
@@ -289,7 +314,11 @@ impl Provider for GitLabProvider {
         let me = self.me().await?.username.clone();
         let base = Self::mr_path(id);
         let v = self.get(&base).await?;
-        let summary = self.enrich(parse_mr(&self.host, &v), &me).await;
+        let mut summary = self.enrich(parse_mr(&self.host, &v), &me).await;
+        if let Some((a, d)) = self.diff_stats(&base).await {
+            summary.additions = Some(a);
+            summary.deletions = Some(d);
+        }
         let discussions = self.get_all(&format!("{base}/discussions")).await?;
         let threads = discussions
             .iter()
@@ -356,6 +385,11 @@ mod tests {
         assert_eq!(cr.id.repo.path, "g/sub/p");
         assert_eq!(cr.state, ChangeRequestState::Draft);
         assert_eq!(cr.reviewers[0].state, ReviewState::Pending);
+    }
+
+    #[test]
+    fn counts_diff_lines() {
+        assert_eq!(count_lines("@@ -1,2 +1,2 @@\n-old\n+new\n+more\n ctx"), (2, 1));
     }
 
     #[test]

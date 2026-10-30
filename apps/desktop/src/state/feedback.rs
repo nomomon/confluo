@@ -52,6 +52,7 @@ impl GitViewer {
 
     pub(crate) fn show_toast(&mut self, text: impl Into<String>, cx: &mut Context<Self>) {
         self.toast = Some(text.into());
+        self.quiet.undo = None;
         self.toast_gen += 1;
         let gen = self.toast_gen;
         cx.spawn(async move |this, cx| {
@@ -59,6 +60,7 @@ impl GitViewer {
             this.update(cx, |v, cx| {
                 if v.toast_gen == gen {
                     v.toast = None;
+                    v.quiet.undo = None;
                     cx.notify()
                 }
             })

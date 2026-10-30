@@ -1,6 +1,6 @@
 //! A single PR row: state icon and title, a muted meta line, time and diff size.
 
-use gpui::{canvas, div, prelude::*, ClickEvent, Context, SharedString};
+use gpui::{canvas, div, prelude::*, ClickEvent, Context, MouseButton, MouseDownEvent, SharedString};
 use gv_engine::ChangeRequest;
 
 use crate::app::GitViewer;
@@ -15,6 +15,8 @@ impl GitViewer {
         let is_selected = self.cursor.as_ref() == Some(&c.id) || self.detail.as_ref().is_some_and(|d| d.summary.id == c.id);
         let starred = self.starred.contains(&c.id);
         let cr = c.clone();
+        let menu_id = c.id.clone();
+        let menu = self.render_row_menu(c, cx);
         let sid = c.id.clone();
         let group: SharedString = format!("row-{}", c.id.key()).into();
         let (checks, checks_color) = checks_text(c);
@@ -91,6 +93,10 @@ impl GitViewer {
             .hover(|s| s.bg(theme::surface_hover()))
             .active(|s| s.bg(theme::surface_active()))
             .cursor_pointer()
+            .on_mouse_down(MouseButton::Right, cx.listener(move |this, ev: &MouseDownEvent, _, cx| {
+                this.quiet.row_menu = Some((menu_id.clone(), ev.position));
+                cx.notify()
+            }))
             .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
                 this.set_cursor(cr.id.clone(), cx);
                 window.focus(&this.focus);
@@ -134,5 +140,6 @@ impl GitViewer {
             )
             .child(star)
             .children(reveal)
+            .children(menu)
     }
 }

@@ -14,19 +14,19 @@ impl GitViewer {
     /// Items matching the search box (title, repo, author, alias, branch or number).
     pub(crate) fn visible_items(&self, cx: &App) -> Vec<&ChangeRequest> {
         let q = self.search.read(cx).text().to_lowercase();
-        self.items
-            .iter()
-            .filter(|c| {
-                q.is_empty()
-                    || c.title.to_lowercase().contains(&q)
-                    || c.id.repo.path.to_lowercase().contains(&q)
-                    || c.author.username.to_lowercase().contains(&q)
-                    || c.source_branch.to_lowercase().contains(&q)
-                    || c.target_branch.to_lowercase().contains(&q)
-                    || self.aliases.get(&c.id.repo).is_some_and(|a| a.to_lowercase().contains(&q))
-                    || c.id.number.to_string() == q.trim_start_matches(['#', '!'])
-            })
-            .collect()
+        self.items.iter().filter(|c| self.matches_query(c, &q)).collect()
+    }
+
+    /// Search match on title, repo, alias, author, branches or number (`q` lowercased).
+    pub(crate) fn matches_query(&self, c: &ChangeRequest, q: &str) -> bool {
+        q.is_empty()
+            || c.title.to_lowercase().contains(q)
+            || c.id.repo.path.to_lowercase().contains(q)
+            || c.author.username.to_lowercase().contains(q)
+            || c.source_branch.to_lowercase().contains(q)
+            || c.target_branch.to_lowercase().contains(q)
+            || self.aliases.get(&c.id.repo).is_some_and(|a| a.to_lowercase().contains(q))
+            || c.id.number.to_string() == q.trim_start_matches(['#', '!'])
     }
 
     /// Search input with a clear button while it has text.

@@ -6,7 +6,7 @@ use crate::app::{GitViewer, Menu};
 use crate::features::shared::{number_label, relative_time};
 use crate::state::{Copied, DetailState};
 use crate::ui::atoms::{tooltip, Avatar, Button, ButtonVariant, IconName, Pill};
-use crate::ui::molecules::{DropdownMenu, MenuItem};
+use crate::ui::molecules::{DropdownMenu, MenuItem, MenuSeparator};
 use crate::ui::theme;
 
 impl GitViewer {
@@ -72,6 +72,9 @@ impl GitViewer {
                     cx.open_url(&d.summary.web_url)
                 }
             })))
+            .child(MenuSeparator)
+            .children(self.snooze_items(&d.summary, cx))
+            .child(MenuSeparator)
             .child(MenuItem::new("menu-alias", "Set alias").icon(IconName::Pencil).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 this.menu = None;
                 this.open_alias(Some(repo.clone()), cx)

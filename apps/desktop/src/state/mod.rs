@@ -22,6 +22,7 @@ mod permalink;
 mod list;
 mod overlay;
 mod projects;
+mod quiet;
 mod selection;
 mod sources;
 pub mod timing;
@@ -35,6 +36,7 @@ pub use inbox::Section;
 pub use inline::LineDraft;
 pub use selection::reveal;
 pub use sources::SourceKind;
+pub use quiet::QuietState;
 pub use overlay::{BotList, Menu, Overlay, SettingsPage};
 
 /// Format an error with its full context chain.

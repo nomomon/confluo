@@ -22,11 +22,18 @@ pub struct Toast {
     title: SharedString,
     description: Option<SharedString>,
     variant: ToastVariant,
+    action: Option<(SharedString, crate::ui::ClickHandler)>,
 }
 
 impl Toast {
     pub fn new(title: impl Into<SharedString>) -> Self {
-        Self { title: title.into(), description: None, variant: ToastVariant::default() }
+        Self { title: title.into(), description: None, variant: ToastVariant::default(), action: None }
+    }
+
+    /// A trailing text button such as "Undo".
+    pub fn action(mut self, label: impl Into<SharedString>, f: impl Fn(&gpui::ClickEvent, &mut Window, &mut App) + 'static) -> Self {
+        self.action = Some((label.into(), Box::new(f)));
+        self
     }
 
     #[allow(dead_code)] // kit API
@@ -51,7 +58,7 @@ impl RenderOnce for Toast {
         div()
             .w(px(320.))
             .flex()
-            .items_start()
+            .items_center()
             .gap(theme::SPACE_2P5)
             .px(theme::SPACE_4)
             .py(theme::SPACE_3)
@@ -70,6 +77,18 @@ impl RenderOnce for Toast {
                     .child(div().font_weight(theme::WEIGHT_MEDIUM).child(self.title))
                     .children(self.description.map(|d| div().text_size(theme::text_xs()).text_color(theme::text_muted()).child(d))),
             )
+            .children(self.action.map(|(label, f)| {
+                div()
+                    .id("toast-action")
+                    .ml_auto()
+                    .px(theme::SPACE_2)
+                    .rounded(theme::RADIUS_SM)
+                    .cursor_pointer()
+                    .font_weight(theme::WEIGHT_MEDIUM)
+                    .hover(|s| s.bg(theme::surface_hover()))
+                    .child(label)
+                    .on_click(f)
+            }))
     }
 }
 

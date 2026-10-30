@@ -14,7 +14,7 @@ use std::time::Instant;
 
 use crate::settings::Settings;
 pub use crate::state::{Menu, Overlay};
-use crate::state::{BotList, Copied, DetailState, HostStatus, SettingsPage, SourceKind};
+use crate::state::{BotList, Copied, DetailState, HostStatus, QuietState, SettingsPage, SourceKind};
 use crate::ui::molecules::text_input::{InputEvent, TextInput};
 use crate::features::layout;
 use crate::ui::molecules::{Toast, ToastVariant, Toaster};
@@ -95,6 +95,8 @@ pub struct GitViewer {
     pub(crate) renaming: Option<i64>,
     /// The delete confirmation returns to Settings.
     pub(crate) confirm_from_settings: bool,
+    /// Stale and snoozed PRs left out of the sections.
+    pub(crate) quiet: QuietState,
 }
 
 /// Subscribe `f` to the input's Enter key.
@@ -196,6 +198,7 @@ impl GitViewer {
             settings_page: SettingsPage::default(),
             renaming: None,
             confirm_from_settings: false,
+            quiet: QuietState::default(),
         };
         cx.observe_window_appearance(window, |_, _, cx| cx.notify()).detach();
         cx.observe_window_activation(window, |this, window, cx| {
@@ -312,7 +315,11 @@ impl Render for GitViewer {
             })
             .when(self.resizing, |root| self.resize_handlers(root, cx))
             .child(main)
-            .children(self.toast.clone().map(|t| Toaster::new().toast(Toast::new(t).variant(ToastVariant::Success))))
+            .children(self.toast.clone().map(|t| {
+                let toast = Toast::new(t).variant(ToastVariant::Success);
+                let toast = if self.quiet.undo.is_some() { toast.action("Undo", cx.listener(|this, _: &gpui::ClickEvent, _, cx| this.undo_snooze(cx))) } else { toast };
+                Toaster::new().toast(toast)
+            }))
             .children(self.render_overlay(cx))
     }
 }

@@ -7,7 +7,8 @@ use crate::features::shared::layout;
 use crate::state::BotList;
 use crate::ui::atoms::{Icon, IconName, Switch};
 use crate::ui::molecules::text_input::TextInput;
-use crate::ui::molecules::Field;
+use crate::ui::molecules::{Field, Select};
+use gv_engine::STALE_CHOICES;
 use crate::ui::theme;
 
 impl GitViewer {
@@ -17,7 +18,20 @@ impl GitViewer {
             this.save_settings(cx);
             this.reload();
         }));
+        let stale = STALE_CHOICES
+            .iter()
+            .fold(Select::new("stale-days"), |sel, d| sel.option(d.map_or("Never".to_string(), |d| format!("{d} days"))))
+            .selected(STALE_CHOICES.iter().position(|d| *d == self.settings.stale_days).unwrap_or(1))
+            .on_change(cx.listener(|this, i: &usize, _, cx| {
+                this.settings.stale_days = STALE_CHOICES[*i];
+                this.save_settings(cx);
+                this.reload();
+            }));
         div()
+            .child(self.settings_group(
+                None,
+                vec![Field::new("Hide PRs inactive for", stale).description("Older pull requests move to a quiet footer under the list").horizontal().into_any_element()],
+            ))
             .child(self.settings_group(None, vec![Field::new("Hide bot pull requests", hide).description("Renovate, Dependabot and the patterns below").horizontal().into_any_element()]))
             .child(self.settings_group(Some("Hidden authors (* matches anything)"), vec![self.chip_editor(BotList::Authors, &self.settings.hidden_authors, &self.bot_authors_input, cx)]))
             .child(self.settings_group(Some("Hidden branch prefixes"), vec![self.chip_editor(BotList::Branches, &self.settings.hidden_branch_prefixes, &self.bot_branches_input, cx)]))

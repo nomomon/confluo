@@ -2,7 +2,9 @@
 
 mod empty;
 mod filters;
+mod footer;
 mod row;
+mod row_menu;
 mod sections;
 
 use gpui::{div, prelude::*, ClickEvent, Context};
@@ -41,36 +43,6 @@ impl GitViewer {
             )
     }
 
-    /// "12 bot PRs hidden. Show": toggles bot PRs for now, without changing the setting.
-    fn render_bots_footer(&self, cx: &mut Context<Self>) -> Option<impl IntoElement> {
-        if self.hidden_bots == 0 {
-            return None;
-        }
-        let n = self.hidden_bots;
-        let plural = if n == 1 { "" } else { "s" };
-        let (text, action) = if self.show_bots { (format!("Showing {n} bot PR{plural}."), "Hide") } else { (format!("{n} bot PR{plural} hidden."), "Show") };
-        Some(
-            div()
-                .flex()
-                .justify_center()
-                .items_center()
-                .gap(theme::SPACE_1)
-                .mt(theme::SPACE_8)
-                .text_size(theme::text_sm())
-                .text_color(theme::text_subtle())
-                .child(text)
-                .child(
-                    div()
-                        .id("bots-toggle")
-                        .cursor_pointer()
-                        .text_color(theme::text_muted())
-                        .hover(|s| s.text_color(theme::text()))
-                        .child(action)
-                        .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_show_bots(cx))),
-                ),
-        )
-    }
-
     pub(crate) fn render_list(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let visible = self.visible_items(cx);
         let banner = self.error.clone().map(|e| {
@@ -86,7 +58,8 @@ impl GitViewer {
             rows = rows.child(self.render_empty(cx));
         }
         rows = rows.children(self.render_sections(&visible, cx));
-        rows = rows.children(self.render_bots_footer(cx));
+        rows = rows.children(self.render_stale_section(cx));
+        rows = rows.children(self.render_quiet_footer(cx));
 
         let content = div()
             .flex()

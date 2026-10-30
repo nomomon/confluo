@@ -10,7 +10,7 @@ macro_rules! icons {
 }
 
 const FILES: &[(&str, &[u8])] = icons![
-    "adjustments", "alert-circle", "alert-triangle", "arrow-left", "brand-azure", "brand-github", "brand-gitlab", "brush", "bulb", "check", "chevron-down", "chevron-right", "chevron-up", "circle-check", "copy", "dots", "external-link", "eye", "eye-off", "file", "file-code", "file-text", "filter", "fold", "folder", "git-merge", "git-pull-request", "git-pull-request-closed", "git-pull-request-draft", "inbox", "info-circle", "keyboard", "layout-columns", "layout-rows", "layout-sidebar", "link", "message", "pencil", "photo", "plus", "refresh", "search", "selector", "settings", "star", "star-filled", "trash", "user", "x",
+    "adjustments", "alert-circle", "alert-triangle", "arrow-left", "brand-azure", "brand-github", "brand-gitlab", "brush", "bulb", "check", "chevron-down", "chevron-right", "chevron-up", "circle-check", "copy", "dots", "external-link", "eye", "eye-off", "file", "file-code", "file-text", "filter", "fold", "folder", "git-merge", "git-pull-request", "git-pull-request-closed", "git-pull-request-draft", "inbox", "info-circle", "keyboard", "layout-columns", "layout-rows", "layout-sidebar", "link", "message", "pencil", "photo", "plus", "refresh", "search", "selector", "settings", "star", "star-filled", "trash", "user", "x", "arrow-back-up", "arrow-right", "circle-x", "clock", "code", "command", "corner-up-left", "git-commit", "message-circle", "moon",
 ];
 
 pub struct Assets;

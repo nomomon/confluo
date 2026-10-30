@@ -140,8 +140,9 @@ impl GitViewer {
 
     /// Escape closes the topmost thing: menu, dialog, detail, then the search text.
     fn dismiss(&mut self, _: &Dismiss, window: &mut Window, cx: &mut Context<Self>) {
-        if self.menu.is_some() {
+        if self.menu.is_some() || self.quiet.row_menu.is_some() {
             self.menu = None;
+            self.quiet.row_menu = None;
         } else if self.overlay != Overlay::None {
             self.overlay = Overlay::None;
         } else if self.code_tab_active() && self.cancel_inline(cx) {

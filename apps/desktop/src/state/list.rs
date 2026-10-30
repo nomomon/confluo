@@ -26,10 +26,15 @@ impl GitViewer {
             starred_only: self.starred_only,
             needs_you_only: false,
             bots: if self.show_bots { BotFilter::off() } else { self.settings.bot_filter() },
+            stale_days: self.settings.stale_days,
+            include_stale: false,
         };
-        match self.engine.list_counted(&q) {
-            Ok((v, hidden)) => {
-                self.items = v;
+        match self.engine.listing(&q) {
+            Ok(l) => {
+                let hidden = l.hidden_bots;
+                self.items = l.items;
+                self.quiet.stale = l.stale;
+                self.quiet.snoozed = l.snoozed;
                 // While shown, count what the setting would hide, so the footer can offer "Hide".
                 self.hidden_bots = if self.show_bots { self.items.iter().filter(|c| self.settings.bot_filter().hides(c)).count() } else { hidden };
             }
@@ -41,10 +46,12 @@ impl GitViewer {
             starred_only: true,
             needs_you_only: false,
             bots: BotFilter::off(),
+            stale_days: None,
+            include_stale: true,
         };
         self.starred = self.engine.list(&starred_q).unwrap_or_default().into_iter().map(|c| c.id).collect();
         self.aliases.clear();
-        let repos: HashSet<RepoRef> = self.items.iter().map(|c| c.id.repo.clone()).collect();
+        let repos: HashSet<RepoRef> = self.items.iter().chain(&self.quiet.stale).map(|c| c.id.repo.clone()).collect();
         for r in repos {
             if let Ok(RepoOverride { alias: Some(a), .. }) = self.engine.repo_override(&r) {
                 self.aliases.insert(r, a);

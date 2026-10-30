@@ -433,6 +433,34 @@ impl GitViewer {
         this
     }
 
+    /// Sidebar, list and (when open) the preview: the window outside Review mode, also drawn under a
+    /// review that slides in or out. The sidebar slides in only right after Cmd+B shows it.
+    pub(crate) fn render_triage(&self, cx: &mut Context<Self>) -> gpui::Div {
+        let previewing = !self.preview_hidden && self.detail.is_some();
+        let fresh = self
+            .nav
+            .sidebar_shown_at
+            .is_some_and(|t| t.elapsed() < std::time::Duration::from_millis(400));
+        div()
+            .flex()
+            .size_full()
+            .when(!self.nav.sidebar_hidden, |m| {
+                let side = div().h_full().child(self.render_sidebar(cx));
+                m.child(if fresh {
+                    crate::ui::motion::slide_in_left(side, "sidebar", layout::SIDEBAR_SLIDE)
+                } else {
+                    side.into_any_element()
+                })
+            })
+            .child(self.render_list(cx))
+            .children(
+                self.detail
+                    .as_ref()
+                    .filter(|_| previewing)
+                    .map(|d| self.render_preview(d, cx)),
+            )
+    }
+
     pub(crate) fn sidebar_w(&self) -> Pixels {
         if self.nav.sidebar_hidden {
             gpui::px(0.)
@@ -490,7 +518,9 @@ impl Render for GitViewer {
         theme::set_light(self.settings.theme.is_light(window.appearance()));
         window.set_background_appearance(self.settings.appearance.to_gpui());
         self.viewport_w = window.viewport_size().width;
-        let previewing = !self.reviewing && !self.preview_hidden && self.detail.is_some();
+        // The triage layout as it is (or will be, under Review mode: the swipe underlay is the exact list
+        // view that comes back, with the preview open on the same PR).
+        let previewing = !self.preview_hidden && self.detail.is_some();
         self.compact = previewing && self.viewport_w < layout::PREVIEW_COMPACT_BELOW;
         // One floating layer at a time: hold-Cmd hints stay hidden while a menu or popover is open.
         self.hint_ctx =
@@ -517,21 +547,7 @@ impl Render for GitViewer {
                     None => review,
                 })
             }
-            None => main
-                .when(!self.nav.sidebar_hidden, |m| {
-                    m.child(crate::ui::motion::slide_in_left(
-                        div().h_full().child(self.render_sidebar(cx)),
-                        "sidebar",
-                        layout::SIDEBAR_SLIDE,
-                    ))
-                })
-                .child(self.render_list(cx))
-                .children(
-                    self.detail
-                        .as_ref()
-                        .filter(|_| previewing)
-                        .map(|d| self.render_preview(d, cx)),
-                ),
+            None => main.child(self.render_triage(cx)),
         };
         let main = match self.review.swipe.fade.filter(|_| !self.reviewing) {
             Some(n) => div()

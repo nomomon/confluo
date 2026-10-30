@@ -30,6 +30,8 @@ pub struct SwipeUi {
     pub panel_x: f32,
     /// Fractional tab under the panel strip (0 Overview, 1 Conversation).
     pub panel_progress: f32,
+    /// What a page slide that is leaving does when it lands (Esc / back button / Cmd+[ / swipe).
+    out: Option<Out>,
     /// Reduced motion: the view a swipe switched to fades in (bumped per switch, the fade's id).
     pub fade: Option<usize>,
 }
@@ -40,6 +42,7 @@ impl Default for SwipeUi {
         // Like Safari: a third of the way commits a slow swipe back.
         page.commit = 0.33;
         Self {
+            out: None,
             page_gate: SwipeGate::default(),
             page,
             panel_gate: SwipeGate::default(),
@@ -50,6 +53,13 @@ impl Default for SwipeUi {
             fade: None,
         }
     }
+}
+
+/// Where a review sliding out goes.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Out {
+    /// `exit_review` (`navigating`: the history already moved).
+    Exit(bool),
 }
 
 fn wheel_parts(ev: &ScrollWheelEvent) -> (bool, f32, f32) {
@@ -130,10 +140,52 @@ impl GitViewer {
         self.review.swipe.page.jump(HERE);
         self.review.swipe.page_x = 0.;
         if reduced_motion() {
-            self.review.swipe.fade = Some(self.review.swipe.fade.map_or(1, |n| n + 1));
+            self.bump_fade();
         }
-        self.history_step(if page > HERE { -1 } else { 1 }, cx);
+        match self.review.swipe.out.take() {
+            Some(Out::Exit(nav)) => {
+                self.navigating = nav;
+                self.exit_review(cx);
+                self.navigating = false;
+            }
+            None => self.history_step_now(if page > HERE { -1 } else { 1 }, cx),
+        }
         cx.notify();
+    }
+
+    fn bump_fade(&mut self) {
+        self.review.swipe.fade = Some(self.review.swipe.fade.map_or(1, |n| n + 1));
+    }
+
+    /// Leave Review mode by sliding the review out to the right over the list (Esc, back button, Cmd+[ to
+    /// the list). `navigating`: the history already moved. Reduced motion: switch with a short fade.
+    pub(crate) fn leave_review(&mut self, navigating: bool, cx: &mut Context<Self>) {
+        if !self.reviewing {
+            return;
+        }
+        if reduced_motion() {
+            self.bump_fade();
+            self.navigating = navigating;
+            self.exit_review(cx);
+            self.navigating = false;
+            return;
+        }
+        self.review.swipe.out = Some(Out::Exit(navigating));
+        self.review.swipe.page.animate_to(2, Instant::now());
+        cx.notify();
+    }
+
+    /// Entering Review mode from the list: the review slides in from the right (reverse of back), over
+    /// the list at -30% and dimmed; a swipe can grab it mid-way. Reduced motion: a short fade.
+    pub(crate) fn slide_review_in(&mut self) {
+        if reduced_motion() {
+            self.bump_fade();
+            return;
+        }
+        let s = &mut self.review.swipe;
+        s.out = None;
+        s.page.jump(2);
+        s.page.animate_to(HERE, Instant::now());
     }
 
     /// Right panel: a sideways gesture that starts in the panel belongs to its pager (unless a block inside
@@ -183,7 +235,12 @@ impl GitViewer {
         let s = &mut self.review.swipe;
         s.page
             .set_snaps(vec![-w, 0., w], if can_fwd { 0 } else { HERE }, 2);
-        let done = s.page.tick(now).filter(|p| *p != HERE);
+        let settled = s.page.tick(now);
+        if settled == Some(HERE) {
+            // Grabbed and brought back: the pending exit is off.
+            s.out = None;
+        }
+        let done = settled.filter(|p| *p != HERE);
         // Nothing ahead: a leftward drag shows nothing (Safari), the review stays put.
         s.page_x = if reduced_motion() {
             0.
@@ -207,6 +264,10 @@ impl GitViewer {
         }
         if let Some(p) = crate::dev::swipe() {
             self.review.swipe.page_x = if self.reviewing { p * w } else { 0. };
+        }
+        // `CONFLUO_DEV_ENTER=0.3`: Review mode 30% into its slide-in.
+        if let Some(p) = crate::dev::enter() {
+            self.review.swipe.page_x = if self.reviewing { (1. - p) * w } else { 0. };
         }
         if animating {
             window.request_animation_frame();

@@ -134,7 +134,7 @@ impl GitViewer {
             .icon(IconName::ChevronLeft)
             .variant(ButtonVariant::Ghost)
             .tooltip(keymap::tip::<HistoryBack>("Back to list"))
-            .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.exit_review(cx)));
+            .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.leave_review(false, cx)));
         // One line: the short read-only title (edited at the top of the Overview), repo and branch on hover.
         let tip = format!(
             "{}\n{} {}  {} -> {}",

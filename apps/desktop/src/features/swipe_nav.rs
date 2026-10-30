@@ -47,13 +47,9 @@ impl GitViewer {
             div().absolute().top_0().h_full().w(px(10.)).bg(g)
         };
         if x > 0. {
-            let list = div()
-                .flex()
-                .size_full()
-                .when(!self.nav.sidebar_hidden, |m| {
-                    m.child(div().h_full().child(self.render_sidebar(cx)))
-                })
-                .child(self.render_list(cx));
+            // The exact triage view that comes back (sidebar, list, preview on this PR): landing only removes
+            // the review layer.
+            let list = self.render_triage(cx);
             div()
                 .absolute()
                 .top_0()

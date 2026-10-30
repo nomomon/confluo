@@ -488,7 +488,11 @@ translates, over an opaque floor);
 swiping left goes forward when history has a PR ahead (it comes in from the right); with none ahead the review stays put. Release projects the position with the
 release velocity and completes when that lands past a third of the width (`Pager::commit` 0.33), so a slow drag past a
 third or a short flick completes, else it springs back (the spring starts at the fingers' velocity); then it walks history like
-Cmd+[ / Cmd+]. Mouse wheels, momentum and vertical gestures never start it; the slim preview has none. In the right
+Cmd+[ / Cmd+]. The layer under the review is the exact triage view that comes back (sidebar, list, preview on the
+same PR, same scroll and selection), so landing only removes the review. Entering Review mode from the list slides the
+review in from the right on the same Pager (Enter, double-click, Open review, palette); Esc, the back chevron and Cmd+[
+to the list slide it out; a swipe can grab either mid-way; PR to PR inside Review mode stays instant; reduced motion
+fades (`CONFLUO_DEV_ENTER=0.3` draws the slide-in). Mouse wheels, momentum and vertical gestures never start it; the slim preview has none. In the right
 panel the same Pager moves a strip of both tabs (both built only while it moves); the underline and label emphasis
 follow its progress (`Tabs::progress`), and clicks, keys and code that set the tab animate through the same spring. A
 swipe toward no tab bubbles to the page. Reduced motion: no tracking, the view switches on release with a short fade

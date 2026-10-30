@@ -74,6 +74,11 @@ pub fn swipe() -> Option<f32> {
     var("CONFLUO_DEV_SWIPE")?.parse().ok()
 }
 
+/// `CONFLUO_DEV_ENTER=0.3` draws Review mode that far into its slide-in (the review at 70% of the width).
+pub fn enter() -> Option<f32> {
+    var("CONFLUO_DEV_ENTER")?.parse().ok()
+}
+
 /// `CONFLUO_SCROLL=<px>` scrolls the detail pane down that far once it has laid out.
 pub fn detail_scroll() -> Option<f32> {
     var("CONFLUO_SCROLL")?.parse().ok()

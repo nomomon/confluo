@@ -17,6 +17,8 @@ pub struct NavState {
     pub pos: usize,
     /// The detail pane closed last, for Cmd+\ to bring back.
     pub last_closed: Option<ChangeRequest>,
+    /// When Cmd+B last showed the sidebar (it slides in only then).
+    pub sidebar_shown_at: Option<std::time::Instant>,
     /// Highlighted palette row.
     pub palette_sel: usize,
 }
@@ -54,6 +56,7 @@ impl NavState {
 impl GitViewer {
     pub(crate) fn toggle_sidebar(&mut self, cx: &mut Context<Self>) {
         self.nav.sidebar_hidden = !self.nav.sidebar_hidden;
+        self.nav.sidebar_shown_at = (!self.nav.sidebar_hidden).then(std::time::Instant::now);
         cx.notify();
     }
 
@@ -132,6 +135,23 @@ impl GitViewer {
 
     /// Cmd+[ / Cmd+]: walk the places visited this session (the list and PRs in Review mode).
     pub(crate) fn history_step(&mut self, delta: isize, cx: &mut Context<Self>) {
+        // Back from Review mode to the list slides the review out; landing does the rest.
+        let to_list = self.reviewing
+            && delta < 0
+            && (self.nav.pos == 0 || self.nav.history.get(self.nav.pos - 1) == Some(&None));
+        if to_list {
+            let moved = self.nav.pos > 0;
+            if moved {
+                self.nav.pos -= 1;
+            }
+            self.leave_review(moved, cx);
+            return;
+        }
+        self.history_step_now(delta, cx)
+    }
+
+    /// `history_step` without the slide (a finished swipe lands here).
+    pub(crate) fn history_step_now(&mut self, delta: isize, cx: &mut Context<Self>) {
         let mut nav = std::mem::take(&mut self.nav);
         let target = nav.step(delta);
         self.nav = nav;

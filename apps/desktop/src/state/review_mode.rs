@@ -122,6 +122,8 @@ impl GitViewer {
         if !self.navigating {
             self.nav.push(Some(id.clone()));
         }
+        // From the list it slides in; PR to PR inside Review mode (j/k, history) stays instant.
+        let entering = !self.reviewing;
         self.reviewing = true;
         self.review.viewed.clear();
         self.review.folded.clear();
@@ -131,6 +133,9 @@ impl GitViewer {
         self.layer = None;
         self.set_detail_tab(DetailTab::Code, cx);
         self.after_files(cx);
+        if entering {
+            self.slide_review_in();
+        }
         cx.notify();
     }
 

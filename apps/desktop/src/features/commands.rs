@@ -219,7 +219,7 @@ impl GitViewer {
             window.focus(&self.focus);
             cx.notify();
         } else if self.reviewing {
-            self.exit_review(cx);
+            self.leave_review(false, cx);
         } else if self.detail.is_some() {
             self.close_detail(cx);
         } else {

@@ -172,7 +172,7 @@ impl GitViewer {
         } else if self.reviewing && self.tree_filter.focus_handle(cx).is_focused(window) {
             self.tree_filter.update(cx, |i, cx| i.set_text("", cx));
         } else if self.reviewing {
-            self.exit_review(cx);
+            self.leave_review(false, cx);
         } else if self.search.focus_handle(cx).is_focused(window) || self.detail.is_none() {
             self.search.update(cx, |i, cx| i.set_text("", cx));
             self.cursor = None;

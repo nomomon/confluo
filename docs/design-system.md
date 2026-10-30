@@ -250,7 +250,8 @@ Molecules:
 - `Sheet`: `Sheet::new("Add project").description("..").on_close(|w, cx| ..).child(..)`, slides from the right (`PANEL`)
 - `Slider`: `Slider::new("opacity", v).range(0., 1.).step(0.05).on_change(..)`, click or drag
 - `Tabs`: `Tabs::new(id).variant(TabsVariant::Underline).tab("Code", true).on_select(..)` (Pill, Underline, Floating)
-- `Textarea`: `Textarea::new(composer).rows(3)` around a multiline `TextInput`
+- `Textarea`: `Textarea::new(composer).rows(3).max_rows(12)` around a multiline `TextInput`: grows from `rows` to `max_rows`,
+  then scrolls inside (wheel, caret kept in view); the input draws the single border and the focus ring
 - `Toaster`: `Toaster::new().toast(Toast::new("Copied").description("..").variant(ToastVariant::Success))`, bottom-right stack
 - `ToggleGroup`: `ToggleGroup::new("theme").item("Dark", None, true).on_change(..)`
 - `code::{CodeText, DiffRow, Lang}`: mono line with a line-based tokenizer; `DiffRow` adds gutters and tints
@@ -258,7 +259,10 @@ Molecules:
   code fences with syntax colors and copy, alerts as tinted callouts, tables (header, borders, alignment,
   horizontal scroll), collapsible `<details>`, hover-underlined links, autolinks, footnotes; remote images
   come from the avatar cache (`markdown::image_urls` lists them), else alt text
-- `TextInput`: `.multiline()`: Enter inserts a newline, Cmd+Enter submits
+- `TextInput`: `.multiline()`: Enter inserts a newline, Cmd+Enter submits; `.tabs()` makes Tab insert two spaces.
+  macOS editing: arrows (Up/Down keep the goal column across wrapped rows), Option word moves, Cmd line and document
+  ends, Shift extends each; Option/Cmd+Backspace, double/triple click, drag, Cmd+Z / Shift+Cmd+Z. Caret logic is the
+  pure `text_input::model` (rows of caret stops, word ranges, undo history), unit-tested
 
 Settings (`features/settings/`) is a large `Dialog::bare()` (780x560): left nav of pages
 (General, Appearance, Accounts, Projects, Filters, Shortcuts), right side made of

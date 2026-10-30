@@ -151,8 +151,8 @@ impl GitViewer {
     pub fn new(engine: Arc<Engine>, settings: Settings, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let input = |cx: &mut Context<Self>, ph: &'static str| cx.new(|cx| TextInput::new(ph, cx));
         let search = cx.new(|cx| TextInput::new("Search title, repo, author or branch  /", cx).inset(crate::ui::molecules::INPUT_INSET, crate::ui::molecules::INPUT_INSET));
-        let composer = cx.new(|cx| TextInput::new("Leave a comment", cx).multiline());
-        let inline_input = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post, Esc to cancel", cx).multiline());
+        let composer = cx.new(|cx| TextInput::new("Leave a comment", cx).multiline().tabs());
+        let inline_input = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post, Esc to cancel", cx).multiline().tabs());
         let add_name = input(cx, "Project name");
         let add_value = input(cx, "Paste a repo or group URL, or a folder path");
         let alias_input = input(cx, "Alias (empty to clear)");
@@ -179,7 +179,7 @@ impl GitViewer {
         })
         .detach();
         let title_input = input(cx, "Title");
-        let body_input = cx.new(|cx| TextInput::new("Describe the change (markdown), \u{2318}Enter to save", cx).multiline());
+        let body_input = cx.new(|cx| TextInput::new("Describe the change (markdown), \u{2318}Enter to save", cx).multiline().tabs());
         let people_input = input(cx, "Search people");
         on_submit(cx, &title_input, |this, _, cx| this.save_title(cx));
         on_submit(cx, &body_input, |this, _, cx| this.save_body(cx));

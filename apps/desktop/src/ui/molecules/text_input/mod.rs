@@ -1,14 +1,19 @@
 //! Text input adapted from gpui's `examples/input.rs`; single-line, or multi-line
 //! via `multiline()` (Enter inserts a newline, Cmd+Enter submits).
+//!
+//! Multi-line inputs grow from `min_rows` to `max_rows`, then scroll inside (wheel, caret kept in
+//! view). Caret and selection logic lives in the pure `model` (rows of caret stops, word moves,
+//! undo history) so it is unit-tested without GPUI.
 
 mod actions;
 mod area;
 mod element;
 mod ime;
+pub(crate) mod model;
 
 use gpui::{
     actions, div, prelude::*, px, App, Bounds, Context, CursorStyle, EventEmitter, FocusHandle, Focusable, KeyBinding, MouseButton, Pixels,
-    ShapedLine, SharedString, Window,
+    ScrollWheelEvent, SharedString, Window,
 };
 use std::ops::Range;
 
@@ -17,31 +22,87 @@ use element::TextElement;
 
 actions!(
     text_input,
-    [Backspace, Delete, Left, Right, SelectLeft, SelectRight, SelectAll, Home, End, Paste, Cut, Copy, Submit, Newline]
+    [
+        Backspace,
+        Delete,
+        DeleteWordLeft,
+        DeleteWordRight,
+        DeleteToLineStart,
+        Left,
+        Right,
+        Up,
+        Down,
+        SelectLeft,
+        SelectRight,
+        SelectUp,
+        SelectDown,
+        WordLeft,
+        WordRight,
+        SelectWordLeft,
+        SelectWordRight,
+        SelectAll,
+        Home,
+        End,
+        SelectHome,
+        SelectEnd,
+        DocStart,
+        DocEnd,
+        SelectDocStart,
+        SelectDocEnd,
+        Undo,
+        Redo,
+        Tab,
+        Paste,
+        Cut,
+        Copy,
+        Submit,
+        Newline
+    ]
 );
 
 pub fn bind_keys(cx: &mut App) {
     let ctx = Some("TextInput");
+    let multi = Some("TextInput && multiline");
     cx.bind_keys([
         KeyBinding::new("backspace", Backspace, ctx),
         KeyBinding::new("delete", Delete, ctx),
+        KeyBinding::new("alt-backspace", DeleteWordLeft, ctx),
+        KeyBinding::new("alt-delete", DeleteWordRight, ctx),
+        KeyBinding::new("cmd-backspace", DeleteToLineStart, ctx),
         KeyBinding::new("left", Left, ctx),
         KeyBinding::new("right", Right, ctx),
         KeyBinding::new("shift-left", SelectLeft, ctx),
         KeyBinding::new("shift-right", SelectRight, ctx),
+        KeyBinding::new("alt-left", WordLeft, ctx),
+        KeyBinding::new("alt-right", WordRight, ctx),
+        KeyBinding::new("alt-shift-left", SelectWordLeft, ctx),
+        KeyBinding::new("alt-shift-right", SelectWordRight, ctx),
         KeyBinding::new("cmd-a", SelectAll, ctx),
         KeyBinding::new("cmd-v", Paste, ctx),
         KeyBinding::new("cmd-c", Copy, ctx),
         KeyBinding::new("cmd-x", Cut, ctx),
+        KeyBinding::new("cmd-z", Undo, ctx),
+        KeyBinding::new("cmd-shift-z", Redo, ctx),
         KeyBinding::new("home", Home, ctx),
         KeyBinding::new("end", End, ctx),
         KeyBinding::new("cmd-left", Home, ctx),
         KeyBinding::new("cmd-right", End, ctx),
-        KeyBinding::new("cmd-up", Home, ctx),
-        KeyBinding::new("cmd-down", End, ctx),
+        KeyBinding::new("shift-home", SelectHome, ctx),
+        KeyBinding::new("shift-end", SelectEnd, ctx),
+        KeyBinding::new("cmd-shift-left", SelectHome, ctx),
+        KeyBinding::new("cmd-shift-right", SelectEnd, ctx),
+        KeyBinding::new("cmd-up", DocStart, ctx),
+        KeyBinding::new("cmd-down", DocEnd, ctx),
+        KeyBinding::new("cmd-shift-up", SelectDocStart, ctx),
+        KeyBinding::new("cmd-shift-down", SelectDocEnd, ctx),
         KeyBinding::new("enter", Submit, ctx),
         // Later bindings win at equal depth, so multi-line inputs get a newline on Enter.
-        KeyBinding::new("enter", Newline, Some("TextInput && multiline")),
+        KeyBinding::new("enter", Newline, multi),
+        KeyBinding::new("up", Up, multi),
+        KeyBinding::new("down", Down, multi),
+        KeyBinding::new("shift-up", SelectUp, multi),
+        KeyBinding::new("shift-down", SelectDown, multi),
+        KeyBinding::new("tab", Tab, Some("TextInput && tabs")),
         KeyBinding::new("cmd-enter", Submit, ctx),
     ]);
 }
@@ -58,12 +119,22 @@ pub struct TextInput {
     selected_range: Range<usize>,
     selection_reversed: bool,
     marked_range: Option<Range<usize>>,
-    last_layout: Option<ShapedLine>,
+    /// Visual rows of the last frame (absolute byte offsets); empty for the placeholder.
+    rows: model::Rows,
     last_bounds: Option<Bounds<Pixels>>,
+    last_line_height: Pixels,
     is_selecting: bool,
     multiline: bool,
-    last_paras: Vec<area::Para>,
-    last_line_height: Pixels,
+    /// Goal x for Up/Down, kept across consecutive vertical moves.
+    goal_x: Option<f32>,
+    history: model::History,
+    min_rows: usize,
+    max_rows: usize,
+    /// Tab inserts two spaces (markdown editors).
+    tabs: bool,
+    scroll_y: Pixels,
+    /// Scroll the caret into view on the next frame.
+    reveal: bool,
     /// Left and right padding; `Input` widens them for a leading icon or clear button.
     inset: (Pixels, Pixels),
 }
@@ -79,12 +150,18 @@ impl TextInput {
             selected_range: 0..0,
             selection_reversed: false,
             marked_range: None,
-            last_layout: None,
+            rows: model::Rows::default(),
             last_bounds: None,
+            last_line_height: px(0.),
             is_selecting: false,
             multiline: false,
-            last_paras: vec![],
-            last_line_height: px(0.),
+            goal_x: None,
+            history: model::History::default(),
+            min_rows: 1,
+            max_rows: 12,
+            tabs: false,
+            scroll_y: px(0.),
+            reveal: false,
             inset: (theme::SPACE_3, theme::SPACE_3),
         }
     }
@@ -103,6 +180,9 @@ impl TextInput {
         let n = self.content.len();
         self.selected_range = n..n;
         self.marked_range = None;
+        self.history.clear();
+        self.scroll_y = px(0.);
+        self.reveal = true;
         cx.emit(InputEvent::Changed);
         cx.notify();
     }
@@ -118,26 +198,79 @@ impl TextInput {
         self.multiline = true;
         self
     }
+
+    /// Tab inserts two spaces instead of moving focus (markdown editors).
+    pub fn tabs(mut self) -> Self {
+        self.tabs = true;
+        self
+    }
+
+    /// Visible rows of a multi-line input: grows from `min` to `max`, then scrolls.
+    pub fn set_rows(&mut self, min: usize, max: usize) {
+        self.min_rows = min.max(1);
+        self.max_rows = max.max(self.min_rows);
+    }
+
+    fn on_scroll(&mut self, e: &ScrollWheelEvent, _: &mut Window, cx: &mut Context<Self>) {
+        let lh = self.last_line_height;
+        let dy = e.delta.pixel_delta(lh).y;
+        let content = lh * self.rows.len().max(1) as f32;
+        let view = self.last_bounds.map(|b| b.size.height).unwrap_or(content);
+        let max = (content - view).max(px(0.));
+        if max > px(0.) {
+            self.scroll_y = (self.scroll_y - dy).clamp(px(0.), max);
+            cx.stop_propagation();
+            cx.notify();
+        }
+    }
 }
 
 impl Render for TextInput {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let focused = self.focus_handle.is_focused(window);
+        let mut ctx = gpui::KeyContext::default();
+        ctx.add("TextInput");
+        if self.multiline {
+            ctx.add("multiline");
+        }
+        if self.tabs {
+            ctx.add("tabs");
+        }
         div()
             .flex()
             .items_center()
-            .key_context(if self.multiline { "TextInput multiline" } else { "TextInput" })
+            .key_context(ctx)
             .track_focus(&self.focus_handle(cx))
             .cursor(CursorStyle::IBeam)
             .on_action(cx.listener(Self::backspace))
             .on_action(cx.listener(Self::delete))
+            .on_action(cx.listener(Self::delete_word_left))
+            .on_action(cx.listener(Self::delete_word_right))
+            .on_action(cx.listener(Self::delete_to_line_start))
             .on_action(cx.listener(Self::left))
             .on_action(cx.listener(Self::right))
+            .on_action(cx.listener(Self::up))
+            .on_action(cx.listener(Self::down))
             .on_action(cx.listener(Self::select_left))
             .on_action(cx.listener(Self::select_right))
+            .on_action(cx.listener(Self::select_up))
+            .on_action(cx.listener(Self::select_down))
+            .on_action(cx.listener(Self::word_left))
+            .on_action(cx.listener(Self::word_right))
+            .on_action(cx.listener(Self::select_word_left))
+            .on_action(cx.listener(Self::select_word_right))
             .on_action(cx.listener(Self::select_all))
             .on_action(cx.listener(Self::home))
             .on_action(cx.listener(Self::end))
+            .on_action(cx.listener(Self::select_home))
+            .on_action(cx.listener(Self::select_end))
+            .on_action(cx.listener(Self::doc_start))
+            .on_action(cx.listener(Self::doc_end))
+            .on_action(cx.listener(Self::select_doc_start))
+            .on_action(cx.listener(Self::select_doc_end))
+            .on_action(cx.listener(Self::undo))
+            .on_action(cx.listener(Self::redo))
+            .on_action(cx.listener(Self::tab))
             .on_action(cx.listener(Self::paste))
             .on_action(cx.listener(Self::cut))
             .on_action(cx.listener(Self::copy))
@@ -147,9 +280,10 @@ impl Render for TextInput {
             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_move(cx.listener(Self::on_mouse_move))
+            .when(self.multiline, |d| d.on_scroll_wheel(cx.listener(Self::on_scroll)))
             .w_full()
             .when(!self.multiline, |d| d.h(theme::control_h()))
-            .when(self.multiline, |d| d.items_start().min_h(theme::control_h()).py(theme::SPACE_2P5))
+            .when(self.multiline, |d| d.items_start().min_h(theme::control_h()).py(theme::SPACE_2))
             .pl(self.inset.0)
             .pr(self.inset.1)
             .rounded(theme::RADIUS_LG)

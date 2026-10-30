@@ -108,7 +108,7 @@ impl Element for TextElement {
         if let Some(sel) = prepaint.selection.take() {
             window.paint_quad(sel)
         }
-        let line = prepaint.line.take().unwrap();
+        let line = prepaint.line.take().unwrap_or_default();
         line.paint(bounds.origin, window.line_height(), window, cx).ok();
         if focus_handle.is_focused(window) {
             if let Some(c) = prepaint.cursor.take() {
@@ -117,8 +117,9 @@ impl Element for TextElement {
         }
         let is_placeholder = self.input.read(cx).content.is_empty();
         self.input.update(cx, |input, _| {
-            input.last_layout = if is_placeholder { None } else { Some(line) };
+            input.rows = if is_placeholder { super::model::Rows::default() } else { super::model::Rows(super::area::rows_for(&line, &[], 0)) };
             input.last_bounds = Some(bounds);
+            input.last_line_height = bounds.size.height;
         });
     }
 }

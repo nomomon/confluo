@@ -47,14 +47,7 @@ impl GitViewer {
             let md = if text.trim().is_empty() { div().text_color(theme::text_subtle()).child("Nothing to preview").into_any_element() } else { self.markdown("desc-preview", &text).into_any_element() };
             div().min_h(theme::text_sm() * 1.5 * 8.).child(md).into_any_element()
         } else {
-            div()
-                .rounded(theme::RADIUS_MD)
-                .border_1()
-                .border_color(theme::border())
-                .bg(theme::surface())
-                .py(theme::SPACE_1)
-                .child(Textarea::new(self.body_input.clone()).rows(8))
-                .into_any_element()
+            Textarea::new(self.body_input.clone()).rows(8).max_rows(24).into_any_element()
         };
         let footer = div()
             .flex()

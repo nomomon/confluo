@@ -6,6 +6,7 @@ use gv_engine::DiffSide;
 use crate::app::GitViewer;
 use crate::state::DetailState;
 use crate::ui::atoms::{Button, ButtonVariant, Size};
+use crate::ui::molecules::Textarea;
 use crate::ui::motion;
 use crate::ui::theme;
 
@@ -20,7 +21,7 @@ impl GitViewer {
             .flex()
             .flex_col()
             .gap(theme::SPACE_2)
-            .child(self.inline_input.clone())
+            .child(Textarea::new(self.inline_input.clone()).rows(2).max_rows(12))
             .child(div().flex().justify_end().gap(theme::SPACE_2).child(cancel).child(post))
     }
 

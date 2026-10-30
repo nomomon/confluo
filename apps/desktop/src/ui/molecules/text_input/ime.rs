@@ -1,6 +1,6 @@
 //! Platform text input (IME) integration for `TextInput`.
 
-use gpui::{point, Bounds, Context, EntityInputHandler, Pixels, Point, UTF16Selection, Window};
+use gpui::{point, px, Bounds, Context, EntityInputHandler, Pixels, Point, UTF16Selection, Window};
 use std::ops::Range;
 
 use super::{InputEvent, TextInput};
@@ -26,6 +26,7 @@ impl EntityInputHandler for TextInput {
             .map(|r| self.range_from_utf16(r))
             .or(self.marked_range.clone())
             .unwrap_or(self.selected_range.clone());
+        self.record_edit(new_text, &range);
         self.content = (self.content[0..range.start].to_owned() + new_text + &self.content[range.end..]).into();
         self.selected_range = range.start + new_text.len()..range.start + new_text.len();
         self.marked_range.take();
@@ -45,6 +46,9 @@ impl EntityInputHandler for TextInput {
             .map(|r| self.range_from_utf16(r))
             .or(self.marked_range.clone())
             .unwrap_or(self.selected_range.clone());
+        if self.marked_range.is_none() {
+            self.record_edit(new_text, &range);
+        }
         self.content = (self.content[0..range.start].to_owned() + new_text + &self.content[range.end..]).into();
         self.marked_range = (!new_text.is_empty()).then(|| range.start..range.start + new_text.len());
         self.selected_range = new_sel
@@ -56,17 +60,18 @@ impl EntityInputHandler for TextInput {
         cx.notify();
     }
     fn bounds_for_range(&mut self, r: Range<usize>, bounds: Bounds<Pixels>, _: &mut Window, _: &mut Context<Self>) -> Option<Bounds<Pixels>> {
-        let layout = self.last_layout.as_ref()?;
         let range = self.range_from_utf16(&r);
+        let lh = self.last_line_height;
+        let row = self.rows.row_of(range.start) as f32;
+        let top = bounds.top() + lh * row - self.scroll_y;
         Some(Bounds::from_corners(
-            point(bounds.left() + layout.x_for_index(range.start), bounds.top()),
-            point(bounds.left() + layout.x_for_index(range.end), bounds.bottom()),
+            point(bounds.left() + px(self.rows.x_of(range.start)), top),
+            point(bounds.left() + px(self.rows.x_of(range.end)), top + lh),
         ))
     }
     fn character_index_for_point(&mut self, p: Point<Pixels>, _: &mut Window, _: &mut Context<Self>) -> Option<usize> {
-        let local = self.last_bounds?.localize(&p)?;
-        let layout = self.last_layout.as_ref()?;
-        let idx = layout.index_for_x(p.x - local.x)?;
+        self.last_bounds?;
+        let idx = self.index_for_mouse_position(p);
         Some(self.offset_to_utf16(idx))
     }
 }

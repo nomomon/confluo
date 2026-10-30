@@ -38,6 +38,7 @@ pub struct Button {
     id: SharedString,
     label: SharedString,
     icon: Option<IconName>,
+    trailing: Option<IconName>,
     variant: ButtonVariant,
     size: Size,
     tooltip: Option<SharedString>,
@@ -46,7 +47,7 @@ pub struct Button {
 
 impl Button {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), label: label.into(), icon: None, variant: ButtonVariant::default(), size: Size::default(), tooltip: None, on_click: None }
+        Self { id: id.into(), label: label.into(), icon: None, trailing: None, variant: ButtonVariant::default(), size: Size::default(), tooltip: None, on_click: None }
     }
 
     pub fn variant(mut self, variant: ButtonVariant) -> Self {
@@ -62,6 +63,12 @@ impl Button {
     /// Leading glyph shown before the label.
     pub fn icon(mut self, icon: IconName) -> Self {
         self.icon = Some(icon);
+        self
+    }
+
+    /// Glyph after the label, e.g. a chevron on a menu button.
+    pub fn trailing_icon(mut self, icon: IconName) -> Self {
+        self.trailing = Some(icon);
         self
     }
 
@@ -120,6 +127,12 @@ impl RenderOnce for Button {
                 .active(|s| s.bg(theme::danger().opacity(0.3))),
             ButtonVariant::Link => base.text_size(theme::text_xs()).text_color(theme::accent()).hover(|s| s.text_color(theme::text())),
         };
+        let fg = match self.variant {
+            ButtonVariant::Outline => theme::text(),
+            ButtonVariant::Primary => theme::bg(),
+            ButtonVariant::Destructive => theme::danger(),
+            _ => theme::text_muted(),
+        };
         styled
             .when(self.size == Size::Md, |el| el.px(theme::SPACE_3).py(theme::SPACE_1P5).text_size(theme::text_sm()))
             .children(self.icon.map(|n| {
@@ -133,6 +146,7 @@ impl RenderOnce for Button {
             }))
             .when(self.icon.is_some() && self.label.is_empty(), |el| el.py(theme::SPACE_1P5))
             .when(!self.label.is_empty(), |el| el.child(self.label))
+            .children(self.trailing.map(|n| Icon::new(n).size(theme::ICON_SM).color(fg)))
             .when_some(self.tooltip, |el, t| el.tooltip(super::tooltip(t)))
             .when_some(self.on_click, |el, f| el.on_click(f))
     }

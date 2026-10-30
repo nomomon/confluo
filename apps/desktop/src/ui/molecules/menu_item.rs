@@ -15,12 +15,14 @@ pub struct MenuItem {
     icon: Option<IconName>,
     shortcut: Option<SharedString>,
     destructive: bool,
+    disabled: bool,
+    tooltip: Option<SharedString>,
     on_click: Option<ClickHandler>,
 }
 
 impl MenuItem {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), label: label.into(), icon: None, shortcut: None, destructive: false, on_click: None }
+        Self { id: id.into(), label: label.into(), icon: None, shortcut: None, destructive: false, disabled: false, tooltip: None, on_click: None }
     }
 
     pub fn icon(mut self, icon: IconName) -> Self {
@@ -35,6 +37,17 @@ impl MenuItem {
 
     pub fn destructive(mut self) -> Self {
         self.destructive = true;
+        self
+    }
+
+    /// Greyed out and not clickable; pair with `tooltip` to say why.
+    pub fn disabled(mut self, disabled: bool) -> Self {
+        self.disabled = disabled;
+        self
+    }
+
+    pub fn tooltip(mut self, text: impl Into<SharedString>) -> Self {
+        self.tooltip = Some(text.into());
         self
     }
 
@@ -55,13 +68,13 @@ impl RenderOnce for MenuItem {
             .px(theme::SPACE_2)
             .py(theme::SPACE_1P5)
             .rounded(theme::RADIUS_SM)
-            .text_color(color)
-            .cursor_pointer()
-            .hover(|s| s.bg(if self.destructive { theme::tint_bg(theme::danger()) } else { theme::surface_hover() }))
+            .text_color(if self.disabled { theme::text_subtle() } else { color })
+            .when(!self.disabled, |d| d.cursor_pointer().hover(|s| s.bg(if self.destructive { theme::tint_bg(theme::danger()) } else { theme::surface_hover() })))
             .children(self.icon.map(|n| Icon::new(n).color(if self.destructive { theme::danger() } else { theme::text_muted() })))
             .child(div().flex_1().child(self.label))
             .children(self.shortcut.map(Kbd::new))
-            .when_some(self.on_click, |d, f| d.on_click(f))
+            .when_some(self.tooltip, |d, t| d.tooltip(crate::ui::atoms::tooltip(t)))
+            .when_some(self.on_click.filter(|_| !self.disabled), |d, f| d.on_click(f))
     }
 }
 

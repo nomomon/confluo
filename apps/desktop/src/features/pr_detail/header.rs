@@ -74,14 +74,17 @@ pub(super) fn approval_counts(
 }
 
 impl GitViewer {
-    /// One approvals indicator: "1/1" with a check (tooltip lists approvers), red when changes are requested.
-    pub(super) fn approvals(&self, d: &DetailState) -> Option<impl IntoElement> {
+    /// One approvals indicator: "1/1" with a check (tooltip lists approvers), red when changes are requested
+    /// (`muted`: all muted, where reviewer states show beside it).
+    pub(super) fn approvals(&self, d: &DetailState, muted: bool) -> Option<impl IntoElement> {
         let s = &d.summary;
         let a = approval_counts(
             d.detail.as_ref().and_then(|x| x.review.approvals),
             &s.reviewers,
         )?;
-        let color = if a.changes {
+        let color = if muted {
+            theme::text_muted()
+        } else if a.changes {
             theme::danger()
         } else if a.given >= a.of {
             theme::success()

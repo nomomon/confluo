@@ -60,18 +60,6 @@ impl GitViewer {
             .as_ref()
             .map(|x| excerpt(&x.description, 6))
             .filter(|e| !e.0.is_empty());
-        let avatars = s.reviewers.iter().map(|r| {
-            div()
-                .id(gpui::SharedString::from(format!(
-                    "pv-rev-{}",
-                    r.user.username
-                )))
-                .tooltip(tooltip(format!("{} ({:?})", r.user.username, r.state)))
-                .child(
-                    Avatar::new(r.user.username.clone())
-                        .image(self.avatar(r.user.avatar_url.as_deref())),
-                )
-        });
         let meta = div()
             .flex()
             .flex_wrap()
@@ -118,10 +106,7 @@ impl GitViewer {
             .gap(theme::space_3())
             .child(stats(s))
             .children(self.render_ci(d, "preview", cx))
-            .children(self.approvals(d))
-            .children(self.render_review_state(d))
-            .child(div().flex_1())
-            .child(div().flex().children(avatars));
+            .children(self.render_review_state(d));
         let actions = div()
             .flex()
             .gap(theme::space_2())
@@ -174,6 +159,7 @@ impl GitViewer {
             )
             .child(meta)
             .child(status)
+            .children(self.preview_reviewers(d))
             .when_some(desc, |p, (md, cut)| {
                 // Rendered markdown, clipped to about six lines with a fade into the panel.
                 let bg = self.surfaces().panel();

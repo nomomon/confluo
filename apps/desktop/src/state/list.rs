@@ -44,7 +44,10 @@ impl GitViewer {
 
     /// Items another involvement tab would show (a list swipe draws the neighbors).
     pub(crate) fn listing_for(&self, tab: gv_engine::Involvement) -> Vec<gv_engine::ChangeRequest> {
-        self.engine.listing(&self.list_query(tab)).map(|l| l.items).unwrap_or_default()
+        self.engine
+            .listing(&self.list_query(tab))
+            .map(|l| l.items)
+            .unwrap_or_default()
     }
 
     pub(crate) fn reload(&mut self) {

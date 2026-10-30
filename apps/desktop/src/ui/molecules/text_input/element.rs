@@ -110,7 +110,11 @@ impl Element for TextElement {
         let line = window
             .text_system()
             .shape_line(text, font_size, &runs, None);
-        let x = line.x_for_index(if input.content.is_empty() { 0 } else { cursor * k });
+        let x = line.x_for_index(if input.content.is_empty() {
+            0
+        } else {
+            cursor * k
+        });
         let (selection, cursor) = if selected.is_empty() {
             (
                 None,

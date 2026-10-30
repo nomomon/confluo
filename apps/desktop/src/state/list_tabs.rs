@@ -14,7 +14,11 @@ use crate::ui::motion::interactive::{Drag, Pager, SwipeGate};
 use crate::ui::motion::reduced_motion;
 use crate::ui::scroll::Axis;
 
-pub const INVOLVEMENTS: [(&str, Involvement); 3] = [("Authored", Involvement::Authored), ("Reviewing", Involvement::Reviewing), ("All", Involvement::All)];
+pub const INVOLVEMENTS: [(&str, Involvement); 3] = [
+    ("Authored", Involvement::Authored),
+    ("Reviewing", Involvement::Reviewing),
+    ("All", Involvement::All),
+];
 
 pub struct ListTabsUi {
     gate: SwipeGate,
@@ -33,7 +37,16 @@ pub struct ListTabsUi {
 
 impl Default for ListTabsUi {
     fn default() -> Self {
-        Self { gate: SwipeGate::default(), pager: Pager::new(vec![0., -1., -2.], 2), scrolls: Default::default(), cache: Default::default(), x: 0., width: 1., progress: 2., measured: Default::default() }
+        Self {
+            gate: SwipeGate::default(),
+            pager: Pager::new(vec![0., -1., -2.], 2),
+            scrolls: Default::default(),
+            cache: Default::default(),
+            x: 0.,
+            width: 1.,
+            progress: 2.,
+            measured: Default::default(),
+        }
     }
 }
 
@@ -46,7 +59,10 @@ pub fn pages_to_draw(current: usize, progress: f32, moving: bool) -> Vec<usize> 
     if !moving {
         return vec![current];
     }
-    let (lo, hi) = (progress.floor().max(0.) as usize, (progress.ceil().max(0.) as usize).min(2));
+    let (lo, hi) = (
+        progress.floor().max(0.) as usize,
+        (progress.ceil().max(0.) as usize).min(2),
+    );
     let mut v: Vec<usize> = (lo..=hi).collect();
     if !v.contains(&current) {
         v.push(current);
@@ -84,7 +100,12 @@ impl GitViewer {
     }
 
     /// Wheel events on the list: a sideways trackpad gesture pages between the tabs.
-    pub(crate) fn list_tabs_wheel(&mut self, ev: &ScrollWheelEvent, _: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn list_tabs_wheel(
+        &mut self,
+        ev: &ScrollWheelEvent,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if !self.settings.swipe_pages || self.reviewing {
             return;
         }
@@ -98,7 +119,12 @@ impl GitViewer {
             ScrollDelta::Pixels(p) => (true, f32::from(p.x), f32::from(p.y)),
             ScrollDelta::Lines(l) => (false, l.x, l.y),
         };
-        let drag = self.review.swipe.tabs.gate.feed(ev.touch_phase, precise, dx, dy);
+        let drag = self
+            .review
+            .swipe
+            .tabs
+            .gate
+            .feed(ev.touch_phase, precise, dx, dy);
         let now = Instant::now();
         let p = &mut self.review.swipe.tabs.pager;
         p.reduced = reduced_motion();

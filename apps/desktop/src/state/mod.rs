@@ -59,7 +59,6 @@ pub(crate) use update::UpdateState;
 
 pub use attention::{attention, ThreadFilter};
 pub use code::CodeState;
-pub use list_tabs::{pages_to_draw as list_tabs_pages, tab_index as list_tabs_index, ListTabsUi, INVOLVEMENTS};
 pub use connection::{auth_command, host_avatar_url, sign_in_hint, HostStatus};
 pub use detail::{DetailState, DetailTab};
 pub use feedback::Copied;
@@ -68,6 +67,9 @@ pub use file_view::FileView;
 pub use find::FindState;
 pub use inbox::Section;
 pub use inline::LineDraft;
+pub use list_tabs::{
+    pages_to_draw as list_tabs_pages, tab_index as list_tabs_index, ListTabsUi, INVOLVEMENTS,
+};
 pub use nav::NavState;
 pub use overlay::{BotList, Layer, Overlay, SettingsPage};
 pub use panels::SplitUi;

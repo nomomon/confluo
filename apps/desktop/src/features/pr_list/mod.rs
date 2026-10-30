@@ -1,12 +1,12 @@
 //! Center column: header with freshness, filters, error banner and rows.
 
 mod empty;
-mod tab_strip;
 mod filters;
 mod footer;
 mod row;
 mod row_menu;
 mod sections;
+mod tab_strip;
 
 use gpui::{div, prelude::*, ClickEvent, Context};
 

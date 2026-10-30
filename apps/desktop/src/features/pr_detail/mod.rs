@@ -18,6 +18,7 @@ mod edit_dialogs;
 mod edit_menu;
 mod header;
 mod preview;
+mod preview_reviewers;
 mod properties;
 mod quick_open;
 mod reactions;

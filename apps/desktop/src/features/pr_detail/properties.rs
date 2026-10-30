@@ -64,7 +64,7 @@ impl GitViewer {
                     .map(|ci| row_shell("prop-pipeline", "Pipeline", ci, false)),
             )
             .children(
-                self.approvals(d)
+                self.approvals(d, false)
                     .map(|a| row_shell("prop-approvals", "Approvals", a.into_any_element(), false)),
             )
             .children(labels)
@@ -125,7 +125,7 @@ impl GitViewer {
     }
 
     /// Names with avatars; reviewers also get their state (approved, requested changes, reviewed).
-    fn people_value(
+    pub(super) fn people_value(
         &self,
         users: &[User],
         states: Option<&[ReviewState]>,

@@ -122,9 +122,13 @@ impl RenderOnce for Tabs {
                             .h_full()
                             .px(theme::space_3())
                             .rounded(theme::RADIUS_SM)
-                            .when(progress.is_none() && active, |d| d.bg(theme::surface_active()))
+                            .when(progress.is_none() && active, |d| {
+                                d.bg(theme::surface_active())
+                            })
                             // The selected pill fades across as a pager moves between tabs.
-                            .when(progress.is_some() && on_k > 0., |d| d.bg(theme::surface_active().opacity(on_k))),
+                            .when(progress.is_some() && on_k > 0., |d| {
+                                d.bg(theme::surface_active().opacity(on_k))
+                            }),
                         TabsVariant::Floating => tab
                             .px(theme::space_3())
                             .py(theme::space_1())

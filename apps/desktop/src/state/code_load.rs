@@ -66,6 +66,11 @@ impl GitViewer {
                     return;
                 };
                 d.code.loading = false;
+                if d.code.commit.is_some() {
+                    // Filtered to a commit: all changes are cached and come back on clear.
+                    d.code.show_skeleton = false;
+                    return;
+                }
                 d.code.show_skeleton = false;
                 match (files, r) {
                     (Some(f), _) => {

@@ -12,6 +12,7 @@ mod code;
 mod code_load;
 pub mod code_rows;
 mod comments;
+pub mod commit_filter;
 mod connection;
 mod detail;
 mod dev_hooks;

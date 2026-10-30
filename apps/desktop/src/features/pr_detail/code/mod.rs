@@ -20,7 +20,7 @@ use gv_engine::FileStatus;
 use crate::app::GitViewer;
 use crate::state::DetailState;
 use crate::ui::atoms::{ErrorText, Icon, IconName};
-use crate::ui::molecules::EmptyState;
+use crate::ui::molecules::{Banner, EmptyState};
 use crate::ui::theme;
 
 /// Color for a file's status: added green, deleted red, renamed amber.
@@ -109,6 +109,15 @@ impl GitViewer {
                 let band = c.list.clone();
                 let drawn = f32::from(c.list.scroll_px_offset_for_scrollbar().y);
                 let find = self.render_find_bar(cx);
+                let banner = c.commit.as_deref().map(|sha| {
+                    Banner::warning(
+                        "commit-filter",
+                        crate::state::commit_filter::commit_label(sha),
+                    )
+                    .on_dismiss(cx.listener(|this, _: &gpui::ClickEvent, _, cx| {
+                        this.clear_commit(cx);
+                    }))
+                });
                 div()
                     .relative()
                     .flex()
@@ -154,6 +163,7 @@ impl GitViewer {
                                     this.finish_line_drag(window, cx)
                                 }),
                             )
+                            .children(banner)
                             .child(rows),
                     )
                     .children(find)

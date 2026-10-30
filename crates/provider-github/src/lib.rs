@@ -729,6 +729,20 @@ impl Provider for GitHubProvider {
         Ok(out)
     }
 
+    async fn commit_files(
+        &self,
+        id: &ChangeRequestId,
+        sha: &str,
+    ) -> ProviderResult<Vec<ChangedFile>> {
+        let (owner, name) = split_repo(&id.repo)?;
+        let url = format!("{}/repos/{owner}/{name}/commits/{sha}", self.api);
+        let v = self.send(self.http.get(url)).await?;
+        Ok(v["files"]
+            .as_array()
+            .map(|a| a.iter().map(changed_file).collect())
+            .unwrap_or_default())
+    }
+
     async fn get_file_content(
         &self,
         id: &ChangeRequestId,

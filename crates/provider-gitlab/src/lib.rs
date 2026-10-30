@@ -756,6 +756,22 @@ impl Provider for GitLabProvider {
             .collect())
     }
 
+    async fn commit_files(
+        &self,
+        id: &ChangeRequestId,
+        sha: &str,
+    ) -> ProviderResult<Vec<ChangedFile>> {
+        Ok(self
+            .get_all(&format!(
+                "/projects/{}/repository/commits/{sha}/diff",
+                enc(&id.repo.path)
+            ))
+            .await?
+            .iter()
+            .map(changed_file)
+            .collect())
+    }
+
     async fn get_file_content(
         &self,
         id: &ChangeRequestId,

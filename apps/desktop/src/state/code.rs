@@ -13,6 +13,8 @@ use super::line_select::{DiffSel, PendingSelect};
 
 pub struct CodeState {
     pub files: Option<Arc<Vec<ChangedFile>>>,
+    /// Sha of the commit the diff is filtered to (Overview commit click); None shows all changes.
+    pub commit: Option<String>,
     pub loading: bool,
     /// Set `LOADING_DELAY` after loading starts, so quick loads show no skeleton.
     pub show_skeleton: bool,
@@ -47,6 +49,7 @@ impl CodeState {
     pub fn new() -> Self {
         Self {
             files: None,
+            commit: None,
             loading: false,
             show_skeleton: false,
             error: None,

@@ -237,6 +237,17 @@ pub trait Provider: Send + Sync {
     }
     /// Files changed by the PR/MR with parsed hunks.
     async fn list_changed_files(&self, id: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>>;
+    /// Files changed by one commit of the PR/MR, with parsed hunks.
+    async fn commit_files(
+        &self,
+        _id: &ChangeRequestId,
+        _sha: &str,
+    ) -> ProviderResult<Vec<ChangedFile>> {
+        Err(ProviderError::Unsupported(format!(
+            "commit diffs on {}",
+            self.kind()
+        )))
+    }
     /// Whole file at `rev` (a commit sha); None when it does not exist there.
     async fn get_file_content(
         &self,

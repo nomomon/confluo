@@ -174,53 +174,55 @@ impl GitViewer {
         &self,
         commits: &[CommitInfo],
         reviewed: Option<&str>,
-        _cx: &mut Context<Self>,
+        cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let seen = reviewed.and_then(|r| commits.iter().position(|c| c.sha == r));
-        let rows = commits.iter().enumerate().rev().map(|(i, c)| {
-            let url = c.url.clone();
-            let new = seen.is_some_and(|s| i > s);
-            div()
-                .id(("commit", i))
-                .flex()
-                .items_center()
-                .gap(theme::SPACE_2)
-                .px(theme::SPACE_2)
-                .py(theme::item_pad_y())
-                .list_item_radius(false, theme::RADIUS_SM)
-                .text_size(theme::text_xs())
-                .tooltip(tooltip("Open commit in browser"))
-                .when_some(url, |e, u| {
-                    e.on_click(move |_: &ClickEvent, _, cx| cx.open_url(&u))
-                })
-                .child(
-                    div()
-                        .flex_shrink_0()
-                        .font_family(theme::mono_font())
-                        .text_color(if new {
-                            theme::accent()
-                        } else {
-                            theme::text_subtle()
-                        })
-                        .child(c.short().to_string()),
-                )
-                .child(
-                    div()
-                        .flex_1()
-                        .min_w(theme::SPACE_0)
-                        .truncate()
-                        .child(c.message.clone()),
-                )
-                .child(
-                    div()
-                        .flex_shrink_0()
-                        .text_color(theme::text_subtle())
-                        .child(match c.at {
-                            Some(t) => format!("{} {}", c.author, relative_time(t)),
-                            None => c.author.clone(),
-                        }),
-                )
-        });
+        let rows =
+            commits.iter().enumerate().rev().map(|(i, c)| {
+                let sha = c.sha.clone();
+                let new = seen.is_some_and(|s| i > s);
+                div()
+                    .id(("commit", i))
+                    .flex()
+                    .items_center()
+                    .gap(theme::SPACE_2)
+                    .px(theme::SPACE_2)
+                    .py(theme::item_pad_y())
+                    .list_item_radius(false, theme::RADIUS_SM)
+                    .text_size(theme::text_xs())
+                    .cursor_pointer()
+                    .tooltip(tooltip("Show this commit's changes"))
+                    .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+                        this.show_commit(sha.clone(), cx)
+                    }))
+                    .child(
+                        div()
+                            .flex_shrink_0()
+                            .font_family(theme::mono_font())
+                            .text_color(if new {
+                                theme::accent()
+                            } else {
+                                theme::text_subtle()
+                            })
+                            .child(c.short().to_string()),
+                    )
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w(theme::SPACE_0)
+                            .truncate()
+                            .child(c.message.clone()),
+                    )
+                    .child(
+                        div()
+                            .flex_shrink_0()
+                            .text_color(theme::text_subtle())
+                            .child(match c.at {
+                                Some(t) => format!("{} {}", c.author, relative_time(t)),
+                                None => c.author.clone(),
+                            }),
+                    )
+            });
         div()
             .flex()
             .flex_col()

@@ -176,6 +176,8 @@ impl GitViewer {
             }
         } else if self.reviewing && self.find.open {
             self.find.open = false;
+        } else if self.reviewing && self.clear_commit(cx) {
+            // Back from one commit to all changes.
         } else if self.reviewing
             && self
                 .detail

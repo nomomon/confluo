@@ -86,6 +86,8 @@ pub struct Engine {
     detail_fetched: Mutex<HashMap<ChangeRequestId, Instant>>,
     /// Hosts whose credential lookup failed, with when and why.
     auth_failed: Mutex<HashMap<ProviderKey, (Instant, String)>>,
+    /// Files per commit sha (commits never change).
+    commit_files: Mutex<HashMap<String, Vec<ChangedFile>>>,
 }
 
 /// Removes a refresh target from the in-flight set when dropped.
@@ -200,6 +202,7 @@ impl Engine {
             in_flight: Default::default(),
             detail_fetched: Default::default(),
             auth_failed: Default::default(),
+            commit_files: Default::default(),
         })
     }
 
@@ -863,6 +866,23 @@ impl Engine {
             .await?;
         self.store.put_files(id, &sha, &files)?;
         self.apply_totals(id, &files);
+        Ok(files)
+    }
+
+    /// Files changed by one commit of `id`, cached by sha.
+    pub async fn commit_files(&self, id: &ChangeRequestId, sha: &str) -> Result<Vec<ChangedFile>> {
+        if let Some(f) = self.commit_files.lock().unwrap().get(sha) {
+            return Ok(f.clone());
+        }
+        let files = self
+            .provider(id.repo.kind, &id.repo.host)
+            .await?
+            .commit_files(id, sha)
+            .await?;
+        self.commit_files
+            .lock()
+            .unwrap()
+            .insert(sha.to_string(), files.clone());
         Ok(files)
     }
 

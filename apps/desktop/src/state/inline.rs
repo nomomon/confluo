@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use gpui::{px, ListOffset};
-use gv_engine::{index_inline_threads, DiffPosition, DiffSide, InlineIndex};
+use gv_engine::{index_commit_threads, index_inline_threads, DiffPosition, DiffSide, InlineIndex};
 
 use super::code_rows::Row;
 use super::DetailState;
@@ -77,7 +77,14 @@ impl DetailState {
         let (Some(det), Some(files)) = (&self.detail, &self.code.files) else {
             return;
         };
-        self.code.inline.index = Arc::new(index_inline_threads(&det.threads, files));
+        let ix = match &self.code.commit {
+            Some(sha) => {
+                let is_head = det.commits.last().is_some_and(|c| &c.sha == sha);
+                index_commit_threads(&det.threads, files, sha, is_head)
+            }
+            None => index_inline_threads(&det.threads, files),
+        };
+        self.code.inline.index = Arc::new(ix);
         self.code.sync_rows();
         self.reveal_pending();
     }

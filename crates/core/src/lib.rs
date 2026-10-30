@@ -20,7 +20,7 @@ pub use bots::{glob, BotFilter, DEFAULT_BOT_AUTHORS, DEFAULT_BOT_BRANCHES};
 pub use checks::*;
 pub use diff::*;
 pub use edit::*;
-pub use inline::{index_inline_threads, InlineIndex, LineKey};
+pub use inline::{index_commit_threads, index_inline_threads, InlineIndex, LineKey};
 pub use model::*;
 pub use needs_you::compute_needs_you;
 pub use provider::{Provider, ProviderError, ProviderResult};

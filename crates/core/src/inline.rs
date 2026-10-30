@@ -58,6 +58,41 @@ pub fn index_inline_threads(threads: &[Thread], files: &[ChangedFile]) -> Inline
     ix
 }
 
+/// Place threads on one commit's diff (the Overview commit filter). Only threads that belong to
+/// that commit's lines show: when the commit is the head, current threads whose line is in its
+/// hunks; otherwise only threads made at that commit (`head_sha`). Nothing goes to "outdated".
+pub fn index_commit_threads(
+    threads: &[Thread],
+    files: &[ChangedFile],
+    sha: &str,
+    is_head: bool,
+) -> InlineIndex {
+    let mut ix = InlineIndex::default();
+    for (i, t) in threads.iter().enumerate() {
+        let Some(p) = &t.position else { continue };
+        let ours = if is_head {
+            !t.outdated
+        } else {
+            p.head_sha.as_deref() == Some(sha)
+        };
+        if !ours {
+            continue;
+        }
+        let Some(f) = files
+            .iter()
+            .find(|f| f.new_path == p.path || f.old_path == p.path)
+        else {
+            continue;
+        };
+        if has_line(f, p.side, p.line) {
+            let key = f.path().to_string();
+            *ix.counts.entry(key.clone()).or_default() += 1;
+            ix.by_line.entry((key, p.side, p.line)).or_default().push(i);
+        }
+    }
+    ix
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -91,5 +126,35 @@ mod tests {
         assert_eq!(ix.at("a.rs", DiffSide::Old, 2), &[1]);
         assert_eq!(ix.outdated["a.rs"], vec![2, 3]);
         assert_eq!(ix.count("a.rs"), 4);
+    }
+
+    #[test]
+    fn commit_filter_hides_threads_outside_the_commit() {
+        let f = ChangedFile::from_patch(
+            "a.rs",
+            "a.rs",
+            FileStatus::Modified,
+            "@@ -1,2 +1,2 @@\n ctx\n-old\n+new",
+        );
+        let at = |line: u32, sha: Option<&str>, outdated: bool| {
+            let mut t = thread("a.rs", DiffSide::New, line, outdated);
+            t.position.as_mut().unwrap().head_sha = sha.map(str::to_string);
+            t
+        };
+        let ts = vec![
+            at(2, None, false),                      // on the commit's line
+            at(40, None, false),                     // same file, line not in the commit
+            at(2, None, true),                       // outdated
+            thread("b.rs", DiffSide::New, 1, false), // file not in the commit
+            at(2, Some("c1"), false),                // made at commit c1
+        ];
+        let ix = index_commit_threads(&ts, std::slice::from_ref(&f), "c1", true);
+        assert_eq!(ix.at("a.rs", DiffSide::New, 2), &[0, 4]);
+        assert!(ix.outdated.is_empty());
+        assert_eq!(ix.count("a.rs"), 2);
+        // An older commit: line numbers of head threads do not apply; only threads made there.
+        let ix = index_commit_threads(&ts, &[f], "c1", false);
+        assert_eq!(ix.at("a.rs", DiffSide::New, 2), &[4]);
+        assert_eq!(ix.count("a.rs"), 1);
     }
 }

@@ -12,3 +12,4 @@ libfreetype-dev
 libasound2-dev
 libzstd-dev
 pkg-config
+libdbus-1-dev

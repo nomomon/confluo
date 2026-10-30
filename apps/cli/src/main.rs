@@ -4,6 +4,7 @@ use clap::{Args, Parser, Subcommand};
 use gv_engine::*;
 use std::path::PathBuf;
 
+mod auth;
 mod edit;
 
 #[derive(Parser)]
@@ -86,6 +87,9 @@ enum Cmd {
     Edit(edit::EditCmd),
     /// Show the authenticated user for each known host.
     Whoami,
+    /// Personal access tokens in the system keychain.
+    #[command(subcommand)]
+    Auth(auth::AuthCmd),
     /// Star or unstar a PR/MR.
     Star {
         target: String,
@@ -589,6 +593,7 @@ async fn main() -> Result<()> {
             println!("{} submitted on {}", act.label(), d.summary.id);
         }
         Cmd::Edit(c) => edit::run(&engine, c).await?,
+        Cmd::Auth(c) => auth::run(&engine, c).await?,
         Cmd::Whoami => {
             for (k, h) in engine.known_hosts() {
                 match engine.whoami(k, &h).await {

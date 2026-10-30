@@ -1,5 +1,13 @@
-//! Credential lookup: env var override, then the provider CLI (gh / glab / az),
-//! then glab's config file as a fallback.
+//! Credential lookup per host: env var override, then a token in the system keychain, then
+//! the provider CLI (gh / glab / az), then glab's config file as a fallback.
+
+mod account;
+mod credential;
+mod store;
+
+pub use account::{parse_provider, provider_name, Account};
+pub use credential::{header, Credential, CredentialKind, TokenOrigin};
+pub use store::{SecretBackend, TokenStore, SERVICE};
 
 use gv_core::ProviderKind;
 use std::path::PathBuf;
@@ -13,31 +21,6 @@ pub enum AuthError {
         host: String,
         hint: String,
     },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TokenOrigin {
-    Env,
-    Cli,
-    ConfigFile,
-}
-
-#[derive(Clone)]
-pub struct Credential {
-    pub token: String,
-    pub origin: TokenOrigin,
-    /// GitLab OAuth tokens (from glab) use `Authorization: Bearer`, PATs use `PRIVATE-TOKEN`.
-    /// Bearer works for both on GitLab, so providers can always send Bearer.
-    pub kind: ProviderKind,
-}
-
-impl std::fmt::Debug for Credential {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Credential")
-            .field("origin", &self.origin)
-            .field("kind", &self.kind)
-            .finish()
-    }
 }
 
 /// Env vars checked, in order. A host-specific var wins, e.g. `GV_TOKEN_GITLAB_COM`.
@@ -65,72 +48,77 @@ pub fn env_vars(kind: ProviderKind, host: &str) -> Vec<String> {
     v
 }
 
+/// The env and keychain steps of the lookup (no process spawned). For an Azure org the
+/// org's own token wins over a host-wide one.
+pub fn lookup_static(
+    account: &Account,
+    env: impl Fn(&str) -> Option<String>,
+    store: &TokenStore,
+) -> Option<Credential> {
+    let kind = account.kind;
+    if let Some(t) = env_vars(kind, &account.host)
+        .iter()
+        .filter_map(|v| env(v))
+        .find(|t| !t.trim().is_empty())
+    {
+        return Some(Credential::new(kind, TokenOrigin::Env, &t));
+    }
+    let host_wide = Account::new(kind, &account.host, None);
+    [account.clone(), host_wide]
+        .iter()
+        .find_map(|a| store.get(a))
+        .map(|t| Credential::new(kind, TokenOrigin::Keychain, &t))
+}
+
 const AZURE_DEVOPS_RESOURCE: &str = "499b84ac-1321-427f-aa17-267ca6b1a4fa";
 
 #[derive(Debug, Default, Clone)]
-pub struct CredentialSource;
+pub struct CredentialSource {
+    store: TokenStore,
+}
 
 impl CredentialSource {
+    /// Backed by the system keychain.
     pub fn new() -> Self {
-        Self
+        Self::default()
+    }
+
+    pub fn with_store(store: TokenStore) -> Self {
+        Self { store }
+    }
+
+    pub fn store(&self) -> &TokenStore {
+        &self.store
     }
 
     pub async fn get(&self, kind: ProviderKind, host: &str) -> Result<Credential, AuthError> {
-        for var in env_vars(kind, host) {
-            if let Ok(t) = std::env::var(&var) {
-                if !t.trim().is_empty() {
-                    return Ok(Credential {
-                        token: t.trim().to_string(),
-                        origin: TokenOrigin::Env,
-                        kind,
-                    });
-                }
-            }
+        self.get_for(&Account::new(kind, host, None)).await
+    }
+
+    /// Lookup for an account (an Azure org included): env, keychain, CLI, glab config.
+    pub async fn get_for(&self, account: &Account) -> Result<Credential, AuthError> {
+        let (kind, host) = (account.kind, account.host.as_str());
+        if let Some(c) = lookup_static(account, |v| std::env::var(v).ok(), &self.store) {
+            return Ok(c);
         }
-        let cli = match kind {
-            ProviderKind::GitHub => run("gh", &["auth", "token", "--hostname", host]).await,
-            ProviderKind::GitLab => run("glab", &["config", "get", "token", "--host", host]).await,
-            ProviderKind::Azure => {
-                run(
-                    "az",
-                    &[
-                        "account",
-                        "get-access-token",
-                        "--resource",
-                        AZURE_DEVOPS_RESOURCE,
-                        "--query",
-                        "accessToken",
-                        "-o",
-                        "tsv",
-                    ],
-                )
-                .await
-            }
-        };
-        if let Some(t) = cli {
-            return Ok(Credential {
-                token: t,
-                origin: TokenOrigin::Cli,
-                kind,
-            });
+        if let Some(t) = cli_token(kind, host).await {
+            return Ok(Credential::new(kind, TokenOrigin::Cli, &t));
         }
         if kind == ProviderKind::GitLab {
             if let Some(t) = glab_config_token(host) {
-                return Ok(Credential {
-                    token: t,
-                    origin: TokenOrigin::ConfigFile,
-                    kind,
-                });
+                return Ok(Credential::new(kind, TokenOrigin::ConfigFile, &t));
             }
         }
         let hint = match kind {
             ProviderKind::GitHub => {
-                format!("run `gh auth login --hostname {host}` or set GH_TOKEN")
+                format!("run `gh auth login --hostname {host}`, set GH_TOKEN or `gv auth set github:{host}`")
             }
             ProviderKind::GitLab => {
-                format!("run `glab auth login --hostname {host}` or set GITLAB_TOKEN")
+                format!("run `glab auth login --hostname {host}`, set GITLAB_TOKEN or `gv auth set gitlab:{host}`")
             }
-            ProviderKind::Azure => "run `az login` or set AZURE_DEVOPS_EXT_PAT".into(),
+            ProviderKind::Azure => {
+                "run `az login`, set AZURE_DEVOPS_EXT_PAT or `gv auth set azure:dev.azure.com/<org>`".into()
+            }
         };
         Err(AuthError::Missing {
             kind,
@@ -139,11 +127,55 @@ impl CredentialSource {
         })
     }
 
+    /// Per-organization keychain tokens of an Azure DevOps host (env overrides them all).
+    pub fn org_tokens(&self, kind: ProviderKind, host: &str) -> Vec<(String, Credential)> {
+        if env_vars(kind, host)
+            .iter()
+            .any(|v| std::env::var(v).is_ok_and(|t| !t.trim().is_empty()))
+        {
+            return vec![];
+        }
+        let host = host.to_ascii_lowercase();
+        self.store
+            .accounts()
+            .into_iter()
+            .filter(|a| a.kind == kind && a.host == host)
+            .filter_map(|a| {
+                let org = a.org.clone()?;
+                let t = self.store.get(&a)?;
+                Some((org, Credential::new(kind, TokenOrigin::Keychain, &t)))
+            })
+            .collect()
+    }
+
     /// glab refreshes expired OAuth tokens when it makes an API call. Trigger that,
     /// then read the token again. Used by the GitLab provider after a 401.
     pub async fn refresh_gitlab(&self, host: &str) -> Result<Credential, AuthError> {
         let _ = run("glab", &["api", "--hostname", host, "user"]).await;
         self.get(ProviderKind::GitLab, host).await
+    }
+}
+
+async fn cli_token(kind: ProviderKind, host: &str) -> Option<String> {
+    match kind {
+        ProviderKind::GitHub => run("gh", &["auth", "token", "--hostname", host]).await,
+        ProviderKind::GitLab => run("glab", &["config", "get", "token", "--host", host]).await,
+        ProviderKind::Azure => {
+            run(
+                "az",
+                &[
+                    "account",
+                    "get-access-token",
+                    "--resource",
+                    AZURE_DEVOPS_RESOURCE,
+                    "--query",
+                    "accessToken",
+                    "-o",
+                    "tsv",
+                ],
+            )
+            .await
+        }
     }
 }
 
@@ -288,6 +320,33 @@ mod tests {
                 ("git.example.org".into(), Some("def".into()))
             ]
         );
+    }
+
+    #[test]
+    fn lookup_order_env_then_org_then_host() {
+        let store = TokenStore::memory();
+        let org = Account::new(ProviderKind::Azure, "dev.azure.com", Some("o"));
+        let host = Account::new(ProviderKind::Azure, "dev.azure.com", None);
+        let no_env = |_: &str| None;
+        assert!(lookup_static(&org, no_env, &store).is_none());
+        store.set(&host, "hostpat").unwrap();
+        assert_eq!(
+            lookup_static(&org, no_env, &store).unwrap().token,
+            "hostpat"
+        );
+        store.set(&org, "orgpat").unwrap();
+        let c = lookup_static(&org, no_env, &store).unwrap();
+        assert_eq!(
+            (c.token.as_str(), c.origin),
+            ("orgpat", TokenOrigin::Keychain)
+        );
+        assert_eq!(c.scheme, CredentialKind::Basic);
+        let env = |v: &str| (v == "AZURE_DEVOPS_EXT_PAT").then(|| "envpat".to_string());
+        let c = lookup_static(&org, env, &store).unwrap();
+        assert_eq!((c.token.as_str(), c.origin), ("envpat", TokenOrigin::Env));
+        // A blank env var does not hide the keychain.
+        let blank = |_: &str| Some(" ".to_string());
+        assert_eq!(lookup_static(&org, blank, &store).unwrap().token, "orgpat");
     }
 
     #[test]

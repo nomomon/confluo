@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures_util::stream::{self, StreamExt};
-use gv_auth::{Credential, CredentialSource, TokenOrigin};
+use gv_auth::{Credential, CredentialKind, CredentialSource};
 use gv_core::*;
 use serde_json::{json, Value};
 use tokio::sync::{OnceCell, RwLock};
@@ -23,6 +23,8 @@ pub struct GitLabProvider {
     host: String,
     api: String,
     token: RwLock<String>,
+    /// Bearer for glab OAuth tokens, PRIVATE-TOKEN for keychain PATs.
+    scheme: CredentialKind,
     refreshable: bool,
     creds: CredentialSource,
     http: reqwest::Client,
@@ -207,7 +209,8 @@ impl GitLabProvider {
         Self {
             api: format!("https://{host}/api/v4"),
             host,
-            refreshable: cred.origin != TokenOrigin::Env,
+            refreshable: cred.refreshable(),
+            scheme: cred.scheme,
             token: RwLock::new(cred.token),
             creds: CredentialSource::new(),
             http: reqwest::Client::builder()
@@ -233,7 +236,8 @@ impl GitLabProvider {
         };
         for attempt in 0..2 {
             let token = self.token.read().await.clone();
-            let mut req = self.http.request(method.clone(), &url).bearer_auth(token);
+            let (name, value) = gv_auth::header(self.scheme, &token);
+            let mut req = self.http.request(method.clone(), &url).header(name, value);
             if let Some(b) = body {
                 req = req.json(b);
             }
@@ -410,10 +414,11 @@ impl GitLabProvider {
     /// GET returning raw text; None on 404.
     async fn get_text(&self, path: &str) -> ProviderResult<Option<String>> {
         let token = self.token.read().await.clone();
+        let (name, value) = gv_auth::header(self.scheme, &token);
         let resp = gv_http::send(
             self.http
                 .get(format!("{}{}", self.api, path))
-                .bearer_auth(token),
+                .header(name, value),
         )
         .await?;
         let (status, text) = (resp.status, resp.text());

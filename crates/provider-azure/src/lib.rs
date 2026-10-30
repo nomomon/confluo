@@ -1,18 +1,18 @@
 //! Azure DevOps (Azure Repos pull requests) over REST api-version 7.1.
 //!
 //! Repos are `org/project/repo` on host `dev.azure.com`. Auth is a Bearer token from
-//! `az account get-access-token` or a PAT (`AZURE_DEVOPS_EXT_PAT`, sent as Basic).
+//! `az account get-access-token` or a PAT (env or keychain, per organization, sent as Basic).
 
 use async_trait::async_trait;
-use base64::Engine as _;
 use futures_util::stream::{self, StreamExt};
-use gv_auth::{Credential, CredentialSource, TokenOrigin};
+use gv_auth::{Credential, CredentialSource};
 use gv_core::*;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use tokio::sync::{OnceCell, RwLock};
 
+mod auth;
 mod checks;
 mod commit_diff;
 mod diff;
@@ -30,10 +30,10 @@ const MAX_PAGES: usize = 5;
 
 pub struct AzureProvider {
     host: String,
-    token: RwLock<String>,
-    /// PATs go as Basic, az tokens (JWTs) as Bearer.
-    basic: bool,
-    refreshable: bool,
+    /// The host-wide credential (az token, env PAT or host keychain PAT).
+    cred: RwLock<Credential>,
+    /// Keychain PATs per organization (lowercase), used for URLs under that org.
+    org_creds: HashMap<String, Credential>,
     creds: CredentialSource,
     http: reqwest::Client,
     me: OnceCell<User>,
@@ -49,25 +49,12 @@ fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
-/// Whether a token is used as Basic (PAT) rather than Bearer (JWT from az).
-fn is_pat(token: &str, origin: TokenOrigin) -> bool {
-    origin == TokenOrigin::Env && !token.starts_with("eyJ")
-}
-
-fn basic_header(pat: &str) -> String {
-    format!(
-        "Basic {}",
-        base64::engine::general_purpose::STANDARD.encode(format!(":{pat}"))
-    )
-}
-
 impl AzureProvider {
     pub fn new(host: &str, cred: Credential) -> Self {
         Self {
             host: host.to_ascii_lowercase(),
-            basic: is_pat(&cred.token, cred.origin),
-            refreshable: cred.origin == TokenOrigin::Cli,
-            token: RwLock::new(cred.token),
+            cred: RwLock::new(cred),
+            org_creds: HashMap::new(),
             creds: CredentialSource::new(),
             http: reqwest::Client::builder()
                 .user_agent("git-viewer")
@@ -80,15 +67,6 @@ impl AzureProvider {
         }
     }
 
-    async fn auth(&self) -> String {
-        let t = self.token.read().await.clone();
-        if self.basic {
-            basic_header(&t)
-        } else {
-            format!("Bearer {t}")
-        }
-    }
-
     /// Send a request; on 401 ask `az` for a fresh token once. Returns the raw response.
     async fn send(
         &self,
@@ -97,18 +75,20 @@ impl AzureProvider {
         body: Option<&Value>,
     ) -> ProviderResult<gv_http::Resp> {
         for attempt in 0..2 {
+            let (cred, org_scoped) = self.cred_for(url).await;
+            let (name, value) = cred.header();
             let mut req = self
                 .http
                 .request(method.clone(), url)
-                .header("Authorization", self.auth().await)
+                .header(name, value)
                 .header("Accept", "application/json");
             if let Some(b) = body {
                 req = req.json(b);
             }
             let resp = gv_http::send(req).await?;
-            if resp.status == 401 && attempt == 0 && self.refreshable {
+            if resp.status == 401 && attempt == 0 && !org_scoped && cred.refreshable() {
                 if let Ok(c) = self.creds.get(ProviderKind::Azure, &self.host).await {
-                    *self.token.write().await = c.token;
+                    *self.cred.write().await = c;
                     continue;
                 }
             }

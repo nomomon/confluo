@@ -18,11 +18,13 @@ mod edit;
 mod extras;
 mod quiet;
 mod review;
+mod tokens;
 
 pub use avatars::small_avatar_url;
 pub use bot_settings::{bot_filter_from_settings, stale_days_from_settings};
 pub use demo::demo_mode;
 pub use extras::viewed_paths;
+pub use gv_auth::{parse_provider, provider_name, Account, TokenOrigin};
 pub use gv_core::*;
 pub use gv_store::{Project, RepoOverride, Source};
 pub use quiet::Listing;
@@ -195,7 +197,11 @@ impl Engine {
     fn open_with(db: &Path, gitlab_hosts: Vec<String>) -> Result<Self> {
         Ok(Self {
             store: Store::open(db).with_context(|| format!("opening {}", db.display()))?,
-            creds: CredentialSource::new(),
+            creds: CredentialSource::with_store(if cfg!(test) || demo_mode() {
+                gv_auth::TokenStore::memory()
+            } else {
+                gv_auth::TokenStore::keychain()
+            }),
             providers: Default::default(),
             gitlab_hosts,
             me_cache: Default::default(),
@@ -240,8 +246,15 @@ impl Engine {
                 bail!("{msg}");
             }
         }
+        let org_creds = if kind == ProviderKind::Azure {
+            self.creds.org_tokens(kind, host)
+        } else {
+            vec![]
+        };
         let cred = match self.creds.get(kind, host).await {
             Ok(c) => c,
+            // Only per-organization PATs: the first one also serves org-less calls.
+            Err(_) if !org_creds.is_empty() => org_creds[0].1.clone(),
             Err(e) => {
                 self.auth_failed
                     .lock()
@@ -259,7 +272,9 @@ impl Engine {
                 Arc::new(gv_provider_github::GitHubProvider::new(host, cred.token))
             }
             ProviderKind::GitLab => Arc::new(gv_provider_gitlab::GitLabProvider::new(host, cred)),
-            ProviderKind::Azure => Arc::new(gv_provider_azure::AzureProvider::new(host, cred)),
+            ProviderKind::Azure => Arc::new(
+                gv_provider_azure::AzureProvider::new(host, cred).with_org_creds(org_creds),
+            ),
         };
         if kind == ProviderKind::Azure {
             p.set_namespaces(self.azure_orgs());
@@ -286,6 +301,15 @@ impl Engine {
                 if r.kind == ProviderKind::Azure {
                     orgs.extend(r.path.split('/').next().map(str::to_string));
                 }
+            }
+        }
+        for a in self.creds.store().accounts() {
+            if a.kind == ProviderKind::Azure
+                && !orgs
+                    .iter()
+                    .any(|o| o.eq_ignore_ascii_case(a.org.as_deref().unwrap_or("")))
+            {
+                orgs.extend(a.org);
             }
         }
         orgs.into_iter().filter(|o| !o.is_empty()).collect()
@@ -335,6 +359,9 @@ impl Engine {
                     set.insert((r.kind, r.host));
                 }
             }
+        }
+        for a in self.creds.store().accounts() {
+            set.insert((a.kind, a.host));
         }
         set.into_iter().collect()
     }

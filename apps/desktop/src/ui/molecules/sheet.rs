@@ -95,6 +95,6 @@ impl RenderOnce for Sheet {
                 f(w, cx)
             }
         });
-        div().absolute().top_0().left_0().size_full().child(motion::fade_in(scrim, "sheet-scrim")).child(motion::slide_in_right(panel, "sheet-slide", self.width))
+        div().absolute().top_0().left_0().size_full().child(motion::fade_in(scrim, "sheet-scrim")).child(motion::slide_in_from_edge(panel, "sheet-slide", self.width))
     }
 }

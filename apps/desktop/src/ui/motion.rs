@@ -114,6 +114,12 @@ pub fn slide_in_right<E: IntoElement + Styled + 'static>(el: E, id: impl Into<El
     animate(el.relative(), id, PANEL, move |el, t| el.left(distance * (1. - t)).opacity(t))
 }
 
+/// Slide an element pinned to the right edge (`absolute().right_0()`) in from off-screen, plus fade.
+/// Keeps its absolute position, unlike `slide_in_right`, which is for elements in the flow.
+pub fn slide_in_from_edge<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId>, distance: Pixels) -> AnyElement {
+    animate(el, id, PANEL, move |el, t| el.right(-distance * (1. - t)).opacity(t))
+}
+
 /// Small rise plus fade for dialogs and popovers (`FADE` timing, quint ease).
 pub fn pop_in<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId>) -> AnyElement {
     let m = Motion { easing: Easing::EaseOutQuint, ..FADE };

@@ -70,7 +70,7 @@ pub fn lookup_static(
         .map(|t| Credential::new(kind, TokenOrigin::Keychain, &t))
 }
 
-const AZURE_DEVOPS_RESOURCE: &str = "499b84ac-1321-427f-aa17-267ca6b1a4fa";
+const AZURE_DEVOPS_RESOURCE: &str = "499b84ac-1321-427f-aa17-267ca6975798";
 
 #[derive(Debug, Default, Clone)]
 pub struct CredentialSource {
@@ -347,6 +347,12 @@ mod tests {
         // A blank env var does not hide the keychain.
         let blank = |_: &str| Some(" ".to_string());
         assert_eq!(lookup_static(&org, blank, &store).unwrap().token, "orgpat");
+    }
+
+    #[test]
+    fn azure_devops_resource_id() {
+        // The Azure DevOps application id; a wrong one makes `az` fail or mint unusable tokens.
+        assert_eq!(AZURE_DEVOPS_RESOURCE, "499b84ac-1321-427f-aa17-267ca6975798");
     }
 
     #[test]

@@ -34,6 +34,12 @@ impl Engine {
         for (name, kind, host, group) in gv_demo::PROJECTS {
             engine.add_source(name, Source::Group { provider: *kind, host: (*host).into(), path: (*group).into() })?;
         }
+        // Seed the cache so the first frame (and dev hooks such as `CONFLUO_OPEN`) see the PRs.
+        engine.store.upsert_change_requests(&gv_demo::change_requests())?;
+        for host in [gv_demo::GITHUB, gv_demo::GITLAB] {
+            let kind = if host == gv_demo::GITHUB { crate::ProviderKind::GitHub } else { crate::ProviderKind::GitLab };
+            engine.remember_me(kind, host, gv_demo::ME);
+        }
         Ok(engine)
     }
 }

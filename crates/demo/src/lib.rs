@@ -14,7 +14,7 @@ use gv_core::*;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-pub use catalog::{GITHUB, GITLAB};
+pub use catalog::{all as change_requests, GITHUB, GITLAB};
 pub use people::ME;
 
 /// Projects created in a fresh demo cache: (name, kind, host, group).

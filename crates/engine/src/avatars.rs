@@ -45,6 +45,10 @@ impl crate::Engine {
     /// Avatar bytes for `url`: from the disk cache when fresh, else fetched (small size) through
     /// the host governor and cached. `None` on failure; failures are remembered for a day.
     pub async fn avatar(&self, url: &str) -> Option<Vec<u8>> {
+        // Demo mode never touches the network (avatar URLs are derived from invented usernames).
+        if crate::demo_mode() {
+            return None;
+        }
         let d = dir();
         let name = format!("{:016x}", fnv(url));
         let (img, miss) = (d.join(&name), d.join(format!("{name}.miss")));

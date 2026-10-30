@@ -107,6 +107,10 @@ impl GitViewer {
             return;
         }
         self.preview_hidden = !self.preview_hidden;
+        if self.preview_hidden {
+            // Selected means previewed: hiding the preview clears the highlight.
+            self.cursor = None;
+        }
         if !self.preview_hidden && self.detail.is_none() {
             if let Some(c) = self
                 .nav

@@ -174,9 +174,7 @@ impl GitViewer {
         let current = if self.reviewing {
             self.detail.as_ref().map(|d| d.summary.id.clone())
         } else {
-            self.cursor
-                .clone()
-                .or_else(|| self.detail.as_ref().map(|d| d.summary.id.clone()))
+            self.previewed().cloned()
         };
         let step = if by_section {
             adjacent_section(&sections, current.as_ref(), delta)

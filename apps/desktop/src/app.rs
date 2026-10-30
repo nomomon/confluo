@@ -448,7 +448,6 @@ impl GitViewer {
                 .filter(|id| this.projects.iter().any(|p| p.id == *id));
         }
         this.apply_dev_view();
-        this.cursor = this.restored_cursor();
         this.refreshed_at = this
             .engine
             .last_refreshed(&gv_engine::RefreshTarget::InvolvingMe);

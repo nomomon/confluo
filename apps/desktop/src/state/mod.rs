@@ -77,7 +77,7 @@ pub use pr_edit::{EditUi, LogState};
 pub use quiet::QuietState;
 pub use repo_menu::RepoMenu;
 pub use review_mode::{Pane, ReviewUi, RightTab};
-pub use selection::reveal;
+pub use selection::{reveal, step_selection};
 pub use sources::SourceKind;
 pub use swipe_nav::SwipeUi;
 

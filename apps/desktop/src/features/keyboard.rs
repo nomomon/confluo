@@ -142,21 +142,16 @@ impl GitViewer {
         if order.is_empty() {
             return;
         }
-        let current = self
-            .cursor
-            .clone()
-            .or_else(|| self.detail.as_ref().map(|d| d.summary.id.clone()));
-        let next = match current.and_then(|id| order.iter().position(|x| *x == id)) {
-            Some(i) => (i as isize + delta).clamp(0, order.len() as isize - 1) as usize,
-            None if delta > 0 => 0,
-            None => order.len() - 1,
-        };
+        let at = self
+            .previewed()
+            .and_then(|id| order.iter().position(|x| x == id));
+        let next = crate::state::step_selection(at, delta, order.len());
         self.set_cursor(order[next].clone(), cx);
         self.reveal_cursor.set(true);
-        if !self.preview_hidden {
-            if let Some(c) = self.cursor_item(cx) {
-                self.open_detail(c, cx);
-            }
+        // The keyboard highlight is the preview: moving it opens that PR.
+        self.preview_hidden = false;
+        if let Some(c) = self.cursor_item(cx) {
+            self.open_detail(c, cx);
         }
         cx.notify();
     }

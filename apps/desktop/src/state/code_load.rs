@@ -16,8 +16,11 @@ impl GitViewer {
         }
         let id = d.summary.id.clone();
         if d.code.files.is_none() {
-            if let Some(f) = self.code_cache.get(&id) {
-                d.code.set_files(f.clone());
+            // Memory first, then the disk cache, so a reopened Code tab paints at once and revalidates quietly.
+            let cached = self.code_cache.get(&id).cloned().or_else(|| self.engine.cached_changed_files(&id).map(Arc::new));
+            if let Some(f) = cached {
+                self.code_cache.insert(id.clone(), f.clone());
+                d.code.set_files(f);
                 d.reindex();
             }
         }

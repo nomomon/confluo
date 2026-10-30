@@ -34,10 +34,11 @@ impl GitViewer {
     pub(super) fn comment_toolbar(
         &self,
         t: &CommentTarget,
-        group: SharedString,
         cx: &mut Context<Self>,
     ) -> Option<gpui::AnyElement> {
-        let mine_open = matches!(&self.layer, Some(Layer::CommentMenu(id)) | Some(Layer::Reactions(id)) if *id == t.id)
+        let tag = t.key.tag();
+        let mine_open = matches!(&self.layer, Some(Layer::CommentMenu(k)) if *k == t.key)
+            || matches!(&self.layer, Some(Layer::Reactions(k)) if *k == tag)
             || crate::dev::hover_comment().is_some_and(|h| h == t.id);
         if self.layer_open() && !mine_open {
             // A right-click menu of this comment still renders (at the pointer).
@@ -69,7 +70,7 @@ impl GitViewer {
                 let id = t.id.clone();
                 bar = bar.child(
                     div()
-                        .id(SharedString::from(format!("tb-rx-{}-{k:?}", t.id)))
+                        .id(SharedString::from(format!("tb-rx-{tag}-{k:?}")))
                         .flex()
                         .items_center()
                         .justify_center()
@@ -85,13 +86,13 @@ impl GitViewer {
                         .child(k.emoji()),
                 );
             }
-            bar = bar.child(self.add_reaction_button(&t.id, cx));
+            bar = bar.child(self.add_reaction_button(&t.key, cx));
         }
         for a in TOOLBAR {
             if a.available(&t.facts) {
                 let t2 = t.clone();
                 bar = bar.child(
-                    act(format!("tb-{a:?}-{}", t.id), a.icon(), a.label()).on_click(cx.listener(
+                    act(format!("tb-{a:?}-{tag}"), a.icon(), a.label()).on_click(cx.listener(
                         move |this, _: &ClickEvent, window, cx| {
                             this.run_comment_action(a, &t2, window, cx)
                         },
@@ -99,25 +100,32 @@ impl GitViewer {
                 );
             }
         }
-        let toggle = t.id.clone();
-        let more = act(format!("tb-more-{}", t.id), IconName::Ellipsis, "More").on_click(
-            cx.listener(move |this, _: &ClickEvent, _, cx| {
+        let toggle = t.key.clone();
+        let more = act(format!("tb-more-{tag}"), IconName::Ellipsis, "More").on_click(cx.listener(
+            move |this, _: &ClickEvent, _, cx| {
                 this.toggle_layer(Layer::CommentMenu(toggle.clone()), cx)
-            }),
-        );
+            },
+        ));
         bar = bar.child(
             div()
                 .relative()
                 .child(more)
                 .children(self.comment_menu(t, cx)),
         );
+        // The toolbar is part of the row's hover region (`state::comment_hover`): it stays up while
+        // the pointer crosses from the row onto it, and for a short grace after leaving both.
+        let shown = self.comment_hover.visible(&t.key, mine_open);
+        let hk = t.key.clone();
         Some(
             div()
+                .id(SharedString::from(format!("tb-{tag}")))
                 .absolute()
                 .top(-theme::space_7())
                 .right(theme::space_2())
-                .opacity(if mine_open { 1. } else { 0. })
-                .group_hover(group, |s| s.opacity(1.))
+                .opacity(if shown { 1. } else { 0. })
+                .on_hover(
+                    cx.listener(move |this, h: &bool, _, cx| this.hover_comment_bar(&hk, *h, cx)),
+                )
                 .child(bar)
                 .into_any_element(),
         )

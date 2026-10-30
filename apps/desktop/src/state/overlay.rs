@@ -21,12 +21,12 @@ pub enum Layer {
     ProjectAt(i64, gpui::Point<gpui::Pixels>),
     /// The checks popover of the CI icon.
     Checks,
-    /// The reaction picker of the PR (`""`) or of a comment (its id).
+    /// The reaction picker of the PR (`""`) or of a comment (`CommentKey::tag`).
     Reactions(String),
-    /// The More menu of a comment (its id).
-    CommentMenu(String),
+    /// The More menu of a comment on one surface.
+    CommentMenu(super::CommentKey),
     /// A comment's context menu at the pointer.
-    CommentMenuAt(String, gpui::Point<gpui::Pixels>),
+    CommentMenuAt(super::CommentKey, gpui::Point<gpui::Pixels>),
     /// A file tree item's context menu at the pointer (file index).
     FileAt(usize, gpui::Point<gpui::Pixels>),
     /// The diff lines' context menu at the pointer (acts on the selection).

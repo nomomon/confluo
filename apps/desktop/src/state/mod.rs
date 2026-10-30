@@ -11,6 +11,8 @@ pub mod cmd_ctx;
 mod code;
 mod code_load;
 pub mod code_rows;
+pub mod comment_hover;
+pub mod comment_key;
 mod comments;
 pub mod commit_filter;
 mod connection;
@@ -59,6 +61,7 @@ pub(crate) use update::UpdateState;
 
 pub use attention::{attention, ThreadFilter};
 pub use code::CodeState;
+pub use comment_key::{CommentKey, Surface};
 pub use connection::{auth_command, host_avatar_url, sign_in_hint, HostStatus};
 pub use detail::{DetailState, DetailTab};
 pub use feedback::Copied;

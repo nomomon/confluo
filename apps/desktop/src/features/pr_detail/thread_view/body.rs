@@ -58,6 +58,7 @@ impl GitViewer {
                     .px(theme::space_3())
                     .py(theme::space_2p5())
                     .child(self.inline_field("Save", cx))
+                    .into_any_element()
             } else {
                 let ctx = CommentCtx {
                     place,
@@ -67,7 +68,7 @@ impl GitViewer {
                     pos: t.position.clone(),
                     resolved_line: if i == 0 { resolved_line.clone() } else { None },
                 };
-                self.comment_row(cm, d, ctx, cx)
+                self.comment_row(cm, d, ctx, cx).into_any_element()
             };
             c = c.child(if i == 0 && first {
                 div().child(row)

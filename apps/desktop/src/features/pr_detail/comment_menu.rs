@@ -32,7 +32,7 @@ impl GitViewer {
             let emoji = ReactionKind::for_provider(kind).iter().copied().map(|k| {
                 let id = t.id.clone();
                 div()
-                    .id(SharedString::from(format!("cm-rx-{}-{k:?}", t.id)))
+                    .id(SharedString::from(format!("cm-rx-{}-{k:?}", t.key.tag())))
                     .flex()
                     .items_center()
                     .justify_center()
@@ -68,9 +68,11 @@ impl GitViewer {
             }
             for a in group {
                 let t2 = t.clone();
-                let mut item =
-                    MenuItem::new(SharedString::from(format!("cm-{a:?}-{}", t.id)), a.label())
-                        .icon(a.icon());
+                let mut item = MenuItem::new(
+                    SharedString::from(format!("cm-{a:?}-{}", t.key.tag())),
+                    a.label(),
+                )
+                .icon(a.icon());
                 if a.destructive() {
                     item = item.destructive();
                 }
@@ -93,22 +95,25 @@ impl GitViewer {
     ) -> Option<AnyElement> {
         let dismiss = cx.listener(|this, _: &MouseDownEvent, _, cx| this.dismiss_layer(cx));
         match &self.layer {
-            Some(Layer::CommentMenu(id)) if *id == t.id => {
+            Some(Layer::CommentMenu(k)) if *k == t.key => {
                 let items = self.comment_menu_items(t, false, cx);
                 Some(
-                    DropdownMenu::new(SharedString::from(format!("comment-menu-{}", t.id)))
+                    DropdownMenu::new(SharedString::from(format!("comment-menu-{}", t.key.tag())))
                         .on_dismiss(dismiss)
                         .children(items)
                         .into_any_element(),
                 )
             }
-            Some(Layer::CommentMenuAt(id, at)) if *id == t.id => {
+            Some(Layer::CommentMenuAt(k, at)) if *k == t.key => {
                 let items = self.comment_menu_items(t, true, cx);
                 Some(
-                    ContextMenu::new(SharedString::from(format!("comment-ctx-{}", t.id)), *at)
-                        .on_dismiss(dismiss)
-                        .children(items)
-                        .into_any_element(),
+                    ContextMenu::new(
+                        SharedString::from(format!("comment-ctx-{}", t.key.tag())),
+                        *at,
+                    )
+                    .on_dismiss(dismiss)
+                    .children(items)
+                    .into_any_element(),
                 )
             }
             _ => None,

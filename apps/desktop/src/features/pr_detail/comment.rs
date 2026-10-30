@@ -4,7 +4,7 @@
 //! no layout shift): recent reactions, add reaction, Reply, Resolve and More (only what the toolbar
 //! lacks); right-click opens the full menu at the pointer. Actions come from `comment_actions`.
 
-use gpui::{div, prelude::*, Context, Div, MouseButton, MouseDownEvent, SharedString};
+use gpui::{div, prelude::*, Context, Div, MouseButton, MouseDownEvent, SharedString, Stateful};
 use gv_engine::{Comment, DiffPosition, ProviderKind};
 
 use super::comment_actions::CommentFacts;
@@ -13,18 +13,12 @@ use super::comment_run::CommentTarget;
 use super::thread_view::display_name;
 use crate::app::{GitViewer, Layer};
 use crate::features::shared::relative_time;
-use crate::state::DetailState;
+use crate::state::{CommentKey, DetailState};
 use crate::ui::atoms::{tooltip, Avatar, Badge, BadgeVariant, Icon, IconName};
 use crate::ui::theme;
 
-/// Where the comment is shown; decides where Reply and Edit type.
-#[derive(Clone, Copy, PartialEq)]
-pub(super) enum Place {
-    /// Conversation tab: the pinned composer.
-    Activity,
-    /// Code tab: the inline field under the thread.
-    Code,
-}
+/// Where the comment is shown; decides where Reply and Edit type and keys its transient UI.
+pub(super) use crate::state::Surface as Place;
 
 /// What the actions act on.
 pub(super) struct CommentCtx {
@@ -53,6 +47,11 @@ pub(super) fn roles(c: &Comment, pr_author: &str) -> Vec<&'static str> {
     out
 }
 
+/// Own comment: Edit and Delete are offered only then. Decided per rendered comment (the anchor).
+pub(super) fn is_mine(c: &Comment, me: Option<&str>) -> bool {
+    me.is_some_and(|m| m.eq_ignore_ascii_case(&c.author.username))
+}
+
 impl GitViewer {
     pub(super) fn comment_row(
         &self,
@@ -60,13 +59,11 @@ impl GitViewer {
         d: &DetailState,
         ctx: CommentCtx,
         cx: &mut Context<Self>,
-    ) -> Div {
+    ) -> Stateful<Div> {
         let pending = c.id == "pending";
-        let mine = !pending
-            && d.me
-                .as_deref()
-                .is_some_and(|m| m.eq_ignore_ascii_case(&c.author.username));
-        let group: SharedString = format!("comment-{}", c.id).into();
+        let mine = !pending && is_mine(c, d.me.as_deref());
+        let key = CommentKey::new(ctx.place, c.id.clone());
+        let group: SharedString = format!("comment-{}", key.tag()).into();
         let when = if pending {
             "posting...".to_string()
         } else {
@@ -92,6 +89,7 @@ impl GitViewer {
             in_conversation: ctx.place == Place::Activity,
         };
         let t = CommentTarget {
+            key: key.clone(),
             id: c.id.clone(),
             body: c.body.clone(),
             thread: ctx.thread.clone(),
@@ -148,8 +146,10 @@ impl GitViewer {
         });
         let body = self.comment_body(c, ctx.pos.as_ref(), d, cx);
         let reactions = self.reactions_bar(Some(&c.id), &c.reactions, group.clone(), can_react, cx);
-        let rt = t.id.clone();
+        let rt = t.key.clone();
+        let hk = key.clone();
         div()
+            .id(SharedString::from(format!("row-{}", key.tag())))
             .group(group.clone())
             .relative()
             .flex()
@@ -158,6 +158,7 @@ impl GitViewer {
             .py(theme::space_2p5())
             .rounded(theme::RADIUS_SM)
             .hover(|s| s.bg(theme::surface_hover()))
+            .on_hover(cx.listener(move |this, h: &bool, _, cx| this.hover_comment_row(&hk, *h, cx)))
             .when(!pending, |e| {
                 e.on_mouse_down(
                     MouseButton::Right,
@@ -185,11 +186,7 @@ impl GitViewer {
                     .child(body)
                     .children(reactions),
             )
-            .children(
-                (!pending)
-                    .then(|| self.comment_toolbar(&t, group, cx))
-                    .flatten(),
-            )
+            .children((!pending).then(|| self.comment_toolbar(&t, cx)).flatten())
     }
 }
 
@@ -217,5 +214,36 @@ mod tests {
         assert_eq!(roles(&c, "ada"), vec!["Author", "Bot"]);
         c.author.bot = false;
         assert!(roles(&c, "grace").is_empty());
+    }
+
+    #[test]
+    fn edit_and_delete_follow_the_anchored_comments_author() {
+        use super::super::comment_actions::{CommentAction, CommentFacts};
+        let mut bot = Comment {
+            id: "9".into(),
+            author: gv_engine::User::named("review-bot"),
+            body: String::new(),
+            created_at: chrono::Utc::now(),
+            position: None,
+            reactions: vec![],
+            suggestions: vec![],
+        };
+        bot.author.bot = true;
+        let facts = |c: &Comment| CommentFacts {
+            mine: is_mine(c, Some("me")),
+            pending: false,
+            can_reply: true,
+            resolved: None,
+            inline: true,
+            in_conversation: true,
+        };
+        let has = |f: &CommentFacts, a| CommentAction::menu(f).iter().flatten().any(|x| *x == a);
+        assert!(!has(&facts(&bot), CommentAction::Edit));
+        assert!(!has(&facts(&bot), CommentAction::Delete));
+        let mut own = bot.clone();
+        own.author = gv_engine::User::named("Me");
+        assert!(has(&facts(&own), CommentAction::Edit));
+        assert!(has(&facts(&own), CommentAction::Delete));
+        assert!(!is_mine(&own, None));
     }
 }

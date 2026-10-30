@@ -106,12 +106,12 @@ impl GitViewer {
     /// "Add reaction" button of a comment's hover toolbar, with its picker.
     pub(super) fn add_reaction_button(
         &self,
-        comment_id: &str,
+        key: &crate::state::CommentKey,
         cx: &mut Context<Self>,
     ) -> AnyElement {
         self.add_reaction_button_in(
-            comment_id,
-            Some(comment_id),
+            &key.tag(),
+            Some(&key.id),
             false,
             SharedString::default(),
             cx,

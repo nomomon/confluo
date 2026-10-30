@@ -10,6 +10,8 @@ use crate::state::Copied;
 /// Everything an action needs about one comment.
 #[derive(Clone)]
 pub(super) struct CommentTarget {
+    /// Surface plus id: which rendering owns the menu, picker and toolbar.
+    pub key: crate::state::CommentKey,
     pub id: String,
     pub body: String,
     pub thread: Option<String>,

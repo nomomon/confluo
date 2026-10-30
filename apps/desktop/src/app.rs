@@ -143,6 +143,8 @@ pub struct GitViewer {
     pub(crate) repo_search: Entity<TextInput>,
     /// Hold-Cmd shortcut hints (`state::hint_hold`).
     pub(crate) hints: crate::state::hint_hold::HintHold,
+    /// Which comment shows its hover toolbar (`state::comment_hover`).
+    pub(crate) comment_hover: crate::state::comment_hover::CommentHover,
     /// Command context snapshot while hints show (read by `hint` helpers during render).
     pub(crate) hint_ctx: Option<crate::state::cmd_ctx::CmdCtx>,
     /// Self-update: newer release found, download progress.
@@ -414,6 +416,7 @@ impl GitViewer {
             desc_h: Default::default(),
             repo_search,
             hints: crate::state::hint_hold::HintHold::new(crate::dev::hints()),
+            comment_hover: Default::default(),
             hint_ctx: None,
             update: Default::default(),
             discard_prompt: false,

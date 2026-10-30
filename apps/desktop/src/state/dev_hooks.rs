@@ -37,7 +37,10 @@ impl GitViewer {
         }
         // `CONFLUO_COMMENT_MENU=<comment id>` opens that comment's toolbar More menu.
         if let Ok(id) = std::env::var("CONFLUO_COMMENT_MENU") {
-            self.layer = Some(Layer::CommentMenu(id));
+            self.layer = Some(Layer::CommentMenu(super::CommentKey::new(
+                super::Surface::Activity,
+                id,
+            )));
         }
         match (crate::dev::overlay().as_deref(), first) {
             (Some("add-project"), _) => self.open_add_project(cx),

@@ -1,0 +1,16 @@
+[package]
+name = "gv-update"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+gv-http.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+sha2 = "0.10"
+
+[dev-dependencies]
+tokio.workspace = true

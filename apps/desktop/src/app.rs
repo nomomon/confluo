@@ -143,6 +143,8 @@ pub struct GitViewer {
     pub(crate) hints: crate::state::hint_hold::HintHold,
     /// Command context snapshot while hints show (read by `hint` helpers during render).
     pub(crate) hint_ctx: Option<crate::state::cmd_ctx::CmdCtx>,
+    /// Self-update: newer release found, download progress.
+    pub(crate) update: crate::state::UpdateState,
 }
 
 /// Subscribe `f` to the input's Enter key.
@@ -339,6 +341,7 @@ impl GitViewer {
             repo_search,
             hints: crate::state::hint_hold::HintHold::new(crate::dev::hints()),
             hint_ctx: None,
+            update: Default::default(),
         };
         cx.observe_window_appearance(window, |_, _, cx| cx.notify()).detach();
         cx.observe_window_activation(window, |this, window, cx| {
@@ -369,6 +372,7 @@ impl GitViewer {
         this.check_hosts(cx);
         this.refresh(cx);
         this.start_clock(cx);
+        this.start_update_checks(cx);
         this.open_from_env(cx);
         this.scroll_detail_from_env(cx);
         this.overlay_from_env(cx);

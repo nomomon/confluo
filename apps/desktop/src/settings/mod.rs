@@ -81,6 +81,10 @@ pub struct Settings {
     /// Review mode file tree width (px) and right panel share of the content width, as last dragged.
     pub review_tree_w: f32,
     pub review_right_ratio: f32,
+    /// Check GitHub for a newer release on launch and every 6 hours.
+    pub auto_update: bool,
+    /// Version whose update card was dismissed.
+    pub dismissed_update: Option<String>,
 }
 
 impl Default for Settings {
@@ -111,6 +115,8 @@ impl Default for Settings {
             reaction_mru: vec![gv_engine::ReactionKind::ThumbsUp, gv_engine::ReactionKind::Heart, gv_engine::ReactionKind::Hooray],
             review_tree_w: 260.,
             review_right_ratio: 1. / 3.,
+            auto_update: true,
+            dismissed_update: None,
         }
     }
 }

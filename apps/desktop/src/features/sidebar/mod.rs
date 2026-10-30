@@ -1,6 +1,7 @@
 //! Left sidebar: Inbox, Starred, projects (with rename and delete) and settings.
 
 mod project_item;
+mod update_card;
 
 use gpui::{div, prelude::*, ClickEvent, Context};
 
@@ -61,6 +62,6 @@ impl GitViewer {
             this.overlay = Overlay::Settings;
             cx.notify()
         }));
-        col.child(div().flex_1()).child(self.hinted::<OpenSettings>(settings, anchor).mb(theme::SPACE_4))
+        col.child(div().flex_1()).children(self.render_update_card(cx)).child(self.hinted::<OpenSettings>(settings, anchor).mb(theme::SPACE_4))
     }
 }

@@ -49,6 +49,7 @@ icon_set! {
     Code => "code",
     Command => "command",
     Copy => "copy",
+    Download => "download",
     CornerUpLeft => "corner-up-left",
     Ellipsis => "dots",
     ExternalLink => "external-link",

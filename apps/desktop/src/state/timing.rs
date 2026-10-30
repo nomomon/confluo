@@ -29,3 +29,7 @@ pub const DOUBLE_CLICK: Duration = Duration::from_millis(350);
 /// A press outside a floating layer closes it; a click on its own trigger within this time (the
 /// same gesture) keeps it closed instead of reopening it.
 pub const LAYER_REOPEN_GUARD: Duration = Duration::from_millis(400);
+/// How often a running app checks GitHub for a newer release.
+pub const UPDATE_EVERY: Duration = Duration::from_secs(6 * 3600);
+/// How often download progress is redrawn.
+pub const UPDATE_PROGRESS: Duration = Duration::from_millis(150);

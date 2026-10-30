@@ -1,10 +1,11 @@
 //! General: refresh interval, where PRs open and launch behavior.
 
-use gpui::{div, prelude::*, Context};
+use gpui::{div, prelude::*, ClickEvent, Context};
 
 use crate::app::GitViewer;
 use crate::settings::{refresh_label, Launch, OpenIn, REFRESH_MINUTES};
-use crate::ui::atoms::Switch;
+use crate::ui::atoms::{Button, Switch};
+use crate::ui::theme;
 use crate::ui::molecules::{Field, RadioGroup, Select, ToggleGroup};
 
 impl GitViewer {
@@ -40,7 +41,13 @@ impl GitViewer {
             this.settings.swipe_pages = *on;
             this.save_settings(cx)
         }));
-        div().child(self.settings_group(
+        let auto_update = Switch::new("auto-update", s.auto_update).on_change(cx.listener(|this, on: &bool, _, cx| {
+            this.settings.auto_update = *on;
+            this.save_settings(cx)
+        }));
+        let check_label = if self.update.checking { "Checking..." } else { "Check now" };
+        let check = Button::new("check-updates", check_label).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.check_for_updates(true, cx)));
+        div().flex().flex_col().gap(theme::SPACE_6).child(self.settings_group(
             None,
             vec![
                 Field::new("Refresh", refresh).description("How often pull requests are fetched in the background").horizontal().into_any_element(),
@@ -48,6 +55,13 @@ impl GitViewer {
                 Field::new("At launch", launch).description("Start in the Inbox or the project you had open").horizontal().into_any_element(),
                 Field::new("Show shortcut hints when holding \u{2318}", hints).description("Hold Command alone to see the shortcuts of visible controls").horizontal().into_any_element(),
                 Field::new("Swipe between pages", swipe).description("Swipe sideways with two fingers to go back or forward in Review mode and between the panel tabs").horizontal().into_any_element(),
+            ],
+        ))
+        .child(self.settings_group(
+            Some("Updates"),
+            vec![
+                Field::new("Check for updates automatically", auto_update).description("Look for a new release on launch and every 6 hours").horizontal().into_any_element(),
+                Field::new(format!("Confluo {}", gv_update::CURRENT), check).description("The version you are running").horizontal().into_any_element(),
             ],
         ))
     }

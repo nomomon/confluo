@@ -44,6 +44,8 @@ mod sources;
 mod swipe_nav;
 mod split;
 pub mod timing;
+mod update;
+pub(crate) use update::UpdateState;
 
 pub use connection::{auth_command, host_avatar_url, sign_in_hint, HostStatus};
 pub use attention::{attention, ThreadFilter};

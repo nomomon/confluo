@@ -2150,6 +2150,7 @@ dependencies = [
  "futures",
  "gpui",
  "gv-engine",
+ "gv-update",
  "pulldown-cmark",
  "serde",
  "serde_json",
@@ -2252,6 +2253,19 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+]
+
+[[package]]
+name = "gv-update"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "gv-http",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tokio",
 ]
 
 [[package]]

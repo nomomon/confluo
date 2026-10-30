@@ -46,6 +46,16 @@ pub fn hints() -> bool {
     var("CONFLUO_HINTS").is_some()
 }
 
+/// `CONFLUO_DEV_UPDATE=0.2.0` shows the update card for that version (no checks);
+/// `CONFLUO_DEV_UPDATE_PROGRESS=0.4` draws it mid download.
+pub fn fake_update() -> Option<String> {
+    var("CONFLUO_DEV_UPDATE")
+}
+
+pub fn fake_update_progress() -> Option<f32> {
+    var("CONFLUO_DEV_UPDATE_PROGRESS")?.parse().ok()
+}
+
 /// `CONFLUO_HOVER=<comment id>` keeps that comment's hover toolbar visible (screenshots).
 pub fn hover_comment() -> Option<String> {
     var("CONFLUO_HOVER")

@@ -131,6 +131,10 @@ pub struct GitViewer {
     pub(crate) refocus_alias: bool,
     /// Search field of Settings > Repositories.
     pub(crate) repo_search: Entity<TextInput>,
+    /// Hold-Cmd shortcut hints (`state::hint_hold`).
+    pub(crate) hints: crate::state::hint_hold::HintHold,
+    /// Command context snapshot while hints show (read by `hint` helpers during render).
+    pub(crate) hint_ctx: Option<crate::state::cmd_ctx::CmdCtx>,
 }
 
 /// Subscribe `f` to the input's Enter key.
@@ -320,11 +324,21 @@ impl GitViewer {
             repo_menu: None,
             refocus_alias: false,
             repo_search,
+            hints: crate::state::hint_hold::HintHold::new(crate::dev::hints()),
+            hint_ctx: None,
         };
         cx.observe_window_appearance(window, |_, _, cx| cx.notify()).detach();
         cx.observe_window_activation(window, |this, window, cx| {
             if window.is_window_active() {
                 this.on_activated(cx)
+            } else if this.hints.blur() {
+                cx.notify()
+            }
+        })
+        .detach();
+        cx.observe_keystrokes(|this, _, _, cx| {
+            if this.hints.key_down() {
+                cx.notify()
             }
         })
         .detach();
@@ -394,6 +408,7 @@ impl Render for GitViewer {
         self.viewport_w = window.viewport_size().width;
         let previewing = !self.reviewing && !self.preview_hidden && self.detail.is_some();
         self.compact = previewing && self.viewport_w < layout::PREVIEW_COMPACT_BELOW;
+        self.hint_ctx = (self.hints.visible() && self.settings.shortcut_hints).then(|| self.cmd_ctx());
         let bg_image = self.settings.background_image.clone().filter(|p| Path::new(p).is_file());
         let main = div().absolute().top_0().left_0().size_full().flex();
         let main = match self.detail.as_ref().filter(|_| self.reviewing) {
@@ -406,6 +421,7 @@ impl Render for GitViewer {
         };
         let root = div().id("root");
         self.key_handlers(root, cx)
+            .on_modifiers_changed(cx.listener(Self::hint_modifiers))
             .relative()
             .size_full()
             .font_family(theme::ui_font())

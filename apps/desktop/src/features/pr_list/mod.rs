@@ -11,7 +11,8 @@ use gpui::{div, prelude::*, ClickEvent, Context};
 
 use crate::app::GitViewer;
 use crate::features::shared::{layout, relative_time};
-use crate::ui::atoms::{Button, ButtonVariant, IconName};
+use crate::features::keymap::{NextPr, PrevPr, Refresh};
+use crate::ui::atoms::{Button, ButtonVariant, HintAnchor, IconName, ShortcutHint};
 use crate::ui::molecules::Banner;
 use crate::ui::theme;
 
@@ -30,17 +31,17 @@ impl GitViewer {
             .flex()
             .items_center()
             .gap(theme::SPACE_2P5)
-            .child(div().text_size(theme::text_2xl()).font_weight(theme::WEIGHT_SEMIBOLD).child(self.project_name()))
+            .child(ShortcutHint::wrap(
+                div().text_size(theme::text_2xl()).font_weight(theme::WEIGHT_SEMIBOLD).child(self.project_name()),
+                self.hint_group("hint-pr-nav", vec![self.hint_keys::<PrevPr>(), self.hint_keys::<NextPr>()], HintAnchor::Below),
+            ))
             .child(div().text_size(theme::text_base()).text_color(theme::text_subtle()).child(count.to_string()))
             .child(div().pl(theme::SPACE_2).text_size(theme::text_sm()).text_color(theme::text_subtle()).child(freshness))
             .child(div().flex_1())
-            .child(
-                Button::new("refresh", "")
-                    .icon(IconName::Refresh)
-                    .variant(ButtonVariant::Ghost)
-                    .tooltip(crate::features::keymap::tip::<crate::features::keymap::Refresh>("Refresh"))
-                    .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.refresh(cx))),
-            )
+            .child(self.hinted::<Refresh>(
+                Button::new("refresh", "").icon(IconName::Refresh).variant(ButtonVariant::Ghost).tooltip(crate::features::keymap::tip::<Refresh>("Refresh")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.refresh(cx))),
+                HintAnchor::Corner,
+            ))
     }
 
     pub(crate) fn render_list(&self, cx: &mut Context<Self>) -> impl IntoElement {

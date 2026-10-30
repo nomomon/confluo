@@ -17,6 +17,8 @@ pub const COPIED_RESET: Duration = Duration::from_millis(1500);
 pub const TOAST: Duration = Duration::from_millis(2500);
 /// Error toasts stay longer so the reason can be read.
 pub const TOAST_ERROR: Duration = Duration::from_millis(6000);
+/// Holding Cmd alone this long shows the shortcut hints.
+pub const HINT_HOLD: Duration = Duration::from_millis(350);
 /// Typing pause before a remote user search.
 pub const SEARCH_DEBOUNCE: Duration = Duration::from_millis(250);
 /// How long Accounts waits for a host to answer "who am I" before keeping the cached user.

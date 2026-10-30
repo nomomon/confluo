@@ -41,6 +41,10 @@ fn sized(base: f32) -> Pixels {
 pub fn text_2xs() -> Pixels {
     sized(10.)
 }
+/// Shortcut hint pills (hold-Cmd overlay).
+pub fn text_hint() -> Pixels {
+    sized(11.)
+}
 pub fn text_xs() -> Pixels {
     sized(12.)
 }

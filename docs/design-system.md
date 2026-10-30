@@ -272,6 +272,12 @@ the palette, the `?` cheat sheet and Settings > Shortcuts are generated from it.
 inside text inputs. PR actions (approve, request changes, merge, draft, close) are gated by capabilities
 (`state::cmd_ctx`): not allowed means a neutral toast with the reason, never a silent no-op.
 
+Shortcut hints: holding Cmd alone for `timing::HINT_HOLD` (350ms) shows a `ShortcutHint` (inverted pill, `text_hint()` 11,
+`FADE` in, deferred so it paints on top) over controls that have a Cmd shortcut; releasing Cmd, any key press or the window
+losing focus hides them, so Cmd+key never flashes them. `state::hint_hold` is the state machine; `features/hints.rs` tracks
+modifiers on the root and gives `self.hinted::<Action>(el, HintAnchor::Corner | Inline | Below)` and `hint_group(..)`, which read
+keys and `available(&CmdCtx)` from the keymap (unavailable actions show nothing). Settings > General can turn it off.
+
 Activity tab: a timeline, not cards. 24px avatar, name medium, muted relative time (exact time tooltip),
 markdown body, no per-comment border; a 1px `border_subtle()` rail through the avatar centers; replies
 indent under the parent with 20px avatars; Reply, Edit, Copy link, Resolve are ghost icon buttons shown on

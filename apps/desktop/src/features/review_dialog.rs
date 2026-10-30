@@ -38,7 +38,8 @@ impl GitViewer {
             this.menu = if this.menu == Some(Menu::Review) { None } else { Some(Menu::Review) };
             cx.notify()
         }));
-        Some(div().relative().child(btn).when(open, |el| el.child(gpui::deferred(self.render_review_menu(info, cx)).with_priority(1))).into_any_element())
+        let hint = self.hint_group("hint-review", vec![self.hint_keys::<Approve>(), self.hint_keys::<RequestChanges>()], crate::ui::atoms::HintAnchor::Below).filter(|_| !open);
+        Some(div().relative().child(btn).children(hint).when(open, |el| el.child(gpui::deferred(self.render_review_menu(info, cx)).with_priority(1))).into_any_element())
     }
 
     fn render_review_menu(&self, info: &ReviewInfo, cx: &mut Context<Self>) -> impl IntoElement {

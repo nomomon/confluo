@@ -32,12 +32,13 @@ impl GitViewer {
     /// Search input with a clear button while it has text.
     pub(super) fn render_search(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let has_text = !self.search.read(cx).text().is_empty();
-        Input::new("search", self.search.clone(), has_text).leading(IconName::Search).clear_tooltip("Clear  esc").on_clear(cx.listener(
+        let input = Input::new("search", self.search.clone(), has_text).leading(IconName::Search).clear_tooltip("Clear  esc").on_clear(cx.listener(
             |this, _: &ClickEvent, window, cx| {
                 this.search.update(cx, |i, cx| i.set_text("", cx));
                 window.focus(&this.focus);
             },
-        ))
+        ));
+        self.hinted::<crate::features::keymap::FocusSearch>(input, crate::ui::atoms::HintAnchor::Inline).flex().flex_1()
     }
 
     pub(super) fn render_involvement_tabs(&self, cx: &mut Context<Self>) -> impl IntoElement {

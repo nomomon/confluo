@@ -41,6 +41,11 @@ pub fn no_refresh() -> bool {
     var("CONFLUO_NO_REFRESH").is_some()
 }
 
+/// `CONFLUO_HINTS=1` keeps the hold-Cmd shortcut hints visible (screenshots).
+pub fn hints() -> bool {
+    var("CONFLUO_HINTS").is_some()
+}
+
 /// `CONFLUO_VIEW=starred|bots|project:<name>` opens that list view at launch.
 pub fn view() -> Option<String> {
     var("CONFLUO_VIEW")

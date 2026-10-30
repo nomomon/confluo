@@ -4,6 +4,7 @@ use gpui::{div, prelude::*, Context};
 
 use crate::app::GitViewer;
 use crate::settings::{refresh_label, Launch, OpenIn, REFRESH_MINUTES};
+use crate::ui::atoms::Switch;
 use crate::ui::molecules::{Field, RadioGroup, Select, ToggleGroup};
 
 impl GitViewer {
@@ -31,12 +32,17 @@ impl GitViewer {
                 this.settings.launch = Launch::ALL[*i];
                 this.save_settings(cx)
             }));
+        let hints = Switch::new("shortcut-hints", s.shortcut_hints).on_change(cx.listener(|this, on: &bool, _, cx| {
+            this.settings.shortcut_hints = *on;
+            this.save_settings(cx)
+        }));
         div().child(self.settings_group(
             None,
             vec![
                 Field::new("Refresh", refresh).description("How often pull requests are fetched in the background").horizontal().into_any_element(),
                 Field::new("Open pull requests in", open_in).description("Clicking a row opens the detail pane or the web page").horizontal().into_any_element(),
                 Field::new("At launch", launch).description("Start in the Inbox or the project you had open").horizontal().into_any_element(),
+                Field::new("Show shortcut hints when holding \u{2318}", hints).description("Hold Command alone to see the shortcuts of visible controls").horizontal().into_any_element(),
             ],
         ))
     }

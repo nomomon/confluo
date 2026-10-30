@@ -9,7 +9,7 @@ use crate::ui::molecules::{ContextMenu, DropdownMenu, MenuItem, MenuLabel, MenuS
 use crate::ui::theme;
 
 impl GitViewer {
-    pub(super) fn render_project_item(&self, p: &Project, cx: &mut Context<Self>) -> impl IntoElement {
+    pub(super) fn render_project_item(&self, i: usize, p: &Project, cx: &mut Context<Self>) -> impl IntoElement {
         let id = p.id;
         let kebab = div()
             .id(gpui::SharedString::from(format!("project-more-{id}")))
@@ -60,7 +60,8 @@ impl GitViewer {
             }
             _ => None,
         };
-        div().relative().child(item).children(menu)
+        let hint = self.project_hint(i).map(|h| if self.compact { h.anchor(crate::ui::atoms::HintAnchor::Corner) } else { h });
+        div().relative().child(item).children(hint).children(menu)
     }
 
     fn toggle_project_menu(&mut self, id: i64, cx: &mut Context<Self>) {

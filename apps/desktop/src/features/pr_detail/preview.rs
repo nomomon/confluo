@@ -70,7 +70,10 @@ impl GitViewer {
             .flex()
             .gap(theme::SPACE_2)
             .child(Button::new("preview-review", "Open review").variant(ButtonVariant::Primary).icon(IconName::Code).tooltip(keymap::tip::<OpenSelected>("Open review")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.enter_review(cx))))
-            .child(Button::new("preview-browser", "Open in browser").icon(IconName::ExternalLink).tooltip(keymap::tip::<OpenInBrowser>("Open in browser")).on_click(move |_, _, cx| cx.open_url(&url)));
+            .child(self.hinted::<OpenInBrowser>(
+                Button::new("preview-browser", "Open in browser").icon(IconName::ExternalLink).tooltip(keymap::tip::<OpenInBrowser>("Open in browser")).on_click(move |_, _, cx| cx.open_url(&url)),
+                crate::ui::atoms::HintAnchor::Corner,
+            ));
         let panel = div()
             .id("preview")
             .flex()
@@ -93,7 +96,10 @@ impl GitViewer {
                     .gap(theme::SPACE_2)
                     .child(div().pt(theme::SPACE_0P5).child(state_icon(s.state)))
                     .child(div().flex_1().min_w(theme::SPACE_0).text_size(theme::text_lg()).font_weight(theme::WEIGHT_SEMIBOLD).child(s.title.clone()))
-                    .child(Button::new("preview-hide", "").icon(IconName::LayoutSidebarRight).variant(ButtonVariant::Ghost).tooltip(keymap::tip::<ToggleDetail>("Hide preview")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_detail(cx)))),
+                    .child(self.hinted::<ToggleDetail>(
+                        Button::new("preview-hide", "").icon(IconName::LayoutSidebarRight).variant(ButtonVariant::Ghost).tooltip(keymap::tip::<ToggleDetail>("Hide preview")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_detail(cx))),
+                        crate::ui::atoms::HintAnchor::Corner,
+                    )),
             )
             .child(meta)
             .child(status)

@@ -75,6 +75,8 @@ pub struct Settings {
     pub diff_split: bool,
     /// Keys of the palette commands run most recently, newest first (ranking boost).
     pub palette_mru: Vec<String>,
+    /// Holding Cmd shows shortcut hints over the controls.
+    pub shortcut_hints: bool,
 }
 
 impl Default for Settings {
@@ -102,6 +104,7 @@ impl Default for Settings {
             stale_days: Some(gv_engine::DEFAULT_STALE_DAYS),
             diff_split: false,
             palette_mru: vec![],
+            shortcut_hints: true,
         }
     }
 }

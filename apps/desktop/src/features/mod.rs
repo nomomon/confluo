@@ -6,6 +6,7 @@ mod code_keys;
 pub(crate) mod keyboard;
 pub(crate) mod keymap;
 mod commands;
+mod hints;
 mod palette;
 pub(crate) mod menus;
 mod shortcuts_sheet;

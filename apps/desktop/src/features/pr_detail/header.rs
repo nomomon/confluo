@@ -5,10 +5,10 @@ use gpui::{div, prelude::*, ClickEvent, Context, MouseButton, MouseDownEvent, Sh
 use gv_engine::ReviewState;
 
 use crate::app::{GitViewer, Menu};
-use crate::features::keymap::{self, HistoryBack, OpenInBrowser};
+use crate::features::keymap::{self, CopyLink, HistoryBack, NextPr, OpenInBrowser, PrevPr, ToggleDraft};
 use crate::features::shared::{layout, number_label, state_icon};
 use crate::state::{Copied, DetailState};
-use crate::ui::atoms::{tooltip, Button, ButtonVariant, Icon, IconName};
+use crate::ui::atoms::{tooltip, Button, ButtonVariant, HintAnchor, Icon, IconName, ShortcutHint};
 use crate::ui::molecules::{DropdownMenu, MenuItem, MenuSeparator};
 use crate::ui::theme;
 
@@ -96,7 +96,10 @@ impl GitViewer {
             .pr(theme::SPACE_3)
             .border_b_1()
             .border_color(theme::border_subtle())
-            .child(back)
+            .child(ShortcutHint::wrap(
+                self.hinted::<HistoryBack>(back, HintAnchor::Corner),
+                self.hint_group("hint-review-pr-nav", vec![self.hint_keys::<PrevPr>(), self.hint_keys::<NextPr>()], HintAnchor::Below),
+            ))
             .child(state_icon(s.state))
             .child(div().flex().flex_1().min_w(theme::SPACE_8 * 4.).child(self.render_title(d, cx)))
             .child(repo_el)
@@ -107,10 +110,14 @@ impl GitViewer {
             .child(div().w(theme::SPACE_1))
             .children(self.render_review_button(d, cx))
             .children(self.render_merge_button(d, cx))
-            .child(Button::new("detail-more", "").icon(IconName::Ellipsis).variant(ButtonVariant::Ghost).tooltip("More").on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
-                this.menu = if this.menu == Some(Menu::DetailMore) { None } else { Some(Menu::DetailMore) };
-                cx.notify()
-            })))
+            .child(ShortcutHint::wrap(
+                Button::new("detail-more", "").icon(IconName::Ellipsis).variant(ButtonVariant::Ghost).tooltip("More").on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                    this.menu = if this.menu == Some(Menu::DetailMore) { None } else { Some(Menu::DetailMore) };
+                    cx.notify()
+                })),
+                // Menu rows show their own shortcuts once open.
+                self.hint_group("hint-more", vec![self.hint_keys::<OpenInBrowser>(), self.hint_keys::<CopyLink>(), self.hint_keys::<ToggleDraft>()], HintAnchor::Below).filter(|_| self.menu != Some(Menu::DetailMore)),
+            ))
             .when(self.menu == Some(Menu::DetailMore), |el| el.child(self.render_detail_menu(d, cx)))
     }
 

@@ -36,7 +36,11 @@ impl GitViewer {
     pub(super) fn render_merge_button(&self, d: &DetailState, cx: &mut Context<Self>) -> Option<AnyElement> {
         let caps = &d.detail.as_ref()?.edit.caps;
         caps.merge.then(|| {
-            Button::new("merge-open", "Merge").icon(IconName::GitMerge).tooltip(keymap::tip::<MergePr>("Merge")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.open_merge(cx))).into_any_element()
+            self.hinted::<MergePr>(
+                Button::new("merge-open", "Merge").icon(IconName::GitMerge).tooltip(keymap::tip::<MergePr>("Merge")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.open_merge(cx))),
+                crate::ui::atoms::HintAnchor::Corner,
+            )
+            .into_any_element()
         })
     }
 

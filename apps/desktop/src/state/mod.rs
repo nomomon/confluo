@@ -16,6 +16,7 @@ mod dev_hooks;
 mod feedback;
 mod file_tree;
 mod file_view;
+pub mod hint_hold;
 mod inbox;
 mod inline;
 mod line_actions;

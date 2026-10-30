@@ -58,6 +58,13 @@ GitLab has no REST endpoint for "Request changes"; it is the GraphQL mutation
 read-only `__type(name: "MergeRequestRequestChangesInput")` query and offers the action only when it exists
 (older self-managed instances keep it hidden). Reviewer states come from `GET .../reviewers`.
 
+## Changes since your last review
+
+GitLab: my last review time is my latest note, approval or "requested changes" system note on the MR; the MR
+version current then (`GET .../merge_requests/:iid/versions`, one request, only when I reviewed and am not the
+author) gives the head I reviewed. Overview shows "N new commits since your last review" with "Show changes", which
+filters the diff to `GET .../repository/compare?from=<reviewed head>&to=<head>` (GitHub: `compare/{from}...{to}`).
+
 ## Bot PRs
 
 `BotFilter` (core) hides PRs by author type (GitHub `Bot`, `[bot]` logins), author patterns

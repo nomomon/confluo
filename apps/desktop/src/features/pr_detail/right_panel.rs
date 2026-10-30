@@ -7,7 +7,7 @@ use gv_engine::commits_since;
 use crate::app::GitViewer;
 use crate::features::shared::layout;
 use crate::state::{DetailState, RightTab};
-use crate::ui::atoms::{Icon, IconName};
+use crate::ui::atoms::{Button, ButtonVariant, Icon, IconName};
 use crate::ui::molecules::{Tabs, TabsVariant};
 use crate::ui::theme;
 
@@ -130,7 +130,7 @@ impl GitViewer {
             .gap(theme::card_gap())
             .child(self.render_title(d, cx))
             .child(self.render_properties(d, cx))
-            .children(self.since_review(d))
+            .children(self.since_review(d, cx))
             .child(self.render_description(d, cx))
             .when(has_checks, |c| c.child(self.render_checks_card(d, cx)))
             .children(
@@ -143,7 +143,7 @@ impl GitViewer {
     }
 
     /// "3 new commits since your review" when I reviewed an earlier head.
-    fn since_review(&self, d: &DetailState) -> Option<impl IntoElement> {
+    fn since_review(&self, d: &DetailState, cx: &mut Context<Self>) -> Option<impl IntoElement> {
         let det = d.detail.as_ref()?;
         let n = commits_since(&det.commits, det.my_review_sha.as_deref()).filter(|n| *n > 0)?;
         Some(
@@ -162,11 +162,19 @@ impl GitViewer {
                         .size(theme::icon_sm())
                         .color(theme::accent()),
                 )
-                .child(if n == 1 {
+                .child(div().flex_1().min_w(theme::space_0()).child(if n == 1 {
                     "1 new commit since your last review".to_string()
                 } else {
                     format!("{n} new commits since your last review")
-                }),
+                }))
+                .child(
+                    Button::new("since-review", "Show changes")
+                        .variant(ButtonVariant::Link)
+                        .tooltip("Show changes since your last review")
+                        .on_click(cx.listener(|this, _: &gpui::ClickEvent, _, cx| {
+                            this.show_since_review(cx)
+                        })),
+                ),
         )
     }
 }

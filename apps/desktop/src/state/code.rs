@@ -13,8 +13,8 @@ use super::line_select::{DiffSel, PendingSelect};
 
 pub struct CodeState {
     pub files: Option<Arc<Vec<ChangedFile>>>,
-    /// Sha of the commit the diff is filtered to (Overview commit click); None shows all changes.
-    pub commit: Option<String>,
+    /// What the diff is filtered to (a commit, or changes since my last review); None shows all.
+    pub commit: Option<super::commit_filter::DiffFilter>,
     pub loading: bool,
     /// Set `LOADING_DELAY` after loading starts, so quick loads show no skeleton.
     pub show_skeleton: bool,

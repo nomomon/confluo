@@ -78,8 +78,9 @@ impl DetailState {
             return;
         };
         let ix = match &self.code.commit {
-            Some(sha) => {
-                let is_head = det.commits.last().is_some_and(|c| &c.sha == sha);
+            Some(f) => {
+                let sha = f.sha();
+                let is_head = det.commits.last().is_some_and(|c| c.sha == sha);
                 index_commit_threads(&det.threads, files, sha, is_head)
             }
             None => index_inline_threads(&det.threads, files),

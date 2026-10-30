@@ -886,6 +886,26 @@ impl Engine {
         Ok(files)
     }
 
+    /// Files changed from `from` to `to` (e.g. since my last review), cached by the pair.
+    pub async fn range_files(
+        &self,
+        id: &ChangeRequestId,
+        from: &str,
+        to: &str,
+    ) -> Result<Vec<ChangedFile>> {
+        let key = format!("{from}..{to}");
+        if let Some(f) = self.commit_files.lock().unwrap().get(&key) {
+            return Ok(f.clone());
+        }
+        let files = self
+            .provider(id.repo.kind, &id.repo.host)
+            .await?
+            .range_files(id, from, to)
+            .await?;
+        self.commit_files.lock().unwrap().insert(key, files.clone());
+        Ok(files)
+    }
+
     /// Fill +a -d and the file count into the cached summary (GitLab lists carry none).
     fn apply_totals(&self, id: &ChangeRequestId, files: &[ChangedFile]) {
         let Ok(Some(mut cr)) = self.store.get_change_request(id) else {

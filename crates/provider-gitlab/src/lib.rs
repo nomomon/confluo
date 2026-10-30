@@ -13,6 +13,7 @@ mod edit;
 mod extras;
 mod inline;
 mod review;
+mod versions;
 
 /// Concurrent per-MR enrichments; the host governor caps requests in flight anyway.
 const CONCURRENCY: usize = 4;
@@ -571,6 +572,11 @@ impl Provider for GitLabProvider {
         review.caps.request_changes = summary.state.is_active()
             && !summary.author.username.eq_ignore_ascii_case(&me)
             && self.can_request_changes().await;
+        let my_review_sha = if summary.author.username.eq_ignore_ascii_case(&me) {
+            None
+        } else {
+            self.reviewed_head(&base, &discussions, &me).await
+        };
         let mut events = vec![TimelineEvent {
             kind: TimelineKind::Opened,
             actor: summary.author.clone(),
@@ -626,7 +632,7 @@ impl Provider for GitLabProvider {
             head_sha: v["sha"].as_str().map(str::to_string),
             reactions: extras::awards(&awards, &me),
             commits: extras::commits(&commits),
-            my_review_sha: None,
+            my_review_sha,
             viewed: None,
             node_id: None,
         })
@@ -770,6 +776,15 @@ impl Provider for GitLabProvider {
             .iter()
             .map(changed_file)
             .collect())
+    }
+
+    async fn range_files(
+        &self,
+        id: &ChangeRequestId,
+        from: &str,
+        to: &str,
+    ) -> ProviderResult<Vec<ChangedFile>> {
+        self.compare_files(id, from, to).await
     }
 
     async fn get_file_content(

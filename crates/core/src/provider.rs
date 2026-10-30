@@ -248,6 +248,18 @@ pub trait Provider: Send + Sync {
             self.kind()
         )))
     }
+    /// Files changed between two commits of the PR/MR (`from` exclusive), e.g. since my last review.
+    async fn range_files(
+        &self,
+        _id: &ChangeRequestId,
+        _from: &str,
+        _to: &str,
+    ) -> ProviderResult<Vec<ChangedFile>> {
+        Err(ProviderError::Unsupported(format!(
+            "comparing commits on {}",
+            self.kind()
+        )))
+    }
     /// Whole file at `rev` (a commit sha); None when it does not exist there.
     async fn get_file_content(
         &self,

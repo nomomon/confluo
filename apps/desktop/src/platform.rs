@@ -19,18 +19,27 @@ pub(crate) fn to_ctrl(k: &str) -> String {
     if k == "ctrl-cmd-f" {
         return "f11".into();
     }
-    let mut out: Vec<&str> = Vec::new();
+    let mut mods: Vec<&str> = Vec::new();
     let mut rest = k;
     // Modifiers are `name-` prefixes; the key itself may be `-` (`cmd--`).
     while let Some((m, r)) = rest.split_once('-') {
         if m.is_empty() || r.is_empty() {
             break;
         }
+        mods.push(m);
+        rest = r;
+    }
+    // A macOS Ctrl chord (`ctrl-r`) would collide with the Cmd one (`cmd-r`): add Shift.
+    let plain_ctrl = mods.contains(&"ctrl") && !mods.contains(&"cmd") && !mods.contains(&"shift");
+    let mut out: Vec<&str> = Vec::new();
+    for m in mods {
         let m = if m == "cmd" { "ctrl" } else { m };
         if !out.contains(&m) {
             out.push(m);
+            if m == "ctrl" && plain_ctrl {
+                out.push("shift");
+            }
         }
-        rest = r;
     }
     out.push(rest);
     out.join("-")
@@ -115,6 +124,8 @@ mod tests {
         assert_eq!(to_ctrl("cmd--"), "ctrl--");
         assert_eq!(to_ctrl("ctrl-cmd-f"), "f11");
         assert_eq!(to_ctrl("ctrl-cmd-x"), "ctrl-x");
+        assert_eq!(to_ctrl("ctrl-r"), "ctrl-shift-r");
+        assert_eq!(to_ctrl("ctrl-p"), "ctrl-shift-p");
         assert_eq!(to_ctrl("/"), "/");
         assert_eq!(to_ctrl("-"), "-");
     }

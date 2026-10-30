@@ -40,6 +40,7 @@ Built and tested on GitHub Actions (`ubuntu-24.04`), see the `linux` and `linux-
 - Smoke test as CI does it: `scripts/smoke-linux.sh target/debug/confluo smoke` (Xvfb, demo mode, screenshot in `smoke/`).
 - Package: `cargo build --release -p gv-desktop && scripts/package-linux.sh` (AppImage, `.deb` via cargo-deb, tar.gz into `dist/`).
 - Per-OS code lives in `apps/desktop/src/platform.rs`: key strings are written `cmd-...` and bound as `ctrl-...` (labels `Ctrl+K`), log folder, reduced motion (`gsettings` `enable-animations`, or `CONFLUO_REDUCE_MOTION=1`).
+- `libc` is pinned to 0.2.189 in `Cargo.lock`: 0.2.190 dropped Linux `ENOATTR`, which `xattr` 0.2.3 (gpui via `zed-async-tar`) still uses. Do not `cargo update` it past that until gpui moves on.
 - Paths: data `$XDG_DATA_HOME/Confluo` (`~/.local/share`), logs `$XDG_STATE_HOME/confluo` (`~/.local/state`).
 
 ## Crash logs

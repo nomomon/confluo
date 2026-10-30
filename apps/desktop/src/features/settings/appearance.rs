@@ -1,12 +1,10 @@
-//! Appearance: theme, window material, panel opacity, tint, background image and typography.
+//! Appearance: theme, window material, panel opacity, tint and typography.
 
-use gpui::{div, img, prelude::*, ClickEvent, Context, ObjectFit, PathPromptOptions};
-use std::path::{Path, PathBuf};
+use gpui::{div, prelude::*, ClickEvent, Context};
 
 use crate::app::GitViewer;
-use crate::features::layout;
 use crate::settings::{Appearance, Density, MonoFont, ThemeMode, UiFont, FONT_SIZES, TINTS};
-use crate::ui::atoms::{tooltip, Button, ButtonVariant, Swatch};
+use crate::ui::atoms::{tooltip, Swatch};
 use crate::ui::molecules::{Field, Select, Slider, ToggleGroup};
 use crate::ui::theme;
 
@@ -68,14 +66,6 @@ impl GitViewer {
                 this.save_settings(cx)
             },
         ));
-        let mut image_rows = vec![Field::new("Background image", self.render_bg_image(cx)).description("Drawn behind the window, under the panels").horizontal().into_any_element()];
-        if s.background_image.is_some() {
-            let dim = Slider::new("bg-dim", s.background_dim).range(0., 0.9).step(0.05).on_change(cx.listener(|this, v: &f32, _, cx| {
-                this.settings.background_dim = *v;
-                this.save_settings(cx)
-            }));
-            image_rows.push(Field::new("Image dim", dim).description("Darken the image so text stays readable").horizontal().into_any_element());
-        }
         div()
             .child(self.settings_group(
                 Some("Window"),
@@ -86,7 +76,6 @@ impl GitViewer {
                     Field::new("Tint", swatches).description("Colors the window and panels").horizontal().into_any_element(),
                 ],
             ))
-            .child(self.settings_group(Some("Background"), image_rows))
             .child(self.settings_group(
                 Some("Text"),
                 vec![
@@ -96,44 +85,5 @@ impl GitViewer {
                     Field::new("Density", density).description("Spacing of lists, cards and controls").horizontal().into_any_element(),
                 ],
             ))
-    }
-
-    fn render_bg_image(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let path = self.settings.background_image.clone().filter(|p| Path::new(p).is_file());
-        let thumb = div()
-            .w(layout::SETTINGS_THUMB_W)
-            .h(layout::SETTINGS_THUMB_H)
-            .rounded(theme::RADIUS_MD)
-            .overflow_hidden()
-            .border_1()
-            .border_color(theme::border())
-            .bg(theme::surface())
-            .when_some(path.clone(), |d, p| d.child(img(PathBuf::from(p)).size_full().object_fit(ObjectFit::Cover)));
-        div()
-            .flex()
-            .items_center()
-            .gap(theme::SPACE_2)
-            .child(thumb)
-            .child(Button::new("bg-browse", "Choose...").on_click(cx.listener(|_, _: &ClickEvent, _, cx| {
-                let rx = cx.prompt_for_paths(PathPromptOptions { files: true, directories: false, multiple: false, prompt: Some("Choose".into()) });
-                cx.spawn(async move |this, cx| {
-                    if let Ok(Ok(Some(paths))) = rx.await {
-                        if let Some(p) = paths.into_iter().next() {
-                            this.update(cx, |v, cx| {
-                                v.settings.background_image = Some(p.to_string_lossy().to_string());
-                                v.save_settings(cx);
-                            })
-                            .ok();
-                        }
-                    }
-                })
-                .detach();
-            })))
-            .when(path.is_some(), |d| {
-                d.child(Button::new("bg-clear", "Remove").variant(ButtonVariant::Ghost).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
-                    this.settings.background_image = None;
-                    this.save_settings(cx);
-                })))
-            })
     }
 }

@@ -3,12 +3,11 @@
 //! State transitions live in `state/`, rendering in `features/`.
 
 use chrono::{DateTime, Utc};
-use gpui::{div, img, prelude::*, Context, Entity, FocusHandle, ObjectFit, Pixels, ScrollHandle, Window};
+use gpui::{div, prelude::*, Context, Entity, FocusHandle, Pixels, ScrollHandle, Window};
 use std::cell::Cell;
 use std::rc::Rc;
 use gv_engine::{ChangeRequest, ChangeRequestId, Engine, Involvement, Project, RepoRef};
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -409,7 +408,6 @@ impl Render for GitViewer {
         let previewing = !self.reviewing && !self.preview_hidden && self.detail.is_some();
         self.compact = previewing && self.viewport_w < layout::PREVIEW_COMPACT_BELOW;
         self.hint_ctx = (self.hints.visible() && self.settings.shortcut_hints).then(|| self.cmd_ctx());
-        let bg_image = self.settings.background_image.clone().filter(|p| Path::new(p).is_file());
         let main = div().absolute().top_0().left_0().size_full().flex();
         let main = match self.detail.as_ref().filter(|_| self.reviewing) {
             // Review mode: the PR takes the whole content area; the sidebar and list step aside.
@@ -429,10 +427,6 @@ impl Render for GitViewer {
             .text_size(theme::text_sm())
             .line_height(gpui::relative(theme::LINE_HEIGHT))
             .bg(self.surfaces().window_bg())
-            .when_some(bg_image, |root, p| {
-                root.child(img(PathBuf::from(p)).absolute().top_0().left_0().size_full().object_fit(ObjectFit::Cover))
-                    .child(div().absolute().top_0().left_0().size_full().bg(theme::scrim().opacity(self.settings.background_dim / theme::scrim().a)))
-            })
             .when(self.review.resizing.is_some(), |root| self.resize_handlers(root, cx))
             .child(main)
             .children(self.toast.clone().map(|t| {

@@ -35,15 +35,12 @@ impl Appearance {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// Unknown fields (such as the removed `background_image` and `background_dim`) are ignored on load and dropped on the next save.
 #[serde(default)]
 pub struct Settings {
     pub appearance: Appearance,
     /// 0.2..=1.0 alpha of sidebar, list and detail panels.
     pub panel_opacity: f32,
-    /// Optional image drawn behind the whole window.
-    pub background_image: Option<String>,
-    /// Dim overlay over the background image, 0..=1.
-    pub background_dim: f32,
     /// `#rrggbb` tint mixed into the window and panels; empty for none. See `TINTS`.
     pub tint: String,
     pub theme: ThemeMode,
@@ -84,8 +81,6 @@ impl Default for Settings {
         Self {
             appearance: Appearance::Blurred,
             panel_opacity: 0.7,
-            background_image: None,
-            background_dim: 0.45,
             tint: String::new(),
             theme: ThemeMode::System,
             ui_font: UiFont::System,
@@ -147,5 +142,21 @@ impl Settings {
         }
         std::fs::write(p, serde_json::to_string_pretty(self)?)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn legacy_background_fields_still_load() {
+        let json = r##"{"appearance":"Opaque","panel_opacity":0.5,"background_image":"/tmp/x.png","background_dim":0.3,"tint":"#336699"}"##;
+        let s: Settings = serde_json::from_str(json).expect("legacy settings parse");
+        assert_eq!(s.appearance, Appearance::Opaque);
+        assert_eq!(s.panel_opacity, 0.5);
+        assert_eq!(s.tint, "#336699");
+        let saved = serde_json::to_string(&s).unwrap();
+        assert!(!saved.contains("background_image") && !saved.contains("background_dim"));
     }
 }

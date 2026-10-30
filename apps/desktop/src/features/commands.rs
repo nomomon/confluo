@@ -144,6 +144,7 @@ impl GitViewer {
                     d.tab == DetailTab::Code && d.code.files.as_ref().is_some_and(|f| !f.is_empty())
                 }),
             projects: self.projects.len(),
+            draft: d.map(|d| d.summary.state == ChangeRequestState::Draft),
             file_view: self.reviewing && d.is_some_and(|d| d.code.viewer.is_some()),
             gate: d.and_then(|d| {
                 let x = d.detail.as_ref()?;

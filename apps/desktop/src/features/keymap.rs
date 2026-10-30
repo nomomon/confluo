@@ -244,7 +244,7 @@ keymap! {
         Approve ["cmd-shift-a"] Any "Approve" Suggest CircleCheck |c| c.allows(PrAct::Approve);
         RequestChanges ["cmd-shift-x"] Any "Request changes..." Suggest CircleX |c| c.allows(PrAct::RequestChanges);
         MergePr ["cmd-shift-m"] Any "Merge..." Suggest GitMerge |c| c.allows(PrAct::Merge);
-        ToggleDraft ["cmd-shift-d"] Any "Toggle draft" Suggest GitPullRequestDraft |c| c.allows(PrAct::ToggleDraft);
+        ToggleDraft ["cmd-shift-d"] Any "Mark as draft or ready for review" Suggest GitPullRequestDraft |c| c.allows(PrAct::ToggleDraft);
         ClosePr [] Any "Close or reopen pull request..." Suggest GitPullRequestClosed |c| c.allows(PrAct::Close);
         CopyLink ["cmd-shift-c"] Any "Copy link" Suggest Link |c| c.pr_open;
         CopyBranch [] Any "Copy branch name" Suggest Copy |c| c.pr_open;
@@ -300,13 +300,14 @@ pub const PALETTE_KEYS: [(&str, &str); 9] = [
 ];
 
 /// Rows of a cheat sheet section: label and shown keys (all bindings joined).
-pub fn group_rows(g: Group) -> Vec<(&'static str, Vec<String>)> {
+/// `draft`: state of the open PR, so the draft row names what it will do.
+pub fn group_rows(g: Group, draft: Option<bool>) -> Vec<(&'static str, Vec<String>)> {
     let mut rows: Vec<(&'static str, Vec<String>)> = ENTRIES
         .iter()
         .filter(|e| e.group == g && !e.keys.is_empty())
         .map(|e| {
             (
-                e.label,
+                crate::state::cmd_ctx::live_label(e.action, e.label, draft),
                 e.keys
                     .iter()
                     .filter(|k| **k != "shift-/")
@@ -461,6 +462,7 @@ mod tests {
             diff: true,
             projects: 2,
             file_view: false,
+            draft: Some(false),
             gate: Some(Gate {
                 review: ReviewCapabilities {
                     comment_review: true,

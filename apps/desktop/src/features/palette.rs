@@ -115,7 +115,7 @@ impl GitViewer {
             let title = if e.pal == Pal::Go {
                 format!("Go to {}", e.label)
             } else {
-                e.label.to_string()
+                crate::state::cmd_ctx::live_label(e.action, e.label, ctx.draft).to_string()
             };
             let current = theme_action(self.settings.theme) == e.action;
             rows.push(row(

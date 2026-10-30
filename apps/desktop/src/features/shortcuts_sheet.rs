@@ -67,24 +67,26 @@ impl GitViewer {
                 .when(g == cur, |h| {
                     h.child(Badge::new("Current").tint(theme::accent()))
                 });
-            let rows = group_rows(g).into_iter().map(|(label, keys)| {
-                div()
-                    .flex()
-                    .items_center()
-                    .justify_between()
-                    .gap(theme::SPACE_4)
-                    .py(theme::item_pad_y())
-                    .border_b_1()
-                    .border_color(theme::border_subtle())
-                    .child(div().text_color(theme::text()).child(label))
-                    .child(
-                        div()
-                            .flex()
-                            .gap(theme::SPACE_1P5)
-                            .children(keys.into_iter().map(Kbd::new)),
-                    )
-                    .into_any_element()
-            });
+            let rows = group_rows(g, self.cmd_ctx().draft)
+                .into_iter()
+                .map(|(label, keys)| {
+                    div()
+                        .flex()
+                        .items_center()
+                        .justify_between()
+                        .gap(theme::SPACE_4)
+                        .py(theme::item_pad_y())
+                        .border_b_1()
+                        .border_color(theme::border_subtle())
+                        .child(div().text_color(theme::text()).child(label))
+                        .child(
+                            div()
+                                .flex()
+                                .gap(theme::SPACE_1P5)
+                                .children(keys.into_iter().map(Kbd::new)),
+                        )
+                        .into_any_element()
+                });
             div()
                 .flex()
                 .flex_col()

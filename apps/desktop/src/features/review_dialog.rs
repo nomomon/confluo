@@ -21,13 +21,14 @@ fn state_badge(s: ReviewState) -> Option<(&'static str, gpui::Hsla)> {
 }
 
 /// Review button tooltip: the review shortcuts.
-fn review_tip() -> String {
+fn review_tip(draft: Option<bool>) -> String {
     let k = |s: String| s.replace(' ', "");
     format!(
-        "Approve {}, request changes {}, merge {}, draft {}",
+        "Approve {}, request changes {}, merge {}, {} {}",
         k(keymap::kbd::<Approve>()),
         k(keymap::kbd::<RequestChanges>()),
         k(keymap::kbd::<MergePr>()),
+        crate::state::cmd_ctx::draft_label(draft).to_lowercase(),
         k(keymap::kbd::<ToggleDraft>())
     )
 }
@@ -50,7 +51,7 @@ impl GitViewer {
         )
         .variant(ButtonVariant::Primary)
         .trailing_icon(IconName::ChevronDown)
-        .tooltip(review_tip())
+        .tooltip(review_tip(self.cmd_ctx().draft))
         .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_layer(Layer::Review, cx)));
         let hint = self
             .hint_group(

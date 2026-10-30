@@ -124,7 +124,7 @@ pub struct GitViewer {
     /// A keymap action chosen in the palette, dispatched from the root on the next render.
     pub(crate) pending_action: Option<Box<dyn gpui::Action>>,
     /// Project names and theme the app menus were last built with (Go lists projects, View marks the theme).
-    pub(crate) menu_projects: Option<(Vec<String>, crate::settings::ThemeMode)>,
+    pub(crate) menu_projects: Option<(Vec<String>, crate::settings::ThemeMode, Option<bool>)>,
     /// One PR takes the whole window (else triage: list plus preview).
     pub(crate) reviewing: bool,
     /// Cmd+\\ hid the triage preview.
@@ -545,9 +545,9 @@ impl Render for GitViewer {
             window.dispatch_action(a, cx);
         }
         let names: Vec<String> = self.projects.iter().map(|p| p.name.clone()).collect();
-        let menu_key = (names, self.settings.theme);
+        let menu_key = (names, self.settings.theme, self.cmd_ctx().draft);
         if self.menu_projects.as_ref() != Some(&menu_key) {
-            crate::features::menus::set_menus(cx, &menu_key.0, menu_key.1);
+            crate::features::menus::set_menus(cx, &menu_key.0, menu_key.1, menu_key.2);
             self.menu_projects = Some(menu_key);
         }
         theme::set_typography(self.settings.typography());

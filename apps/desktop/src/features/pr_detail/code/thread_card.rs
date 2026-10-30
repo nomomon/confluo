@@ -18,15 +18,17 @@ impl GitViewer {
         let Some(t) = d.detail.as_ref().and_then(|det| det.threads.get(ti)) else { return div().into_any_element() };
         let inline = &d.code.inline;
         let resolved = t.resolved == Some(true);
-        let body = if resolved && !inline.expanded.contains(&t.id) {
-            self.resolved_line(t, cx).into_any_element()
-        } else {
-            self.thread_card(t, d, cx).into_any_element()
+        let open = inline.expanded.contains(&t.id);
+        let body = match (resolved, open) {
+            (true, false) => self.resolved_line(t, false, cx).into_any_element(),
+            (true, true) => div().flex().flex_col().gap(theme::SPACE_1P5).child(self.resolved_line(t, true, cx)).child(self.thread_card(t, d, cx)).into_any_element(),
+            _ => self.thread_card(t, d, cx).into_any_element(),
         };
         self.card_side().px(theme::SPACE_3).py(theme::SPACE_2).font_family(theme::ui_font()).child(body).into_any_element()
     }
 
-    fn resolved_line(&self, t: &Thread, cx: &mut Context<Self>) -> impl IntoElement {
+    /// "Resolved thread by X" header; clicking it (or its chevron) expands or collapses the thread.
+    fn resolved_line(&self, t: &Thread, open: bool, cx: &mut Context<Self>) -> impl IntoElement {
         let who = t.comments.first().map(author).unwrap_or_default();
         let tid = t.id.clone();
         div()
@@ -45,14 +47,18 @@ impl GitViewer {
             .hover(|s| s.bg(theme::surface_hover()))
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 if let Some(d) = this.detail.as_mut() {
-                    d.code.inline.expanded.insert(tid.clone());
+                    let set = &mut d.code.inline.expanded;
+                    if !set.remove(&tid) {
+                        set.insert(tid.clone());
+                    }
                 }
                 cx.notify()
             }))
             .child(Icon::new(IconName::Check).size(theme::ICON_SM).color(theme::success()))
             .child(div().flex_1().child(format!("Resolved thread by {who}")))
             .child(format!("{} comment{}", t.comments.len(), if t.comments.len() == 1 { "" } else { "s" }))
-            .child(Icon::new(IconName::ChevronDown).size(theme::ICON_SM).color(theme::text_subtle()))
+            .tooltip(crate::ui::atoms::tooltip(if open { "Collapse thread" } else { "Expand thread" }))
+            .child(Icon::new(if open { IconName::ChevronUp } else { IconName::ChevronDown }).size(theme::ICON_SM).color(theme::text_subtle()))
     }
 
     /// Timeline-style thread: first comment, nested replies, a quiet reply field.

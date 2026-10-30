@@ -15,3 +15,5 @@ pub const LOADING_DELAY: Duration = Duration::from_millis(150);
 /// "Copied" feedback and toasts reset after this.
 pub const COPIED_RESET: Duration = Duration::from_millis(1500);
 pub const TOAST: Duration = Duration::from_millis(2500);
+/// How long Accounts waits for a host to answer "who am I" before keeping the cached user.
+pub const HOST_CHECK_TIMEOUT: Duration = Duration::from_secs(8);

@@ -96,8 +96,13 @@ impl GitViewer {
         d.loading = true;
         let id = d.summary.id.clone();
         let engine = self.engine.clone();
+        let cached_me = self.engine.me(id.repo.kind, &id.repo.host);
         let rx = bridge::spawn(async move {
-            let me = engine.whoami(id.repo.kind, &id.repo.host).await.ok().map(|u| u.username);
+            // The cached username is enough; asking the host first would queue behind a running refresh.
+            let me = match cached_me {
+                Some(u) => Some(u),
+                None => engine.whoami(id.repo.kind, &id.repo.host).await.ok().map(|u| u.username),
+            };
             (engine.detail(&id, true).await.map_err(err_str), me)
         });
         let want = d.summary.id.clone();

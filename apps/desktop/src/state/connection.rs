@@ -3,7 +3,7 @@
 use gpui::Context;
 use gv_engine::ProviderKind;
 
-use super::bridge;
+use super::{bridge, timing};
 use crate::app::GitViewer;
 
 /// A provider host and the signed-in username, if any.
@@ -32,24 +32,32 @@ impl GitViewer {
     /// Ask every known host who we are, in the background.
     pub(crate) fn check_hosts(&mut self, cx: &mut Context<Self>) {
         let engine = self.engine.clone();
+        // Show what we already know at once; the network check below confirms it.
+        let known = engine.known_hosts();
+        if self.hosts.is_none() && known.iter().all(|(k, h)| engine.me(*k, h).is_some()) {
+            self.hosts = Some(known.iter().map(|(k, h)| HostStatus { kind: *k, host: h.clone(), user: engine.me(*k, h) }).collect());
+        }
         let rx = bridge::spawn(async move {
-            let jobs = engine.known_hosts().into_iter().map(|(kind, host)| {
+            let jobs = known.into_iter().map(|(kind, host)| {
                 let engine = engine.clone();
                 async move {
-                    let user = engine.whoami(kind, &host).await.ok().map(|u| u.username);
+                    // A busy host (a refresh in flight, a rate limit pause) must not leave Accounts loading forever.
+                    let user = match tokio::time::timeout(timing::HOST_CHECK_TIMEOUT, engine.whoami(kind, &host)).await {
+                        Ok(r) => r.ok().map(|u| u.username),
+                        Err(_) => engine.me(kind, &host),
+                    };
                     HostStatus { kind, host, user }
                 }
             });
             futures::future::join_all(jobs).await
         });
         cx.spawn(async move |this, cx| {
-            if let Ok(v) = rx.await {
-                this.update(cx, |t, cx| {
-                    t.hosts = Some(v);
-                    cx.notify()
-                })
-                .ok();
-            }
+            let v = rx.await.unwrap_or_default();
+            this.update(cx, |t, cx| {
+                t.hosts = Some(v);
+                cx.notify()
+            })
+            .ok();
         })
         .detach();
     }

@@ -1,11 +1,11 @@
-//! Properties card (Linear/GitHub sidebar style): reviewers, assignees and labels. Editable
-//! rows open a searchable multi-select of candidate users.
+//! Properties card at the top of the Overview (Linear/GitHub sidebar style): reviewers, assignees,
+//! pipeline, approvals, labels and branch. People rows open a searchable multi-select of candidate users.
 
 use gpui::{div, prelude::*, AnyElement, ClickEvent, Context, MouseDownEvent, SharedString};
 use gv_engine::{PeopleRole, ReviewState, User};
 
 use crate::app::GitViewer;
-use crate::state::DetailState;
+use crate::state::{Copied, DetailState};
 use crate::ui::atoms::{tooltip, Avatar, Badge, BadgeVariant, Icon, IconName, ListItem};
 use crate::ui::molecules::{ComboOption, Combobox};
 use crate::ui::theme;
@@ -31,7 +31,22 @@ impl GitViewer {
             .bg(self.surfaces().card())
             .child(self.people_row(d, PeopleRole::Reviewers, &reviewers, Some(&states), caps.reviewers, cx))
             .child(self.people_row(d, PeopleRole::Assignees, &assignees, None, caps.assignees, cx))
+            .children(self.render_ci(d, "overview", cx).map(|ci| row_shell("prop-pipeline", "Pipeline", ci, false)))
+            .children(self.approvals(d).map(|a| row_shell("prop-approvals", "Approvals", a.into_any_element(), false)))
             .children(labels)
+            .child(self.branch_row(d, cx))
+    }
+
+    /// `source -> target` in mono; a click copies the source branch.
+    fn branch_row(&self, d: &DetailState, cx: &mut Context<Self>) -> AnyElement {
+        let s = &d.summary;
+        let branch = s.source_branch.clone();
+        let copied = self.copied == Some(Copied::Branch);
+        let value = div().font_family(theme::mono_font()).text_size(theme::text_xs()).truncate().child(SharedString::from(format!("{} -> {}", s.source_branch, s.target_branch)));
+        row_shell("prop-branch", "Branch", value.into_any_element(), true)
+            .tooltip(tooltip(if copied { "Copied" } else { "Copy source branch" }))
+            .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.copy(Copied::Branch, branch.clone(), cx)))
+            .into_any_element()
     }
 
     /// Names with avatars; reviewers also get their state (approved, requested changes, reviewed).

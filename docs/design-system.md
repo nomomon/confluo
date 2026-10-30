@@ -384,9 +384,11 @@ clicking the previewed row again hides it too, after `timing::DOUBLE_CLICK` so a
 the row highlight: selected means previewed. j/k move the cursor and preview; Esc clears both. Cmd+\\ keeps the keyboard cursor highlighted).
 The preview shows the description start as rendered markdown (about six lines, `PREVIEW_EXCERPT_H`) fading into the panel.
 Enter, a double click or "Open review" enters Review mode: the PR takes the whole content area (top bar of `REVIEW_BAR_H`:
-title line with ellipsis, a muted line under it with repo #n, branch, stats, CI and one approvals indicator "1/1 approved"
-that reconciles the provider's approval rule with reviewer states, approvers on hover; file tree,
-diff, right panel with Overview / Conversation). The file tree keeps its own width (resizable, collapsible); the diff and
+a short read-only title with ellipsis, a muted line under it with repo #n, stats and the unresolved count; file tree,
+diff, right panel with Overview / Conversation). The Overview starts with the large inline-editable title (the only place
+it is edited), then a compact properties block: Reviewers (with review state), Assignees, Pipeline (CI icon and summary,
+click opens the checks popover), Approvals (one "1/1 approved" indicator that reconciles the provider's approval rule
+with reviewer states, approvers on hover), Labels, Branch (click copies); then the description. The file tree keeps its own width (resizable, collapsible); the diff and
 the right panel share the rest proportionally, 2/3 and 1/3 by default (`layout::right_pane_w`, panel min `RIGHT_MIN_W`,
 diff min `DIFF_MIN_W`), so they adapt to the window; dragging stores the tree width and the panel share in settings. Esc, Cmd+[, Cmd+Left or the back chevron return to the list with selection
 and scroll kept; Cmd+[ / Cmd+] (and Cmd+Left / Cmd+Right outside text inputs, where they move the caret) walk the visited places (the list and reviewed PRs). Files use one order everywhere (`file_tree::tree_cmp`: folders before files at each level, case-insensitive, so root

@@ -1,7 +1,8 @@
-//! Review mode top bar: back, state icon, the title with a muted line under it (repo and number,
-//! branches, stats, CI, approvals), then Review, Merge and the More menu.
+//! Review mode top bar: back, state icon, the short read-only title with a muted line under it (repo and
+//! number, stats, unresolved count), then Review, Merge and the More menu. Branch, CI and approvals live
+//! in the Overview properties.
 
-use gpui::{div, prelude::*, ClickEvent, Context, MouseButton, MouseDownEvent, SharedString};
+use gpui::{div, prelude::*, ClickEvent, Context, MouseButton, MouseDownEvent};
 use gv_engine::ReviewState;
 
 use crate::app::{GitViewer, Layer};
@@ -81,8 +82,6 @@ impl GitViewer {
     pub(super) fn render_review_bar(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
         let s = &d.summary;
         let repo = s.id.repo.clone();
-        let branch = s.source_branch.clone();
-        let copied = self.copied == Some(Copied::Branch);
         let back = Button::new("review-back", "").icon(IconName::ChevronLeft).variant(ButtonVariant::Ghost).tooltip(keymap::tip::<HistoryBack>("Back to list")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.exit_review(cx)));
         let repo_el = div()
             .id("review-repo")
@@ -93,23 +92,6 @@ impl GitViewer {
             .tooltip(tooltip(format!("{}  right-click to rename", s.id.repo.path)))
             .on_mouse_down(MouseButton::Right, cx.listener(move |this, ev: &MouseDownEvent, _, cx| this.open_repo_menu(repo.clone(), ev.position, cx)))
             .child(format!("{} {}", self.repo_label(&s.id.repo), number_label(s)));
-        let branch_el = div()
-            .id("review-branch")
-            .flex()
-            .min_w(theme::SPACE_0)
-            .flex_shrink()
-            .items_center()
-            .gap(theme::SPACE_1)
-            .px(theme::SPACE_1)
-            .rounded(theme::RADIUS_SM)
-            .cursor_pointer()
-            .hover(|st| st.bg(theme::surface_hover()))
-            .font_family(theme::mono_font())
-            .text_size(theme::text_xs())
-            .text_color(theme::text_muted())
-            .tooltip(tooltip(if copied { "Copied" } else { "Copy source branch" }))
-            .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.copy(Copied::Branch, branch.clone(), cx)))
-            .child(div().min_w(theme::SPACE_0).truncate().child(SharedString::from(format!("{} -> {}", s.source_branch, s.target_branch))));
         // Title on the first line (ellipsis), everything else on one muted line under it, so nothing overflows.
         let meta = div()
             .flex()
@@ -119,12 +101,11 @@ impl GitViewer {
             .overflow_hidden()
             .child(crate::features::shared::provider_mark(s.id.repo.kind))
             .child(repo_el)
-            .child(branch_el)
             .child(stats(s))
-            .children(self.render_ci(d, "review", cx))
-            .children(self.approvals(d))
             .children(self.unresolved_count(d, cx));
-        let heading = div().flex().flex_col().flex_1().min_w(theme::SPACE_0).gap(theme::SPACE_0P5).child(div().flex().min_w(theme::SPACE_0).child(self.render_title(d, cx))).child(div().pl(theme::SPACE_1).child(meta));
+        // Short, read-only title: it is edited at the top of the Overview, never in two places.
+        let title = div().id("review-title").px(theme::SPACE_1).min_w(theme::SPACE_0).truncate().text_size(theme::text_base()).font_weight(theme::WEIGHT_SEMIBOLD).tooltip(tooltip(s.title.clone())).child(s.title.clone());
+        let heading = div().flex().flex_col().flex_1().min_w(theme::SPACE_0).gap(theme::SPACE_0P5).child(div().flex().min_w(theme::SPACE_0).child(title)).child(div().pl(theme::SPACE_1).child(meta));
         div()
             .relative()
             .flex()

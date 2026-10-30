@@ -70,6 +70,11 @@ impl GitViewer {
     pub(crate) fn start_title_edit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(d) = self.detail.as_mut() else { return };
         d.ui.editing_title = true;
+        // The title is edited at the top of the Overview tab only.
+        if self.reviewing {
+            self.review.right_open = true;
+            self.review.right_tab = crate::state::RightTab::Overview;
+        }
         let title = d.summary.title.clone();
         self.title_input.update(cx, |i, cx| i.set_text(title, cx));
         window.focus(&self.title_input.read(cx).focus_handle(cx));

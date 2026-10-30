@@ -1,4 +1,4 @@
-//! Edit entry points in the detail header: the inline title, the Merge button and the
+//! Edit entry points: the inline title (top of the Overview), the Merge button and the
 //! edit items of the More menu (draft, copy, close/reopen), all driven by capabilities.
 
 use gpui::{div, prelude::*, AnyElement, ClickEvent, Context};
@@ -12,15 +12,15 @@ use crate::ui::molecules::{MenuItem, MenuSeparator};
 use crate::ui::theme;
 
 impl GitViewer {
-    /// Big title; click to edit when allowed (Enter saves, Esc cancels).
+    /// Big title at the top of the Overview, wrapping; click to edit when allowed (Enter saves, Esc cancels).
     pub(super) fn render_title(&self, d: &DetailState, cx: &mut Context<Self>) -> AnyElement {
-        let base = || div().flex_1().min_w(theme::SPACE_0).truncate().text_size(theme::text_base()).font_weight(theme::WEIGHT_SEMIBOLD);
+        let base = || div().w_full().min_w(theme::SPACE_0).text_size(theme::text_lg()).font_weight(theme::WEIGHT_SEMIBOLD).line_height(gpui::relative(1.3));
         if d.ui.editing_title {
             let field = div().rounded(theme::RADIUS_MD).border_1().border_color(theme::focus_ring()).bg(theme::surface()).py(theme::SPACE_1).child(self.title_input.clone());
             return base().child(field).into_any_element();
         }
         let editable = d.detail.as_ref().is_some_and(|x| x.edit.caps.title);
-        let title = div().id("detail-title").px(theme::SPACE_1).rounded(theme::RADIUS_MD).truncate().child(d.summary.title.clone());
+        let title = div().id("detail-title").px(theme::SPACE_1).rounded(theme::RADIUS_MD).child(d.summary.title.clone());
         if !editable {
             return base().child(title).into_any_element();
         }

@@ -1,4 +1,4 @@
-//! Review mode right panel: Overview (description, properties, checks, commits) and
+//! Review mode right panel: Overview (title, properties, description, checks, commits) and
 //! Conversation (the activity timeline with the composer pinned below).
 
 use gpui::{div, prelude::*, AnyElement, ClickEvent, Context};
@@ -45,9 +45,10 @@ impl GitViewer {
             .flex()
             .flex_col()
             .gap(theme::card_gap())
+            .child(self.render_title(d, cx))
+            .child(self.render_properties(d, cx))
             .children(self.since_review(d))
             .child(self.render_description(d, cx))
-            .child(self.render_properties(d, cx))
             .when(has_checks, |c| c.child(self.render_checks_card(d, cx)))
             .children(d.detail.as_ref().filter(|x| !x.commits.is_empty()).map(|x| self.render_commits(&x.commits, x.my_review_sha.as_deref(), cx)))
             .child(self.render_checkout_card(d, cx))

@@ -25,6 +25,8 @@ pub enum MergeMethod {
     Merge,
     Squash,
     Rebase,
+    /// Azure DevOps "semi-linear merge": rebase, then a merge commit.
+    RebaseMerge,
 }
 
 impl MergeMethod {
@@ -33,6 +35,7 @@ impl MergeMethod {
             Self::Merge => "Create a merge commit",
             Self::Squash => "Squash and merge",
             Self::Rebase => "Rebase and merge",
+            Self::RebaseMerge => "Rebase with merge commit",
         }
     }
 
@@ -41,6 +44,7 @@ impl MergeMethod {
             Self::Merge => "merge",
             Self::Squash => "squash",
             Self::Rebase => "rebase",
+            Self::RebaseMerge => "rebase-merge",
         }
     }
 }

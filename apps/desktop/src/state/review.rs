@@ -47,6 +47,9 @@ impl GitViewer {
                         ReviewAction::RequestChanges => "Changes requested",
                         ReviewAction::Comment => "Review submitted",
                         ReviewAction::Unapprove => "Approval revoked",
+                        ReviewAction::ApproveWithSuggestions => "Approved with suggestions",
+                        ReviewAction::WaitForAuthor => "Waiting for the author",
+                        ReviewAction::ResetVote => "Vote reset",
                     }, cx);
                 }
                 v.load_detail(cx);

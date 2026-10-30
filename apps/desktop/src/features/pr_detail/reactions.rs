@@ -78,7 +78,8 @@ impl GitViewer {
 
     fn reaction_picker(&self, subject: Option<&str>, cx: &mut Context<Self>) -> impl IntoElement {
         let k = key(subject);
-        let items = ReactionKind::ALL.into_iter().map(|kind| {
+        let provider = self.detail.as_ref().map(|d| d.summary.id.repo.kind).unwrap_or(gv_engine::ProviderKind::GitHub);
+        let items = ReactionKind::for_provider(provider).iter().copied().map(|kind| {
             let sub = subject.map(str::to_string);
             div()
                 .id(SharedString::from(format!("rx-pick-{k}-{kind:?}")))

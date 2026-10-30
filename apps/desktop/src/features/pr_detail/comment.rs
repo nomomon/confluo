@@ -99,8 +99,8 @@ impl GitViewer {
             .child(div().id(SharedString::from(format!("when-{}", c.id))).text_color(theme::text_subtle()).tooltip(tooltip(exact)).child(when))
             .child(div().flex_1())
             .child(actions);
-        // GitLab notes carry no award emoji (one request per note), so only GitHub comments can react.
-        let can_react = !pending && d.summary.id.repo.kind == ProviderKind::GitHub;
+        // GitLab notes carry no award emoji (one request per note); Azure DevOps comments have likes.
+        let can_react = !pending && matches!(d.summary.id.repo.kind, ProviderKind::GitHub | ProviderKind::Azure);
         let reactions = self.reactions_bar(Some(&c.id), &c.reactions, group.clone(), can_react, cx);
         div()
             .group(group)

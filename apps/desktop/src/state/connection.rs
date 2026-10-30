@@ -23,6 +23,15 @@ pub fn auth_command(kind: ProviderKind) -> &'static str {
     }
 }
 
+/// What to tell a signed-out user, e.g. "Run `gh auth login` in a terminal".
+pub fn sign_in_hint(kind: ProviderKind) -> String {
+    match kind {
+        // az sessions expire (password changes revoke them), so this is usually a re-login.
+        ProviderKind::Azure => format!("Sign in again with `{}`", auth_command(kind)),
+        _ => format!("Run `{}` in a terminal", auth_command(kind)),
+    }
+}
+
 /// Avatar URL for a signed-in GitHub user; other hosts show the initial.
 pub fn host_avatar_url(kind: ProviderKind, host: &str, user: &str) -> Option<String> {
     (kind == ProviderKind::GitHub && host == "github.com").then(|| format!("https://github.com/{user}.png?size=64"))
@@ -62,6 +71,19 @@ impl GitViewer {
         .detach();
     }
 
+    /// Host as shown in Accounts: Azure DevOps lists its organizations (`dev.azure.com/org`).
+    pub(crate) fn host_label(&self, h: &HostStatus) -> String {
+        if h.kind != ProviderKind::Azure {
+            return h.host.clone();
+        }
+        let orgs = self.engine.azure_orgs();
+        if orgs.is_empty() {
+            h.host.clone()
+        } else {
+            orgs.iter().map(|o| format!("{}/{o}", h.host)).collect::<Vec<_>>().join(", ")
+        }
+    }
+
     pub(crate) fn connected_hosts(&self) -> Vec<&HostStatus> {
         self.hosts.iter().flatten().filter(|h| h.user.is_some()).collect()
     }
@@ -70,6 +92,8 @@ impl GitViewer {
         let host = label.split('/').next().unwrap_or(label);
         self.hosts.iter().flatten().find(|h| h.host == host).map(|h| h.kind).unwrap_or(if host.contains("github") {
             ProviderKind::GitHub
+        } else if host == "dev.azure.com" || host.ends_with(".visualstudio.com") {
+            ProviderKind::Azure
         } else {
             ProviderKind::GitLab
         })
@@ -78,8 +102,13 @@ impl GitViewer {
     /// One line for the error banner, e.g. "gitlab.com: 401, run `glab auth login`".
     pub(crate) fn summarize_errors(&self, errors: &[(String, String)]) -> Option<String> {
         let (label, err) = errors.first()?;
+        let kind = self.host_kind(label);
         let mut line = format!("{label}: {}", short_error(err));
-        if is_auth_error(err) {
+        if kind == ProviderKind::Azure && is_auth_error(err) {
+            // "dev.azure.com: sign in again with `az login`"
+            let host = label.split('/').next().unwrap_or(label);
+            line = format!("{host}: sign in again with `{}`", auth_command(kind));
+        } else if is_auth_error(err) {
             line.push_str(&format!(", run `{}`", auth_command(self.host_kind(label))));
         }
         if errors.len() > 1 {
@@ -118,5 +147,6 @@ mod tests {
         assert_eq!(short_error("HTTP status client error (401 Unauthorized) for url"), "401");
         assert_eq!(short_error("dns failed\nmore"), "dns failed");
         assert!(is_auth_error("no credentials for gitlab.com"));
+        assert_eq!(sign_in_hint(ProviderKind::Azure), "Sign in again with `az login`");
     }
 }

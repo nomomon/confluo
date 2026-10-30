@@ -68,3 +68,25 @@ Configured in Settings (`hide_bots`, `hidden_authors`, `hidden_branch_prefixes` 
 - `apps/desktop` the Confluo app (GPUI)
 
 See also `design-system.md` and `brand.md`.
+
+## Azure DevOps
+
+Repos are `org/project/repo` on `dev.azure.com` (`*.visualstudio.com` and `ssh.dev.azure.com` remotes are
+normalised). Auth: `az account get-access-token` (Bearer, refreshed once on 401) or `AZURE_DEVOPS_EXT_PAT`
+(Basic). A failed `az` lookup is remembered for 60s; Accounts and the refresh banner say
+"sign in again with `az login`". Add a whole project with `gv project add <name> --group azure:dev.azure.com/org/project`
+or by pasting `https://dev.azure.com/org/project`.
+
+- List: `.../_apis/git/pullrequests?searchCriteria.status=active` per project (one request), or per repo;
+  the inbox asks each organization of your projects for `creatorId` and `reviewerId` (two requests per org).
+  Votes come with the list (10/5 approved, -5 waiting for author, -10 rejected).
+- Checks: policy evaluations (build validation, minimum reviewers, comment resolution) plus PR statuses.
+  Lists enrich only when the source commit moved or a policy was still running (one request per PR).
+- Detail: the PR, threads, commits, policy evaluations and statuses (five requests). Vote events come from
+  system `VoteUpdate` threads. Comment ids are `thread/comment`.
+- Diff: last iteration's changes, then both blobs per file, diffed locally (`similar`); the first 120 files
+  only, blobs over 1 MB are "too large". Cached by source commit like other providers.
+- Writes (not exercised against a live org): threads, replies, edits, inline threads (`threadContext`),
+  resolve (`fixed` / `active`), votes via `PUT .../reviewers/{me}`, title/description/draft/abandon via
+  `PATCH`, complete with merge strategy and branch deletion (or auto-complete), reviewers, comment likes,
+  re-queue failed build policies. Viewed files are kept locally.

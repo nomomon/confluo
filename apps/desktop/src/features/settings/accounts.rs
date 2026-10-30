@@ -4,7 +4,7 @@ use gpui::{div, prelude::*, px, ClickEvent, Context};
 
 use crate::app::GitViewer;
 use crate::features::shared::provider_icon;
-use crate::state::{auth_command, host_avatar_url};
+use crate::state::{host_avatar_url, sign_in_hint};
 use crate::ui::atoms::{Avatar, Badge, BadgeVariant, Button, Skeleton};
 use crate::ui::molecules::Field;
 use crate::ui::theme;
@@ -25,7 +25,7 @@ impl GitViewer {
                     let url = h.user.as_deref().and_then(|u| host_avatar_url(h.kind, &h.host, u));
                     let who = match &h.user {
                         Some(u) => div().flex().items_center().gap(theme::SPACE_2).child(Avatar::new(u.clone()).image(self.avatar(url.as_deref()))).child(format!("@{u}")),
-                        None => div().text_color(theme::text_muted()).child(format!("Run `{}` in a terminal", auth_command(h.kind))),
+                        None => div().text_color(theme::text_muted()).child(sign_in_hint(h.kind)),
                     };
                     let status = if connected { Badge::new("Connected").tint(theme::success()) } else { Badge::new("Not signed in").variant(BadgeVariant::Destructive) };
                     div()
@@ -35,7 +35,7 @@ impl GitViewer {
                         .px(theme::SPACE_4)
                         .py(theme::SPACE_3)
                         .child(provider_icon(h.kind))
-                        .child(div().flex_1().flex().flex_col().gap(theme::SPACE_0P5).child(div().text_size(theme::text_sm()).child(h.host.clone())).child(div().text_size(theme::text_xs()).child(who)))
+                        .child(div().flex_1().flex().flex_col().gap(theme::SPACE_0P5).child(div().text_size(theme::text_sm()).child(self.host_label(h))).child(div().text_size(theme::text_xs()).child(who)))
                         .child(status)
                         .into_any_element()
                 })

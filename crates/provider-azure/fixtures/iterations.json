@@ -1,0 +1,7 @@
+{
+  "value": [
+    { "id": 1, "sourceRefCommit": { "commitId": "bbbb000000000000000000000000000000000001" }, "targetRefCommit": { "commitId": "cccc000000000000000000000000000000000001" }, "commonRefCommit": { "commitId": "cccc000000000000000000000000000000000001" } },
+    { "id": 2, "sourceRefCommit": { "commitId": "aaaa000000000000000000000000000000000002" }, "targetRefCommit": { "commitId": "cccc000000000000000000000000000000000001" }, "commonRefCommit": { "commitId": "cccc000000000000000000000000000000000000" } }
+  ],
+  "count": 2
+}

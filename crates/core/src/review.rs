@@ -13,6 +13,12 @@ pub enum ReviewAction {
     Comment,
     /// Revoke an earlier approval (GitLab).
     Unapprove,
+    /// Azure DevOps vote 5.
+    ApproveWithSuggestions,
+    /// Azure DevOps vote -5.
+    WaitForAuthor,
+    /// Azure DevOps vote 0: take back any vote.
+    ResetVote,
 }
 
 impl ReviewAction {
@@ -22,6 +28,9 @@ impl ReviewAction {
             "request-changes" | "reject" => Some(Self::RequestChanges),
             "comment" => Some(Self::Comment),
             "unapprove" | "revoke" => Some(Self::Unapprove),
+            "approve-with-suggestions" | "suggest" => Some(Self::ApproveWithSuggestions),
+            "wait-for-author" | "wait" => Some(Self::WaitForAuthor),
+            "reset" | "reset-vote" => Some(Self::ResetVote),
             _ => None,
         }
     }
@@ -32,6 +41,9 @@ impl ReviewAction {
             Self::RequestChanges => "Request changes",
             Self::Comment => "Comment",
             Self::Unapprove => "Revoke approval",
+            Self::ApproveWithSuggestions => "Approve with suggestions",
+            Self::WaitForAuthor => "Wait for author",
+            Self::ResetVote => "Reset vote",
         }
     }
 }
@@ -46,6 +58,16 @@ pub struct ReviewCapabilities {
     pub merge: bool,
     /// Why approving is not possible although the provider has it (e.g. own PR).
     pub approve_blocked: Option<String>,
+    /// Azure DevOps votes besides approve and reject.
+    #[serde(default)]
+    pub approve_with_suggestions: bool,
+    #[serde(default)]
+    pub wait_for_author: bool,
+    #[serde(default)]
+    pub reset_vote: bool,
+    /// Provider wording for "Request changes" (Azure DevOps: "Reject").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub request_changes_label: Option<String>,
 }
 
 impl ReviewCapabilities {
@@ -55,11 +77,26 @@ impl ReviewCapabilities {
             ReviewAction::RequestChanges => self.request_changes,
             ReviewAction::Comment => self.comment_review,
             ReviewAction::Unapprove => self.unapprove,
+            ReviewAction::ApproveWithSuggestions => self.approve_with_suggestions,
+            ReviewAction::WaitForAuthor => self.wait_for_author,
+            ReviewAction::ResetVote => self.reset_vote,
         }
     }
 
     pub fn any(&self) -> bool {
-        self.approve || self.unapprove || self.request_changes || self.comment_review || self.approve_blocked.is_some()
+        self.approve
+            || self.unapprove
+            || self.request_changes
+            || self.comment_review
+            || self.approve_blocked.is_some()
+            || self.approve_with_suggestions
+            || self.wait_for_author
+            || self.reset_vote
+    }
+
+    /// Label of the "Request changes" action on this provider.
+    pub fn request_changes_label(&self) -> &str {
+        self.request_changes_label.as_deref().unwrap_or("Request changes")
     }
 }
 
@@ -143,7 +180,26 @@ pub fn state_after(action: ReviewAction, before: Option<ReviewState>) -> Option<
         ReviewAction::Approve => Some(ReviewState::Approved),
         ReviewAction::RequestChanges => Some(ReviewState::ChangesRequested),
         ReviewAction::Comment => before.or(Some(ReviewState::Commented)),
-        ReviewAction::Unapprove => None,
+        ReviewAction::Unapprove | ReviewAction::ResetVote => None,
+        ReviewAction::ApproveWithSuggestions => Some(ReviewState::Approved),
+        ReviewAction::WaitForAuthor => Some(ReviewState::ChangesRequested),
+    }
+}
+
+/// Azure DevOps: every vote on active PRs, including on your own (Azure allows it unless a policy forbids).
+/// `my_vote` is my current vote (0 when none).
+pub fn azure_capabilities(cr: &ChangeRequest, my_vote: i64) -> ReviewCapabilities {
+    if !cr.state.is_active() {
+        return ReviewCapabilities::default();
+    }
+    ReviewCapabilities {
+        approve: my_vote != 10,
+        approve_with_suggestions: my_vote != 5,
+        wait_for_author: my_vote != -5,
+        request_changes: my_vote != -10,
+        reset_vote: my_vote != 0,
+        request_changes_label: Some("Reject".into()),
+        ..Default::default()
     }
 }
 
@@ -205,5 +261,16 @@ mod tests {
         assert_eq!(state_after(ReviewAction::Unapprove, Some(ReviewState::Approved)), None);
         assert_eq!(state_after(ReviewAction::Comment, None), Some(ReviewState::Commented));
         assert_eq!(ReviewAction::parse("request-changes"), Some(ReviewAction::RequestChanges));
+        assert_eq!(ReviewAction::parse("wait"), Some(ReviewAction::WaitForAuthor));
+        assert_eq!(state_after(ReviewAction::ResetVote, Some(ReviewState::Approved)), None);
+    }
+
+    #[test]
+    fn azure_votes() {
+        let c = azure_capabilities(&cr("me", ChangeRequestState::Open), 10);
+        assert!(!c.approve && c.approve_with_suggestions && c.wait_for_author && c.request_changes && c.reset_vote);
+        assert_eq!(c.request_changes_label(), "Reject");
+        assert!(!azure_capabilities(&cr("ada", ChangeRequestState::Open), 0).reset_vote);
+        assert!(!azure_capabilities(&cr("ada", ChangeRequestState::Merged), 0).any());
     }
 }

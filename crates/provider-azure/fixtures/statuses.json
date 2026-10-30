@@ -1,0 +1,8 @@
+{
+  "value": [
+    { "id": 1, "state": "pending", "description": "Scan running", "context": { "name": "scan", "genre": "security" }, "creationDate": "2026-10-20T09:00:00Z", "updatedDate": "2026-10-20T09:00:00Z" },
+    { "id": 2, "state": "succeeded", "description": "Scan passed", "context": { "name": "scan", "genre": "security" }, "targetUrl": "https://scanner.example.com/r/2", "creationDate": "2026-10-20T09:05:00Z", "updatedDate": "2026-10-20T09:06:00Z" },
+    { "id": 3, "state": "error", "description": "Coverage dropped", "context": { "name": "coverage" }, "creationDate": "2026-10-20T09:07:00Z" }
+  ],
+  "count": 3
+}

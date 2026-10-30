@@ -1,0 +1,7 @@
+{
+  "value": [
+    { "commitId": "bbbb000000000000000000000000000000000002", "author": { "name": "Ada Lovelace", "email": "ada@example.com", "date": "2026-10-20T09:10:00Z" }, "comment": "Validate inputs\n\nDetails", "url": "https://dev.azure.com/contoso/_apis/git/repositories/r1/commits/bbbb" },
+    { "commitId": "bbbb000000000000000000000000000000000001", "author": { "name": "Ada Lovelace", "email": "ada@example.com", "date": "2026-10-20T09:00:00Z" }, "comment": "Add login form" }
+  ],
+  "count": 2
+}

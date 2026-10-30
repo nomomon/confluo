@@ -1,0 +1,32 @@
+{
+  "repository": {
+    "id": "3411ebc1-d5aa-464f-9615-0b527bc66719",
+    "name": "web-app",
+    "url": "https://dev.azure.com/contoso/a7573007-bbb3-4341-b726-0c4148a07853/_apis/git/repositories/3411ebc1-d5aa-464f-9615-0b527bc66719",
+    "project": { "id": "a7573007-bbb3-4341-b726-0c4148a07853", "name": "Fabrikam Web", "state": "wellFormed" }
+  },
+  "pullRequestId": 42,
+  "codeReviewId": 42,
+  "status": "active",
+  "createdBy": { "displayName": "Ada Lovelace", "uniqueName": "ada@example.com", "id": "22222222-2222-2222-2222-222222222222", "imageUrl": "https://dev.azure.com/contoso/_api/_common/identityImage?id=22222222" },
+  "creationDate": "2026-10-20T09:15:00.123Z",
+  "title": "Add login form",
+  "description": "Adds the login form.\n\n- validation\n- tests",
+  "sourceRefName": "refs/heads/feature/login",
+  "targetRefName": "refs/heads/main",
+  "mergeStatus": "succeeded",
+  "isDraft": false,
+  "mergeId": "f5fc8381-3fb2-49fe-8a0d-27dcc2d6ef82",
+  "lastMergeSourceCommit": { "commitId": "aaaa000000000000000000000000000000000002" },
+  "lastMergeTargetCommit": { "commitId": "cccc000000000000000000000000000000000001" },
+  "lastMergeCommit": { "commitId": "dddd000000000000000000000000000000000003" },
+  "reviewers": [
+    { "reviewerUrl": "https://dev.azure.com/contoso/_apis/git/repositories/3411ebc1/pullRequests/42/reviewers/11111111", "vote": 0, "hasDeclined": false, "isRequired": true, "isFlagged": false, "displayName": "Me", "uniqueName": "me@example.com", "id": "11111111-1111-1111-1111-111111111111" },
+    { "vote": 5, "isRequired": false, "displayName": "Bob Builder", "uniqueName": "bob@example.com", "id": "33333333-3333-3333-3333-333333333333" },
+    { "vote": -5, "isContainer": true, "displayName": "[Fabrikam Web]\\Web Team", "uniqueName": "vstfs:///Classification/TeamProject/a7573007\\Web Team", "id": "44444444-4444-4444-4444-444444444444", "votedFor": [] }
+  ],
+  "labels": [ { "id": "1", "name": "backend", "active": true }, { "id": "2", "name": "old", "active": false } ],
+  "completionOptions": { "mergeStrategy": "squash", "deleteSourceBranch": true },
+  "url": "https://dev.azure.com/contoso/a7573007-bbb3-4341-b726-0c4148a07853/_apis/git/repositories/3411ebc1-d5aa-464f-9615-0b527bc66719/pullRequests/42",
+  "supportsIterations": true
+}

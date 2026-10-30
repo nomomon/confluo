@@ -42,6 +42,16 @@ pub trait Provider: Send + Sync {
     fn lists_need_enrich(&self) -> bool {
         false
     }
+    /// Whether [`Provider::enrich`] fills reviewer states (otherwise listed reviewers are fresh and kept).
+    fn enrich_fills_reviewers(&self) -> bool {
+        true
+    }
+    /// Key that changes whenever an item needs enriching again (default: its `updated_at`).
+    fn enrich_marker(&self, cr: &ChangeRequest) -> String {
+        cr.updated_at.to_rfc3339()
+    }
+    /// Namespaces (Azure DevOps organizations) the user works in, so "involving me" knows where to look.
+    fn set_namespaces(&self, _namespaces: Vec<String>) {}
     /// Fill reviewer states, checks and counts with extra requests. Called only for items whose
     /// `updated_at` changed since the cache (or whose checks were still running).
     /// Results are in input order.

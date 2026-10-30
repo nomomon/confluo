@@ -55,14 +55,29 @@ impl GitViewer {
             }
             menu = menu.child(item.on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.submit_review(ReviewAction::Approve, cx))));
         }
+        if c.approve_with_suggestions {
+            menu = menu.child(MenuItem::new("review-suggest", "Approve with suggestions").icon(IconName::CircleCheck).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                this.submit_review(ReviewAction::ApproveWithSuggestions, cx)
+            })));
+        }
+        if c.wait_for_author {
+            menu = menu.child(MenuItem::new("review-wait", "Wait for author").icon(IconName::Clock).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                this.submit_review(ReviewAction::WaitForAuthor, cx)
+            })));
+        }
         if c.request_changes {
-            menu = menu.child(MenuItem::new("review-changes", "Request changes").icon(IconName::CircleX).shortcut(keymap::kbd::<RequestChanges>()).on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
+            menu = menu.child(MenuItem::new("review-changes", c.request_changes_label().to_string()).icon(IconName::CircleX).shortcut(keymap::kbd::<RequestChanges>()).on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
                 this.open_review_summary(ReviewAction::RequestChanges, window, cx)
             })));
         }
         if c.comment_review {
             menu = menu.child(MenuItem::new("review-comment", "Comment").icon(IconName::MessageCircle).on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
                 this.open_review_summary(ReviewAction::Comment, window, cx)
+            })));
+        }
+        if c.reset_vote {
+            menu = menu.child(MenuSeparator).child(MenuItem::new("review-reset", "Reset vote").icon(IconName::ArrowBackUp).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                this.submit_review(ReviewAction::ResetVote, cx)
             })));
         }
         if c.unapprove {
@@ -82,9 +97,11 @@ impl GitViewer {
     /// Summary dialog for Comment and Request changes.
     pub(crate) fn render_review_dialog(&self, action: ReviewAction, cx: &mut Context<Self>) -> Dialog {
         let empty = self.review_input.read(cx).text().trim().is_empty();
-        // GitHub needs a body for these two; an empty submit would be rejected.
-        let needs_body = matches!(action, ReviewAction::Comment | ReviewAction::RequestChanges);
-        let submit = Button::new("review-submit", action.label()).variant(if action == ReviewAction::RequestChanges { ButtonVariant::Destructive } else { ButtonVariant::Primary });
+        let caps = self.detail.as_ref().and_then(|d| d.detail.as_ref()).map(|x| x.review.caps.clone()).unwrap_or_default();
+        // GitHub needs a body for these two; an empty submit would be rejected. Azure votes take an optional comment.
+        let needs_body = matches!(action, ReviewAction::Comment | ReviewAction::RequestChanges) && caps.request_changes_label.is_none();
+        let label = if action == ReviewAction::RequestChanges { caps.request_changes_label().to_string() } else { action.label().to_string() };
+        let submit = Button::new("review-submit", label.clone()).variant(if action == ReviewAction::RequestChanges { ButtonVariant::Destructive } else { ButtonVariant::Primary });
         let submit = if needs_body && empty { submit.tooltip("Write a summary first") } else { submit.on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.submit_review(action, cx))) };
         let footer = div()
             .flex()
@@ -98,9 +115,10 @@ impl GitViewer {
             })))
             .child(div().when(needs_body && empty, |d| d.opacity(0.5)).child(submit));
         let title = match action {
-            ReviewAction::RequestChanges => "Request changes",
-            _ => "Submit review",
+            ReviewAction::RequestChanges => label,
+            _ => "Submit review".to_string(),
         };
-        Dialog::new(title).description("Your summary is posted with the review").content(Textarea::new(self.review_input.clone()).rows(4)).footer(footer)
+        let desc = if needs_body { "Your summary is posted with the review" } else { "An optional comment is posted with your vote" };
+        Dialog::new(title).description(desc).content(Textarea::new(self.review_input.clone()).rows(4)).footer(footer)
     }
 }

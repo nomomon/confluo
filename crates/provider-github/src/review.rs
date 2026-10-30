@@ -9,7 +9,7 @@ pub(crate) fn review_payload(action: ReviewAction, body: Option<&str>) -> Option
         ReviewAction::Approve => "APPROVE",
         ReviewAction::RequestChanges => "REQUEST_CHANGES",
         ReviewAction::Comment => "COMMENT",
-        ReviewAction::Unapprove => return None,
+        ReviewAction::Unapprove | ReviewAction::ApproveWithSuggestions | ReviewAction::WaitForAuthor | ReviewAction::ResetVote => return None,
     };
     let mut v = json!({ "event": event });
     if let Some(b) = body.filter(|b| !b.is_empty()) {

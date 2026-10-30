@@ -67,7 +67,7 @@ enum Cmd {
     /// Submit a review: approve, request-changes, comment or unapprove (GitLab).
     Review {
         target: String,
-        /// approve | request-changes | comment | unapprove
+        /// approve | request-changes | comment | unapprove; Azure DevOps also approve-with-suggestions | wait-for-author | reset
         action: String,
         /// Review summary.
         #[arg(short = 'm', long = "message")]
@@ -99,7 +99,7 @@ enum ProjectCmd {
         /// A repo URL (web or git remote).
         #[arg(long, group = "src")]
         repo: Option<String>,
-        /// A group or org as <provider>:<host>/<path>, e.g. gitlab:gitlab.com/my-group/sub.
+        /// A group or org as <provider>:<host>/<path>, e.g. gitlab:gitlab.com/my-group/sub or azure:dev.azure.com/org/project.
         #[arg(long, group = "src")]
         group: Option<String>,
     },
@@ -415,7 +415,7 @@ async fn main() -> Result<()> {
             println!("edited comment {}", c.id);
         }
         Cmd::Review { target, action, body } => {
-            let Some(act) = ReviewAction::parse(&action) else { bail!("action must be approve, request-changes, comment or unapprove") };
+            let Some(act) = ReviewAction::parse(&action) else { bail!("action must be approve, request-changes (reject), comment, unapprove, approve-with-suggestions, wait-for-author or reset") };
             let id = engine.resolve_id(&target)?;
             let d = engine.detail(&id, true).await?;
             if act == ReviewAction::Comment && body.as_deref().is_none_or(|b| b.trim().is_empty()) && id.repo.kind == ProviderKind::GitLab {

@@ -11,6 +11,7 @@ pub(crate) fn review_request(action: ReviewAction) -> Option<(reqwest::Method, &
         ReviewAction::Comment => Some((reqwest::Method::POST, "/notes")),
         // No REST endpoint: it goes through the GraphQL `mergeRequestRequestChanges` mutation.
         ReviewAction::RequestChanges => None,
+        ReviewAction::ApproveWithSuggestions | ReviewAction::WaitForAuthor | ReviewAction::ResetVote => None,
     }
 }
 

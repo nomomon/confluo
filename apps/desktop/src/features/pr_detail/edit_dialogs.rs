@@ -82,6 +82,7 @@ impl GitViewer {
             match o.method {
                 MergeMethod::Squash => "Squash and merge".into(),
                 MergeMethod::Rebase => "Rebase and merge".into(),
+                MergeMethod::RebaseMerge => "Rebase and merge".into(),
                 MergeMethod::Merge if o.squash => "Squash and merge".into(),
                 MergeMethod::Merge => "Merge".into(),
             }

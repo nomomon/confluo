@@ -1,0 +1,28 @@
+{
+  "value": [
+    {
+      "repository": { "id": "r1", "name": "web-app", "project": { "id": "a7573007-bbb3-4341-b726-0c4148a07853", "name": "Fabrikam Web" } },
+      "pullRequestId": 43, "status": "active", "isDraft": true,
+      "createdBy": { "displayName": "Ada Lovelace", "uniqueName": "ada@example.com", "id": "22222222-2222-2222-2222-222222222222" },
+      "creationDate": "2026-10-21T10:00:00Z", "title": "WIP: refactor", "sourceRefName": "refs/heads/refactor", "targetRefName": "refs/heads/main",
+      "reviewers": [ { "vote": 0, "displayName": "Me", "uniqueName": "me@example.com", "id": "11111111-1111-1111-1111-111111111111" } ],
+      "lastMergeSourceCommit": { "commitId": "eeee000000000000000000000000000000000001" }
+    },
+    {
+      "repository": { "id": "r2", "name": "api", "project": { "id": "a7573007-bbb3-4341-b726-0c4148a07853", "name": "Fabrikam Web" } },
+      "pullRequestId": 40, "status": "completed", "isDraft": false,
+      "createdBy": { "displayName": "Me", "uniqueName": "me@example.com", "id": "11111111-1111-1111-1111-111111111111" },
+      "closedBy": { "displayName": "Bob Builder", "uniqueName": "bob@example.com", "id": "33333333-3333-3333-3333-333333333333" },
+      "creationDate": "2026-10-10T10:00:00Z", "closedDate": "2026-10-12T16:30:00Z", "title": "Bump deps",
+      "sourceRefName": "refs/heads/deps", "targetRefName": "refs/heads/main", "reviewers": []
+    },
+    {
+      "repository": { "id": "r2", "name": "api", "project": { "id": "a7573007-bbb3-4341-b726-0c4148a07853", "name": "Fabrikam Web" } },
+      "pullRequestId": 39, "status": "abandoned",
+      "createdBy": { "displayName": "Me", "uniqueName": "me@example.com", "id": "11111111-1111-1111-1111-111111111111" },
+      "creationDate": "2026-10-01T10:00:00Z", "closedDate": "2026-10-02T10:00:00Z", "title": "Spike",
+      "sourceRefName": "refs/heads/spike", "targetRefName": "refs/heads/main", "reviewers": []
+    }
+  ],
+  "count": 3
+}

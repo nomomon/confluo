@@ -47,6 +47,12 @@ impl RepoRef {
         Self { kind, host: host.into().to_ascii_lowercase(), path: path.into() }
     }
     pub fn web_url(&self) -> String {
+        if self.kind == ProviderKind::Azure {
+            // org/project/repo -> org/project/_git/repo
+            if let Some((op, repo)) = self.path.rsplit_once('/') {
+                return format!("https://{}/{op}/_git/{repo}", self.host);
+            }
+        }
         format!("https://{}/{}", self.host, self.path)
     }
 }
@@ -93,8 +99,16 @@ impl ChangeRequestId {
         }
         if let Some((repo, tail)) = path.split_once("/_git/") {
             // dev.azure.com/org/project/_git/repo/pullrequest/12
+            // org.visualstudio.com/[DefaultCollection/]project/_git/repo/pullrequest/12
             let (name, tail) = tail.split_once("/pullrequest/")?;
             let n = tail.split('/').next()?.parse().ok()?;
+            let (host, repo) = match host.strip_suffix(".visualstudio.com") {
+                Some(org) => {
+                    let project = repo.rsplit('/').next()?;
+                    ("dev.azure.com".to_string(), format!("{org}/{project}"))
+                }
+                None => (host, repo.to_string()),
+            };
             return Some(Self {
                 repo: RepoRef::new(ProviderKind::Azure, host, format!("{repo}/{name}")),
                 number: n,
@@ -377,6 +391,10 @@ mod tests {
         let a = ChangeRequestId::from_web_url("https://dev.azure.com/org/proj/_git/repo/pullrequest/9").unwrap();
         assert_eq!(a.repo.path, "org/proj/repo");
         assert_eq!(a.repo.kind, ProviderKind::Azure);
+        let v = ChangeRequestId::from_web_url("https://org.visualstudio.com/DefaultCollection/proj/_git/repo/pullrequest/9?_a=files").unwrap();
+        assert_eq!((v.repo.host.as_str(), v.repo.path.as_str(), v.number), ("dev.azure.com", "org/proj/repo", 9));
+        let w = ChangeRequestId::from_web_url("https://org.visualstudio.com/proj/_git/repo/pullrequest/3").unwrap();
+        assert_eq!(w.repo.path, "org/proj/repo");
     }
 
     #[test]

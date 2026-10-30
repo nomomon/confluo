@@ -29,6 +29,8 @@ pub use gv_store::{Project, RepoOverride, Source};
 const GROUP_REPOS_TTL: chrono::Duration = chrono::Duration::hours(6);
 /// A detail fetched this recently is served from the cache.
 const DETAIL_FRESH: Duration = Duration::from_secs(60);
+/// How long a failed credential lookup is remembered before the CLI is asked again.
+const AUTH_RETRY: Duration = Duration::from_secs(60);
 
 /// What to refresh.
 #[derive(Debug, Clone)]
@@ -80,6 +82,8 @@ pub struct Engine {
     in_flight: Mutex<BTreeSet<String>>,
     /// When each detail was last fetched from the provider.
     detail_fetched: Mutex<HashMap<ChangeRequestId, Instant>>,
+    /// Hosts whose credential lookup failed, with when and why.
+    auth_failed: Mutex<HashMap<ProviderKey, (Instant, String)>>,
 }
 
 /// Removes a refresh target from the in-flight set when dropped.
@@ -169,6 +173,7 @@ impl Engine {
             me_cache: Default::default(),
             in_flight: Default::default(),
             detail_fetched: Default::default(),
+            auth_failed: Default::default(),
         })
     }
 
@@ -190,14 +195,49 @@ impl Engine {
         if let Some(p) = map.get(&key) {
             return Ok(p.clone());
         }
-        let cred = self.creds.get(kind, host).await?;
+        // A failed sign-in (e.g. an expired `az login`) is not retried on every call: the CLI is
+        // slow and the answer will not change until the user signs in again.
+        if let Some((at, msg)) = self.auth_failed.lock().unwrap_or_else(|e| e.into_inner()).get(&key) {
+            if at.elapsed() < AUTH_RETRY {
+                bail!("{msg}");
+            }
+        }
+        let cred = match self.creds.get(kind, host).await {
+            Ok(c) => c,
+            Err(e) => {
+                self.auth_failed.lock().unwrap_or_else(|e| e.into_inner()).insert(key, (Instant::now(), e.to_string()));
+                return Err(e.into());
+            }
+        };
+        self.auth_failed.lock().unwrap_or_else(|e| e.into_inner()).remove(&key);
         let p: Arc<dyn Provider> = match kind {
             ProviderKind::GitHub => Arc::new(gv_provider_github::GitHubProvider::new(host, cred.token)),
             ProviderKind::GitLab => Arc::new(gv_provider_gitlab::GitLabProvider::new(host, cred)),
-            ProviderKind::Azure => Arc::new(gv_provider_azure::AzureProvider::new(host, cred.token)),
+            ProviderKind::Azure => Arc::new(gv_provider_azure::AzureProvider::new(host, cred)),
         };
+        if kind == ProviderKind::Azure {
+            p.set_namespaces(self.azure_orgs());
+        }
         map.insert(key, p.clone());
         Ok(p)
+    }
+
+    /// Azure DevOps organizations of the repos in projects (the first path segment).
+    pub fn azure_orgs(&self) -> Vec<String> {
+        let mut orgs: BTreeSet<String> = BTreeSet::new();
+        for p in self.store.projects().unwrap_or_default() {
+            for s in &p.sources {
+                if let Source::Group { provider: ProviderKind::Azure, path, .. } = s {
+                    orgs.extend(path.split('/').next().map(str::to_string));
+                }
+            }
+            for r in self.store.project_repos(p.id).unwrap_or_default() {
+                if r.kind == ProviderKind::Azure {
+                    orgs.extend(r.path.split('/').next().map(str::to_string));
+                }
+            }
+        }
+        orgs.into_iter().filter(|o| !o.is_empty()).collect()
     }
 
     pub async fn whoami(&self, kind: ProviderKind, host: &str) -> Result<User> {
@@ -230,9 +270,7 @@ impl Engine {
         if let Ok(ps) = self.store.projects() {
             for p in ps {
                 for r in self.store.project_repos(p.id).unwrap_or_default() {
-                    if r.kind != ProviderKind::Azure {
-                        set.insert((r.kind, r.host));
-                    }
+                    set.insert((r.kind, r.host));
                 }
             }
         }
@@ -414,6 +452,9 @@ impl Engine {
                 Ok(p) => p,
                 Err(e) => return (None, vec![(host.clone(), None, Err(e))]),
             };
+            if kind == ProviderKind::Azure {
+                prov.set_namespaces(self.azure_orgs());
+            }
             if let Ok(me) = prov.whoami().await {
                 self.remember_me(kind, &host, &me.username);
             }
@@ -476,13 +517,14 @@ impl Engine {
             for cr in items.iter_mut() {
                 let cached = self.store.get_change_request(&cr.id).ok().flatten();
                 let marker = self.store.get_meta(&enrich_key(&cr.id)).ok().flatten();
-                let fresh = marker.as_deref() == Some(cr.updated_at.to_rfc3339().as_str());
+                let fresh = marker.as_deref() == Some(prov.enrich_marker(cr).as_str());
+                let reviewers = prov.enrich_fills_reviewers();
                 match cached {
-                    Some(c) if fresh && c.checks.pending == 0 => carry_enrichment(cr, &c, me.as_deref()),
+                    Some(c) if fresh && c.checks.pending == 0 => carry_enrichment(cr, &c, me.as_deref(), reviewers),
                     cached => {
                         // Until the new data arrives, stale enrichment beats none.
                         if let Some(c) = cached {
-                            carry_enrichment(cr, &c, me.as_deref());
+                            carry_enrichment(cr, &c, me.as_deref(), reviewers);
                         }
                         if !bots.hides(cr) && todo_ids.insert(cr.id.key()) {
                             todo.push(cr.clone());
@@ -499,7 +541,7 @@ impl Engine {
         for (orig, r) in todo.iter().zip(prov.enrich(todo.clone()).await) {
             match r {
                 Ok(e) => {
-                    let _ = self.store.set_meta(&enrich_key(&e.id), &orig.updated_at.to_rfc3339());
+                    let _ = self.store.set_meta(&enrich_key(&e.id), &prov.enrich_marker(orig));
                     done.insert(e.id.clone(), e);
                 }
                 Err(ProviderError::RateLimited { until, .. }) => paused = later(paused, until),
@@ -717,8 +759,10 @@ fn enrich_key(id: &ChangeRequestId) -> String {
 }
 
 /// Copy the enrichment (reviewer states, checks, counts) of a cached item onto a freshly listed one.
-fn carry_enrichment(cr: &mut ChangeRequest, cached: &ChangeRequest, me: Option<&str>) {
-    cr.reviewers = cached.reviewers.clone();
+fn carry_enrichment(cr: &mut ChangeRequest, cached: &ChangeRequest, me: Option<&str>, reviewers: bool) {
+    if reviewers {
+        cr.reviewers = cached.reviewers.clone();
+    }
     cr.checks = cached.checks;
     cr.changed_files = cached.changed_files.or(cr.changed_files);
     cr.additions = cached.additions;
@@ -831,7 +875,7 @@ mod tests {
         cached.reviewers = vec![Review { user: User::named("me"), state: ReviewState::Pending }];
         cached.checks = CheckSummary { total: 2, passed: 2, failed: 0, pending: 0 };
         let mut fresh = cr(1, "x");
-        carry_enrichment(&mut fresh, &cached, Some("me"));
+        carry_enrichment(&mut fresh, &cached, Some("me"), true);
         assert_eq!(fresh.checks.total, 2);
         assert!(fresh.needs_you);
     }

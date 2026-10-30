@@ -1,0 +1,36 @@
+{
+  "value": [
+    {
+      "evaluationId": "ev-build-1", "status": "rejected", "startedDate": "2026-10-20T09:20:00Z", "completedDate": "2026-10-20T09:31:00Z",
+      "artifactId": "vstfs:///CodeReview/CodeReviewId/a7573007-bbb3-4341-b726-0c4148a07853/42",
+      "configuration": { "id": 7, "isEnabled": true, "isBlocking": true,
+        "type": { "id": "0609b952-1397-4640-95ec-e00a01b2c241", "displayName": "Build" },
+        "settings": { "buildDefinitionId": 12, "displayName": "CI", "queueOnSourceUpdateOnly": true, "validDuration": 720 } },
+      "context": { "buildId": 901, "buildDefinitionId": 12, "buildDefinitionName": "web-app-ci", "isExpired": false, "lastMergeCommitId": "dddd" }
+    },
+    {
+      "evaluationId": "ev-build-2", "status": "running", "startedDate": "2026-10-20T09:20:00Z",
+      "configuration": { "id": 8, "isEnabled": true, "isBlocking": false,
+        "type": { "id": "0609b952-1397-4640-95ec-e00a01b2c241", "displayName": "Build" },
+        "settings": { "buildDefinitionId": 13 } },
+      "context": { "buildId": 902, "buildDefinitionName": "e2e" }
+    },
+    {
+      "evaluationId": "ev-reviewers", "status": "approved",
+      "configuration": { "id": 9, "isEnabled": true, "isBlocking": true,
+        "type": { "id": "fa4e907d-c16b-4a4c-9dfa-4906e5d171dd", "displayName": "Minimum number of reviewers" },
+        "settings": { "minimumApproverCount": 2, "creatorVoteCounts": false } }
+    },
+    {
+      "evaluationId": "ev-comments", "status": "queued",
+      "configuration": { "id": 10, "isEnabled": true, "isBlocking": true,
+        "type": { "id": "c6a1889d-b943-4856-b76f-9e46bb6b0df2", "displayName": "Comment requirements" }, "settings": {} }
+    },
+    {
+      "evaluationId": "ev-wi", "status": "notApplicable",
+      "configuration": { "id": 11, "isEnabled": true, "isBlocking": false,
+        "type": { "id": "40e92b44-2fe1-4dd6-b3d8-74a9c21d0c6e", "displayName": "Work item linking" }, "settings": {} }
+    }
+  ],
+  "count": 5
+}

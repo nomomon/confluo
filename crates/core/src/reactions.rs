@@ -19,6 +19,14 @@ pub enum ReactionKind {
 impl ReactionKind {
     pub const ALL: [ReactionKind; 8] = [Self::ThumbsUp, Self::ThumbsDown, Self::Laugh, Self::Hooray, Self::Confused, Self::Heart, Self::Rocket, Self::Eyes];
 
+    /// Reactions a provider supports (Azure DevOps comments only have a like).
+    pub fn for_provider(kind: crate::ProviderKind) -> &'static [ReactionKind] {
+        match kind {
+            crate::ProviderKind::Azure => &[Self::ThumbsUp],
+            _ => &Self::ALL,
+        }
+    }
+
     /// GitHub REST `content` value.
     pub fn github_rest(self) -> &'static str {
         match self {

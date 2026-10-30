@@ -42,7 +42,7 @@ mod sources;
 mod split;
 pub mod timing;
 
-pub use connection::{auth_command, host_avatar_url, HostStatus};
+pub use connection::{auth_command, host_avatar_url, sign_in_hint, HostStatus};
 pub use code::CodeState;
 pub use detail::{DetailState, DetailTab};
 pub use file_tree::{tree_entries, TreeEntry, TreeQuery};

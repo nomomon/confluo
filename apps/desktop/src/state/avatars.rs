@@ -90,7 +90,24 @@ impl GitViewer {
 }
 
 fn decode(bytes: Vec<u8>) -> Option<Image> {
-    Some(Image::from_bytes(sniff(&bytes)?, bytes))
+    match sniff(&bytes)? {
+        // gpui 0.2.2 passes rasterized SVG pixels through as RGBA while every other format is swapped to
+        // BGRA, so a blue logo drew orange. Rasterize here and hand it over as PNG, which gpui swaps right.
+        ImageFormat::Svg => Some(Image::from_bytes(ImageFormat::Png, svg_to_png(&bytes)?)),
+        f => Some(Image::from_bytes(f, bytes)),
+    }
+}
+
+/// SVG to PNG at least `SVG_MIN_PX` on its longer side (crisp in avatar sizes on retina screens).
+fn svg_to_png(svg: &[u8]) -> Option<Vec<u8>> {
+    const SVG_MIN_PX: f32 = 128.;
+    let tree = resvg::usvg::Tree::from_data(svg, &resvg::usvg::Options::default()).ok()?;
+    let size = tree.size();
+    let scale = (SVG_MIN_PX / size.width().max(size.height())).max(1.);
+    let (w, h) = ((size.width() * scale).ceil() as u32, (size.height() * scale).ceil() as u32);
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(w.max(1), h.max(1))?;
+    resvg::render(&tree, resvg::tiny_skia::Transform::from_scale(scale, scale), &mut pixmap.as_mut());
+    pixmap.encode_png().ok()
 }
 
 /// Image format from magic bytes; content types from avatar hosts are unreliable.
@@ -113,6 +130,19 @@ fn sniff(b: &[u8]) -> Option<ImageFormat> {
 mod tests {
     use super::sniff;
     use gpui::ImageFormat;
+
+    #[test]
+    fn svg_keeps_its_colors() {
+        // A blue square must stay blue (red and blue channels not swapped) and keep transparency.
+        let svg = br##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect x="4" y="4" width="8" height="8" fill="#0000ff"/></svg>"##;
+        let png = super::svg_to_png(svg).unwrap();
+        let p = resvg::tiny_skia::Pixmap::decode_png(&png).unwrap();
+        let mid = p.pixel(p.width() / 2, p.height() / 2).unwrap().demultiply();
+        assert_eq!((mid.red(), mid.green(), mid.blue(), mid.alpha()), (0, 0, 255, 255));
+        assert_eq!(p.pixel(0, 0).unwrap().alpha(), 0);
+        assert!(p.width() >= 128);
+        assert!(matches!(super::decode(svg.to_vec()).map(|i| i.format), Some(ImageFormat::Png)));
+    }
 
     #[test]
     fn sniffs_png_and_jpeg() {

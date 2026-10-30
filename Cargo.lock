@@ -2152,6 +2152,7 @@ dependencies = [
  "gv-engine",
  "gv-update",
  "pulldown-cmark",
+ "resvg",
  "serde",
  "serde_json",
  "sha2 0.10.9",

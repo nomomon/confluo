@@ -20,3 +20,6 @@ pulldown-cmark = { version = "0.12", default-features = false }
 gpui = { version = "=0.2.2", default-features = false, features = ["font-kit", "runtime_shaders"] }
 unicode-segmentation = "1"
 sha2 = "0.10"
+# Same version gpui uses: rasterize SVG avatars ourselves (gpui 0.2.2 hands SVG pixels over as RGBA where
+# its renderer expects BGRA, so colors came out swapped).
+resvg = { version = "0.45", default-features = false }

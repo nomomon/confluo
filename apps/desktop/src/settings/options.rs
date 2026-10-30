@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 /// UI font family choice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum UiFont {
-    System,
+    /// SF Pro: lighter and more native than Inter in GPUI's renderer, so it is the default.
     #[default]
+    System,
     Inter,
     Geist,
 }
@@ -58,6 +59,24 @@ impl MonoFont {
 
 /// Body text sizes offered; the theme adds `size - 13` to every step.
 pub const FONT_SIZES: [u8; 3] = [13, 14, 15];
+
+/// Spacing density; Compact is the default rhythm.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum Density {
+    #[default]
+    Compact,
+    Comfortable,
+}
+
+impl Density {
+    pub const ALL: [Density; 2] = [Density::Compact, Density::Comfortable];
+    pub fn label(self) -> &'static str {
+        match self {
+            Density::Compact => "Compact",
+            Density::Comfortable => "Comfortable",
+        }
+    }
+}
 
 /// Color theme; `System` follows the macOS appearance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]

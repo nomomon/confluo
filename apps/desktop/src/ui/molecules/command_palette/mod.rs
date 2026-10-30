@@ -10,7 +10,7 @@ pub use fuzzy::score;
 use gpui::{actions, div, prelude::*, px, App, Entity, KeyBinding, SharedString, Window};
 
 use super::text_input::TextInput;
-use crate::ui::atoms::{Icon, IconName, Kbd};
+use crate::ui::atoms::{Icon, IconName, Kbd, ListItem};
 use crate::ui::theme;
 
 actions!(command_palette, [Up, Down]);
@@ -97,11 +97,8 @@ impl RenderOnce for CommandPalette {
                     .items_center()
                     .gap(theme::SPACE_2P5)
                     .px(theme::SPACE_2)
-                    .py(theme::SPACE_2)
-                    .rounded(theme::RADIUS_MD)
-                    .cursor_pointer()
-                    .when(active, |d| d.bg(theme::surface_active()))
-                    .hover(|s| s.bg(theme::surface_hover()))
+                    .py(theme::item_pad_y())
+                    .list_item(active)
                     .child(Icon::new(it.icon).color(if active { theme::text() } else { theme::text_muted() }))
                     .child(div().flex_1().min_w(theme::SPACE_0).truncate().child(it.title))
                     .children(it.detail.map(|d| div().flex_shrink_0().max_w(px(200.)).truncate().text_size(theme::text_xs()).text_color(theme::text_subtle()).child(d)))

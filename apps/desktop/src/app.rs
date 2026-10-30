@@ -321,6 +321,7 @@ impl Render for GitViewer {
             .font_family(theme::ui_font())
             .text_color(theme::text())
             .text_size(theme::text_sm())
+            .line_height(gpui::relative(theme::LINE_HEIGHT))
             .bg(self.surfaces().window_bg())
             .when_some(bg_image, |root, p| {
                 root.child(img(PathBuf::from(p)).absolute().top_0().left_0().size_full().object_fit(ObjectFit::Cover))

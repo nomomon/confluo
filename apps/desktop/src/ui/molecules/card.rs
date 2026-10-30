@@ -62,25 +62,25 @@ impl ParentElement for Card {
 
 impl RenderOnce for Card {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let base = div().flex().flex_col().flex_shrink_0().rounded(theme::RADIUS_XL).border_1().border_color(theme::border_subtle()).bg(self.fill);
+        let base = div().flex().flex_col().flex_shrink_0().rounded(theme::LIST_RADIUS).border_1().border_color(theme::border_subtle()).bg(self.fill);
         let header = (self.title.is_some() || self.action.is_some()).then(|| {
             let text = div()
                 .flex_1()
                 .flex()
                 .flex_col()
                 .gap(theme::SPACE_0P5)
-                .children(self.title.map(|t| div().text_size(theme::text_sm()).font_weight(theme::WEIGHT_SEMIBOLD).child(t)))
+                .children(self.title.map(|t| div().text_size(theme::text_sm()).font_weight(theme::WEIGHT_MEDIUM).child(t)))
                 .children(self.description.map(|d| div().text_size(theme::text_xs()).text_color(theme::text_muted()).child(d)));
             div().flex().items_center().gap(theme::SPACE_3).child(text).children(self.action)
         });
         let footer = self.footer.map(|f| div().flex().items_center().justify_end().gap(theme::SPACE_2).child(f));
         if self.rows {
-            let header = header.map(|h| h.px(theme::SPACE_4).pt(theme::SPACE_3).pb(theme::SPACE_2).into_any_element());
-            let footer = footer.map(|f| f.px(theme::SPACE_4).py(theme::SPACE_3).into_any_element());
+            let header = header.map(|h| h.px(theme::card_pad()).pt(theme::SPACE_3).pb(theme::SPACE_2).into_any_element());
+            let footer = footer.map(|f| f.px(theme::card_pad()).py(theme::SPACE_3).into_any_element());
             let rows = self.children.into_iter().enumerate().map(|(i, c)| div().when(i > 0, |d| d.border_t_1().border_color(theme::border_subtle())).child(c).into_any_element());
             base.overflow_hidden().children(header).children(rows).children(footer.map(|f| div().border_t_1().border_color(theme::border_subtle()).child(f)))
         } else {
-            base.gap(theme::SPACE_3).p(theme::SPACE_4).children(header).children(self.children).children(footer)
+            base.gap(theme::SPACE_2P5).p(theme::card_pad()).children(header).children(self.children).children(footer)
         }
     }
 }

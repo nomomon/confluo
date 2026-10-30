@@ -6,12 +6,12 @@ use gv_engine::ChangeRequest;
 use crate::app::GitViewer;
 use crate::state;
 use crate::features::shared::{checks_text, layout, number_label, provider_icon, relative_time, row_hint, state_icon};
-use crate::ui::atoms::{tooltip, Avatar, Icon, IconName, Pill};
+use crate::ui::atoms::{tooltip, Avatar, Icon, IconName, ListItem, Pill};
 use crate::ui::theme;
 
 impl GitViewer {
-    /// `edges` (first, last) round the row so its hover fill stays inside the card corners.
-    pub(super) fn render_row(&self, c: &ChangeRequest, show_provider: bool, edges: (bool, bool), cx: &mut Context<Self>) -> impl IntoElement {
+    /// The row is a `ListItem`: its highlight is an inset rounded rect inside the section card.
+    pub(super) fn render_row(&self, c: &ChangeRequest, show_provider: bool, cx: &mut Context<Self>) -> impl IntoElement {
         let is_selected = self.cursor.as_ref() == Some(&c.id) || self.detail.as_ref().is_some_and(|d| d.summary.id == c.id);
         let starred = self.starred.contains(&c.id);
         let cr = c.clone();
@@ -25,7 +25,7 @@ impl GitViewer {
             .items_center()
             .gap(theme::SPACE_2)
             .min_w(theme::SPACE_0)
-            .text_size(theme::text_sm())
+            .text_size(theme::text_xs())
             .text_color(theme::text_muted())
             .when(show_provider, |d| d.child(provider_icon(c.id.repo.kind)))
             .child(
@@ -80,19 +80,14 @@ impl GitViewer {
             .id(group.clone())
             .group(group)
             .relative()
-            .when(edges.0, |d| d.rounded_t(theme::RADIUS_XL))
-            .when(edges.1, |d| d.rounded_b(theme::RADIUS_XL))
             .flex()
             .items_center()
-            .gap(theme::SPACE_4)
-            .min_h(theme::ROW_MIN_H)
-            .pl(theme::SPACE_5)
-            .pr(theme::SPACE_4)
-            .py(theme::SPACE_4)
-            .when(is_selected, |d| d.bg(theme::surface_active()))
-            .hover(|s| s.bg(theme::surface_hover()))
-            .active(|s| s.bg(theme::surface_active()))
-            .cursor_pointer()
+            .gap(theme::SPACE_3)
+            .min_h(theme::row_min_h())
+            .pl(theme::row_pad_x())
+            .pr(theme::SPACE_2)
+            .py(theme::row_pad_y())
+            .list_item(is_selected)
             .on_mouse_down(MouseButton::Right, cx.listener(move |this, ev: &MouseDownEvent, _, cx| {
                 this.quiet.row_menu = Some((menu_id.clone(), ev.position));
                 cx.notify()
@@ -112,28 +107,28 @@ impl GitViewer {
                     .flex_col()
                     .flex_1()
                     .min_w(theme::SPACE_0)
-                    .gap(theme::SPACE_2)
+                    .gap(theme::row_line_gap())
                     .child(
                         div()
                             .flex()
                             .w_full()
                             .min_w(theme::SPACE_0)
                             .items_center()
-                            .gap(theme::SPACE_3)
+                            .gap(theme::SPACE_2P5)
                             .child(state_icon(c.state))
                             .child(div().flex_1().min_w(theme::SPACE_0).text_size(theme::text_md()).font_weight(theme::WEIGHT_MEDIUM).truncate().child(c.title.clone())),
                     )
-                    .child(div().w_full().min_w(theme::SPACE_0).overflow_hidden().pl(theme::SPACE_7).child(meta)),
+                    .child(div().w_full().min_w(theme::SPACE_0).overflow_hidden().pl(theme::ICON_LG + theme::SPACE_2P5).child(meta)),
             )
             .child(
                 div()
                     .flex()
                     .flex_col()
                     .items_end()
-                    .gap(theme::SPACE_2)
+                    .gap(theme::row_line_gap())
                     .w(layout::TIME_COL_W)
                     .flex_shrink_0()
-                    .text_size(theme::text_sm())
+                    .text_size(theme::text_xs())
                     .text_color(theme::text_muted())
                     .child(relative_time(c.updated_at))
                     .children(diff),

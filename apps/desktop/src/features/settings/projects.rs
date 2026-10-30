@@ -38,7 +38,7 @@ impl GitViewer {
         let title: AnyElement = if editing {
             div().flex().gap(theme::SPACE_2).child(div().flex_1().child(self.rename_input.clone())).child(Button::new(format!("rename-save-{id}"), "Save").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.save_rename(cx)))).into_any_element()
         } else {
-            div().text_size(theme::text_sm()).font_weight(theme::WEIGHT_SEMIBOLD).child(p.name.clone()).into_any_element()
+            div().text_size(theme::text_sm()).font_weight(theme::WEIGHT_MEDIUM).child(p.name.clone()).into_any_element()
         };
         let actions = div()
             .flex()

@@ -52,7 +52,7 @@ impl RenderOnce for Tabs {
         let v = self.variant;
         let row = div().flex().flex_shrink_0().items_center();
         let row = match v {
-            TabsVariant::Pill => row.h(theme::CONTROL_H).p(theme::SPACE_1).gap(theme::SPACE_1).rounded(theme::RADIUS_LG).bg(theme::surface()).border_1().border_color(theme::border()),
+            TabsVariant::Pill => row.h(theme::control_h()).p(theme::SPACE_0P5).gap(theme::SPACE_0P5).rounded(theme::RADIUS_MD).bg(theme::surface()).border_1().border_color(theme::border()),
             TabsVariant::Floating => row.p(theme::SPACE_1).gap(theme::SPACE_1).rounded(theme::RADIUS_FULL).border_1().border_color(theme::border()).bg(theme::overlay()).shadow_lg(),
             TabsVariant::Underline => row.gap(theme::SPACE_4).border_b_1().border_color(theme::border_subtle()),
         };
@@ -71,7 +71,7 @@ impl RenderOnce for Tabs {
                 .child(label)
                 .when_some(on, |d, f| d.on_click(move |_: &ClickEvent, w, cx| f(&i, w, cx)));
             match v {
-                TabsVariant::Pill => tab.h_full().px(theme::SPACE_3).rounded(theme::RADIUS_MD).when(active, |d| d.bg(theme::surface_active())),
+                TabsVariant::Pill => tab.h_full().px(theme::SPACE_3).rounded(theme::RADIUS_SM).when(active, |d| d.bg(theme::surface_active())),
                 TabsVariant::Floating => tab.px(theme::SPACE_3).py(theme::SPACE_1).rounded(theme::RADIUS_FULL).when(active, |d| d.bg(theme::surface_active())),
                 TabsVariant::Underline => tab.py(theme::SPACE_2).border_b_2().mb(px(-1.)).border_color(if active { theme::text() } else { gpui::transparent_black() }),
             }

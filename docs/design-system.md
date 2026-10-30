@@ -98,25 +98,50 @@ Spacing, Tailwind 4px steps: `SPACE_0` 0, `SPACE_0P5` 2, `SPACE_1` 4,
 `SPACE_5` 20, `SPACE_6` 24, `SPACE_7` 28, `SPACE_8` 32, `SPACE_10` 40,
 `SPACE_12` 48, `SPACE_14` 56, `SPACE_16` 64.
 
-Rhythm tokens: `CONTROL_H` 40 (tabs, search, inputs; radius `RADIUS_LG`),
-`ROW_MIN_H` 68 (two-line list rows), `KV_ROW_H` 52 and `KV_KEY_W` 88
-(key/value rows). Layout: `CONTENT_MAX_W` 1360, `SIDEBAR_W` 240,
+Rhythm tokens are functions driven by Settings > Appearance > Density (Compact default /
+Comfortable), so features never hard-code breathing room:
+
+| Token                  | Compact | Comfortable | Use                                  |
+|------------------------|---------|-------------|--------------------------------------|
+| `control_h()`          | 32      | 36          | tabs, search, inputs                 |
+| `row_min_h()`          | 52      | 62          | two-line list rows (render ~56-60)   |
+| `row_pad_y()`/`row_pad_x()` | 8 / 12 | 12 / 16  | list row padding                     |
+| `row_line_gap()`       | 4       | 6           | title to meta line                   |
+| `kv_row_h()`           | 36      | 44          | key/value rows                       |
+| `page_pad_x()`         | 32      | 48          | list column sides (`_narrow()` 20/24 with the detail open) |
+| `section_gap()`        | 20      | 28          | above section headers, timeline items |
+| `section_header_gap()` | 8       | 12          | header to card                       |
+| `card_gap()`/`card_pad()` | 12 / 14 | 16 / 16  | stacked cards, card padding          |
+| `pane_pad()`           | 20      | 24          | detail pane sides                    |
+| `item_pad_y()`         | 5       | 7           | nav, menu, palette, select items     |
+
+Targets come from Zeron measured in points (rows ~68pt with 15px titles there; we go tighter,
+Linear/Mail-like). `KV_KEY_W` 88. Layout: `CONTENT_MAX_W` 1360, `SIDEBAR_W` 240,
 `TITLEBAR_INSET` 48.
+
+### List items
+
+Every selectable row uses the `ListItem` trait (`ui/atoms/list_item.rs`):
+`div().id(..).list_item(selected)` gives a rounded (`LIST_ITEM_RADIUS` 8) selected fill
+(`surface_active()`), hover (`surface_hover()`) and press. Used by `NavItem` (sidebar, settings nav),
+`MenuItem`, the command palette, `Select` options, the Code tab file tree and PR rows. Rows in a
+section card sit inside a `LIST_INSET` (4) padded card of radius `LIST_RADIUS` (12 = 8 + 4), so the
+highlight is an inset rounded rect for every row, never a square edge.
 
 ### Spacing rhythm
 
-The UI should breathe. The list column is centered, capped at
-`CONTENT_MAX_W`, with `SPACE_12` side padding and 48px top padding.
+Calm but compact. The list column is centered, capped at `CONTENT_MAX_W`, with
+`page_pad_x()` side padding and 48px top padding.
 
-- Page title `text_2xl()` semibold, muted count `text_lg()`, then `SPACE_6`
-  to the controls row (`CONTROL_H` tall).
-- Section header (chevron, label `text_base()`, muted count): `SPACE_8` above,
-  `SPACE_4` below, outside the card.
-- One rounded card (`RADIUS_XL`) per section; rows sit flush, split by 1px
-  `border_subtle()` dividers (`ListSection`).
-- Rows: `ROW_MIN_H`, `SPACE_4` vertical padding, 16-20px horizontal; title
-  `text_md()` medium; meta `text_sm()` muted with `SPACE_2` between items;
-  right column time over `+a -d`; star outside it.
+- Page title `text_2xl()` (22) semibold, subtle count `text_base()`, then `card_gap()`
+  to the controls row (`control_h()` tall).
+- Section header (12px chevron, label `text_sm()` medium muted, count): `section_gap()` above,
+  `section_header_gap()` below, outside the card.
+- One rounded card (`LIST_RADIUS`) per section, padded by `LIST_INSET`; rows are `ListItem`s split
+  by 1px `border_subtle()` dividers inset to the row text (`ListSection`).
+- Rows: `row_min_h()`, `row_pad_y()`/`row_pad_x()`; title `text_md()` (13.5) medium; meta
+  `text_xs()` muted with `SPACE_2` between items; right column time over `+a -d` in `text_xs()`;
+  star outside it.
 - Meta color: CI passed `success()`, failing `danger()`; hints such as "Your
   review requested" and "Draft" are muted; the number is a green tinted
   `Pill` with the git-pull-request icon.
@@ -124,7 +149,8 @@ The UI should breathe. The list column is centered, capped at
 - Narrow windows: with the detail pane open below `COMPACT_BELOW` (1440) the sidebar collapses to an
   icon rail (`SIDEBAR_RAIL_W`, `NavItem::compact`, labels become tooltips), the list padding drops to
   `SPACE_6`, rows drop the author and hint, and the detail pane narrows so the list keeps `LIST_MIN_W`. Detail pane:
-  `SPACE_6` padding, cards `SPACE_5` apart, key/value rows in `Card::rows()`.
+  `pane_pad()` sides, cards `card_gap()` apart, title `text_xl()` (18) semibold, meta `text_xs()`,
+  key/value rows in `Card::rows()`.
 
 Code tab: files, hunks and lines flatten into one `Row` list (`state::code_rows`) rendered
 with GPUI `list` so only visible rows paint; each file reads as a rounded card made of
@@ -144,7 +170,7 @@ The hover "+" comments on one line. A `FloatingToolbar` hangs under the last sel
 in the diff, else blob permalinks at the head sha (`state::permalink`). Character-level text
 selection inside a line is not implemented. Dev: `CONFLUO_SELECT=path:start-end` preselects lines.
 
-Icons: `ICON_SM` 12 (chevrons), `ICON_MD` 14 (buttons, nav), `ICON_LG` 16 (row state).
+Icons: `ICON_SM` 12 (chevrons, section headers), `ICON_MD` 14 (buttons, nav), `ICON_LG` 16 (row state).
 Never use text glyphs as icons; add a Tabler outline SVG (stroke-width 1.75) and an `IconName` variant instead.
 
 Radius: `RADIUS_SM` 6, `RADIUS_MD` 8, `RADIUS_LG` 12, `RADIUS_XL` 16,
@@ -152,9 +178,11 @@ Radius: `RADIUS_SM` 6, `RADIUS_MD` 8, `RADIUS_LG` 12, `RADIUS_XL` 16,
 
 Type (functions, so the user's text size applies live): `text_2xs()` 10,
 `text_xs()` 12, `text_sm()` 13 (body default), `text_base()` 14, `text_lg()` 16,
-`text_xl()` 20 (detail title), `text_2xl()` 28 (page title). Settings > Text size
-(13/14/15) adds 0/1/2 px to every step. Weights: `WEIGHT_NORMAL`,
-`WEIGHT_MEDIUM`, `WEIGHT_SEMIBOLD`, `WEIGHT_BOLD`.
+`text_md()` 13.5 (row titles), `text_lg()` 16, `text_xl()` 18 (detail title), `text_2xl()` 22
+(page title). Settings > Text size (13/14/15) adds 0/1/2 px to every step. The root sets line
+height `LINE_HEIGHT` 1.4 (GPUI's default is 1.618, which made everything airy). Weights: 400 body,
+500 (`WEIGHT_MEDIUM`) for row titles, names, card titles and section labels; 600 (`WEIGHT_SEMIBOLD`)
+only for page, detail, dialog and settings titles and markdown bold; `WEIGHT_BOLD` is unused.
 
 ### Fonts
 
@@ -164,13 +192,15 @@ via `cx.text_system().add_fonts` at startup:
 
 | Family          | Source                         | Role             |
 |-----------------|--------------------------------|------------------|
-| Inter           | rsms/inter v4.1                | UI (default)     |
+| Inter           | rsms/inter v4.1                | UI               |
 | Geist           | vercel/geist-font v1.8.2       | UI               |
 | JetBrains Mono  | JetBrains/JetBrainsMono v2.304 | mono (default)   |
 | Geist Mono      | vercel/geist-font v1.8.2       | mono             |
 
-Settings offers UI font System (`.SystemUIFont`, SF Pro) / Inter / Geist and
-mono font Menlo / JetBrains Mono / Geist Mono. Read the live families with
+Settings offers UI font System (`.SystemUIFont`, SF Pro, default) / Inter / Geist and
+mono font Menlo / JetBrains Mono / Geist Mono. System is the default: compared side by side
+at the same size, Inter's static text cuts render a step heavier in GPUI (medium reads as
+semibold), while SF Pro gets the native optical sizing and tracking and matches Mail and Finder. Read the live families with
 `theme::ui_font()` and `theme::mono_font()` (branches, commands, SHAs). The app
 pushes `Settings::typography()` into the theme each frame, so changes apply
 without a restart.
@@ -234,7 +264,7 @@ Shortcuts: `features/keymap.rs` is the only place bindings are defined (keys, co
 Menus show them as key equivalents, tooltips use `keymap::tip::<Action>("Label")`, menu rows
 `keymap::kbd::<Action>()`, and Settings > Shortcuts renders the table.
 
-Activity tab: a timeline, not cards. 24px avatar, name semibold, muted relative time (exact time tooltip),
+Activity tab: a timeline, not cards. 24px avatar, name medium, muted relative time (exact time tooltip),
 markdown body, no per-comment border; a 1px `border_subtle()` rail through the avatar centers; replies
 indent under the parent with 20px avatars; Reply, Edit, Copy link, Resolve are ghost icon buttons shown on
 hover (`features/pr_detail/comment.rs`, shared with Code tab threads). Events (opened, approved, changes

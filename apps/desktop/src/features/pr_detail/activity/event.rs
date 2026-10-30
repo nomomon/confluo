@@ -35,7 +35,7 @@ impl GitViewer {
                     .gap(theme::SPACE_1P5)
                     .min_w(theme::SPACE_0)
                     .text_color(theme::text_muted())
-                    .when(!who.is_empty(), |d| d.child(div().font_weight(theme::WEIGHT_SEMIBOLD).text_color(theme::text()).child(who)))
+                    .when(!who.is_empty(), |d| d.child(div().font_weight(theme::WEIGHT_MEDIUM).text_color(theme::text()).child(who)))
                     .child(text)
                     .children(badge.map(|(l, c)| Badge::new(l).tint(c)))
                     .child(div().id(id).text_color(theme::text_subtle()).tooltip(tooltip(exact)).child(relative_time(e.at))),

@@ -6,7 +6,7 @@ use std::path::PathBuf;
 mod general;
 mod options;
 pub use general::{refresh_label, Launch, OpenIn, REFRESH_MINUTES};
-pub use options::{MonoFont, ThemeMode, UiFont, FONT_SIZES, TINTS};
+pub use options::{Density, MonoFont, ThemeMode, UiFont, FONT_SIZES, TINTS};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Appearance {
@@ -51,6 +51,8 @@ pub struct Settings {
     pub mono_font: MonoFont,
     /// Body text size in px: 13, 14 or 15.
     pub font_size: u8,
+    /// Spacing rhythm: Compact (default) or Comfortable.
+    pub density: Density,
     /// Key of the last highlighted PR, restored as a highlight only.
     pub last_selected: Option<String>,
     /// Hide Renovate, Dependabot and other bot PRs. Read by the CLI too.
@@ -80,9 +82,10 @@ impl Default for Settings {
             background_dim: 0.45,
             tint: String::new(),
             theme: ThemeMode::System,
-            ui_font: UiFont::Inter,
+            ui_font: UiFont::System,
             mono_font: MonoFont::JetBrainsMono,
             font_size: 13,
+            density: Density::Compact,
             last_selected: None,
             hide_bots: true,
             hidden_authors: gv_engine::DEFAULT_BOT_AUTHORS.iter().map(|s| s.to_string()).collect(),
@@ -117,7 +120,7 @@ impl Settings {
     /// Fonts and text step for the live theme.
     pub fn typography(&self) -> crate::ui::theme::Typography {
         let size = FONT_SIZES.iter().copied().find(|s| *s == self.font_size).unwrap_or(13);
-        crate::ui::theme::Typography { ui_font: self.ui_font.family(), mono_font: self.mono_font.family(), step: f32::from(size - 13) }
+        crate::ui::theme::Typography { ui_font: self.ui_font.family(), mono_font: self.mono_font.family(), step: f32::from(size - 13), compact: self.density == Density::Compact }
     }
 
     /// The bot filter the list applies.

@@ -6,7 +6,7 @@ use super::{comment_count, diff_counts, status_color};
 use crate::app::GitViewer;
 use crate::features::shared::layout;
 use crate::state::DetailState;
-use crate::ui::atoms::{Icon, IconName};
+use crate::ui::atoms::{Icon, IconName, ListItem};
 use crate::ui::theme;
 
 impl GitViewer {
@@ -45,10 +45,7 @@ impl GitViewer {
                     .gap(theme::SPACE_1)
                     .px(theme::SPACE_2)
                     .py(theme::SPACE_1)
-                    .rounded(theme::RADIUS_SM)
-                    .cursor_pointer()
-                    .when(fi == current, |el| el.bg(theme::surface_active()))
-                    .hover(|s| s.bg(theme::surface_hover()))
+                    .list_item_radius(fi == current, theme::RADIUS_SM)
                     .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                         if let Some(d) = this.detail.as_mut() {
                             d.code.goto(fi);

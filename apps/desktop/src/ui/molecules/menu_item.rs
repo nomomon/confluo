@@ -66,7 +66,7 @@ impl RenderOnce for MenuItem {
             .items_center()
             .gap(theme::SPACE_2)
             .px(theme::SPACE_2)
-            .py(theme::SPACE_1P5)
+            .py(theme::item_pad_y())
             .rounded(theme::RADIUS_SM)
             .text_color(if self.disabled { theme::text_subtle() } else { color })
             .when(!self.disabled, |d| d.cursor_pointer().hover(|s| s.bg(if self.destructive { theme::tint_bg(theme::danger()) } else { theme::surface_hover() })))

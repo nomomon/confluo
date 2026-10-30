@@ -42,7 +42,7 @@ impl GitViewer {
                 .bg(theme::surface())
                 .border_r_1()
                 .border_color(theme::border_subtle())
-                .child(div().px(theme::SPACE_3).pt(theme::SPACE_2).pb(theme::SPACE_3).text_size(theme::text_base()).font_weight(theme::WEIGHT_SEMIBOLD).child("Settings")),
+                .child(div().px(theme::SPACE_3).pt(theme::SPACE_2).pb(theme::SPACE_3).text_size(theme::text_sm()).font_weight(theme::WEIGHT_SEMIBOLD).child("Settings")),
             |nav, p| {
                 let p = *p;
                 nav.child(NavItem::new(format!("settings-nav-{}", p.label()), p.label()).icon(page_icon(p)).active(self.settings_page == p).on_click(cx.listener(
@@ -71,7 +71,7 @@ impl GitViewer {
             .px(theme::SPACE_6)
             .pt(theme::SPACE_5)
             .pb(theme::SPACE_3)
-            .child(div().flex_1().text_size(theme::text_lg()).font_weight(theme::WEIGHT_SEMIBOLD).child(self.settings_page.label()))
+            .child(div().flex_1().text_size(theme::text_base()).font_weight(theme::WEIGHT_SEMIBOLD).child(self.settings_page.label()))
             .child(close);
         let content = div()
             .flex_1()

@@ -6,7 +6,7 @@
 use gpui::{anchored, deferred, div, prelude::*, px, App, ClickEvent, ElementId, Entity, FocusHandle, KeyDownEvent, MouseDownEvent, SharedString, Window};
 use std::rc::Rc;
 
-use crate::ui::atoms::{Icon, IconName};
+use crate::ui::atoms::{Icon, IconName, ListItem};
 use crate::ui::{theme, ChangeHandler};
 
 struct SelectState {
@@ -142,11 +142,8 @@ impl RenderOnce for Select {
                         .items_center()
                         .gap(theme::SPACE_2)
                         .px(theme::SPACE_2)
-                        .py(theme::SPACE_1P5)
-                        .rounded(theme::RADIUS_SM)
-                        .cursor_pointer()
-                        .when(i == hl, |d| d.bg(theme::surface_hover()))
-                        .hover(|s| s.bg(theme::surface_hover()))
+                        .py(theme::item_pad_y())
+                        .list_item_radius(i == hl, theme::RADIUS_SM)
                         .child(div().flex_1().when_some(o.font, |d, f| d.font_family(f)).child(o.label))
                         .when(i == selected, |d| d.child(Icon::new(IconName::Check).size(theme::ICON_SM).color(theme::text())))
                         .on_click(move |_: &ClickEvent, window, cx| {

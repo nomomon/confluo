@@ -29,9 +29,9 @@ impl GitViewer {
         div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_3)
+            .gap(theme::SPACE_2P5)
             .child(div().text_size(theme::text_2xl()).font_weight(theme::WEIGHT_SEMIBOLD).child(self.project_name()))
-            .child(div().text_size(theme::text_lg()).text_color(theme::text_muted()).child(count.to_string()))
+            .child(div().text_size(theme::text_base()).text_color(theme::text_subtle()).child(count.to_string()))
             .child(div().pl(theme::SPACE_2).text_size(theme::text_sm()).text_color(theme::text_subtle()).child(freshness))
             .child(div().flex_1())
             .child(
@@ -68,10 +68,10 @@ impl GitViewer {
             .max_w(layout::CONTENT_MAX_W)
             .h_full()
             .pt(layout::TITLEBAR_INSET)
-            .px(if self.detail.is_some() { theme::SPACE_6 } else { theme::SPACE_12 })
+            .px(if self.detail.is_some() { theme::page_pad_x_narrow() } else { theme::page_pad_x() })
             .child(self.render_list_header(visible.len(), cx))
-            .child(div().flex().items_center().gap(theme::SPACE_4).mt(theme::SPACE_6).child(self.render_involvement_tabs(cx)).child(self.render_search(cx)))
-            .children(banner.map(|b| div().mt(theme::SPACE_4).child(b)))
+            .child(div().flex().items_center().gap(theme::SPACE_3).mt(theme::card_gap()).child(self.render_involvement_tabs(cx)).child(self.render_search(cx)))
+            .children(banner.map(|b| div().mt(theme::card_gap()).child(b)))
             .child(rows);
         // The column breathes: content is centered and capped, like a document.
         div().flex().justify_center().flex_1().min_w(theme::SPACE_0).h_full().child(content)

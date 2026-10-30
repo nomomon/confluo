@@ -2,7 +2,7 @@
 
 use gpui::{div, prelude::*, AnyElement, App, ClickEvent, Div, ElementId, MouseButton, MouseDownEvent, SharedString, StyleRefinement, Window};
 
-use super::{Icon, IconName};
+use super::{Icon, IconName, ListItem};
 use crate::ui::{theme, ClickHandler, MouseDownHandler};
 
 #[derive(IntoElement)]
@@ -75,15 +75,11 @@ impl RenderOnce for NavItem {
             .flex()
             .items_center()
             .gap(theme::SPACE_2P5)
-            .px(theme::SPACE_3)
-            .py(theme::SPACE_2)
-            .rounded(theme::RADIUS_MD)
+            .px(theme::SPACE_2P5)
+            .py(theme::item_pad_y())
+            .list_item(active)
             .text_size(theme::text_sm())
-            .cursor_pointer()
             .text_color(if active { theme::text() } else { theme::text_muted() })
-            .when(active, |d| d.bg(theme::surface_active()))
-            .hover(|s| s.bg(theme::surface_hover()))
-            .active(|s| s.bg(theme::surface_active()))
             .children(self.icon.map(|n| Icon::new(n).color(if active { theme::text() } else { theme::text_subtle() })))
             .when(compact, |d| d.justify_center().px(theme::SPACE_2).tooltip(super::tooltip(label)))
             .when(!compact, |d| d.child(div().flex_1().min_w(theme::SPACE_0).truncate().child(self.label)))

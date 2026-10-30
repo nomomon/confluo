@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use crate::app::GitViewer;
 use crate::features::layout;
-use crate::settings::{Appearance, MonoFont, ThemeMode, UiFont, FONT_SIZES, TINTS};
+use crate::settings::{Appearance, Density, MonoFont, ThemeMode, UiFont, FONT_SIZES, TINTS};
 use crate::ui::atoms::{tooltip, Button, ButtonVariant, Swatch};
 use crate::ui::molecules::{Field, Select, Slider, ToggleGroup};
 use crate::ui::theme;
@@ -62,6 +62,12 @@ impl GitViewer {
                 this.save_settings(cx)
             },
         ));
+        let density = Density::ALL.iter().fold(ToggleGroup::new("density"), |g, d| g.item(d.label(), None, *d == s.density)).on_change(cx.listener(
+            |this, i: &usize, _, cx| {
+                this.settings.density = Density::ALL[*i];
+                this.save_settings(cx)
+            },
+        ));
         let mut image_rows = vec![Field::new("Background image", self.render_bg_image(cx)).description("Drawn behind the window, under the panels").horizontal().into_any_element()];
         if s.background_image.is_some() {
             let dim = Slider::new("bg-dim", s.background_dim).range(0., 0.9).step(0.05).on_change(cx.listener(|this, v: &f32, _, cx| {
@@ -87,6 +93,7 @@ impl GitViewer {
                     Field::new("Interface font", ui_font).horizontal().into_any_element(),
                     Field::new("Code font", mono_font).description("Diffs, branches and commands").horizontal().into_any_element(),
                     Field::new("Text size", size).horizontal().into_any_element(),
+                    Field::new("Density", density).description("Spacing of lists, cards and controls").horizontal().into_any_element(),
                 ],
             ))
     }

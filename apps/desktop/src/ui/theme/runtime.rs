@@ -11,15 +11,17 @@ pub struct Typography {
     pub mono_font: &'static str,
     /// Points added to every text size (0 for the 13px body default).
     pub step: f32,
+    /// Compact density (default) tightens the rhythm tokens; false is Comfortable.
+    pub compact: bool,
 }
 
 impl Default for Typography {
     fn default() -> Self {
-        Self { ui_font: "Inter", mono_font: "JetBrains Mono", step: 0. }
+        Self { ui_font: ".SystemUIFont", mono_font: "JetBrains Mono", step: 0., compact: true }
     }
 }
 
-static TYPOGRAPHY: RwLock<Typography> = RwLock::new(Typography { ui_font: "Inter", mono_font: "JetBrains Mono", step: 0. });
+static TYPOGRAPHY: RwLock<Typography> = RwLock::new(Typography { ui_font: ".SystemUIFont", mono_font: "JetBrains Mono", step: 0., compact: true });
 
 /// Replace the live typography; the next render picks it up.
 pub fn set_typography(t: Typography) {

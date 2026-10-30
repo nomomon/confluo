@@ -42,7 +42,7 @@ impl GitViewer {
         }
         // A hairline through the avatar centers ties the items together.
         let rail = div().absolute().top(theme::SPACE_3).bottom(theme::SPACE_3).left(theme::SPACE_3 - px(0.5)).w(px(1.)).bg(theme::border_subtle());
-        let mut col = div().relative().flex().flex_col().gap(theme::SPACE_6).pt(theme::SPACE_2).child(rail);
+        let mut col = div().relative().flex().flex_col().gap(theme::section_gap()).pt(theme::SPACE_2).child(rail);
         for item in timeline(det) {
             col = col.child(match item {
                 Item::Thread(t) => self.render_thread(t, d, cx).into_any_element(),

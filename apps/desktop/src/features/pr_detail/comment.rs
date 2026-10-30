@@ -95,7 +95,7 @@ impl GitViewer {
             .gap(theme::SPACE_2)
             .min_h(theme::SPACE_6)
             .text_size(theme::text_sm())
-            .child(div().font_weight(theme::WEIGHT_SEMIBOLD).text_color(theme::text()).child(display_name(c)))
+            .child(div().font_weight(theme::WEIGHT_MEDIUM).text_color(theme::text()).child(display_name(c)))
             .child(div().id(SharedString::from(format!("when-{}", c.id))).text_color(theme::text_subtle()).tooltip(tooltip(exact)).child(when))
             .child(div().flex_1())
             .child(actions);

@@ -406,3 +406,8 @@ collapse to one muted line with a check (click to expand); outdated ones are mut
 an All / Unresolved / Needs me toggle with counts and "Next unresolved" (`u`, Shift+U back; needs-me first, in the diff
 when the thread sits on a current line, and scrolled into view in the Conversation). The file tree shows an amber dot for
 files with threads that need me; the review top bar shows "3 unresolved" (amber when some need me), click jumps.
+
+Scrolling: panes scroll y only through `ui::scroll::y_only` (overflow y plus `restrict_scroll_to_axis`, so a sideways swipe
+never becomes vertical scrolling). Horizontal blocks (`markdown::table::hscroll`, diff rows) lock each trackpad gesture to
+its dominant axis (`ui::scroll::locked_axis`): horizontal keeps the x and stops the event even at the edges, vertical
+bubbles to the pane.

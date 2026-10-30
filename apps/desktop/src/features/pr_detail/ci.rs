@@ -36,7 +36,7 @@ impl GitViewer {
                 .id("checks-popover")
                 .w(theme::SPACE_16 * 7.)
                 .max_h(theme::SPACE_16 * 8.)
-                .overflow_y_scroll()
+                .map(crate::ui::scroll::y_only)
                 .rounded(theme::RADIUS_LG)
                 .border_1()
                 .border_color(theme::border())

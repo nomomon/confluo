@@ -87,7 +87,7 @@ impl RenderOnce for Sheet {
             .bg(theme::overlay())
             .shadow_lg()
             .occlude()
-            .overflow_y_scroll()
+            .map(crate::ui::scroll::y_only)
             .child(header)
             .children(self.children);
         let scrim = div().absolute().top_0().left_0().size_full().bg(theme::scrim()).occlude().on_mouse_down(MouseButton::Left, move |_: &MouseDownEvent, w, cx| {

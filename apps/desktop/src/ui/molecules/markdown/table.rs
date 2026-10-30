@@ -7,6 +7,7 @@ use super::blocks::Align;
 use super::inline::Inline;
 use super::render::Ctx;
 use super::text::MdText;
+use crate::ui::scroll::{locked_axis, Axis};
 use crate::ui::theme;
 
 /// Horizontal scroll container that never grows past its parent: trackpad swipes and Shift+wheel scroll
@@ -22,6 +23,21 @@ pub fn hscroll(id: ElementId) -> Stateful<Div> {
     let thumb = h.clone();
     let mut d = div().id(id).w_full().min_w(theme::SPACE_0).flex().items_start().overflow_x_scroll().track_scroll(&h);
     d.style().restrict_scroll_to_axis = Some(true);
+    // GPUI's own handler (it runs first) already moved x by the event's x delta. Lock each gesture to
+    // its dominant axis: horizontal keeps the x and stops the event, even at the edges, so the pane
+    // never moves; vertical takes the x back and lets the y bubble to the pane.
+    let (lock_key, undo) = (key.clone(), h.clone());
+    d = d.on_scroll_wheel(move |ev, window, cx| {
+        let delta = ev.delta.pixel_delta(window.line_height());
+        match locked_axis(&lock_key, ev.touch_phase, delta.x, delta.y) {
+            Axis::X => cx.stop_propagation(),
+            Axis::Y if delta.x != gpui::px(0.) => {
+                let off = undo.offset();
+                undo.set_offset(point(off.x - delta.x, off.y));
+            }
+            Axis::Y => {}
+        }
+    });
     let debug = std::env::var_os("CONFLUO_DEBUG_LAYOUT").is_some();
     d.relative().child(
         canvas(|_, _, _| {}, move |b, _, window, _| {

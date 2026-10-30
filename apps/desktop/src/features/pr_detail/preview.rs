@@ -102,7 +102,7 @@ impl GitViewer {
             .w(layout::PREVIEW_W)
             .flex_shrink_0()
             .h_full()
-            .overflow_y_scroll()
+            .map(crate::ui::scroll::y_only)
             .bg(self.surfaces().panel())
             .border_l_1()
             .border_color(theme::border_subtle())

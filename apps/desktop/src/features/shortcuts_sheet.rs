@@ -73,6 +73,6 @@ impl GitViewer {
         Dialog::new("Keyboard shortcuts")
             .description("Press ? anywhere outside a text field. The palette (\u{2318} K) runs every command.")
             .size(SHEET_W, SHEET_H)
-            .content(div().id("shortcuts-scroll").size_full().overflow_y_scroll().pr(theme::SPACE_2).children(body))
+            .content(div().id("shortcuts-scroll").size_full().map(crate::ui::scroll::y_only).pr(theme::SPACE_2).children(body))
     }
 }

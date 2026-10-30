@@ -101,7 +101,7 @@ impl RenderOnce for CommandPalette {
         let mv = std::rc::Rc::new(self.on_move);
         let hover = std::rc::Rc::new(self.on_hover);
         let (alt, selected) = (self.on_alt_run, self.selected);
-        let mut list = div().id("palette-list").flex().flex_col().max_h(LIST_MAX_H).overflow_y_scroll().p(theme::SPACE_1P5);
+        let mut list = div().id("palette-list").flex().flex_col().max_h(LIST_MAX_H).map(crate::ui::scroll::y_only).p(theme::SPACE_1P5);
         let mut last_group = "";
         if self.items.is_empty() {
             list = list.child(div().py(theme::SPACE_6).flex().justify_center().text_color(theme::text_subtle()).child("No results"));

@@ -35,7 +35,7 @@ impl GitViewer {
             .flex_col()
             .size_full()
             .child(div().px(theme::SPACE_3).pt(theme::SPACE_2).child(tabs))
-            .child(div().id("right-scroll").track_scroll(&self.review.right_scroll).flex_1().min_h(theme::SPACE_0).overflow_y_scroll().px(theme::SPACE_3).pt(theme::SPACE_3).pb(layout::END_PAD).child(body))
+            .child(div().id("right-scroll").track_scroll(&self.review.right_scroll).flex_1().min_h(theme::SPACE_0).map(crate::ui::scroll::y_only).px(theme::SPACE_3).pt(theme::SPACE_3).pb(layout::END_PAD).child(body))
             .when(tab == RightTab::Conversation, |p| p.child(div().px(theme::SPACE_3).pb(theme::SPACE_3).child(self.render_composer(d, cx))))
     }
 

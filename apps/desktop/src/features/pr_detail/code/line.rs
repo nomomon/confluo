@@ -56,7 +56,8 @@ impl GitViewer {
         let files = files.clone();
         row.relative().on_scroll_wheel(cx.listener(move |this, ev: &ScrollWheelEvent, _, cx| {
             let delta = ev.delta.pixel_delta(layout::DIFF_LINE_H);
-            if delta.x.abs() <= delta.y.abs() {
+            // One axis per trackpad gesture (shared rule with markdown blocks); vertical goes to the list.
+            if crate::ui::scroll::locked_axis("diff-rows", ev.touch_phase, delta.x, delta.y) == crate::ui::scroll::Axis::Y {
                 return;
             }
             cx.stop_propagation();

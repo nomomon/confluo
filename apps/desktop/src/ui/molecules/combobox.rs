@@ -179,7 +179,7 @@ impl RenderOnce for Combobox {
                 div()
                     .id(ElementId::Name(format!("{}-list", self.id).into()))
                     .max_h(LIST_MAX_H)
-                    .overflow_y_scroll()
+                    .map(crate::ui::scroll::y_only)
                     .p(theme::SPACE_1)
                     .flex()
                     .flex_col()

@@ -4,9 +4,9 @@ use gpui::{div, prelude::*, AnyElement, ClickEvent, Context, Div};
 use gv_engine::{Comment, Thread};
 
 use crate::app::GitViewer;
-use crate::features::shared::relative_time;
+use super::super::comment::{CommentCtx, Place};
 use crate::state::DetailState;
-use crate::ui::atoms::{Avatar, Button, ButtonVariant, Icon, IconName, Size};
+use crate::ui::atoms::{Icon, IconName};
 use crate::ui::theme;
 
 fn author(c: &Comment) -> String {
@@ -55,75 +55,37 @@ impl GitViewer {
             .child(Icon::new(IconName::ChevronDown).size(theme::ICON_SM).color(theme::text_subtle()))
     }
 
+    /// Timeline-style thread: first comment, nested replies, a quiet reply field.
     fn thread_card(&self, t: &Thread, d: &DetailState, cx: &mut Context<Self>) -> Div {
         let inline = &d.code.inline;
         let pending = t.id == "pending";
-        let mut card = div().flex().flex_col().rounded(theme::RADIUS_MD).border_1().border_color(theme::border()).bg(theme::surface());
+        let tid = (!pending).then(|| t.id.clone());
+        let mut card = div().flex().flex_col().gap(theme::SPACE_3).px(theme::SPACE_3).py(theme::SPACE_3).rounded(theme::RADIUS_MD).bg(theme::surface());
         for (i, c) in t.comments.iter().enumerate() {
-            card = card.child(self.inline_comment(c, d, cx).when(i > 0, |el| el.border_t_1().border_color(theme::border_subtle())));
+            let editing = inline.editing.as_deref() == Some(c.id.as_str());
+            let ctx = CommentCtx { place: Place::Code, thread: tid.clone(), resolved: if i == 0 { t.resolved } else { None }, reply: i > 0 };
+            let row = if editing { self.inline_field("Save", cx) } else { self.comment_row(c, d, ctx, cx) };
+            card = card.child(if i == 0 { row } else { div().pl(theme::SPACE_6 + theme::SPACE_3).child(row) });
         }
-        let mut foot = div().flex().items_center().gap(theme::SPACE_2).px(theme::SPACE_3).py(theme::SPACE_2).border_t_1().border_color(theme::border_subtle());
         if inline.reply_to.as_deref() == Some(t.id.as_str()) {
-            return card.child(div().p(theme::SPACE_3).border_t_1().border_color(theme::border_subtle()).child(self.inline_field("Reply", cx)));
+            return card.child(div().pl(theme::SPACE_6 + theme::SPACE_3).child(self.inline_field("Reply", cx)));
         }
-        if pending {
-            return card;
-        }
-        let tid = t.id.clone();
-        foot = foot.child(
+        let Some(tid) = tid else { return card };
+        card.child(
             div()
                 .id(gpui::SharedString::from(format!("reply-field-{}", t.id)))
-                .flex_1()
+                .ml(theme::SPACE_6 + theme::SPACE_3)
                 .px(theme::SPACE_2P5)
                 .py(theme::SPACE_1P5)
                 .rounded(theme::RADIUS_MD)
                 .border_1()
-                .border_color(theme::border())
+                .border_color(theme::border_subtle())
                 .text_size(theme::text_sm())
                 .text_color(theme::text_subtle())
                 .cursor_text()
                 .hover(|s| s.bg(theme::surface_hover()))
                 .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| this.open_inline_field(Some(tid.clone()), None, window, cx)))
                 .child("Reply..."),
-        );
-        if let Some(res) = t.resolved {
-            let tid = t.id.clone();
-            let label = if res { "Unresolve" } else { "Resolve" };
-            foot = foot.child(
-                Button::new(format!("resolve-{}", t.id), label)
-                    .variant(ButtonVariant::Outline)
-                    .size(Size::Sm)
-                    .when(!res, |b| b.icon(IconName::Check))
-                    .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.set_thread_resolved(tid.clone(), !res, cx))),
-            );
-        }
-        card.child(foot)
-    }
-
-    fn inline_comment(&self, c: &Comment, d: &DetailState, cx: &mut Context<Self>) -> Div {
-        let mine = c.id != "pending" && d.me.as_deref().is_some_and(|m| m.eq_ignore_ascii_case(&c.author.username));
-        let editing = d.code.inline.editing.as_deref() == Some(c.id.as_str());
-        let when = if c.id == "pending" { "posting...".to_string() } else { relative_time(c.created_at) };
-        let (cid, cbody) = (c.id.clone(), c.body.clone());
-        let head = div()
-            .flex()
-            .items_center()
-            .gap(theme::SPACE_2)
-            .text_size(theme::text_xs())
-            .child(Avatar::new(c.author.username.clone()).image(self.avatar(c.author.avatar_url.as_deref())))
-            .child(div().font_weight(theme::WEIGHT_SEMIBOLD).text_color(theme::text()).child(author(c)))
-            .child(div().text_color(theme::text_subtle()).child(when))
-            .child(div().flex_1())
-            .when(mine && !editing, |el| {
-                el.child(Button::new(format!("inline-edit-{}", c.id), "Edit").variant(ButtonVariant::Link).on_click(cx.listener(
-                    move |this, _: &ClickEvent, window, cx| this.open_inline_field(None, Some((cid.clone(), cbody.clone())), window, cx),
-                )))
-            });
-        let body = if editing {
-            self.inline_field("Save", cx).into_any_element()
-        } else {
-            self.markdown(format!("ic-{}", c.id), &c.body).into_any_element()
-        };
-        div().flex().flex_col().gap(theme::SPACE_1P5).px(theme::SPACE_3).py(theme::SPACE_2P5).child(head).child(body)
+        )
     }
 }

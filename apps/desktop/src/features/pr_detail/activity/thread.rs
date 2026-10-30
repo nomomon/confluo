@@ -1,98 +1,44 @@
-//! One review thread: location, resolved flag, comments and reply link.
+//! One conversation or inline thread in the timeline: file:line chip, first comment, nested replies.
 
-use gpui::{div, prelude::*, ClickEvent, Context, Focusable};
-use gv_engine::{Comment, Thread};
+use gpui::{div, prelude::*, ClickEvent, Context};
+use gv_engine::Thread;
 
+use super::super::comment::{CommentCtx, Place};
 use crate::app::GitViewer;
-use crate::features::shared::relative_time;
 use crate::state::DetailState;
-use crate::ui::atoms::{Button, ButtonVariant};
+use crate::ui::atoms::{Badge, Button, ButtonVariant, IconName};
 use crate::ui::theme;
 
 impl GitViewer {
     pub(super) fn render_thread(&self, t: &Thread, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
-        let mut tc = div().flex().flex_col().gap(theme::SPACE_2).p(theme::SPACE_2).rounded(theme::RADIUS_MD).border_1().border_color(theme::border());
-        if let Some(p) = &t.position {
+        let tid = (t.id != "pending").then(|| t.id.clone());
+        let mut col = div().flex().flex_col().gap(theme::SPACE_3);
+        let location = t.position.as_ref().map(|p| {
             let range = p.start_line.map(|s| format!("{s}-")).unwrap_or_default();
-            let tid = t.id.clone();
-            tc = tc.child(
+            format!("{}:{range}{}", p.path, p.line)
+        });
+        let location = location.or_else(|| t.comments.first().and_then(|c| c.position.as_ref()).map(|p| format!("{}{}", p.path, p.line.map(|l| format!(":{l}")).unwrap_or_default())));
+        if let Some(loc) = location {
+            let show = tid.clone().filter(|_| t.position.is_some());
+            col = col.child(
                 div()
                     .flex()
                     .items_center()
                     .gap(theme::SPACE_2)
-                    .child(
-                        div()
-                            .flex_1()
-                            .min_w(theme::SPACE_0)
-                            .truncate()
-                            .text_size(theme::text_xs())
-                            .font_family(theme::mono_font())
-                            .text_color(theme::text_muted())
-                            .child(format!("{}:{range}{}{}", p.path, p.line, if t.outdated { "  (outdated)" } else { "" })),
-                    )
-                    .when(t.id != "pending", |el| {
-                        el.child(Button::new(format!("show-in-code-{}", t.id), "Show in code").variant(ButtonVariant::Link).on_click(cx.listener(
-                            move |this, _: &ClickEvent, _, cx| this.show_thread_in_code(tid.clone(), cx),
-                        )))
-                    }),
-            );
-        } else if let Some(p) = t.comments.first().and_then(|c| c.position.as_ref()) {
-            tc = tc.child(
-                div()
-                    .text_size(theme::text_xs())
-                    .font_family(theme::mono_font())
-                    .text_color(theme::text_muted())
-                    .child(format!("{}{}", p.path, p.line.map(|l| format!(":{l}")).unwrap_or_default())),
+                    .pl(theme::SPACE_6 + theme::SPACE_3)
+                    .child(div().min_w(theme::SPACE_0).truncate().px(theme::SPACE_2).py(theme::SPACE_0P5).rounded(theme::RADIUS_SM).bg(theme::surface()).text_size(theme::text_xs()).font_family(theme::mono_font()).text_color(theme::text_muted()).child(loc))
+                    .when(t.outdated, |d| d.child(Badge::new("Outdated")))
+                    .when(t.resolved == Some(true), |d| d.child(Badge::new("Resolved").tint(theme::success())))
+                    .children(show.map(|id| {
+                        Button::new(format!("show-in-code-{id}"), "Show in code").icon(IconName::Code).variant(ButtonVariant::Ghost).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.show_thread_in_code(id.clone(), cx)))
+                    })),
             );
         }
-        if t.resolved == Some(true) {
-            tc = tc.child(div().text_size(theme::text_xs()).text_color(theme::success()).child("Resolved"));
+        for (i, c) in t.comments.iter().enumerate() {
+            let ctx = CommentCtx { place: Place::Activity, thread: tid.clone(), resolved: if i == 0 { t.resolved } else { None }, reply: i > 0 };
+            let row = self.comment_row(c, d, ctx, cx);
+            col = col.child(if i == 0 { row } else { div().pl(theme::SPACE_6 + theme::SPACE_3).child(row) });
         }
-        for c in &t.comments {
-            tc = tc.child(self.render_comment(c, d, cx));
-        }
-        if t.id != "pending" {
-            let tid = t.id.clone();
-            tc = tc.child(Button::new(format!("reply-{}", t.id), "Reply").variant(ButtonVariant::Link).on_click(cx.listener(
-                move |this, _: &ClickEvent, window, cx| {
-                    if let Some(d) = this.detail.as_mut() {
-                        d.reply_to = Some(tid.clone());
-                        d.editing = None;
-                    }
-                    window.focus(&this.composer.focus_handle(cx));
-                    cx.notify()
-                },
-            )));
-        }
-        tc
-    }
-
-    fn render_comment(&self, c: &Comment, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
-        let mine = d.me.as_deref().is_some_and(|m| m.eq_ignore_ascii_case(&c.author.username));
-        let cid = c.id.clone();
-        let cbody = c.body.clone();
-        let when = if c.id == "pending" { "posting...".into() } else { relative_time(c.created_at) };
-        let mut head = div()
-            .flex()
-            .items_center()
-            .gap(theme::SPACE_2)
-            .text_size(theme::text_xs())
-            .child(div().font_weight(theme::WEIGHT_SEMIBOLD).child(c.author.username.clone()))
-            .child(div().text_color(theme::text_subtle()).child(when))
-            .child(div().flex_1());
-        if mine && c.id != "pending" {
-            head = head.child(Button::new(format!("edit-{}", c.id), "Edit").variant(ButtonVariant::Link).on_click(cx.listener(
-                move |this, _: &ClickEvent, window, cx| {
-                    if let Some(d) = this.detail.as_mut() {
-                        d.editing = Some(cid.clone());
-                        d.reply_to = None;
-                    }
-                    this.composer.update(cx, |i, cx| i.set_text(cbody.clone(), cx));
-                    window.focus(&this.composer.focus_handle(cx));
-                    cx.notify()
-                },
-            )));
-        }
-        div().flex().flex_col().gap(theme::SPACE_1).child(head).child(self.markdown(format!("c-{}", c.id), &c.body))
+        col
     }
 }

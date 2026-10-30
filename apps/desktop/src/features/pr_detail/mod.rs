@@ -4,6 +4,7 @@ mod activity;
 mod checkout;
 mod checks;
 mod code;
+mod comment;
 mod header;
 mod overview;
 mod tabs;

@@ -122,7 +122,7 @@ impl GitViewer {
     pub fn new(engine: Arc<Engine>, settings: Settings, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let input = |cx: &mut Context<Self>, ph: &'static str| cx.new(|cx| TextInput::new(ph, cx));
         let search = cx.new(|cx| TextInput::new("Search title, repo, author or branch  /", cx).inset(crate::ui::molecules::INPUT_INSET, crate::ui::molecules::INPUT_INSET));
-        let composer = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post", cx).multiline());
+        let composer = cx.new(|cx| TextInput::new("Leave a comment", cx).multiline());
         let inline_input = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post, Esc to cancel", cx).multiline());
         let add_name = input(cx, "Project name");
         let add_value = input(cx, "Paste a repo or group URL, or a folder path");
@@ -159,6 +159,12 @@ impl GitViewer {
         })
         .detach();
         on_submit(cx, &composer, |this, _, cx| this.post_comment(cx));
+        cx.subscribe(&composer, |_, _, ev: &InputEvent, cx| {
+            if matches!(ev, InputEvent::Changed) {
+                cx.notify()
+            }
+        })
+        .detach();
         on_submit(cx, &inline_input, |this, _, cx| this.submit_inline(cx));
         on_submit(cx, &add_value, |this, _, cx| this.submit_add_project(cx));
         cx.subscribe(&add_value, |this, _, ev: &InputEvent, cx| {

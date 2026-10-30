@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
       - name: System packages
-        run: sudo apt-get update && sudo apt-get install -y $(cat packaging/linux/build-deps.txt) xvfb x11-utils x11-apps imagemagick mesa-vulkan-drivers libvulkan1 vulkan-tools
+        run: sudo apt-get update && sudo apt-get install -y $(cat packaging/linux/build-deps.txt) sway grim imagemagick mesa-vulkan-drivers libvulkan1 vulkan-tools
       - name: Toolchain
         run: rustup toolchain install stable --profile minimal --component rustfmt,clippy && rustup default stable
       - uses: Swatinem/rust-cache@v2.7.8
@@ -44,7 +44,7 @@ jobs:
         run: cargo test --workspace
       - name: Build
         run: cargo build -p gv-desktop
-      - name: Smoke test under Xvfb
+      - name: Smoke test under headless Wayland
         run: scripts/smoke-linux.sh target/debug/confluo smoke
       - uses: actions/upload-artifact@v4.6.2
         if: always()

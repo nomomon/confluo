@@ -7,6 +7,8 @@ mod checks;
 mod ci;
 mod code;
 mod comment;
+mod comment_actions;
+mod comment_menu;
 mod description;
 mod edit_dialogs;
 mod edit_menu;

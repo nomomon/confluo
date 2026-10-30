@@ -29,6 +29,11 @@ impl Engine {
     }
 
     /// Add or remove my reaction on a comment, or on the PR when `subject` is None.
+    /// Reactions of one comment fetched on their own (GitLab notes).
+    pub async fn comment_reactions(&self, id: &ChangeRequestId, comment_id: &str) -> Result<Vec<gv_core::ReactionGroup>> {
+        Ok(self.provider(id.repo.kind, &id.repo.host).await?.comment_reactions(id, comment_id).await?)
+    }
+
     pub async fn react(&self, id: &ChangeRequestId, subject: Option<&str>, kind: ReactionKind, add: bool) -> Result<()> {
         let prov = self.provider(id.repo.kind, &id.repo.host).await?;
         let target = match (subject, id.repo.kind) {

@@ -76,6 +76,8 @@ pub struct Settings {
     pub shortcut_hints: bool,
     /// Two-finger horizontal swipes go back / forward in Review mode and switch the right panel tabs.
     pub swipe_pages: bool,
+    /// Reactions used most recently, newest first (the comment toolbar shows three).
+    pub reaction_mru: Vec<gv_engine::ReactionKind>,
     /// Review mode file tree width (px) and right panel share of the content width, as last dragged.
     pub review_tree_w: f32,
     pub review_right_ratio: f32,
@@ -106,6 +108,7 @@ impl Default for Settings {
             palette_mru: vec![],
             shortcut_hints: true,
             swipe_pages: true,
+            reaction_mru: vec![gv_engine::ReactionKind::ThumbsUp, gv_engine::ReactionKind::Heart, gv_engine::ReactionKind::Hooray],
             review_tree_w: 260.,
             review_right_ratio: 1. / 3.,
         }

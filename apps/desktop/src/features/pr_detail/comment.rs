@@ -1,46 +1,56 @@
-//! One comment in the timeline style shared by the Activity tab and Code tab threads:
-//! avatar, name and relative time (exact time on hover), markdown body, ghost actions on hover.
+//! One comment in the timeline style shared by the Conversation and Code tab threads: avatar, name and
+//! relative time (exact time on hover), markdown body, reaction chips. Hovering shows a floating toolbar at
+//! the top right (Slack style, no layout shift): the three most recent reactions, add reaction, Reply,
+//! Resolve and More; right-click opens the same menu at the pointer. Actions come from `comment_actions`.
 
-use gpui::{div, prelude::*, ClickEvent, Context, Div, Focusable, SharedString};
-use gv_engine::{Comment, ProviderKind};
+use gpui::{div, prelude::*, ClickEvent, Context, Div, MouseButton, MouseDownEvent, SharedString};
+use gv_engine::{Comment, ProviderKind, ReactionKind};
 
+use super::comment_actions::{comment_link, CommentAction, CommentFacts};
+use super::comment_menu::{CommentTarget, EMOJI_FONT};
 use crate::app::{GitViewer, Layer};
 use crate::features::shared::relative_time;
-use crate::state::{Copied, DetailState};
+use crate::state::DetailState;
 use crate::ui::atoms::{tooltip, Avatar, Button, ButtonVariant, IconName};
-use crate::ui::molecules::{DropdownMenu, MenuItem};
 use crate::ui::theme;
 
 /// Where the comment is shown; decides where Reply and Edit type.
 #[derive(Clone, Copy, PartialEq)]
 pub(super) enum Place {
-    /// Activity tab: the pinned composer.
+    /// Conversation tab: the pinned composer.
     Activity,
     /// Code tab: the inline field under the thread.
     Code,
 }
 
-/// What the hover actions act on.
+/// What the actions act on.
 pub(super) struct CommentCtx {
     pub place: Place,
-    /// Thread to reply to (on the first comment only).
+    /// Thread to reply to.
     pub thread: Option<String>,
     /// Thread resolve state, when the thread can be resolved (first comment only).
     pub resolved: Option<bool>,
     /// Nested reply: smaller avatar.
     pub reply: bool,
+    /// The thread sits on a diff line.
+    pub inline: bool,
 }
 
 fn display_name(c: &Comment) -> String {
     c.author.name.clone().filter(|n| !n.is_empty()).unwrap_or_else(|| c.author.username.clone())
 }
 
-/// A link to the comment where the provider has a stable anchor, else the PR.
-fn comment_link(web_url: &str, kind: ProviderKind, id: &str) -> String {
-    match kind {
-        ProviderKind::GitLab if id.chars().all(|c| c.is_ascii_digit()) => format!("{web_url}#note_{id}"),
-        _ => web_url.to_string(),
+/// Toolbar emoji: the three most recent reactions the provider supports.
+fn toolbar_reactions(mru: &[ReactionKind], kind: ProviderKind) -> Vec<ReactionKind> {
+    let ok = ReactionKind::for_provider(kind);
+    let mut out: Vec<ReactionKind> = mru.iter().copied().filter(|k| ok.contains(k)).collect();
+    for k in [ReactionKind::ThumbsUp, ReactionKind::Heart, ReactionKind::Hooray] {
+        if ok.contains(&k) && !out.contains(&k) {
+            out.push(k);
+        }
     }
+    out.truncate(3);
+    out
 }
 
 impl GitViewer {
@@ -51,49 +61,12 @@ impl GitViewer {
         let when = if pending { "posting...".to_string() } else { relative_time(c.created_at) };
         let exact = c.created_at.with_timezone(&chrono::Local).format("%b %-d, %Y %H:%M").to_string();
         let size = if ctx.reply { theme::SPACE_5 } else { theme::SPACE_6 };
-        let act = |id: String, icon: IconName, tip: &'static str| Button::new(id, "").icon(icon).variant(ButtonVariant::Ghost).tooltip(tip);
-        let menu_open = matches!(&self.layer, Some(Layer::CommentMenu(id)) if *id == c.id);
-        let mut actions = div().flex().items_center().gap(theme::SPACE_0P5).opacity(if menu_open { 1. } else { 0. }).group_hover(group.clone(), |s| s.opacity(1.));
-        if !pending {
-            if let Some(tid) = ctx.thread.clone() {
-                let place = ctx.place;
-                actions = actions.child(act(format!("reply-{}", c.id), IconName::CornerUpLeft, "Reply").on_click(cx.listener(move |this, _: &ClickEvent, window, cx| match place {
-                    Place::Activity => {
-                        if let Some(d) = this.detail.as_mut() {
-                            d.reply_to = Some(tid.clone());
-                            d.editing = None;
-                        }
-                        window.focus(&this.composer.focus_handle(cx));
-                        cx.notify()
-                    }
-                    Place::Code => this.open_inline_field(Some(tid.clone()), None, window, cx),
-                })));
-            }
-            if mine {
-                let (cid, body, place) = (c.id.clone(), c.body.clone(), ctx.place);
-                actions = actions.child(act(format!("edit-{}", c.id), IconName::Pencil, "Edit").on_click(cx.listener(move |this, _: &ClickEvent, window, cx| match place {
-                    Place::Activity => {
-                        if let Some(d) = this.detail.as_mut() {
-                            d.editing = Some(cid.clone());
-                            d.reply_to = None;
-                        }
-                        this.composer.update(cx, |i, cx| i.set_text(body.clone(), cx));
-                        window.focus(&this.composer.focus_handle(cx));
-                        cx.notify()
-                    }
-                    Place::Code => this.open_inline_field(None, Some((cid.clone(), body.clone())), window, cx),
-                })));
-            }
-            let link = comment_link(&d.summary.web_url, d.summary.id.repo.kind, &c.id);
-            actions = actions.child(act(format!("link-{}", c.id), IconName::Link, "Copy link").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.copy(Copied::Link, link.clone(), cx))));
-            if let (Some(res), Some(tid)) = (ctx.resolved, ctx.thread.clone()) {
-                let (icon, tip) = if res { (IconName::ArrowBackUp, "Unresolve") } else { (IconName::Check, "Resolve") };
-                actions = actions.child(act(format!("resolve-{}", c.id), icon, tip).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.set_thread_resolved(tid.clone(), !res, cx))));
-            }
-            if mine {
-                actions = actions.child(self.comment_more(c, cx));
-            }
-        }
+        let kind = d.summary.id.repo.kind;
+        // GitLab notes: award emoji arrive lazily for notes on screen; reacting waits until they are known.
+        d.want_awards(&c.id);
+        let can_react = !pending && (matches!(kind, ProviderKind::GitHub | ProviderKind::Azure) || (kind == ProviderKind::GitLab && !d.awards_unknown(&c.id)));
+        let facts = CommentFacts { mine, pending, can_reply: ctx.thread.is_some(), resolved: ctx.resolved, inline: ctx.inline, in_conversation: ctx.place == Place::Activity };
+        let t = CommentTarget { id: c.id.clone(), body: c.body.clone(), thread: ctx.thread.clone(), place: ctx.place, link: comment_link(&d.summary.web_url, kind, &c.id), facts, can_react };
         let head = div()
             .flex()
             .items_center()
@@ -101,38 +74,68 @@ impl GitViewer {
             .min_h(theme::SPACE_6)
             .text_size(theme::text_sm())
             .child(div().font_weight(theme::WEIGHT_MEDIUM).text_color(theme::text()).child(display_name(c)))
-            .child(div().id(SharedString::from(format!("when-{}", c.id))).text_color(theme::text_subtle()).tooltip(tooltip(exact)).child(when))
-            .child(div().flex_1())
-            .child(actions);
-        // GitLab notes carry no award emoji (one request per note); Azure DevOps comments have likes.
-        let can_react = !pending && matches!(d.summary.id.repo.kind, ProviderKind::GitHub | ProviderKind::Azure);
+            .child(div().id(SharedString::from(format!("when-{}", c.id))).text_color(theme::text_subtle()).tooltip(tooltip(exact)).child(when));
         let reactions = self.reactions_bar(Some(&c.id), &c.reactions, group.clone(), can_react, cx);
+        let rt = t.id.clone();
         div()
-            .group(group)
+            .group(group.clone())
+            .relative()
             .flex()
             .gap(theme::SPACE_3)
+            .when(!pending, |e| {
+                e.on_mouse_down(MouseButton::Right, cx.listener(move |this, ev: &MouseDownEvent, _, cx| {
+                    this.layer = Some(Layer::CommentMenuAt(rt.clone(), ev.position));
+                    cx.stop_propagation();
+                    cx.notify()
+                }))
+            })
             .child(Avatar::new(c.author.username.clone()).size(size).image(self.avatar(c.author.avatar_url.as_deref())))
             .child(div().flex().flex_col().flex_1().min_w(theme::SPACE_0).gap(theme::SPACE_1).child(head).child(self.markdown(format!("c-{}", c.id), &c.body)).children(reactions))
+            .children((!pending).then(|| self.comment_toolbar(&t, group, cx)).flatten())
     }
-}
 
-impl GitViewer {
-    /// Ellipsis on own comments: a small menu with Delete (behind a confirmation).
-    fn comment_more(&self, c: &Comment, cx: &mut Context<Self>) -> gpui::AnyElement {
-        let cid = c.id.clone();
-        let open = matches!(&self.layer, Some(Layer::CommentMenu(id)) if *id == c.id);
-        let toggle = cid.clone();
-        let menu = open.then(|| {
-            let del = cid.clone();
-            DropdownMenu::new(SharedString::from(format!("comment-menu-{cid}")))
-                .on_dismiss(cx.listener(|this, _: &gpui::MouseDownEvent, _, cx| this.dismiss_layer(cx)))
-                .child(MenuItem::new(SharedString::from(format!("comment-delete-{cid}")), "Delete").icon(IconName::Trash).destructive().on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.confirm_delete_comment(del.clone(), cx))))
-        });
-        div()
-            .relative()
-            .child(Button::new(format!("more-{}", c.id), "").icon(IconName::Ellipsis).variant(ButtonVariant::Ghost).tooltip("More").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.toggle_layer(Layer::CommentMenu(toggle.clone()), cx))))
-            .children(menu)
-            .into_any_element()
+    /// Floating toolbar at the top right, shown on hover (and while its own menu or picker is open);
+    /// hidden while any other layer is open.
+    fn comment_toolbar(&self, t: &CommentTarget, group: SharedString, cx: &mut Context<Self>) -> Option<gpui::AnyElement> {
+        let mine_open = matches!(&self.layer, Some(Layer::CommentMenu(id)) | Some(Layer::Reactions(id)) if *id == t.id);
+        if self.layer_open() && !mine_open {
+            // A right-click menu of this comment still renders (at the pointer).
+            return self.comment_menu(t, cx);
+        }
+        let act = |id: String, icon: IconName, tip: &'static str| Button::new(id, "").icon(icon).variant(ButtonVariant::Ghost).tooltip(tip);
+        let kind = self.detail.as_ref().map(|d| d.summary.id.repo.kind).unwrap_or(ProviderKind::GitHub);
+        let mut bar = div().flex().items_center().gap(theme::SPACE_0P5).p(theme::SPACE_0P5).rounded(theme::RADIUS_MD).border_1().border_color(theme::border()).bg(theme::overlay()).shadow_md();
+        if t.can_react {
+            for k in toolbar_reactions(&self.settings.reaction_mru, kind) {
+                let id = t.id.clone();
+                bar = bar.child(
+                    div()
+                        .id(SharedString::from(format!("tb-rx-{}-{k:?}", t.id)))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .size(theme::control_h())
+                        .rounded(theme::RADIUS_SM)
+                        .cursor_pointer()
+                        .hover(|s| s.bg(theme::surface_hover()))
+                        .font_family(EMOJI_FONT)
+                        .text_size(theme::text_sm())
+                        .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.toggle_reaction(Some(id.clone()), k, cx)))
+                        .child(k.emoji()),
+                );
+            }
+            bar = bar.child(self.add_reaction_button(&t.id, cx));
+        }
+        for a in [CommentAction::Reply, CommentAction::Resolve, CommentAction::Unresolve] {
+            if a.available(&t.facts) {
+                let t2 = t.clone();
+                bar = bar.child(act(format!("tb-{a:?}-{}", t.id), a.icon(), a.label()).on_click(cx.listener(move |this, _: &ClickEvent, window, cx| this.run_comment_action(a, &t2, window, cx))));
+            }
+        }
+        let toggle = t.id.clone();
+        let more = act(format!("tb-more-{}", t.id), IconName::Ellipsis, "More").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.toggle_layer(Layer::CommentMenu(toggle.clone()), cx)));
+        bar = bar.child(div().relative().child(more).children(self.comment_menu(t, cx)));
+        Some(div().absolute().top(-theme::SPACE_4).right_0().opacity(if mine_open { 1. } else { 0. }).group_hover(group, |s| s.opacity(1.)).child(bar).into_any_element())
     }
 }
 
@@ -141,8 +144,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn links_gitlab_notes_only() {
-        assert_eq!(comment_link("https://gl/x/-/merge_requests/1", ProviderKind::GitLab, "42"), "https://gl/x/-/merge_requests/1#note_42");
-        assert_eq!(comment_link("https://github.com/a/b/pull/1", ProviderKind::GitHub, "IC_x"), "https://github.com/a/b/pull/1");
+    fn toolbar_shows_three_recent_supported_reactions() {
+        let mru = [ReactionKind::Rocket, ReactionKind::Eyes];
+        assert_eq!(toolbar_reactions(&mru, ProviderKind::GitHub), vec![ReactionKind::Rocket, ReactionKind::Eyes, ReactionKind::ThumbsUp]);
+        assert_eq!(toolbar_reactions(&[], ProviderKind::GitHub), vec![ReactionKind::ThumbsUp, ReactionKind::Heart, ReactionKind::Hooray]);
+        // Azure comments only have a like.
+        assert_eq!(toolbar_reactions(&mru, ProviderKind::Azure), vec![ReactionKind::ThumbsUp]);
     }
 }

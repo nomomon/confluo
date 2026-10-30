@@ -4,6 +4,7 @@
 
 mod attention;
 mod avatars;
+mod awards;
 pub mod bridge;
 mod check_actions;
 pub mod cmd_ctx;

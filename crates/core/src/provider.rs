@@ -111,6 +111,10 @@ pub trait Provider: Send + Sync {
     async fn react(&self, _id: &ChangeRequestId, _subject: &str, _kind: ReactionKind, _add: bool) -> ProviderResult<()> {
         Err(ProviderError::Unsupported(format!("reactions on {}", self.kind())))
     }
+    /// Reactions of one comment fetched on their own (GitLab notes carry none in the discussion list).
+    async fn comment_reactions(&self, _id: &ChangeRequestId, _comment_id: &str) -> ProviderResult<Vec<ReactionGroup>> {
+        Err(ProviderError::Unsupported(format!("comment reactions on {}", self.kind())))
+    }
     /// Mark a file viewed on the provider (GitHub only; others keep it locally).
     async fn set_file_viewed(&self, _id: &ChangeRequestId, _pr_node: Option<&str>, _path: &str, _viewed: bool) -> ProviderResult<()> {
         Err(ProviderError::Unsupported(format!("viewed files on {}", self.kind())))

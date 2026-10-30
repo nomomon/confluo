@@ -25,6 +25,8 @@ pub enum Layer {
     Reactions(String),
     /// The More menu of a comment (its id).
     CommentMenu(String),
+    /// A comment's context menu at the pointer.
+    CommentMenuAt(String, gpui::Point<gpui::Pixels>),
     /// A list row's context menu at the pointer.
     Row(gv_engine::ChangeRequestId, gpui::Point<gpui::Pixels>),
 }

@@ -35,6 +35,10 @@ pub struct EditUi {
     pub logs: HashMap<String, LogState>,
     /// Comment waiting for the delete confirmation.
     pub delete_comment: Option<String>,
+    /// GitLab note award emoji fetched lazily (`state::awards`): cache by note id, queue, batch in flight.
+    pub awards: HashMap<String, Vec<gv_engine::ReactionGroup>>,
+    pub awards_want: std::cell::RefCell<std::collections::BTreeSet<String>>,
+    pub awards_busy: bool,
 }
 
 impl GitViewer {

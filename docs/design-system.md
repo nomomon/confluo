@@ -301,10 +301,17 @@ keys and `available(&CmdCtx)` from the keymap (unavailable actions show nothing)
 
 Activity tab: a timeline, not cards. 24px avatar, name medium, muted relative time (exact time tooltip),
 markdown body, no per-comment border; a 1px `border_subtle()` rail through the avatar centers; replies
-indent under the parent with 20px avatars; Reply, Edit, Copy link, Resolve are ghost icon buttons shown on
-hover (`features/pr_detail/comment.rs`, shared with Code tab threads); own comments add a More menu with Delete
-(confirm "Delete comment? This can't be undone.", removed at once, restored with a toast if the provider refuses; an
-inline thread's last comment takes the thread with it; `Provider::delete_comment`, `gv delete-comment`). Events (opened,
+indent under the parent with 20px avatars. Comment actions have one registry (`pr_detail::comment_actions`:
+label, icon, menu group, availability from ownership, thread state and provider): hovering a comment shows a floating
+toolbar at its top right (overlapping the top edge, no layout shift; hidden while another layer is open) with the three
+most recently used reactions (`reaction_mru` in settings, default thumbs up, heart, tada), add reaction (the picker),
+Reply, Resolve / Unresolve and More; More and right-click open the same menu (`comment_menu`): an emoji row, then
+Reply / Quote reply, Resolve, Copy text / Copy link to comment (GitHub `#issuecomment-{id}` / `#discussion_r{id}` from the
+node id, GitLab `#note_{id}`, Azure `?discussionId=`) / Open in browser / Show in code, Edit / Delete last. Delete asks
+"Delete comment? This can't be undone.", removes at once and restores with a toast if the provider refuses; an inline
+thread's last comment takes the thread (`Provider::delete_comment`, `gv delete-comment`). GitLab notes fetch their
+award emoji lazily (`state::awards`: notes on screen queue, a debounced batch of 25 through the governor, cached by note
+id and re-applied on reload); Azure has likes only. Events (opened,
 approved, changes requested, merged, closed) sit on the rail as small icon circles with plain glyphs (check, x), never a
 circled icon inside the circle. The composer is pinned under the tab pill.
 

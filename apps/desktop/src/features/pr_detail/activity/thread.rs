@@ -86,7 +86,7 @@ impl GitViewer {
             );
         }
         for (i, c) in t.comments.iter().enumerate() {
-            let ctx = CommentCtx { place: Place::Activity, thread: tid.clone(), resolved: if i == 0 { t.resolved } else { None }, reply: i > 0 };
+            let ctx = CommentCtx { place: Place::Activity, thread: tid.clone(), resolved: if i == 0 { t.resolved } else { None }, reply: i > 0, inline: t.position.is_some() };
             let row = self.comment_row(c, d, ctx, cx);
             col = col.child(if i == 0 { row } else { div().pl(indent()).child(row) });
         }

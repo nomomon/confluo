@@ -399,6 +399,8 @@ impl Render for GitViewer {
         self.fetch_avatars(cx);
         crate::ui::elastic::begin_frame(window);
         self.swipe_frame(window, cx);
+        // Notes drawn this frame queue their award emoji; fetch after the frame is built.
+        cx.defer_in(window, |this, _, cx| this.flush_awards(cx));
         if std::mem::take(&mut self.refocus) {
             window.focus(&self.focus);
         }

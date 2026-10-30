@@ -129,6 +129,7 @@ impl GitViewer {
                         }
                         d.summary = det.summary.clone();
                         d.detail = Some(det);
+                        d.apply_awards();
                         d.loaded_at = Some(Utc::now());
                         d.error = None;
                         d.reindex();

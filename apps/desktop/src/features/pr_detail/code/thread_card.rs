@@ -77,7 +77,7 @@ impl GitViewer {
         let mut card = div().flex().flex_col().gap(theme::SPACE_3).px(theme::SPACE_3).py(theme::SPACE_3).rounded(theme::RADIUS_MD).bg(theme::surface());
         for (i, c) in t.comments.iter().enumerate() {
             let editing = inline.editing.as_deref() == Some(c.id.as_str());
-            let ctx = CommentCtx { place: Place::Code, thread: tid.clone(), resolved: if i == 0 { t.resolved } else { None }, reply: i > 0 };
+            let ctx = CommentCtx { place: Place::Code, thread: tid.clone(), resolved: if i == 0 { t.resolved } else { None }, reply: i > 0, inline: true };
             let row = if editing { self.inline_field("Save", cx) } else { self.comment_row(c, d, ctx, cx) };
             card = card.child(if i == 0 { row } else { div().pl(theme::SPACE_6 + theme::SPACE_3).child(row) });
         }

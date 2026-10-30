@@ -469,6 +469,10 @@ impl Provider for GitLabProvider {
         self.do_react(id, subject, kind, add).await
     }
 
+    async fn comment_reactions(&self, id: &ChangeRequestId, comment_id: &str) -> ProviderResult<Vec<ReactionGroup>> {
+        self.note_awards(id, comment_id).await
+    }
+
     async fn list_repos(&self, owner: &str) -> ProviderResult<Vec<RepoRef>> {
         let path = format!("/groups/{}/projects?include_subgroups=true&archived=false&simple=true", enc(owner));
         let items = match self.get_all(&path).await {

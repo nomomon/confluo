@@ -32,10 +32,10 @@ mod nav;
 mod overlay;
 pub mod overlay_close;
 pub mod palette_rank;
+mod panels;
 mod people;
 mod permalink;
 pub mod pr_edit;
-mod panels;
 pub mod pr_nav;
 mod projects;
 mod quiet;
@@ -65,13 +65,13 @@ pub use inbox::Section;
 pub use inline::LineDraft;
 pub use nav::NavState;
 pub use overlay::{BotList, Layer, Overlay, SettingsPage};
+pub use panels::SplitUi;
 pub use pr_edit::{EditUi, LogState};
 pub use quiet::QuietState;
 pub use repo_menu::RepoMenu;
 pub use review_mode::{Pane, ReviewUi, RightTab};
 pub use selection::reveal;
 pub use sources::SourceKind;
-pub use panels::SplitUi;
 pub use swipe_nav::SwipeUi;
 
 /// Format an error with its full context chain.

@@ -104,9 +104,16 @@ fn svg_to_png(svg: &[u8]) -> Option<Vec<u8>> {
     let tree = resvg::usvg::Tree::from_data(svg, &resvg::usvg::Options::default()).ok()?;
     let size = tree.size();
     let scale = (SVG_MIN_PX / size.width().max(size.height())).max(1.);
-    let (w, h) = ((size.width() * scale).ceil() as u32, (size.height() * scale).ceil() as u32);
+    let (w, h) = (
+        (size.width() * scale).ceil() as u32,
+        (size.height() * scale).ceil() as u32,
+    );
     let mut pixmap = resvg::tiny_skia::Pixmap::new(w.max(1), h.max(1))?;
-    resvg::render(&tree, resvg::tiny_skia::Transform::from_scale(scale, scale), &mut pixmap.as_mut());
+    resvg::render(
+        &tree,
+        resvg::tiny_skia::Transform::from_scale(scale, scale),
+        &mut pixmap.as_mut(),
+    );
     pixmap.encode_png().ok()
 }
 
@@ -138,10 +145,16 @@ mod tests {
         let png = super::svg_to_png(svg).unwrap();
         let p = resvg::tiny_skia::Pixmap::decode_png(&png).unwrap();
         let mid = p.pixel(p.width() / 2, p.height() / 2).unwrap().demultiply();
-        assert_eq!((mid.red(), mid.green(), mid.blue(), mid.alpha()), (0, 0, 255, 255));
+        assert_eq!(
+            (mid.red(), mid.green(), mid.blue(), mid.alpha()),
+            (0, 0, 255, 255)
+        );
         assert_eq!(p.pixel(0, 0).unwrap().alpha(), 0);
         assert!(p.width() >= 128);
-        assert!(matches!(super::decode(svg.to_vec()).map(|i| i.format), Some(ImageFormat::Png)));
+        assert!(matches!(
+            super::decode(svg.to_vec()).map(|i| i.format),
+            Some(ImageFormat::Png)
+        ));
     }
 
     #[test]

@@ -117,6 +117,7 @@ impl GitViewer {
             .gap(theme::SPACE_2P5)
             .min_w(theme::SPACE_0)
             .overflow_hidden()
+            .child(crate::features::shared::provider_mark(s.id.repo.kind))
             .child(repo_el)
             .child(branch_el)
             .child(stats(s))

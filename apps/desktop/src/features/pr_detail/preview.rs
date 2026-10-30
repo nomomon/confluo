@@ -6,7 +6,7 @@ use gpui::{div, prelude::*, ClickEvent, Context, MouseButton, MouseDownEvent};
 use super::header::stats;
 use crate::app::GitViewer;
 use crate::features::keymap::{self, OpenInBrowser, OpenSelected, ToggleDetail};
-use crate::features::shared::{layout, number_label, provider_icon, state_icon};
+use crate::features::shared::{layout, number_label, provider_mark, state_icon};
 use crate::state::DetailState;
 use crate::ui::atoms::{tooltip, Avatar, Button, ButtonVariant, IconName};
 use crate::ui::{motion, theme};
@@ -65,7 +65,7 @@ impl GitViewer {
             .gap(theme::SPACE_2)
             .text_size(theme::text_xs())
             .text_color(theme::text_muted())
-            .child(provider_icon(s.id.repo.kind))
+            .child(provider_mark(s.id.repo.kind))
             .child(
                 div()
                     .id("preview-repo")

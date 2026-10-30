@@ -69,7 +69,7 @@ impl GitViewer {
                 .header(title, n)
                 .open(true)
                 .on_toggle(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_show_stale(cx)))
-                .children(items.into_iter().map(|c| self.render_row(c, false, cx).into_any_element()))
+                .children(items.into_iter().map(|c| self.render_row(c, cx).into_any_element()))
                 .into_any_element(),
         )
     }

@@ -6,13 +6,13 @@ use gv_engine::ChangeRequest;
 use crate::app::GitViewer;
 use crate::state;
 use crate::features::shared::ci::{ci_status, ci_words, status_icon};
-use crate::features::shared::{layout, number_label, provider_icon, relative_time, row_hint, state_icon};
+use crate::features::shared::{layout, number_label, provider_mark, relative_time, row_hint, state_icon};
 use crate::ui::atoms::{tooltip, Avatar, Icon, IconName, ListItem, Pill};
 use crate::ui::theme;
 
 impl GitViewer {
     /// The row is a `ListItem`: its highlight is an inset rounded rect inside the section card.
-    pub(super) fn render_row(&self, c: &ChangeRequest, show_provider: bool, cx: &mut Context<Self>) -> impl IntoElement {
+    pub(super) fn render_row(&self, c: &ChangeRequest, cx: &mut Context<Self>) -> impl IntoElement {
         let is_selected = self.cursor.as_ref() == Some(&c.id) || self.detail.as_ref().is_some_and(|d| d.summary.id == c.id);
         let starred = self.starred.contains(&c.id);
         let cr = c.clone();
@@ -39,7 +39,7 @@ impl GitViewer {
             .min_w(theme::SPACE_0)
             .text_size(theme::text_xs())
             .text_color(theme::text_muted())
-            .when(show_provider, |d| d.child(provider_icon(c.id.repo.kind)))
+            .child(provider_mark(c.id.repo.kind))
             .child(
                 div()
                     .id(SharedString::from(format!("repo-{}", c.id.key())))

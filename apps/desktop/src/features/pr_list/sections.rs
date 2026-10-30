@@ -22,12 +22,6 @@ impl GitViewer {
     /// Every view (Inbox, Starred, projects) groups rows into the same sections.
     pub(super) fn render_sections(&self, visible: &[&ChangeRequest], cx: &mut Context<Self>) -> Vec<AnyElement> {
         let fill = self.surfaces().card();
-        // Provider badges only when the rows on screen mix providers.
-        let shown = self.nav_order(cx);
-        let mut kinds: Vec<_> = visible.iter().filter(|c| shown.contains(&c.id)).map(|c| c.id.repo.kind).collect();
-        kinds.sort();
-        kinds.dedup();
-        let mixed = kinds.len() > 1;
         let collapsed = self.collapsed_sections();
         let mut out = vec![];
         for s in Section::ALL {
@@ -40,7 +34,7 @@ impl GitViewer {
                 .header(s.title(), items.len())
                 .open(open)
                 .on_toggle(cx.listener(move |this, _: &ClickEvent, _, cx| this.toggle_section(s, cx)))
-                .when(open, |sec| sec.children(items.iter().map(|c| self.render_row(c, mixed, cx).into_any_element())));
+                .when(open, |sec| sec.children(items.iter().map(|c| self.render_row(c, cx).into_any_element())));
             out.push(section.into_any_element());
         }
         out

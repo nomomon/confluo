@@ -31,8 +31,12 @@ fn clean(p: &str) -> String {
 
 /// Blob entries of `GET .../iterations/{id}/changes` (folders are skipped).
 pub(crate) fn entries(changes: &Value) -> Vec<Entry> {
-    changes["changeEntries"]
-        .as_array()
+    entries_in(&changes["changeEntries"])
+}
+
+/// Blob entries of a change array (`changeEntries` of an iteration, `changes` of a commit).
+pub(crate) fn entries_in(list: &Value) -> Vec<Entry> {
+    list.as_array()
         .into_iter()
         .flatten()
         .filter(|c| {
@@ -110,7 +114,7 @@ pub(crate) enum Blob {
 }
 
 impl Blob {
-    fn from_bytes(bytes: &[u8]) -> Self {
+    pub(crate) fn from_bytes(bytes: &[u8]) -> Self {
         if bytes.len() > MAX_BLOB {
             return Blob::TooLarge;
         }
@@ -177,33 +181,44 @@ impl AzureProvider {
                 _ => break,
             }
         }
-        let jobs = all.into_iter().enumerate().map(|(i, e)| {
-            let repo_url = repo_url.clone();
-            async move {
-                if i >= MAX_DIFF_FILES {
-                    let mut f = ChangedFile::from_patch(&e.old_path, &e.new_path, e.status, "");
-                    f.too_large = true;
-                    return Ok(f);
-                }
-                // A pure rename keeps its blob: nothing to fetch.
-                if e.old_blob.is_some() && e.old_blob == e.new_blob {
-                    return Ok(ChangedFile::from_patch(
-                        &e.old_path,
-                        &e.new_path,
-                        e.status,
-                        "",
-                    ));
-                }
-                let old = match &e.old_blob {
-                    Some(b) => Some(self.blob(&repo_url, b).await?),
-                    None => None,
-                };
-                let new = match &e.new_blob {
-                    Some(b) => Some(self.blob(&repo_url, b).await?),
-                    None => None,
-                };
-                Ok::<_, ProviderError>(file(&e, old, new))
+        self.diff_entries(&repo_url, all, None).await
+    }
+
+    /// Fetch both sides of each entry and diff locally. An old side without a blob id (commit
+    /// changes may omit it) is read by path at `parent`.
+    pub(crate) async fn diff_entries(
+        &self,
+        repo_url: &str,
+        all: Vec<Entry>,
+        parent: Option<&str>,
+    ) -> ProviderResult<Vec<ChangedFile>> {
+        let jobs = all.into_iter().enumerate().map(|(i, e)| async move {
+            if i >= MAX_DIFF_FILES {
+                let mut f = ChangedFile::from_patch(&e.old_path, &e.new_path, e.status, "");
+                f.too_large = true;
+                return Ok(f);
             }
+            // A pure rename keeps its blob: nothing to fetch.
+            if e.old_blob.is_some() && e.old_blob == e.new_blob {
+                return Ok(ChangedFile::from_patch(
+                    &e.old_path,
+                    &e.new_path,
+                    e.status,
+                    "",
+                ));
+            }
+            let old = match (&e.old_blob, parent) {
+                (Some(b), _) => Some(self.blob(repo_url, b).await?),
+                (None, Some(p)) if e.status != FileStatus::Added => {
+                    self.item_at(repo_url, &e.old_path, p).await?
+                }
+                _ => None,
+            };
+            let new = match &e.new_blob {
+                Some(b) => Some(self.blob(repo_url, b).await?),
+                None => None,
+            };
+            Ok::<_, ProviderError>(file(&e, old, new))
         });
         stream::iter(jobs)
             .buffered(crate::CONCURRENCY)

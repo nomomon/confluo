@@ -14,6 +14,7 @@ use std::sync::Mutex;
 use tokio::sync::{OnceCell, RwLock};
 
 mod checks;
+mod commit_diff;
 mod diff;
 mod edit;
 mod parse;
@@ -833,6 +834,14 @@ impl Provider for AzureProvider {
 
     async fn list_changed_files(&self, id: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>> {
         self.changed_files(id).await
+    }
+
+    async fn commit_files(
+        &self,
+        id: &ChangeRequestId,
+        sha: &str,
+    ) -> ProviderResult<Vec<ChangedFile>> {
+        self.commit_diff(id, sha).await
     }
 
     async fn get_file_content(

@@ -96,6 +96,8 @@ or by pasting `https://dev.azure.com/org/project`.
   system `VoteUpdate` threads. Comment ids are `thread/comment`.
 - Diff: last iteration's changes, then both blobs per file, diffed locally (`similar`); the first 120 files
   only, blobs over 1 MB are "too large". Cached by source commit like other providers.
+- Commit diff (Overview commit click): `GET .../commits/{sha}` for the parent, `.../commits/{sha}/changes`, then the
+  blobs (or the file at the parent when a change has no original blob id), diffed locally. Not exercised live.
 - Writes (not exercised against a live org): threads, replies, edits, inline threads (`threadContext`),
   resolve (`fixed` / `active`), votes via `PUT .../reviewers/{me}`, title/description/draft/abandon via
   `PATCH`, complete with merge strategy and branch deletion (or auto-complete), reviewers, comment likes,

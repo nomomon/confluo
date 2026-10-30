@@ -1,0 +1,10 @@
+{
+  "changeCounts": { "Edit": 2, "Add": 1, "Delete": 1 },
+  "changes": [
+    { "item": { "objectId": "n1", "originalObjectId": "o1", "gitObjectType": "blob", "commitId": "c1", "path": "/src/app.ts" }, "changeType": "edit" },
+    { "item": { "objectId": "n2", "gitObjectType": "blob", "commitId": "c1", "path": "/src/util.ts" }, "changeType": "edit" },
+    { "item": { "objectId": "n3", "gitObjectType": "blob", "commitId": "c1", "path": "/docs/new.md" }, "changeType": "add" },
+    { "item": { "objectId": "t1", "gitObjectType": "tree", "commitId": "c1", "path": "/src", "isFolder": true }, "changeType": "edit" },
+    { "item": { "objectId": "o4", "gitObjectType": "blob", "commitId": "c1", "path": "/old.txt" }, "changeType": "delete" }
+  ]
+}

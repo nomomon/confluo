@@ -577,6 +577,11 @@ impl Provider for GitHubProvider {
         self.do_set_viewed(node, path, viewed).await
     }
 
+    async fn delete_comment(&self, _id: &ChangeRequestId, comment_id: &str) -> ProviderResult<()> {
+        let m = delete_mutation(comment_id).ok_or_else(|| ProviderError::Unsupported("deleting a review summary".into()))?;
+        self.gql(m, json!({"c": comment_id})).await.map(|_| ())
+    }
+
     async fn edit_comment(&self, _id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment> {
         let (mutation, field) = if comment_id.starts_with("PRRC_") {
             ("updatePullRequestReviewComment(input: {pullRequestReviewCommentId: $c, body: $b}) { pullRequestReviewComment { id body createdAt path line author { login avatarUrl } } }", "pullRequestReviewComment")
@@ -591,9 +596,29 @@ impl Provider for GitHubProvider {
     }
 }
 
+/// GraphQL delete for a comment node: review (inline) comments `PRRC_` and conversation comments `IC_`
+/// are different objects (REST: `pulls/comments/{id}` vs `issues/comments/{id}`). A review's own summary
+/// (`PRR_`) cannot be deleted once submitted.
+pub(crate) fn delete_mutation(comment_id: &str) -> Option<&'static str> {
+    if comment_id.starts_with("PRRC_") {
+        Some("mutation($c: ID!) { deletePullRequestReviewComment(input: {id: $c}) { clientMutationId } }")
+    } else if comment_id.starts_with("PRR_") || comment_id.is_empty() {
+        None
+    } else {
+        Some("mutation($c: ID!) { deleteIssueComment(input: {id: $c}) { clientMutationId } }")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn delete_picks_the_comment_kind() {
+        assert!(delete_mutation("PRRC_kw1").unwrap().contains("deletePullRequestReviewComment"));
+        assert!(delete_mutation("IC_kw1").unwrap().contains("deleteIssueComment"));
+        assert_eq!(delete_mutation("PRR_kw1"), None);
+    }
 
     #[test]
     fn parses_changed_file() {

@@ -23,6 +23,8 @@ pub enum Layer {
     Checks,
     /// The reaction picker of the PR (`""`) or of a comment (its id).
     Reactions(String),
+    /// The More menu of a comment (its id).
+    CommentMenu(String),
     /// A list row's context menu at the pointer.
     Row(gv_engine::ChangeRequestId, gpui::Point<gpui::Pixels>),
 }
@@ -42,6 +44,8 @@ pub enum Overlay {
     Palette,
     /// Confirm closing the open PR.
     ConfirmClose,
+    /// Confirm deleting a comment (`EditUi::delete_comment`).
+    ConfirmDeleteComment,
     /// Merge options for the open PR.
     Merge,
     /// Confirm re-running failed checks.

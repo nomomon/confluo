@@ -403,6 +403,11 @@ impl Provider for AzureProvider {
         Ok(comment(thread_id.parse().unwrap_or(0), &c))
     }
 
+    async fn delete_comment(&self, id: &ChangeRequestId, comment_id: &str) -> ProviderResult<()> {
+        let url = edit::delete_comment_url(&self.pr_url(id)?, comment_id)?;
+        self.call(reqwest::Method::DELETE, &url, None).await.map(|_| ())
+    }
+
     async fn edit_comment(&self, id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment> {
         let (t, c) = split_comment_id(comment_id)?;
         let url = format!("{}/threads/{t}/comments/{c}?{API}", self.pr_url(id)?);

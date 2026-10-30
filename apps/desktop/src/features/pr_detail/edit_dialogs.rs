@@ -36,6 +36,10 @@ impl GitViewer {
             .footer(self.dialog_footer("close-confirm", "Close".into(), true, cx, |this, cx| this.set_open(false, cx)))
     }
 
+    pub(crate) fn render_delete_comment_dialog(&self, cx: &mut Context<Self>) -> Dialog {
+        Dialog::new("Delete comment?").description("This can't be undone.").content(div()).footer(self.dialog_footer("delete-comment-confirm", "Delete".into(), true, cx, |this, cx| this.delete_comment(cx)))
+    }
+
     pub(crate) fn render_rerun_dialog(&self, cx: &mut Context<Self>) -> Dialog {
         let n = self.detail.as_ref().and_then(|d| d.detail.as_ref()).map(|x| x.checks.count(gv_engine::CheckStatus::Failed)).unwrap_or(0);
         Dialog::new("Re-run failed checks?")

@@ -63,6 +63,10 @@ pub trait Provider: Send + Sync {
     async fn add_comment(&self, id: &ChangeRequestId, body: &str) -> ProviderResult<Comment>;
     async fn reply_to_thread(&self, id: &ChangeRequestId, thread_id: &str, body: &str) -> ProviderResult<Comment>;
     async fn edit_comment(&self, id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment>;
+    /// Delete a comment I wrote (the provider refuses others').
+    async fn delete_comment(&self, _id: &ChangeRequestId, _comment_id: &str) -> ProviderResult<()> {
+        Err(ProviderError::Unsupported(format!("deleting comments on {}", self.kind())))
+    }
     /// Start an inline review thread on a diff line (or range); returns the first comment.
     async fn add_line_comment(&self, id: &ChangeRequestId, position: &DiffPosition, body: &str) -> ProviderResult<Comment>;
     /// Mark an inline thread resolved or unresolved.

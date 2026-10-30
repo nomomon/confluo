@@ -14,6 +14,7 @@ impl GitViewer {
             Overlay::Palette => return Some(self.render_palette(cx)),
             Overlay::ReviewSummary(action) => self.render_review_dialog(action, cx),
             Overlay::ConfirmClose => self.render_close_dialog(cx),
+            Overlay::ConfirmDeleteComment => self.render_delete_comment_dialog(cx),
             Overlay::Merge => self.render_merge_dialog(cx),
             Overlay::ConfirmRerun => self.render_rerun_dialog(cx),
             Overlay::Shortcuts => self.render_shortcuts_sheet(),

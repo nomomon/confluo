@@ -4,10 +4,11 @@
 use gpui::{div, prelude::*, ClickEvent, Context, Div, Focusable, SharedString};
 use gv_engine::{Comment, ProviderKind};
 
-use crate::app::GitViewer;
+use crate::app::{GitViewer, Layer};
 use crate::features::shared::relative_time;
 use crate::state::{Copied, DetailState};
 use crate::ui::atoms::{tooltip, Avatar, Button, ButtonVariant, IconName};
+use crate::ui::molecules::{DropdownMenu, MenuItem};
 use crate::ui::theme;
 
 /// Where the comment is shown; decides where Reply and Edit type.
@@ -51,7 +52,8 @@ impl GitViewer {
         let exact = c.created_at.with_timezone(&chrono::Local).format("%b %-d, %Y %H:%M").to_string();
         let size = if ctx.reply { theme::SPACE_5 } else { theme::SPACE_6 };
         let act = |id: String, icon: IconName, tip: &'static str| Button::new(id, "").icon(icon).variant(ButtonVariant::Ghost).tooltip(tip);
-        let mut actions = div().flex().items_center().gap(theme::SPACE_0P5).opacity(0.).group_hover(group.clone(), |s| s.opacity(1.));
+        let menu_open = matches!(&self.layer, Some(Layer::CommentMenu(id)) if *id == c.id);
+        let mut actions = div().flex().items_center().gap(theme::SPACE_0P5).opacity(if menu_open { 1. } else { 0. }).group_hover(group.clone(), |s| s.opacity(1.));
         if !pending {
             if let Some(tid) = ctx.thread.clone() {
                 let place = ctx.place;
@@ -88,6 +90,9 @@ impl GitViewer {
                 let (icon, tip) = if res { (IconName::ArrowBackUp, "Unresolve") } else { (IconName::Check, "Resolve") };
                 actions = actions.child(act(format!("resolve-{}", c.id), icon, tip).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.set_thread_resolved(tid.clone(), !res, cx))));
             }
+            if mine {
+                actions = actions.child(self.comment_more(c, cx));
+            }
         }
         let head = div()
             .flex()
@@ -108,6 +113,26 @@ impl GitViewer {
             .gap(theme::SPACE_3)
             .child(Avatar::new(c.author.username.clone()).size(size).image(self.avatar(c.author.avatar_url.as_deref())))
             .child(div().flex().flex_col().flex_1().min_w(theme::SPACE_0).gap(theme::SPACE_1).child(head).child(self.markdown(format!("c-{}", c.id), &c.body)).children(reactions))
+    }
+}
+
+impl GitViewer {
+    /// Ellipsis on own comments: a small menu with Delete (behind a confirmation).
+    fn comment_more(&self, c: &Comment, cx: &mut Context<Self>) -> gpui::AnyElement {
+        let cid = c.id.clone();
+        let open = matches!(&self.layer, Some(Layer::CommentMenu(id)) if *id == c.id);
+        let toggle = cid.clone();
+        let menu = open.then(|| {
+            let del = cid.clone();
+            DropdownMenu::new(SharedString::from(format!("comment-menu-{cid}")))
+                .on_dismiss(cx.listener(|this, _: &gpui::MouseDownEvent, _, cx| this.dismiss_layer(cx)))
+                .child(MenuItem::new(SharedString::from(format!("comment-delete-{cid}")), "Delete").icon(IconName::Trash).destructive().on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.confirm_delete_comment(del.clone(), cx))))
+        });
+        div()
+            .relative()
+            .child(Button::new(format!("more-{}", c.id), "").icon(IconName::Ellipsis).variant(ButtonVariant::Ghost).tooltip("More").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.toggle_layer(Layer::CommentMenu(toggle.clone()), cx))))
+            .children(menu)
+            .into_any_element()
     }
 }
 

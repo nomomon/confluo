@@ -211,6 +211,8 @@ impl GitLabProvider {
             let next = resp.header("x-next-page").filter(|s| !s.is_empty()).map(str::to_string);
             let text = resp.text();
             return match status {
+                // DELETE answers 204 with no body.
+                200..=299 if text.trim().is_empty() => Ok((Value::Null, next)),
                 200..=299 => Ok((serde_json::from_str(&text).map_err(|e| ProviderError::Decode(e.to_string()))?, next)),
                 401 => Err(ProviderError::Unauthenticated(self.host.clone())),
                 404 => Err(ProviderError::NotFound(url)),
@@ -578,6 +580,10 @@ impl Provider for GitLabProvider {
         self.do_rerun(target).await
     }
 
+    async fn delete_comment(&self, id: &ChangeRequestId, comment_id: &str) -> ProviderResult<()> {
+        self.call(reqwest::Method::DELETE, &delete_note_path(&Self::mr_path(id), comment_id), None).await.map(|_| ())
+    }
+
     async fn edit_comment(&self, id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment> {
         let path = format!("{}/notes/{comment_id}", Self::mr_path(id));
         let (v, _) = self.call(reqwest::Method::PUT, &path, Some(&json!({"body": body}))).await?;
@@ -585,9 +591,19 @@ impl Provider for GitLabProvider {
     }
 }
 
+/// `DELETE /projects/:id/merge_requests/:iid/notes/:note_id`.
+fn delete_note_path(mr_path: &str, note_id: &str) -> String {
+    format!("{mr_path}/notes/{note_id}")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn delete_note_path_targets_the_note() {
+        assert_eq!(delete_note_path("/projects/g%2Fp/merge_requests/7", "42"), "/projects/g%2Fp/merge_requests/7/notes/42");
+    }
 
     #[test]
     fn parses_mr() {

@@ -64,6 +64,8 @@ enum Cmd {
     },
     /// Edit an existing comment you wrote.
     EditComment { target: String, comment_id: String, body: String },
+    /// Delete a comment you wrote.
+    DeleteComment { target: String, comment_id: String },
     /// Submit a review: approve, request-changes, comment or unapprove (GitLab).
     Review {
         target: String,
@@ -413,6 +415,11 @@ async fn main() -> Result<()> {
             let id = engine.resolve_id(&target)?;
             let c = engine.edit_comment(&id, &comment_id, &body).await?;
             println!("edited comment {}", c.id);
+        }
+        Cmd::DeleteComment { target, comment_id } => {
+            let id = engine.resolve_id(&target)?;
+            engine.delete_comment(&id, &comment_id).await?;
+            println!("deleted comment {comment_id}");
         }
         Cmd::Review { target, action, body } => {
             let Some(act) = ReviewAction::parse(&action) else { bail!("action must be approve, request-changes (reject), comment, unapprove, approve-with-suggestions, wait-for-author or reset") };

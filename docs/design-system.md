@@ -302,8 +302,11 @@ keys and `available(&CmdCtx)` from the keymap (unavailable actions show nothing)
 Activity tab: a timeline, not cards. 24px avatar, name medium, muted relative time (exact time tooltip),
 markdown body, no per-comment border; a 1px `border_subtle()` rail through the avatar centers; replies
 indent under the parent with 20px avatars; Reply, Edit, Copy link, Resolve are ghost icon buttons shown on
-hover (`features/pr_detail/comment.rs`, shared with Code tab threads). Events (opened, approved, changes
-requested, merged, closed) sit on the rail as small icon circles. The composer is pinned under the tab pill.
+hover (`features/pr_detail/comment.rs`, shared with Code tab threads); own comments add a More menu with Delete
+(confirm "Delete comment? This can't be undone.", removed at once, restored with a toast if the provider refuses; an
+inline thread's last comment takes the thread with it; `Provider::delete_comment`, `gv delete-comment`). Events (opened,
+approved, changes requested, merged, closed) sit on the rail as small icon circles with plain glyphs (check, x), never a
+circled icon inside the circle. The composer is pinned under the tab pill.
 
 Stale PRs (no update for `stale_days`, default 60) and snoozed PRs leave the sections; one quiet footer line
 says what is hidden ("12 bot PRs and 8 older PRs hidden. Show bots · Show older").

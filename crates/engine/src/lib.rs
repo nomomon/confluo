@@ -719,6 +719,10 @@ impl Engine {
         Ok(self.provider(id.repo.kind, &id.repo.host).await?.reply_to_thread(id, thread_id, body).await?)
     }
 
+    pub async fn delete_comment(&self, id: &ChangeRequestId, comment_id: &str) -> Result<()> {
+        Ok(self.provider(id.repo.kind, &id.repo.host).await?.delete_comment(id, comment_id).await?)
+    }
+
     pub async fn edit_comment(&self, id: &ChangeRequestId, comment_id: &str, body: &str) -> Result<Comment> {
         Ok(self.provider(id.repo.kind, &id.repo.host).await?.edit_comment(id, comment_id, body).await?)
     }

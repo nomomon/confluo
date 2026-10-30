@@ -138,10 +138,22 @@ pub(crate) fn edit_info(v: &Value, cr: &ChangeRequest, evals: &[Value]) -> EditI
     EditInfo { caps, assignees: vec![], node_id: None }
 }
 
+/// `DELETE .../pullRequests/{id}/threads/{t}/comments/{c}` for comment id `t/c`.
+pub(crate) fn delete_comment_url(pr_url: &str, comment_id: &str) -> ProviderResult<String> {
+    let (t, c) = crate::parse::split_comment_id(comment_id)?;
+    Ok(format!("{pr_url}/threads/{t}/comments/{c}?{}", crate::API))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::parse::parse_pr;
+
+    #[test]
+    fn delete_comment_url_names_thread_and_comment() {
+        assert_eq!(delete_comment_url("https://dev.azure.com/o/p/_apis/git/repositories/r/pullRequests/5", "12/3").unwrap(), "https://dev.azure.com/o/p/_apis/git/repositories/r/pullRequests/5/threads/12/comments/3?api-version=7.1");
+        assert!(delete_comment_url("x", "nope").is_err());
+    }
 
     fn pr(extra: Value) -> (Value, ChangeRequest) {
         let mut v: Value = serde_json::from_str(include_str!("../fixtures/pull_request.json")).unwrap();

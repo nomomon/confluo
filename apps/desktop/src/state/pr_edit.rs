@@ -33,6 +33,8 @@ pub struct EditUi {
     /// Expanded check rows by check id.
     pub open_checks: HashSet<String>,
     pub logs: HashMap<String, LogState>,
+    /// Comment waiting for the delete confirmation.
+    pub delete_comment: Option<String>,
 }
 
 impl GitViewer {

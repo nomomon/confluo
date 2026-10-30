@@ -2,11 +2,11 @@
 //! rows open a searchable multi-select of candidate users.
 
 use gpui::{div, prelude::*, AnyElement, ClickEvent, Context, MouseDownEvent, SharedString};
-use gv_engine::{PeopleRole, User};
+use gv_engine::{PeopleRole, ReviewState, User};
 
 use crate::app::GitViewer;
 use crate::state::DetailState;
-use crate::ui::atoms::{Avatar, Badge, BadgeVariant, ListItem};
+use crate::ui::atoms::{tooltip, Avatar, Badge, BadgeVariant, Icon, IconName, ListItem};
 use crate::ui::molecules::{ComboOption, Combobox};
 use crate::ui::theme;
 
@@ -14,6 +14,7 @@ impl GitViewer {
     pub(super) fn render_properties(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
         let caps = d.detail.as_ref().map(|x| x.edit.caps.clone()).unwrap_or_default();
         let reviewers: Vec<User> = d.summary.reviewers.iter().map(|r| r.user.clone()).collect();
+        let states: Vec<ReviewState> = d.summary.reviewers.iter().map(|r| r.state).collect();
         let assignees = Self::current_people(d, PeopleRole::Assignees);
         let labels = (!d.summary.labels.is_empty()).then(|| {
             let chips = div().flex().flex_wrap().gap(theme::SPACE_1).children(d.summary.labels.iter().map(|l| Badge::new(l.clone()).variant(BadgeVariant::Outline)));
@@ -28,12 +29,13 @@ impl GitViewer {
             .border_1()
             .border_color(theme::border_subtle())
             .bg(self.surfaces().card())
-            .child(self.people_row(d, PeopleRole::Reviewers, &reviewers, caps.reviewers, cx))
-            .child(self.people_row(d, PeopleRole::Assignees, &assignees, caps.assignees, cx))
+            .child(self.people_row(d, PeopleRole::Reviewers, &reviewers, Some(&states), caps.reviewers, cx))
+            .child(self.people_row(d, PeopleRole::Assignees, &assignees, None, caps.assignees, cx))
             .children(labels)
     }
 
-    fn people_value(&self, users: &[User], editable: bool) -> AnyElement {
+    /// Names with avatars; reviewers also get their state (approved, requested changes, reviewed).
+    fn people_value(&self, users: &[User], states: Option<&[ReviewState]>, editable: bool) -> AnyElement {
         if users.is_empty() {
             let text = if editable { "Add" } else { "None" };
             return div().text_color(theme::text_subtle()).child(text).into_any_element();
@@ -43,17 +45,24 @@ impl GitViewer {
             .flex_wrap()
             .gap_x(theme::SPACE_3)
             .gap_y(theme::SPACE_1)
-            .children(users.iter().map(|u| {
+            .children(users.iter().enumerate().map(|(i, u)| {
                 let name = u.username.strip_prefix("team:").map(|t| format!("@{t}")).unwrap_or_else(|| u.username.clone());
-                div().flex().items_center().gap(theme::SPACE_1P5).child(Avatar::new(name.clone()).image(self.avatar(u.avatar_url.as_deref()))).child(name)
+                let state = states.and_then(|s| s.get(i)).and_then(|s| match s {
+                    ReviewState::Approved => Some((IconName::CircleCheck, theme::success(), "Approved")),
+                    ReviewState::ChangesRequested => Some((IconName::CircleX, theme::danger(), "Requested changes")),
+                    ReviewState::Commented => Some((IconName::MessageCircle, theme::text_muted(), "Reviewed")),
+                    ReviewState::Pending => None,
+                });
+                let badge = state.map(|(icon, color, tip)| div().id(SharedString::from(format!("rev-state-{name}"))).tooltip(tooltip(tip)).child(Icon::new(icon).size(theme::ICON_SM).color(color)));
+                div().flex().items_center().gap(theme::SPACE_1P5).child(Avatar::new(name.clone()).image(self.avatar(u.avatar_url.as_deref()))).child(name).children(badge)
             }))
             .into_any_element()
     }
 
-    fn people_row(&self, d: &DetailState, role: PeopleRole, users: &[User], editable: bool, cx: &mut Context<Self>) -> AnyElement {
+    fn people_row(&self, d: &DetailState, role: PeopleRole, users: &[User], states: Option<&[ReviewState]>, editable: bool, cx: &mut Context<Self>) -> AnyElement {
         let id = if role == PeopleRole::Reviewers { "prop-reviewers" } else { "prop-assignees" };
         let open = d.ui.people == Some(role);
-        let row = row_shell(id, role.label(), self.people_value(users, editable), editable || open);
+        let row = row_shell(id, role.label(), self.people_value(users, states, editable), editable || open);
         let row = if editable { row.on_click(cx.listener(move |this, _: &ClickEvent, window, cx| this.open_people(role, window, cx))) } else { row };
         let picker = open.then(|| {
             let mut combo = Combobox::new(SharedString::from(format!("{id}-picker")), self.people_input.clone())

@@ -335,14 +335,14 @@ impl TextInput {
         }
     }
     pub(super) fn copy(&mut self, _: &Copy, _: &mut Window, cx: &mut Context<Self>) {
-        if !self.selected_range.is_empty() {
+        if !self.selected_range.is_empty() && !self.masked {
             cx.write_to_clipboard(ClipboardItem::new_string(
                 self.content[self.clamp_range(self.selected_range.clone())].to_string(),
             ));
         }
     }
     pub(super) fn cut(&mut self, _: &Cut, window: &mut Window, cx: &mut Context<Self>) {
-        if !self.selected_range.is_empty() {
+        if !self.selected_range.is_empty() && !self.masked {
             cx.write_to_clipboard(ClipboardItem::new_string(
                 self.content[self.clamp_range(self.selected_range.clone())].to_string(),
             ));

@@ -41,6 +41,7 @@ pub fn host_avatar_url(kind: ProviderKind, host: &str, user: &str) -> Option<Str
 impl GitViewer {
     /// Ask every known host who we are, in the background.
     pub(crate) fn check_hosts(&mut self, cx: &mut Context<Self>) {
+        self.reload_stored_tokens();
         let engine = self.engine.clone();
         // Show what we already know at once; the network check below confirms it.
         let known = engine.known_hosts();

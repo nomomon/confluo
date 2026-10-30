@@ -24,6 +24,7 @@ Dev-only env (screenshots and walkthroughs; see `apps/desktop/src/dev.rs`):
 - `CONFLUO_HINTS=1` keeps the hold-Cmd shortcut hints visible
 - `CONFLUO_FIND=<query>` opens the Review mode find bar with that query (`CONFLUO_FIND_NEXT=1` steps twice);
   `CONFLUO_OVERLAY=discard` shows the "Discard changes?" prompt over a review summary with typed text
+- `CONFLUO_TOKEN_DIALOG=add` (or `azure:dev.azure.com/<org>`) opens the Settings > Accounts token dialog with a fake masked token
 - `CONFLUO_WINDOW=1100x760` window size; `CONFLUO_REDUCE_MOTION=1`; `CONFLUO_NO_REFRESH=1` stays on cached data (no network)
 
 Note: macOS stops repainting the window while the screen is locked, so only the first frames can be captured then;
@@ -42,6 +43,14 @@ Built and tested on GitHub Actions (`ubuntu-24.04`), see the `linux` and `linux-
 - Per-OS code lives in `apps/desktop/src/platform.rs`: key strings are written `cmd-...` and bound as `ctrl-...` (labels `Ctrl+K`), log folder, reduced motion (`gsettings` `enable-animations`, or `CONFLUO_REDUCE_MOTION=1`).
 - `libc` is pinned to 0.2.189 in `Cargo.lock`: 0.2.190 dropped Linux `ENOATTR`, which `xattr` 0.2.3 (gpui via `zed-async-tar`) still uses. Do not `cargo update` it past that until gpui moves on.
 - Paths: data `$XDG_DATA_HOME/Confluo` (`~/.local/share`), logs `$XDG_STATE_HOME/confluo` (`~/.local/state`).
+
+## Tokens
+
+Lookup per host: env var, then a PAT in the system keychain (service `Confluo`, account `<provider>:<host>`,
+Azure `azure:dev.azure.com/<org>`; Secret Service on Linux, needs `libdbus-1-dev` to build), then the CLI.
+`gv auth set <account>` reads the token from stdin (hidden), tests it with whoami and stores it; `gv auth rm`,
+`gv auth list` (source per account, never the token). Settings > Accounts has "Use token..." per host and
+"Add account". A keychain item written by `gv` makes macOS ask once when Confluo first reads it.
 
 ## Crash logs
 
@@ -101,8 +110,9 @@ See also `design-system.md` and `brand.md`.
 ## Azure DevOps
 
 Repos are `org/project/repo` on `dev.azure.com` (`*.visualstudio.com` and `ssh.dev.azure.com` remotes are
-normalised). Auth: `az account get-access-token` (Bearer, refreshed once on 401) or `AZURE_DEVOPS_EXT_PAT`
-(Basic). A failed `az` lookup is remembered for 60s; Accounts and the refresh banner say
+normalised). Auth: `AZURE_DEVOPS_EXT_PAT` (Basic), a keychain PAT per org (`gv auth set azure:dev.azure.com/<org>`,
+Basic, used for URLs under that org), or `az account get-access-token` (Bearer, in the org's tenant from
+`x-vss-resourcetenant`, refreshed once on 401). A failed `az` lookup is remembered for 60s; Accounts and the refresh banner say
 "sign in again with `az login`". Add a whole project with `gv project add <name> --group azure:dev.azure.com/org/project`
 or by pasting `https://dev.azure.com/org/project`.
 

@@ -62,8 +62,13 @@ impl Element for TextElement {
         let selected = input.selected_range.clone();
         let cursor = input.cursor_offset();
         let style = window.text_style();
+        let masked = input.masked && !content.is_empty();
+        // Content offset to drawn offset (bullets are wider in bytes than the ASCII they hide).
+        let k = if masked { super::mask::BULLET_LEN } else { 1 };
         let (text, color): (SharedString, Hsla) = if content.is_empty() {
             (input.placeholder.clone(), theme::text_muted())
+        } else if masked {
+            (super::mask::masked(content.len()).into(), style.color)
         } else {
             (content, style.color)
         };
@@ -75,7 +80,7 @@ impl Element for TextElement {
             underline: None,
             strikethrough: None,
         };
-        let runs = if let Some(m) = input.marked_range.as_ref() {
+        let runs = if let Some(m) = input.marked_range.as_ref().filter(|_| !masked) {
             vec![
                 TextRun {
                     len: m.start,
@@ -105,7 +110,7 @@ impl Element for TextElement {
         let line = window
             .text_system()
             .shape_line(text, font_size, &runs, None);
-        let x = line.x_for_index(if input.content.is_empty() { 0 } else { cursor });
+        let x = line.x_for_index(if input.content.is_empty() { 0 } else { cursor * k });
         let (selection, cursor) = if selected.is_empty() {
             (
                 None,
@@ -122,11 +127,11 @@ impl Element for TextElement {
                 Some(fill(
                     Bounds::from_corners(
                         point(
-                            bounds.left() + line.x_for_index(selected.start),
+                            bounds.left() + line.x_for_index(selected.start * k),
                             bounds.top(),
                         ),
                         point(
-                            bounds.left() + line.x_for_index(selected.end),
+                            bounds.left() + line.x_for_index(selected.end * k),
                             bounds.bottom(),
                         ),
                     ),
@@ -172,6 +177,8 @@ impl Element for TextElement {
         self.input.update(cx, |input, _| {
             input.rows = if is_placeholder {
                 super::model::Rows::default()
+            } else if input.masked {
+                super::mask::unscale(super::area::rows_for(&line, &[], 0))
             } else {
                 super::model::Rows(super::area::rows_for(&line, &[], 0))
             };

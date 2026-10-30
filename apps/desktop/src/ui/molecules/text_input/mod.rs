@@ -9,6 +9,7 @@ mod actions;
 mod area;
 mod element;
 mod ime;
+mod mask;
 pub(crate) mod md_edit;
 pub(crate) mod md_highlight;
 pub(crate) mod model;
@@ -170,6 +171,8 @@ pub struct TextInput {
     reveal: bool,
     /// Left and right padding; `Input` widens them for a leading icon or clear button.
     inset: (Pixels, Pixels),
+    /// Secret text: drawn as bullets, never copied (tokens).
+    masked: bool,
 }
 
 impl EventEmitter<InputEvent> for TextInput {}
@@ -199,6 +202,7 @@ impl TextInput {
             scroll_y: px(0.),
             reveal: false,
             inset: (theme::space_3(), theme::space_3()),
+            masked: false,
         }
     }
 
@@ -233,6 +237,12 @@ impl TextInput {
     /// Room for adornments drawn over the field (see `Input`).
     pub fn inset(mut self, left: Pixels, right: Pixels) -> Self {
         self.inset = (left, right);
+        self
+    }
+
+    /// A secret: bullets on screen, printable ASCII only, Copy and Cut disabled.
+    pub fn masked(mut self) -> Self {
+        self.masked = true;
         self
     }
 

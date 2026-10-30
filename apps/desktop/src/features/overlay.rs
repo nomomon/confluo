@@ -10,9 +10,16 @@ use crate::ui::molecules::{Dialog, Sheet};
 impl GitViewer {
     pub(crate) fn render_overlay(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
         let base = self.render_overlay_base(cx)?;
-        if !self.discard_prompt {
+        let top = if self.discard_prompt {
+            Some(self.render_discard_prompt(cx))
+        } else if self.overlay == Overlay::Settings {
+            self.render_token_dialog(cx)
+        } else {
+            None
+        };
+        let Some(top) = top else {
             return Some(base);
-        }
+        };
         Some(
             div()
                 .absolute()
@@ -20,7 +27,7 @@ impl GitViewer {
                 .left_0()
                 .size_full()
                 .child(base)
-                .child(self.render_discard_prompt(cx))
+                .child(top)
                 .into_any_element(),
         )
     }

@@ -50,6 +50,8 @@ pub struct GitViewer {
     pub(crate) bot_branches_input: Entity<TextInput>,
     /// Signed-in hosts; `None` while checking.
     pub(crate) hosts: Option<Vec<HostStatus>>,
+    /// Keychain tokens and the "Use token" dialog (Settings > Accounts).
+    pub(crate) accounts_ui: crate::features::settings::token_state::AccountsUi,
     /// One-line error for the banner; cleared on the next successful refresh.
     pub(crate) error: Option<String>,
     /// Keyboard selection in the list.
@@ -343,6 +345,7 @@ impl GitViewer {
             bot_authors_input,
             bot_branches_input,
             hosts: None,
+            accounts_ui: Default::default(),
             error: None,
             cursor: None,
             detail: None,
@@ -461,6 +464,7 @@ impl GitViewer {
         if let Some(p) = SettingsPage::from_env() {
             this.open_settings(Some(p), cx);
         }
+        this.token_dialog_from_env(cx);
         this
     }
 }

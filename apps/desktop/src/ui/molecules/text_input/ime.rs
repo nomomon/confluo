@@ -47,6 +47,13 @@ impl EntityInputHandler for TextInput {
             .or(self.marked_range.clone())
             .unwrap_or(self.selected_range.clone());
         let range = self.clamp_range(range);
+        let filtered;
+        let new_text = if self.masked {
+            filtered = super::mask::accept(new_text);
+            filtered.as_str()
+        } else {
+            new_text
+        };
         self.record_edit(new_text, &range);
         self.content =
             (self.content[0..range.start].to_owned() + new_text + &self.content[range.end..])

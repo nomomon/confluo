@@ -44,6 +44,10 @@ impl GitViewer {
 
     /// Scrim press, Esc or the close button: close, or ask first when typed input would be lost.
     pub(crate) fn request_close_overlay(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        // The token dialog over Settings closes first (it holds nothing worth a discard prompt).
+        if self.accounts_ui.dialog.take().is_some() {
+            return cx.notify();
+        }
         match close_step(self.overlay, self.overlay_dirty(cx), self.discard_prompt) {
             CloseStep::None => {}
             CloseStep::Ask => self.discard_prompt = true,

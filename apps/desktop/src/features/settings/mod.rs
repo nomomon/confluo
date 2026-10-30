@@ -9,6 +9,9 @@ mod general;
 mod projects;
 mod repositories;
 mod shortcuts;
+pub(crate) mod token_dialog;
+mod token_fields;
+pub(crate) mod token_state;
 
 use gpui::{div, prelude::*, AnyElement, ClickEvent, Context};
 

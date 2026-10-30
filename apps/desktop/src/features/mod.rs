@@ -15,7 +15,7 @@ mod pr_list;
 mod projects;
 mod repo_menu;
 mod review_dialog;
-mod settings;
+pub(crate) mod settings;
 mod shared;
 mod shortcuts_sheet;
 pub(crate) use shared::layout;

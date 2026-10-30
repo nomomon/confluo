@@ -33,7 +33,7 @@ pub struct AzureProvider {
     /// The host-wide credential (az token, env PAT or host keychain PAT).
     cred: RwLock<Credential>,
     /// Keychain PATs per organization (lowercase), used for URLs under that org.
-    org_creds: HashMap<String, Credential>,
+    org_creds: RwLock<HashMap<String, Credential>>,
     creds: CredentialSource,
     http: reqwest::Client,
     me: OnceCell<User>,
@@ -54,7 +54,7 @@ impl AzureProvider {
         Self {
             host: host.to_ascii_lowercase(),
             cred: RwLock::new(cred),
-            org_creds: HashMap::new(),
+            org_creds: RwLock::new(HashMap::new()),
             creds: CredentialSource::new(),
             http: reqwest::Client::builder()
                 .user_agent("git-viewer")
@@ -86,11 +86,12 @@ impl AzureProvider {
                 req = req.json(b);
             }
             let resp = gv_http::send(req).await?;
-            if resp.status == 401 && attempt == 0 && !org_scoped && cred.refreshable() {
-                if let Ok(c) = self.creds.get(ProviderKind::Azure, &self.host).await {
-                    *self.cred.write().await = c;
-                    continue;
-                }
+            if resp.status == 401
+                && attempt == 0
+                && cred.refreshable()
+                && self.refresh(org_scoped.as_deref()).await
+            {
+                continue;
             }
             return Ok(resp);
         }

@@ -27,6 +27,24 @@ impl Engine {
         Ok(())
     }
 
+    /// Per-organization credentials of an Azure DevOps host: keychain PATs, else an az token
+    /// minted in the org's tenant (orgs in another tenant than az's default need one).
+    pub(crate) async fn azure_org_creds(&self, host: &str) -> Vec<(String, Credential)> {
+        let mut v = self.creds.org_tokens(ProviderKind::Azure, host);
+        for org in self.azure_orgs() {
+            if v.iter().any(|(o, _)| o.eq_ignore_ascii_case(&org)) {
+                continue;
+            }
+            let a = Account::new(ProviderKind::Azure, host, Some(&org));
+            if let Ok(c) = self.creds.get_for(&a).await {
+                if c.origin == TokenOrigin::Cli {
+                    v.push((org.to_ascii_lowercase(), c));
+                }
+            }
+        }
+        v
+    }
+
     /// Accounts with a token in the keychain.
     pub fn stored_accounts(&self) -> Vec<Account> {
         self.creds.store().accounts()

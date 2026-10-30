@@ -247,7 +247,7 @@ impl Engine {
             }
         }
         let org_creds = if kind == ProviderKind::Azure {
-            self.creds.org_tokens(kind, host)
+            self.azure_org_creds(host).await
         } else {
             vec![]
         };

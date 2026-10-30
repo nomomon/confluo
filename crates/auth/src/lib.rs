@@ -2,6 +2,7 @@
 //! the provider CLI (gh / glab / az), then glab's config file as a fallback.
 
 mod account;
+mod azure_tenant;
 mod credential;
 mod store;
 
@@ -101,7 +102,7 @@ impl CredentialSource {
         if let Some(c) = lookup_static(account, |v| std::env::var(v).ok(), &self.store) {
             return Ok(c);
         }
-        if let Some(t) = cli_token(kind, host).await {
+        if let Some(t) = cli_token(kind, host, account.org.as_deref()).await {
             return Ok(Credential::new(kind, TokenOrigin::Cli, &t));
         }
         if kind == ProviderKind::GitLab {
@@ -156,25 +157,30 @@ impl CredentialSource {
     }
 }
 
-async fn cli_token(kind: ProviderKind, host: &str) -> Option<String> {
+async fn cli_token(kind: ProviderKind, host: &str, org: Option<&str>) -> Option<String> {
     match kind {
         ProviderKind::GitHub => run("gh", &["auth", "token", "--hostname", host]).await,
         ProviderKind::GitLab => run("glab", &["config", "get", "token", "--host", host]).await,
         ProviderKind::Azure => {
-            run(
-                "az",
-                &[
-                    "account",
-                    "get-access-token",
-                    "--resource",
-                    AZURE_DEVOPS_RESOURCE,
-                    "--query",
-                    "accessToken",
-                    "-o",
-                    "tsv",
-                ],
-            )
-            .await
+            // Like the az devops extension: ask for a token in the org's tenant when known.
+            let tenant = match org {
+                Some(o) => azure_tenant::org_tenant(host, o).await,
+                None => None,
+            };
+            let mut args = vec![
+                "account",
+                "get-access-token",
+                "--resource",
+                AZURE_DEVOPS_RESOURCE,
+                "--query",
+                "accessToken",
+                "-o",
+                "tsv",
+            ];
+            if let Some(t) = tenant.as_deref() {
+                args.extend(["--tenant", t]);
+            }
+            run("az", &args).await
         }
     }
 }
@@ -352,7 +358,10 @@ mod tests {
     #[test]
     fn azure_devops_resource_id() {
         // The Azure DevOps application id; a wrong one makes `az` fail or mint unusable tokens.
-        assert_eq!(AZURE_DEVOPS_RESOURCE, "499b84ac-1321-427f-aa17-267ca6975798");
+        assert_eq!(
+            AZURE_DEVOPS_RESOURCE,
+            "499b84ac-1321-427f-aa17-267ca6975798"
+        );
     }
 
     #[test]

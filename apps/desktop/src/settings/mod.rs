@@ -89,6 +89,8 @@ pub struct Settings {
     /// Review mode file tree width (px) and right panel share of the content width, as last dragged.
     pub review_tree_w: f32,
     pub review_right_ratio: f32,
+    /// Side panels the user collapsed, restored on launch.
+    pub hidden_panels: HiddenPanels,
     /// Check GitHub for a newer release on launch and every 6 hours.
     pub auto_update: bool,
     /// Version whose update card was dismissed.
@@ -135,10 +137,21 @@ impl Default for Settings {
             ],
             review_tree_w: 260.,
             review_right_ratio: 1. / 3.,
+            hidden_panels: HiddenPanels::default(),
             auto_update: true,
             dismissed_update: None,
         }
     }
+}
+
+/// Collapsed state of the side panels (all open by default).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct HiddenPanels {
+    pub sidebar: bool,
+    pub preview: bool,
+    pub tree: bool,
+    pub right: bool,
 }
 
 pub fn path() -> PathBuf {

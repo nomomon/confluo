@@ -179,6 +179,7 @@ impl GitViewer {
     ) -> Self {
         let (saved_tree_w, saved_right_ratio) =
             (settings.review_tree_w, settings.review_right_ratio);
+        let hidden = settings.hidden_panels;
         let input = |cx: &mut Context<Self>, ph: &'static str| cx.new(|cx| TextInput::new(ph, cx));
         let search = cx.new(|cx| {
             TextInput::new("Search title, repo, author or branch  /", cx).inset(
@@ -376,7 +377,10 @@ impl GitViewer {
             renaming: None,
             confirm_from_settings: false,
             quiet: QuietState::default(),
-            nav: NavState::default(),
+            nav: NavState {
+                sidebar_hidden: hidden.sidebar,
+                ..Default::default()
+            },
             navigating: false,
             refocus: false,
             refocus_palette: false,
@@ -392,11 +396,15 @@ impl GitViewer {
             pending_action: None,
             menu_projects: None,
             reviewing: false,
-            preview_hidden: false,
-            review: crate::state::ReviewUi::with_sizes(
-                gpui::px(saved_tree_w).clamp(layout::TREE_MIN_W, layout::TREE_MAX_W),
-                saved_right_ratio.clamp(layout::RIGHT_RATIO_MIN, layout::RIGHT_RATIO_MAX),
-            ),
+            preview_hidden: hidden.preview,
+            review: {
+                let mut r = crate::state::ReviewUi::with_sizes(
+                    gpui::px(saved_tree_w).clamp(layout::TREE_MIN_W, layout::TREE_MAX_W),
+                    saved_right_ratio.clamp(layout::RIGHT_RATIO_MIN, layout::RIGHT_RATIO_MAX),
+                );
+                (r.tree_open, r.right_open) = (!hidden.tree, !hidden.right);
+                r
+            },
             tree_filter,
             quick_input,
             refocus_quick: false,

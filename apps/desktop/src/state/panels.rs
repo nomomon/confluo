@@ -219,6 +219,7 @@ impl GitViewer {
         for p in closed {
             self.set_panel_open(p, false, cx);
         }
+        self.persist_panels(cx);
         let moving = !self.review.split.anims.is_empty();
         self.review.split.shown = shown;
         if moving {

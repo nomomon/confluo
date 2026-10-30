@@ -32,6 +32,7 @@ mod nav;
 mod overlay;
 pub mod overlay_close;
 pub mod palette_rank;
+mod panel_persist;
 mod panels;
 mod people;
 mod permalink;

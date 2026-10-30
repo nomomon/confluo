@@ -12,6 +12,7 @@ gv-provider-gitlab.workspace = true
 gv-provider-azure.workspace = true
 gv-store.workspace = true
 gv-http.workspace = true
+gv-demo.workspace = true
 reqwest.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true

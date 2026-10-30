@@ -97,7 +97,8 @@ impl GitViewer {
     /// Floating toolbar at the top right, shown on hover (and while its own menu or picker is open);
     /// hidden while any other layer is open.
     fn comment_toolbar(&self, t: &CommentTarget, group: SharedString, cx: &mut Context<Self>) -> Option<gpui::AnyElement> {
-        let mine_open = matches!(&self.layer, Some(Layer::CommentMenu(id)) | Some(Layer::Reactions(id)) if *id == t.id);
+        let mine_open = matches!(&self.layer, Some(Layer::CommentMenu(id)) | Some(Layer::Reactions(id)) if *id == t.id)
+            || crate::dev::hover_comment().is_some_and(|h| h == t.id);
         if self.layer_open() && !mine_open {
             // A right-click menu of this comment still renders (at the pointer).
             return self.comment_menu(t, cx);

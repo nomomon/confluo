@@ -49,49 +49,6 @@ pub fn gesture_axis(locked: Option<Axis>, phase: TouchPhase, dx: Pixels, dy: Pix
     (axis, keep)
 }
 
-thread_local! {
-    static LOCKS: std::cell::RefCell<std::collections::HashMap<String, Axis>> = Default::default();
-}
-
-/// `gesture_axis` with the lock kept per scroller `key` across events.
-pub fn locked_axis(key: &str, phase: TouchPhase, dx: Pixels, dy: Pixels) -> Axis {
-    let locked = LOCKS.with(|m| m.borrow().get(key).copied());
-    let (axis, keep) = gesture_axis(locked, phase, dx, dy);
-    LOCKS.with(|m| match keep {
-        Some(a) => m.borrow_mut().insert(key.to_string(), a),
-        None => m.borrow_mut().remove(key),
-    });
-    axis
-}
-
-/// Whether a horizontal block owns this event of a sideways gesture. Decided once per gesture, at its
-/// first horizontal movement: the block claims it only if it can still scroll that way (`can`), so a swipe
-/// that starts at its edge goes on to the page (swipe navigation, panel tabs). Line deltas (mouse wheels)
-/// always stay with the block. Returns the answer and the decision to keep.
-pub fn claim(kept: Option<bool>, phase: TouchPhase, precise: bool, can: bool) -> (bool, Option<bool>) {
-    if !precise {
-        return (true, None);
-    }
-    let kept = if matches!(phase, TouchPhase::Started) { None } else { kept };
-    let own = kept.unwrap_or(can);
-    (own, if matches!(phase, TouchPhase::Ended) { None } else { Some(own) })
-}
-
-thread_local! {
-    static CLAIMS: std::cell::RefCell<std::collections::HashMap<String, bool>> = Default::default();
-}
-
-/// `claim` kept per block `key`; call for every event locked to x (Ended forgets it).
-pub fn claims_x(key: &str, phase: TouchPhase, precise: bool, can: bool) -> bool {
-    let kept = CLAIMS.with(|m| m.borrow().get(key).copied());
-    let (own, keep) = claim(kept, phase, precise, can);
-    CLAIMS.with(|m| match keep {
-        Some(k) => m.borrow_mut().insert(key.to_string(), k),
-        None => m.borrow_mut().remove(key),
-    });
-    own
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,21 +72,5 @@ mod tests {
         assert_eq!(gesture_axis(None, TouchPhase::Moved, px(1.), px(9.)), (Axis::Y, Some(Axis::Y)));
         // Mouse wheels report Moved per notch: Shift+wheel arrives as x and scrolls x.
         assert_eq!(gesture_axis(None, TouchPhase::Moved, px(-20.), px(0.)).0, Axis::X);
-    }
-
-    #[test]
-    fn horizontal_claim_is_decided_once_per_gesture() {
-        // At the edge when it starts: the page gets the whole gesture, even once the block could scroll.
-        let (own, k) = claim(None, TouchPhase::Moved, true, false);
-        assert!(!own);
-        assert_eq!(claim(k, TouchPhase::Moved, true, true), (false, Some(false)));
-        // Room to scroll: the block keeps it, also after reaching its edge mid-gesture.
-        let (own, k) = claim(None, TouchPhase::Started, true, true);
-        assert!(own);
-        assert_eq!(claim(k, TouchPhase::Moved, true, false), (true, Some(true)));
-        assert_eq!(claim(k, TouchPhase::Ended, true, false), (true, None));
-        // A new gesture decides again; mouse wheels always stay with the block.
-        assert!(!claim(Some(true), TouchPhase::Started, true, false).0);
-        assert_eq!(claim(Some(false), TouchPhase::Moved, false, false), (true, None));
     }
 }

@@ -1,0 +1,36 @@
+//! Retry policy for webhook deliveries.
+
+use rand::Rng;
+use std::time::Duration;
+
+/// How a failed delivery is retried.
+#[derive(Debug, Clone)]
+pub struct RetryPolicy {
+    pub max_attempts: u32,
+    pub base: Duration,
+    pub cap: Duration,
+}
+
+impl Default for RetryPolicy {
+    fn default() -> Self {
+        Self { max_attempts: 8, base: Duration::from_millis(500), cap: Duration::from_secs(300) }
+    }
+}
+
+impl RetryPolicy {
+    /// Delay before attempt `n` (1-based), with full jitter.
+    pub fn delay(&self, n: u32) -> Option<Duration> {
+        if n >= self.max_attempts {
+            return None;
+        }
+        let exp = self.base.saturating_mul(1 << n.min(16));
+        let ceiling = exp.min(self.cap);
+        let jitter = rand::thread_rng().gen_range(0..=ceiling.as_millis() as u64);
+        Some(Duration::from_millis(jitter))
+    }
+
+    /// Whether a response status is worth retrying.
+    pub fn retryable(status: u16) -> bool {
+        matches!(status, 408 | 425 | 429 | 500..=599)
+    }
+}

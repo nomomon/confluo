@@ -1,0 +1,12 @@
+[package]
+name = "gv-demo"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+gv-core.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

@@ -46,6 +46,11 @@ pub fn hints() -> bool {
     var("CONFLUO_HINTS").is_some()
 }
 
+/// `CONFLUO_HOVER=<comment id>` keeps that comment's hover toolbar visible (screenshots).
+pub fn hover_comment() -> Option<String> {
+    var("CONFLUO_HOVER")
+}
+
 /// `CONFLUO_VIEW=starred|bots|project:<name>` opens that list view at launch.
 pub fn view() -> Option<String> {
     var("CONFLUO_VIEW")

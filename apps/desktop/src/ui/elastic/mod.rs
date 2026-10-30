@@ -95,13 +95,34 @@ pub fn begin_frame(window: &mut Window) {
 }
 
 /// Rubber-band a vertical div scroller tracked by `h`: listens on it (after its own scroll handler).
-/// Put its children in `content(key)`.
+/// Also enforces gesture ownership (`ui::arbiter`): a vertical gesture is claimed for panes; during a
+/// horizontal one (a pager or block owns it) the pane undoes the wobble GPUI applied, back to the offset
+/// it was drawn at. Put its children in `content(key)`.
 pub fn y_scroller(el: Stateful<Div>, key: &'static str, h: ScrollHandle) -> Stateful<Div> {
+    let drawn = h.offset();
     el.on_scroll_wheel(move |ev, window, _| {
-        if wheel(key, Axis::Y, ev, &h) {
+        if guard_vertical(ev, &h, drawn.y.into()) && wheel(key, Axis::Y, ev, &h) {
             window.refresh();
         }
     })
+}
+
+/// Ownership rule for vertical scrollers: false (and the scroller put back at `drawn_y`) while the gesture
+/// is horizontal; a vertical gesture is claimed for panes.
+pub fn guard_vertical(ev: &ScrollWheelEvent, s: &dyn Scroller, drawn_y: f32) -> bool {
+    match super::arbiter::observe(ev) {
+        Some(Axis::X) => {
+            if s.pos(Axis::Y).0 != drawn_y {
+                s.pin(Axis::Y, drawn_y);
+            }
+            false
+        }
+        Some(Axis::Y) => {
+            super::arbiter::claim(super::arbiter::Owner::Vertical);
+            true
+        }
+        None => true,
+    }
 }
 
 /// Wrapper for a scroller's children, translated by the current stretch.

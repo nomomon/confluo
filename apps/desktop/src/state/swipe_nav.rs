@@ -6,12 +6,13 @@
 
 use std::time::Instant;
 
-use gpui::{px, Context, ScrollDelta, ScrollWheelEvent, Window};
+use gpui::{Context, ScrollDelta, ScrollWheelEvent, Window};
 
 use crate::app::{GitViewer, Overlay};
 use crate::ui::motion::interactive::{Drag, Pager, SwipeGate};
 use crate::ui::motion::reduced_motion;
-use crate::ui::scroll::{claims_x, locked_axis, Axis};
+use crate::ui::arbiter::{self, Owner};
+use crate::ui::scroll::Axis;
 
 use super::RightTab;
 
@@ -80,9 +81,13 @@ impl GitViewer {
         self.settings.swipe_pages && matches!(self.overlay, Overlay::None) && !self.layer_open() && !self.review.quick_open
     }
 
-    /// Window root: wheel events no block or panel claimed.
+    /// Window root: gestures nothing inside claimed (`ui::arbiter`): the review pager takes a sideways one;
+    /// once it owns a gesture every event of it (both axes, momentum) is its alone.
     pub(crate) fn page_wheel(&mut self, ev: &ScrollWheelEvent, _: &mut Window, cx: &mut Context<Self>) {
         if !self.reviewing || !self.swipe_allowed() {
+            return;
+        }
+        if arbiter::observe(ev) == Some(Axis::X) && !arbiter::claim(Owner::Page) {
             return;
         }
         let (precise, dx, dy) = wheel_parts(ev);
@@ -110,24 +115,24 @@ impl GitViewer {
         cx.notify();
     }
 
-    /// Right panel: a sideways swipe moves between Overview and Conversation when there is a tab that way.
+    /// Right panel: a sideways gesture that starts in the panel belongs to its pager (unless a block inside
+    /// took it): it moves between Overview and Conversation and rubber-bands at the ends, never chaining
+    /// into the page swipe.
     pub(crate) fn panel_wheel(&mut self, ev: &ScrollWheelEvent, _: &mut Window, cx: &mut Context<Self>) {
         if !self.swipe_allowed() {
             return;
         }
-        let (precise, dx, dy) = wheel_parts(ev);
-        let at = self.review.swipe.panel.page();
-        if locked_axis("right-panel", ev.touch_phase, px(dx), px(dy)) == Axis::X && !self.review.swipe.panel_gate.tracking() {
-            let can = if dx > 0. { at == 1 } else { dx < 0. && at == 0 };
-            if !claims_x("right-panel", ev.touch_phase, precise, can) {
-                return;
-            }
+        if arbiter::observe(ev) == Some(Axis::X) && !arbiter::claim(Owner::Panel) {
+            return;
         }
+        if arbiter::owner_is(&Owner::Panel) {
+            cx.stop_propagation();
+        }
+        let (precise, dx, dy) = wheel_parts(ev);
         let drag = self.review.swipe.panel_gate.feed(ev.touch_phase, precise, dx, dy);
         if drag == Drag::None {
             return;
         }
-        cx.stop_propagation();
         if let Some(t) = drive(&mut self.review.swipe.panel, drag, Instant::now()) {
             self.review.right_tab = if t == 0 { RightTab::Overview } else { RightTab::Conversation };
         }
@@ -144,7 +149,8 @@ impl GitViewer {
         let s = &mut self.review.swipe;
         s.page.set_snaps(vec![-w, 0., w], if can_fwd { 0 } else { HERE }, 2);
         let done = s.page.tick(now).filter(|p| *p != HERE);
-        s.page_x = if reduced_motion() { 0. } else { s.page.position() };
+        // Nothing ahead: a leftward drag shows nothing (Safari), the review stays put.
+        s.page_x = if reduced_motion() { 0. } else if can_fwd { s.page.position() } else { s.page.position().max(0.) };
         s.panel.set_snaps(vec![0., -pw], 0, 1);
         s.panel.reduced = reduced_motion();
         // Clicks, keys and other code set the tab; the strip follows through the same spring.

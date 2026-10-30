@@ -1,0 +1,30 @@
+import { useEffect, useRef, useState } from "react";
+
+/** Rows of a fixed height that are visible in the scroll container, plus overscan. */
+export function useVirtualRows(count: number, rowHeight: number, overscan = 6) {
+  const ref = useRef<HTMLUListElement>(null);
+  const [range, setRange] = useState({ start: 0, end: 40 });
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const first = Math.floor(el.scrollTop / rowHeight);
+      const visible = Math.ceil(el.clientHeight / rowHeight);
+      setRange({
+        start: Math.max(0, first - overscan),
+        end: Math.min(count, first + visible + overscan),
+      });
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    return () => el.removeEventListener("scroll", update);
+  }, [count, rowHeight, overscan]);
+
+  return {
+    ref,
+    ...range,
+    padTop: range.start * rowHeight,
+    padBottom: (count - range.end) * rowHeight,
+  };
+}

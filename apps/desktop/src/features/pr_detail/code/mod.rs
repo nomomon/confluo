@@ -79,6 +79,7 @@ impl GitViewer {
                 // Rubber band: a translate of the whole list, the list's own scroll state stays in range.
                 let rows = rows.relative().top(crate::ui::elastic::shift("diff-list"));
                 let band = c.list.clone();
+                let drawn = f32::from(c.list.scroll_px_offset_for_scrollbar().y);
                 div()
                     .flex()
                     .flex_1()
@@ -95,7 +96,7 @@ impl GitViewer {
                             .pr(theme::SPACE_0P5)
                             .overflow_hidden()
                             .on_scroll_wheel(move |ev, window, _| {
-                                if crate::ui::elastic::wheel("diff-list", crate::ui::scroll::Axis::Y, ev, &band) {
+                                if crate::ui::elastic::guard_vertical(ev, &band, drawn) && crate::ui::elastic::wheel("diff-list", crate::ui::scroll::Axis::Y, ev, &band) {
                                     window.refresh();
                                 }
                             })

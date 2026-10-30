@@ -2,6 +2,7 @@
 //!
 //! Nothing in here may import `crate::features`, `crate::state` or `gv_engine`.
 
+pub mod arbiter;
 pub mod atoms;
 pub mod elastic;
 pub mod layer;

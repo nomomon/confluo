@@ -55,7 +55,7 @@ impl GitViewer {
     fn scrollable(&self, row: Stateful<Div>, fi: usize, files: &Arc<Vec<ChangedFile>>, cx: &mut Context<Self>) -> Stateful<Div> {
         let files = files.clone();
         row.relative().on_scroll_wheel(cx.listener(move |this, ev: &ScrollWheelEvent, _, cx| {
-            use crate::ui::scroll::{claims_x, locked_axis, Axis};
+            use crate::ui::scroll::Axis;
             let delta = ev.delta.pixel_delta(layout::DIFF_LINE_H);
             let key = format!("diff-x-{fi}");
             let max_chars = files.get(fi).into_iter().flat_map(|f| &f.hunks).flat_map(|h| &h.lines).map(|l| l.text.len()).max().unwrap_or(0);
@@ -63,17 +63,13 @@ impl GitViewer {
             let Some(d) = this.detail.as_mut() else { return };
             let cur = d.code.scroll_x.get(&fi).copied().unwrap_or(px(0.));
             let extent = f32::from(d.code.list.viewport_bounds().size.width).max(200.);
-            // One axis per trackpad gesture (shared rule with markdown blocks); vertical goes to the list.
             if matches!(ev.touch_phase, gpui::TouchPhase::Started) {
                 crate::ui::elastic::feed(&key, Axis::X, ev, -f32::from(cur), max_x.into(), extent);
             }
-            if locked_axis("diff-rows", ev.touch_phase, delta.x, delta.y) == Axis::Y {
-                return;
-            }
-            // A swipe that starts where the code cannot scroll that way is left to the page (swipe navigation).
+            // Gesture ownership (`ui::arbiter`): the rows take a sideways gesture only if the code could still
+            // scroll that way when it began; otherwise it goes on to the page (swipe navigation).
             let can = if delta.x > px(0.) { cur > px(0.5) } else { delta.x < px(0.) && cur < max_x - px(0.5) };
-            let precise = matches!(ev.delta, gpui::ScrollDelta::Pixels(_));
-            if !claims_x("diff-rows", ev.touch_phase, precise, can) {
+            if !crate::ui::arbiter::block_handles_x(ev, "diff-rows", can) {
                 return;
             }
             cx.stop_propagation();

@@ -1,0 +1,23 @@
+ import { useMemo } from "react";
+-import { FeedItem } from "./FeedItem";
++import { FeedItem, ROW_HEIGHT } from "./FeedItem";
++import { useVirtualRows } from "./useVirtualRows";
+ 
+ export function ActivityFeed({ events }: { events: FeedEvent[] }) {
+   const sorted = useMemo(() => [...events].sort(byTime), [events]);
+-  return (
+-    <ul className="feed">
+-      {sorted.map((e) => (
+-        <FeedItem key={e.id} event={e} />
+-      ))}
+-    </ul>
+-  );
++  const { ref, start, end, padTop, padBottom } = useVirtualRows(sorted.length, ROW_HEIGHT);
++  return (
++    <ul className="feed" ref={ref} style={{ paddingTop: padTop, paddingBottom: padBottom }}>
++      {sorted.slice(start, end).map((e) => (
++        <FeedItem key={e.id} event={e} />
++      ))}
++    </ul>
++  );
+ }

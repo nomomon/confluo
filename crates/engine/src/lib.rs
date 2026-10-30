@@ -13,6 +13,7 @@ use std::time::{Duration, Instant};
 
 mod avatars;
 mod bot_settings;
+mod demo;
 mod edit;
 mod extras;
 mod quiet;
@@ -21,6 +22,7 @@ mod review;
 pub use avatars::small_avatar_url;
 pub use extras::viewed_paths;
 pub use bot_settings::{bot_filter_from_settings, stale_days_from_settings};
+pub use demo::demo_mode;
 pub use quiet::Listing;
 pub use gv_core::*;
 pub use gv_store::{Project, RepoOverride, Source};
@@ -103,6 +105,9 @@ fn later(a: Option<chrono::DateTime<Utc>>, b: chrono::DateTime<Utc>) -> Option<c
 /// On first use, copies `settings.json` and `cache.db` from the old `git-viewer` dir,
 /// which is left in place.
 pub fn data_dir() -> PathBuf {
+    if demo_mode() {
+        return demo::demo_dir();
+    }
     let home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()));
     let base = if cfg!(target_os = "macos") {
         home.join("Library/Application Support")
@@ -133,6 +138,9 @@ pub fn migrate_legacy_dir(old: &Path, new: &Path) {
 
 /// Default cache location: `$GV_DB` or `<data_dir>/cache.db`.
 pub fn default_db_path() -> PathBuf {
+    if demo_mode() {
+        return data_dir().join("cache.db");
+    }
     if let Ok(p) = std::env::var("GV_DB") {
         return PathBuf::from(p);
     }
@@ -165,6 +173,10 @@ impl Engine {
         if !gitlab_hosts.iter().any(|h| h == "gitlab.com") {
             gitlab_hosts.push("gitlab.com".into());
         }
+        Self::open_with(db, gitlab_hosts)
+    }
+
+    fn open_with(db: &Path, gitlab_hosts: Vec<String>) -> Result<Self> {
         Ok(Self {
             store: Store::open(db).with_context(|| format!("opening {}", db.display()))?,
             creds: CredentialSource::new(),
@@ -177,7 +189,11 @@ impl Engine {
         })
     }
 
+    /// The user's cache, or in demo mode a fresh fixture engine in a temp dir.
     pub fn open_default() -> Result<Self> {
+        if demo_mode() {
+            return Self::open_demo();
+        }
         Self::open(&default_db_path())
     }
 

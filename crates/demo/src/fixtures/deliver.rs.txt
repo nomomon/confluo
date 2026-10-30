@@ -1,0 +1,24 @@
+ use crate::webhooks::{Endpoint, Event};
++use crate::webhooks::retry::RetryPolicy;
+ use reqwest::Client;
+ 
+ pub async fn deliver(client: &Client, endpoint: &Endpoint, event: &Event) -> Result<(), DeliveryError> {
+-    let res = client.post(&endpoint.url).json(event).send().await?;
+-    if !res.status().is_success() {
+-        return Err(DeliveryError::Status(res.status().as_u16()));
++    let policy = endpoint.retry.clone().unwrap_or_default();
++    let mut attempt = 0;
++    loop {
++        attempt += 1;
++        let res = client.post(&endpoint.url).json(event).send().await?;
++        let status = res.status().as_u16();
++        if res.status().is_success() {
++            return Ok(());
++        }
++        match policy.delay(attempt) {
++            Some(wait) if RetryPolicy::retryable(status) => tokio::time::sleep(wait).await,
++            _ => return Err(DeliveryError::Status(status)),
++        }
+     }
+-    Ok(())
+ }

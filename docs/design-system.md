@@ -446,15 +446,20 @@ files with threads that need me; the review top bar shows "3 unresolved" (amber 
 
 Scrolling: panes scroll y only through `ui::scroll::y_only` (overflow y plus `restrict_scroll_to_axis`, so a sideways swipe
 never becomes vertical scrolling). Horizontal blocks (`markdown::table::hscroll`, diff rows) lock each trackpad gesture to
-its dominant axis (`ui::scroll::locked_axis`). A sideways gesture belongs to the block only if, at its first horizontal
-movement, the block could still scroll that way (`ui::scroll::claims_x`, decided once per gesture); then it keeps the x
-and stops the event, also once it reaches its edge. A swipe that starts at the block's edge bubbles to the page (swipe
-navigation, panel tabs). Vertical bubbles to the pane.
+its gesture's axis. Gesture ownership (`ui::arbiter`): one trackpad gesture (fingers down until the next fingers down,
+so its momentum too) has one axis, decided by its first movement, and at most one owner, decided by where it starts:
+the innermost handler that wants it claims it first. A block takes a sideways gesture only if it could still scroll
+that way as it began (then it keeps the x, rubber-bands at its edge and stops the event); a gesture starting in the
+right panel belongs to the panel pager (rubber band at the ends, never chaining into the page swipe); else, in Review
+mode, the page pager. Once a pager or block owns a gesture every event of it is theirs: vertical scrollers (also the
+list revealed under a swipe) put back the wobble GPUI applied (`elastic::guard_vertical`, to the offset they were drawn
+at); a vertical gesture is claimed for panes and never reaches a pager. Mouse wheels have no owner.
 
 Swipe between pages (Settings > General, on by default; a `Pager` in `state::swipe_nav`): in Review mode a
 two-finger horizontal trackpad swipe that no block claimed (see above) moves the review with the fingers (1:1, rubber band
-where there is nothing to go to, and past a full page) over the list view, which sits dimmed at a -30% parallax offset;
-swiping left goes forward when history has a PR ahead (it comes in from the right). Release projects the position with the
+where there is nothing to go to, and past a full page) over the list view, which sits dimmed at a -30% parallax offset (every layer keeps the full window size and only
+translates, over an opaque floor);
+swiping left goes forward when history has a PR ahead (it comes in from the right); with none ahead the review stays put. Release projects the position with the
 release velocity and completes when that lands past a third of the width (`Pager::commit` 0.33), so a slow drag past a
 third or a short flick completes, else it springs back (the spring starts at the fingers' velocity); then it walks history like
 Cmd+[ / Cmd+]. Mouse wheels, momentum and vertical gestures never start it; the slim preview has none. In the right

@@ -19,7 +19,9 @@ impl GitViewer {
         let t = (x.abs() / w).min(1.);
         let bg = Hsla { a: 1., ..self.surfaces().window_bg() };
         let dim = |a: f32| div().absolute().top_0().left_0().size_full().bg(Hsla::black().opacity(a));
-        let page = |el: AnyElement| div().absolute().top_0().size_full().bg(bg).child(el);
+        // Every layer keeps the full window size and only translates; an opaque floor sits under all of them.
+        let page = |el: AnyElement| div().absolute().top_0().w(px(w)).h_full().bg(bg).child(el);
+        let floor = || div().absolute().top_0().left_0().size_full().bg(bg);
         let edge = |left: bool| {
             // A soft shadow on the moving page's leading edge.
             let g = gpui::linear_gradient(if left { 270. } else { 90. }, gpui::linear_color_stop(Hsla::black().opacity(0.), 0.), gpui::linear_color_stop(Hsla::black().opacity(0.14), 1.));
@@ -37,6 +39,7 @@ impl GitViewer {
                 .left_0()
                 .size_full()
                 .overflow_hidden()
+                .child(floor())
                 .child(page(list.into_any_element()).left(px(-PARALLAX * (w - x))))
                 .child(dim(DIM * (1. - t)))
                 .child(edge(true).left(px(x - 10.)))
@@ -61,6 +64,7 @@ impl GitViewer {
                 .left_0()
                 .size_full()
                 .overflow_hidden()
+                .child(floor())
                 .child(page(review).left(px(x * PARALLAX)))
                 .child(dim(DIM * t))
                 .child(edge(false).left(px(w + x)))

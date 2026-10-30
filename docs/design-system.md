@@ -274,7 +274,7 @@ Molecules:
 - `code::{CodeText, DiffRow, Lang}`: mono line with a line-based tokenizer; `DiffRow` adds gutters and tints
 - `markdown::Markdown`: `Markdown::new(id, src).images(loaded)`: rhythm, h1-h6, nested lists, task checkboxes,
   code fences with syntax colors and copy, alerts as tinted callouts, tables (header, borders, alignment,
-  horizontal scroll), collapsible `<details>`, hover-underlined links, autolinks, footnotes; remote images
+  horizontal scroll: `table::hscroll` is a flex row so its child keeps max-content width, with a thin thumb when it overflows), collapsible `<details>`, hover-underlined links, autolinks, footnotes; remote images
   come from the avatar cache (`markdown::image_urls` lists them), else alt text
 - `TextInput`: `.multiline()`: Enter inserts a newline, Cmd+Enter submits; `.tabs()` makes Tab insert two spaces.
   macOS editing: arrows (Up/Down keep the goal column across wrapped rows), Option word moves, Cmd line and document

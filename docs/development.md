@@ -13,6 +13,8 @@ Dev-only env (screenshots and walkthroughs; see `apps/desktop/src/dev.rs`):
 - `CONFLUO_SETTINGS=<page>` opens Settings on a page; `CONFLUO_OVERLAY=add-project|rename|delete|menu|palette|shortcuts|review|older` (`CONFLUO_PALETTE_QUERY=<text>` prefills the palette, e.g. `#5` or `>`; shortcuts opens the `?` cheat sheet) (review opens the Review menu of the open PR, older shows the stale section); also `more|merge|close|people|checks` (More menu, merge dialog, close confirm, reviewer picker, first failed check expanded), and `checks-popover|quick-open|repo-menu|repo-rename`
 - `CONFLUO_VIEW=starred|bots|project:<name>` picks the list view; `CONFLUO_SCROLL=<px>` scrolls the detail pane
 - `CONFLUO_THEME=light|dark|system`, `CONFLUO_MATERIAL=blurred|transparent|opaque` override appearance for the launch
+- `CONFLUO_DEV_MARKDOWN=<file>` renders that markdown file as the open PR's description and every comment body (wide tables);
+  `CONFLUO_DEBUG_LAYOUT=1` logs each horizontal scroll box (`box_w`, `max_scroll_x`, `offset_x`) to stderr
 - `CONFLUO_HINTS=1` keeps the hold-Cmd shortcut hints visible
 - `CONFLUO_WINDOW=1100x760` window size; `CONFLUO_REDUCE_MOTION=1`; `CONFLUO_NO_REFRESH=1` stays on cached data (no network)
 

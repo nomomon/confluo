@@ -49,14 +49,9 @@ impl RenderOnce for CodeBlock {
                 });
             },
         );
-        let lines = div()
-            .id(ElementId::Name(format!("{}-scroll", self.id).into()))
-            .overflow_x_scroll()
-            .p(theme::SPACE_3)
-            .flex()
-            .flex_col()
-            .text_size(theme::text_xs())
-            .children(self.code.lines().map(|l| CodeText::new(l.to_string(), lang)));
+        let lines = super::table::hscroll(ElementId::Name(format!("{}-scroll", self.id).into())).p(theme::SPACE_3).text_size(theme::text_xs()).child(
+            div().flex().flex_col().flex_none().children(self.code.lines().map(|l| div().flex_none().whitespace_nowrap().child(CodeText::new(l.to_string(), lang)))),
+        );
         div()
             .group(group.clone())
             .relative()

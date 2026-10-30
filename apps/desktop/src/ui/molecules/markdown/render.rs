@@ -43,7 +43,7 @@ fn gap_before(b: &Block, tight: bool) -> Pixels {
 }
 
 fn stack(ctx: &Ctx, blocks: &[Block], depth: usize, tight: bool) -> Vec<AnyElement> {
-    blocks.iter().enumerate().map(|(i, b)| div().when(i > 0, |d| d.mt(gap_before(b, tight))).child(block(ctx, b, depth)).into_any_element()).collect()
+    blocks.iter().enumerate().map(|(i, b)| div().min_w(theme::SPACE_0).when(i > 0, |d| d.mt(gap_before(b, tight))).child(block(ctx, b, depth)).into_any_element()).collect()
 }
 
 fn text(ctx: &Ctx, t: &Inline) -> MdText {

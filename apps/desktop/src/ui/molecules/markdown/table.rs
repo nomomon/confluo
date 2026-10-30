@@ -1,13 +1,21 @@
 //! Markdown tables: header row, cell borders, column alignment and horizontal scroll.
 //! Column widths come from the longest cell so rows line up and wide tables scroll.
 
-use gpui::{div, prelude::*, px, AnyElement, ElementId, Pixels};
+use gpui::{div, prelude::*, px, AnyElement, Div, ElementId, Pixels, Stateful};
 
 use super::blocks::Align;
 use super::inline::Inline;
 use super::render::Ctx;
 use super::text::MdText;
 use crate::ui::theme;
+
+/// Horizontal scroll container that never grows past its parent: trackpad swipes and Shift+wheel scroll
+/// it sideways, plain vertical wheel passes through to the page.
+pub fn hscroll(id: ElementId) -> Stateful<Div> {
+    let mut d = div().id(id).w_full().min_w(theme::SPACE_0).overflow_x_scroll();
+    d.style().restrict_scroll_to_axis = Some(true);
+    d
+}
 
 const COL_MIN: f32 = 56.;
 const COL_MAX: f32 = 360.;
@@ -60,5 +68,5 @@ pub fn table(ctx: &Ctx, aligns: &[Align], head: &[Inline], rows: &[Vec<Inline>])
         .overflow_hidden()
         .child(row(head, true, n == 0))
         .children(rows.iter().enumerate().map(|(i, r)| row(r, false, i + 1 == n)));
-    div().id(ElementId::Name(ctx.id())).overflow_x_scroll().text_size(theme::text_xs()).child(grid).into_any_element()
+    hscroll(ElementId::Name(ctx.id())).text_size(theme::text_xs()).child(grid).into_any_element()
 }

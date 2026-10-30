@@ -11,6 +11,13 @@ use crate::ui::motion::physics::{
 };
 use crate::ui::scroll::{gesture_axis, Axis};
 
+/// Largest spring start velocity: a critically damped spring from rest peaks at `v / (w e)`, so this keeps
+/// any overshoot within 8% of the extent.
+fn overshoot_cap(extent: f32) -> f32 {
+    let w = (SNAPPY.stiffness / SNAPPY.mass).sqrt();
+    extent * 0.08 * w * std::f32::consts::E
+}
+
 /// Where to hold the scroller after an event the stretch took (the content must not move).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Pin {
@@ -64,6 +71,7 @@ impl ElasticScroll {
                 self.fingers = true;
                 self.handed_off = false;
                 self.momentum.reset();
+                self.momentum_pos = 0.;
                 // Grab a band that is still springing back, without a jump.
                 if let Some((s, _)) = self.spring.take() {
                     self.shown = s.x;
@@ -76,12 +84,21 @@ impl ElasticScroll {
                 self.raw = 0.;
                 let moving = self.shown != 0.;
                 if moving {
-                    self.spring = Some((Spring::new(SNAPPY, self.shown, 0.), now));
+                    // Released while stretched: the release velocity goes to the spring once, and the rest
+                    // of this gesture's momentum is swallowed (it would otherwise stretch a second time).
+                    let t = now.saturating_duration_since(epoch).as_secs_f32();
+                    let v = (self.momentum.velocity(t) * BAND)
+                        .clamp(-overshoot_cap(extent), overshoot_cap(extent));
+                    self.spring = Some((Spring::new(SNAPPY, self.shown, v), now));
+                    self.handed_off = true;
                 }
                 (moving, None)
             }
             TouchPhase::Moved if a != axis || d == 0. => (false, None),
             TouchPhase::Moved if self.fingers => {
+                self.momentum_pos += d;
+                let t = now.saturating_duration_since(epoch).as_secs_f32();
+                self.momentum.push(t, self.momentum_pos);
                 if self.raw != 0. {
                     let next = self.raw + d;
                     if next.signum() != self.raw.signum() {
@@ -116,8 +133,7 @@ impl ElasticScroll {
                     .momentum
                     .velocity(now.saturating_duration_since(epoch).as_secs_f32());
                 // Cap the overshoot near 8% of the extent: a critically damped spring peaks at v / (w e).
-                let w = (SNAPPY.stiffness / SNAPPY.mass).sqrt();
-                let cap = extent * 0.08 * w * std::f32::consts::E;
+                let cap = overshoot_cap(extent);
                 let v = if v * d > 0. {
                     v.clamp(-cap, cap)
                 } else {
@@ -326,5 +342,182 @@ mod tests {
             low = low.min(s.shown(t0 + Duration::from_millis(40 + i * 8)).0);
         }
         assert!(low < 0. && low > -40.);
+    }
+
+    /// Count excursions: separate runs of frames with a nonzero stretch.
+    fn excursions(
+        s: &mut ElasticScroll,
+        t0: Instant,
+        from_ms: u64,
+        frames: u64,
+        peak: &mut f32,
+    ) -> usize {
+        let (mut n, mut was) = (0, s.shown != 0.);
+        for i in 1..=frames {
+            let (x, _) = s.shown(t0 + Duration::from_millis(from_ms + i * 8));
+            *peak = peak.max(x.abs());
+            if x != 0. && !was {
+                n += 1;
+            }
+            was = x != 0.;
+        }
+        n
+    }
+
+    #[test]
+    fn release_past_edge_then_momentum_stretches_once() {
+        let mut s = ElasticScroll::default();
+        let t0 = Instant::now();
+        let at = |ms: u64| t0 + Duration::from_millis(ms);
+        s.feed(
+            Axis::Y,
+            Started,
+            true,
+            false,
+            0.,
+            0.,
+            true,
+            false,
+            400.,
+            at(0),
+        );
+        for i in 1..=10 {
+            s.feed(
+                Axis::Y,
+                Moved,
+                true,
+                false,
+                0.,
+                12.,
+                true,
+                false,
+                400.,
+                at(i * 8),
+            );
+        }
+        assert!(s.shown > 0.);
+        s.feed(
+            Axis::Y,
+            Ended,
+            true,
+            false,
+            0.,
+            0.,
+            true,
+            false,
+            400.,
+            at(88),
+        );
+        // 20 momentum events pushing past the same edge, interleaved with frames: swallowed.
+        let mut peak: f32 = 0.;
+        let mut second = 0;
+        for i in 1..=20u64 {
+            let (changed, pin) = s.feed(
+                Axis::Y,
+                Moved,
+                true,
+                false,
+                0.,
+                10. - i as f32 * 0.4,
+                true,
+                false,
+                400.,
+                at(88 + i * 16),
+            );
+            assert!(!changed && pin.is_none());
+            let (x, _) = s.shown(at(88 + i * 16 + 1));
+            peak = peak.max(x);
+            if i > 1 && x == 0. && s.shown(at(88 + i * 16 + 2)).0 != 0. {
+                second += 1;
+            }
+        }
+        // It settles once and never stretches again.
+        assert_eq!(excursions(&mut s, t0, 88 + 20 * 16, 100, &mut peak), 0);
+        assert_eq!(second, 0);
+        assert_eq!(s.shown, 0.);
+        assert!(peak < 400. * 0.2);
+    }
+
+    #[test]
+    fn momentum_into_edge_overshoots_once_bounded() {
+        let mut s = ElasticScroll::default();
+        let t0 = Instant::now();
+        let at = |ms: u64| t0 + Duration::from_millis(ms);
+        s.feed(
+            Axis::Y,
+            Started,
+            true,
+            false,
+            0.,
+            0.,
+            false,
+            false,
+            400.,
+            at(0),
+        );
+        s.feed(
+            Axis::Y,
+            Moved,
+            true,
+            false,
+            0.,
+            -30.,
+            false,
+            false,
+            400.,
+            at(8),
+        );
+        s.feed(
+            Axis::Y,
+            Ended,
+            true,
+            false,
+            0.,
+            0.,
+            false,
+            false,
+            400.,
+            at(16),
+        );
+        // In-bounds momentum, then it reaches the end and keeps pushing.
+        for i in 0..6 {
+            s.feed(
+                Axis::Y,
+                Moved,
+                true,
+                false,
+                0.,
+                -25.,
+                false,
+                false,
+                400.,
+                at(24 + i * 8),
+            );
+        }
+        let mut kicks = 0;
+        let mut peak: f32 = 0.;
+        for i in 0..20u64 {
+            if s.feed(
+                Axis::Y,
+                Moved,
+                true,
+                false,
+                0.,
+                -20. + i as f32,
+                false,
+                true,
+                400.,
+                at(72 + i * 16),
+            )
+            .0
+            {
+                kicks += 1;
+            }
+            peak = peak.max(s.shown(at(72 + i * 16 + 1)).0.abs());
+        }
+        excursions(&mut s, t0, 72 + 20 * 16, 120, &mut peak);
+        assert_eq!(kicks, 1);
+        assert!(peak > 0. && peak <= 400. * 0.08 + 0.5, "{peak}");
+        assert_eq!(s.shown, 0.);
     }
 }

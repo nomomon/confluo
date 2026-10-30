@@ -33,6 +33,8 @@ pub struct CodeState {
     pub sel: Option<DiffSel>,
     /// A mouse drag is extending `sel`.
     pub dragging: bool,
+    /// The drag started on the gutter "+": releasing it opens the composer on the range.
+    pub plus_drag: bool,
     /// The selection last moved by keyboard; its toolbar appears without animation.
     pub sel_kbd: bool,
     /// Dev only (`CONFLUO_SELECT`): lines to select once files load.
@@ -58,6 +60,7 @@ impl CodeState {
             inline: InlineState::default(),
             sel: None,
             dragging: false,
+            plus_drag: false,
             sel_kbd: false,
             pending_select: None,
             split: false,

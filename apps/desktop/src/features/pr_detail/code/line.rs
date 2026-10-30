@@ -1,10 +1,11 @@
-//! One diff line: horizontal scroll, the hover "+" comment button, a dot on commented lines,
+//! One diff line: horizontal scroll, the hover "+" comment button (click, or drag across lines and release
+//! to comment on the range), a dot on commented lines,
 //! mouse line selection (click, Shift+click, drag) and the selection toolbar. Side by side, a row
 //! holds two cells: the old side (deletions, comments go left) and the new side (additions, right).
 
 use std::sync::Arc;
 
-use gpui::{div, prelude::*, px, AnyElement, ClickEvent, Context, MouseButton, MouseDownEvent, MouseMoveEvent, ScrollWheelEvent, Stateful, Div};
+use gpui::{div, prelude::*, px, AnyElement, Context, MouseButton, MouseDownEvent, MouseMoveEvent, ScrollWheelEvent, Stateful, Div};
 use gv_engine::{ChangedFile, LineKind};
 
 use crate::app::GitViewer;
@@ -96,11 +97,11 @@ impl GitViewer {
                 .opacity(0.)
                 .group_hover(group.clone(), |s| s.opacity(1.))
                 .cursor_pointer()
-                .tooltip(tooltip("Comment on this line"))
-                .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
+                .tooltip(tooltip("Comment (drag to select lines)"))
+                .on_mouse_down(MouseButton::Left, cx.listener(move |this, _: &MouseDownEvent, window, cx| {
                     cx.stop_propagation();
-                    this.open_line_draft(fi, hi, li, li, window, cx)
+                    window.focus(&this.focus);
+                    this.press_line_plus(fi, hi, li, cx)
                 }))
                 .child(Icon::new(IconName::Plus).size(theme::ICON_SM).color(theme::bg()))
         });
@@ -125,9 +126,9 @@ impl GitViewer {
                 window.focus(&this.focus);
                 this.press_diff_line(fi, hi, li, ev.modifiers.shift, cx)
             }))
-            .on_mouse_move(cx.listener(move |this, ev: &MouseMoveEvent, _, cx| match ev.pressed_button {
+            .on_mouse_move(cx.listener(move |this, ev: &MouseMoveEvent, window, cx| match ev.pressed_button {
                 Some(MouseButton::Left) => this.drag_diff_line(fi, hi, li, cx),
-                _ => this.end_line_drag(cx),
+                _ => this.finish_line_drag(window, cx),
             }))
             .child(row)
     }

@@ -94,7 +94,7 @@ impl GitViewer {
                                     this.drag_autoscroll(ev.position.y, cx)
                                 }
                             }))
-                            .on_mouse_up(MouseButton::Left, cx.listener(|this, _: &MouseUpEvent, _, cx| this.end_line_drag(cx)))
+                            .on_mouse_up(MouseButton::Left, cx.listener(|this, _: &MouseUpEvent, window, cx| this.finish_line_drag(window, cx)))
                             .child(rows),
                     )
                     .into_any_element()

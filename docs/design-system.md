@@ -165,7 +165,8 @@ and scrolls the list near its edges; a click on empty space or Esc clears. Keybo
 up/down move a one-line cursor across hunks and files and keep it in view, Shift+up/down extends,
 `c` or Enter opens the composer on the range, Cmd+C copies; j/k still switch PRs and n/p files.
 Selected lines get `line_selected_bg()` and a 2px `accent()` bar in the gutter (`DiffRow::selected`).
-The hover "+" comments on one line. A `FloatingToolbar` hangs under the last selected line
+The hover "+" comments on one line, or drag from it across lines and release to open the composer on the range
+(GitHub style; header "Comment on lines 12-18"). A `FloatingToolbar` hangs under the last selected line
 (Comment, Copy, Copy link, Open in browser); links are GitHub `{pr}/files#diff-{sha256(path)}R3-R7`
 in the diff, else blob permalinks at the head sha (`state::permalink`). Character-level text
 selection inside a line is not implemented. Dev: `CONFLUO_SELECT=path:start-end` preselects lines.

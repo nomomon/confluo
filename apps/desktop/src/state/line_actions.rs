@@ -59,6 +59,23 @@ impl GitViewer {
         cx.notify()
     }
 
+    /// Press on the gutter "+": select the line and comment on the dragged range on release.
+    pub(crate) fn press_line_plus(&mut self, fi: usize, hi: usize, li: usize, cx: &mut Context<Self>) {
+        self.press_diff_line(fi, hi, li, false, cx);
+        if let Some(c) = self.code_mut() {
+            c.plus_drag = true;
+        }
+    }
+
+    /// Mouse released: end the drag; a drag from the "+" opens the composer on the selection.
+    pub(crate) fn finish_line_drag(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let plus = self.code_mut().map(|c| std::mem::take(&mut c.plus_drag)).unwrap_or(false);
+        self.end_line_drag(cx);
+        if plus {
+            self.comment_on_selection(window, cx);
+        }
+    }
+
     pub(crate) fn end_line_drag(&mut self, cx: &mut Context<Self>) {
         if let Some(c) = self.code_mut().filter(|c| c.dragging) {
             c.dragging = false;
@@ -83,6 +100,7 @@ impl GitViewer {
             None => c.sel.take().is_some(),
         };
         c.dragging = false;
+        c.plus_drag = false;
         cx.notify();
         had
     }

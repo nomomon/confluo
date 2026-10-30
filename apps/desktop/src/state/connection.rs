@@ -102,11 +102,12 @@ impl GitViewer {
     /// One line for the error banner, e.g. "gitlab.com: 401, run `glab auth login`".
     pub(crate) fn summarize_errors(&self, errors: &[(String, String)]) -> Option<String> {
         let (label, err) = errors.first()?;
-        let kind = self.host_kind(label);
+        let azure = err.contains("dev.azure.com") || err.contains("for azure");
+        let kind = if azure { ProviderKind::Azure } else { self.host_kind(label) };
         let mut line = format!("{label}: {}", short_error(err));
         if kind == ProviderKind::Azure && is_auth_error(err) {
             // "dev.azure.com: sign in again with `az login`"
-            let host = label.split('/').next().unwrap_or(label);
+            let host = if label.contains('.') { label.split('/').next().unwrap_or(label) } else { "dev.azure.com" };
             line = format!("{host}: sign in again with `{}`", auth_command(kind));
         } else if is_auth_error(err) {
             line.push_str(&format!(", run `{}`", auth_command(self.host_kind(label))));

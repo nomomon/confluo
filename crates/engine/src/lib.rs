@@ -416,9 +416,23 @@ impl Engine {
                             report.paused_until = later(report.paused_until, *until);
                             self.store.project_repos(*id)?
                         }
-                        _ => return Err(e),
+                        // A group host we cannot reach (e.g. signed out): report it and go on with the rest.
+                        _ => {
+                            let label = p
+                                .sources
+                                .iter()
+                                .find_map(|s| match s {
+                                    Source::Group { host, path, .. } => Some(format!("{host}/{path}")),
+                                    _ => None,
+                                })
+                                .unwrap_or_else(|| p.name.clone());
+                            report.errors.push((label, format!("{e:#}")));
+                            self.store.project_repos(*id)?
+                        }
                     },
                 };
+                // Hosts that just failed to resolve are not asked again in this refresh.
+                let failed_hosts: Vec<String> = report.errors.iter().filter_map(|(l, _)| l.split('/').next().map(str::to_string)).collect();
                 let groups: Vec<(ProviderKind, String, String)> = p
                     .sources
                     .iter()
@@ -427,10 +441,10 @@ impl Engine {
                         _ => None,
                     })
                     .collect();
-                for (k, h, g) in &groups {
+                for (k, h, g) in groups.iter().filter(|(_, h, _)| !failed_hosts.contains(h)) {
                     plan.entry((*k, h.clone())).or_default().push(Scope::Group { kind: *k, host: h.clone(), owner: g.clone() });
                 }
-                for r in repos {
+                for r in repos.into_iter().filter(|r| !failed_hosts.contains(&r.host)) {
                     let covered = groups.iter().any(|(k, h, g)| *k == r.kind && *h == r.host && r.path.starts_with(&format!("{g}/")));
                     if !covered {
                         plan.entry((r.kind, r.host.clone())).or_default().push(Scope::Repo(r));

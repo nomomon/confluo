@@ -25,7 +25,7 @@ pub fn user(username: &str) -> User {
     User {
         username: username.into(),
         name: name.or_else(|| Some(username.into())),
-        avatar_url: None,
+        avatar_url: crate::avatars::url_for(username),
         bot,
         id: Some(username.into()),
     }

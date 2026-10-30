@@ -18,6 +18,22 @@ pub(crate) fn awards(items: &[Value], me: &str) -> Vec<ReactionGroup> {
     )
 }
 
+/// A note's `suggestions` (ids to apply), in body order.
+pub(crate) fn suggestions(note: &Value) -> Vec<SuggestionRef> {
+    note["suggestions"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|v| {
+            Some(SuggestionRef {
+                id: v["id"].as_u64()?.to_string(),
+                appliable: v["appliable"] == true,
+                applied: v["applied"] == true,
+            })
+        })
+        .collect()
+}
+
 /// `GET /merge_requests/:iid/commits` is newest first; we keep oldest first.
 pub(crate) fn commits(items: &[Value]) -> Vec<CommitInfo> {
     let mut out: Vec<CommitInfo> = items
@@ -92,6 +108,20 @@ impl GitLabProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_note_suggestions() {
+        let n = serde_json::json!({"suggestions": [
+            {"id": 7, "appliable": true, "applied": false},
+            {"id": 8, "appliable": false, "applied": true},
+            {"appliable": true}
+        ]});
+        let s = suggestions(&n);
+        assert_eq!(s.len(), 2);
+        assert_eq!((s[0].id.as_str(), s[0].appliable), ("7", true));
+        assert!(s[1].applied && !s[1].appliable);
+        assert!(suggestions(&serde_json::json!({})).is_empty());
+    }
 
     #[test]
     fn maps_award_emoji() {

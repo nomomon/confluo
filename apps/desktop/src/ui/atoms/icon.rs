@@ -42,6 +42,7 @@ icon_set! {
     ChevronRight => "chevron-right",
     ChevronUp => "chevron-up",
     CircleCheck => "circle-check",
+    CircleCheckFilled => "circle-check-filled",
     CircleDashed => "circle-dashed",
     CircleMinus => "circle-minus",
     CircleX => "circle-x",

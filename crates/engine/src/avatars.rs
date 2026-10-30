@@ -62,7 +62,7 @@ impl crate::Engine {
     pub async fn avatar(&self, url: &str) -> Option<Vec<u8>> {
         // Demo mode never touches the network (avatar URLs are derived from invented usernames).
         if crate::demo_mode() {
-            return None;
+            return gv_demo::avatar(url).map(<[u8]>::to_vec);
         }
         let d = dir();
         let name = format!("{:016x}", fnv(url));

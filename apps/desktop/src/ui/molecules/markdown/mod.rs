@@ -7,6 +7,7 @@
 //! autolinks, strikethrough and footnotes. HTML comments are dropped.
 
 mod blocks;
+mod chips;
 mod html;
 mod inline;
 mod parse;

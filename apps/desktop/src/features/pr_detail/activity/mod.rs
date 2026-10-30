@@ -5,7 +5,7 @@ mod event;
 mod thread;
 
 use chrono::{DateTime, Utc};
-use gpui::{div, prelude::*, px, ClickEvent, Context};
+use gpui::{div, prelude::*, ClickEvent, Context};
 use gv_engine::{Attention, ChangeRequestDetail, Thread, TimelineEvent};
 
 use crate::app::GitViewer;
@@ -71,14 +71,6 @@ impl GitViewer {
                 )
                 .into_any_element();
         }
-        // A hairline through the avatar centers ties the items together.
-        let rail = div()
-            .absolute()
-            .top(theme::SPACE_3)
-            .bottom(theme::SPACE_3)
-            .left(theme::SPACE_3 - px(0.5))
-            .w(px(1.))
-            .bg(theme::border_subtle());
         let attn = attention(d);
         let filter = self.review.thread_filter;
         let mut col = div()
@@ -86,8 +78,7 @@ impl GitViewer {
             .flex()
             .flex_col()
             .gap(theme::section_gap())
-            .pt(theme::SPACE_2)
-            .child(rail);
+            .pt(theme::SPACE_2);
         let items = timeline(det, &attn, filter);
         let none = items.is_empty();
         for item in items {
@@ -99,7 +90,7 @@ impl GitViewer {
         if none && filter != ThreadFilter::All {
             col = col.child(
                 div()
-                    .pl(theme::SPACE_6 + theme::SPACE_3)
+                    .pl(theme::SPACE_3)
                     .text_size(theme::text_sm())
                     .text_color(theme::text_subtle())
                     .child(if filter == ThreadFilter::NeedsMe {
@@ -112,7 +103,7 @@ impl GitViewer {
         if det.threads.is_empty() {
             col = col.child(
                 div()
-                    .pl(theme::SPACE_6 + theme::SPACE_3)
+                    .pl(theme::SPACE_3)
                     .text_size(theme::text_sm())
                     .text_color(theme::text_subtle())
                     .child("No comments yet"),

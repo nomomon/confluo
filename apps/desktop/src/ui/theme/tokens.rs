@@ -158,7 +158,40 @@ pub fn scrim() -> Hsla {
     c().scrim
 }
 
-/// Low-alpha fill of a semantic color, for pills and banners.
+/// Low-alpha fill of a semantic color, only where meaning needs it (8% light, 10% dark).
 pub fn tint_bg(c: Hsla) -> Hsla {
-    c.opacity(if is_light() { 0.12 } else { 0.14 })
+    c.opacity(if is_light() { 0.08 } else { 0.10 })
+}
+
+/// Flat container fill (comment threads): white in light, the surface overlay in dark.
+pub fn container_bg() -> Hsla {
+    if is_light() {
+        WHITE
+    } else {
+        c().surface
+    }
+}
+/// Solid disc behind every avatar, so transparent logos stay visible.
+pub fn avatar_bg() -> Hsla {
+    if is_light() {
+        WHITE
+    } else {
+        zinc::Z800
+    }
+}
+/// Hairline ring around avatars.
+pub fn avatar_ring() -> Hsla {
+    if is_light() {
+        alpha(BLACK, 0.10)
+    } else {
+        alpha(WHITE, 0.10)
+    }
+}
+/// Inline code chip fill (GitLab-like: #F0F0F2 light, white 8% dark).
+pub fn code_inline_bg() -> Hsla {
+    if is_light() {
+        alpha(BLACK, 0.055)
+    } else {
+        alpha(WHITE, 0.08)
+    }
 }

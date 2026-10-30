@@ -45,6 +45,7 @@ mod review_mode;
 mod selection;
 mod sources;
 mod split;
+mod suggestions;
 mod swipe_nav;
 pub mod timing;
 mod update;

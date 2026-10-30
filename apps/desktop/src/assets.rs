@@ -24,6 +24,7 @@ const FILES: &[(&str, &[u8])] = icons![
     "chevron-right",
     "chevron-up",
     "circle-check",
+    "circle-check-filled",
     "copy",
     "dots",
     "external-link",

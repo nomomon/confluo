@@ -128,6 +128,7 @@ impl GitViewer {
             created_at: Utc::now(),
             position: None,
             reactions: vec![],
+            suggestions: vec![],
         };
         if let Some(det) = d.detail.as_mut() {
             match &mode {
@@ -207,7 +208,7 @@ impl GitViewer {
     }
 
     /// Clear the posting flag, surface errors, then refetch the detail to replace optimistic state.
-    fn after_inline(
+    pub(super) fn after_inline(
         &mut self,
         rx: futures::channel::oneshot::Receiver<Result<(), String>>,
         what: &'static str,

@@ -103,6 +103,7 @@ mod tests {
             created_at: Utc::now(),
             position: None,
             reactions: vec![],
+            suggestions: vec![],
         }
     }
 
@@ -113,6 +114,8 @@ mod tests {
             comments,
             position: None,
             outdated,
+            resolved_by: None,
+            resolved_at: None,
         }
     }
 

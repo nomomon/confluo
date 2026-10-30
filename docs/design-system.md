@@ -88,8 +88,18 @@ Code tokens: `diff_add_bg()`, `diff_del_bg()`, `diff_hunk_bg()`, `line_selected_
 `syntax_string()`, `syntax_number()`, `syntax_type()`, `syntax_comment()` (hues in
 `palette::syntax`, one shade per theme).
 
-`tint_bg(color)` gives the 14% (12% light) fill used behind pills, badges and
-notices.
+`tint_bg(color)` gives the 10% (8% light) fill, used only where the meaning needs a fill (notices,
+selected reactions). Status is icon or text, not tinted pills: "Needs you" is amber text, "Unresolved"
+muted text, "You approved" green text; labels and roles are neutral outline pills.
+
+No colored accent bars. Never mark a card, thread or row with a colored left edge, and never pair a
+tinted fill with rounded corners to signal state; both read as generated UI. Containers are flat:
+1px `border()` hairline, `RADIUS_SM`, `container_bg()` (white in light, `surface()` in dark).
+
+`code_inline_bg()` (black 5.5% light, white 8% dark) is the inline code chip: painted behind the
+code run by `markdown::chips` with radius 4, 3px sideways padding and a small vertical inset, so
+the line height never grows. `avatar_bg()` / `avatar_ring()`: every `Avatar` sits on a solid disc
+(white / zinc 800) with a hairline ring, so transparent logos stay visible.
 
 ### Theme
 
@@ -243,7 +253,7 @@ select, slider bounds, hovered link) keep it with `window.use_keyed_state`.
 
 Atoms:
 
-- `Avatar`: `Avatar::new("ada").image(cache.get(url))`, initial while loading
+- `Avatar`: `Avatar::new("ada").image(cache.get(url))`, initial while loading; always on a solid disc with a hairline ring
 - `Badge`: `Badge::new("Draft").variant(BadgeVariant::Outline)`, or `.tint(theme::success())`
 - `Button`: `Button::new(id, "Save").variant(ButtonVariant::Primary)` (Outline, Ghost, Link, Primary, Destructive), `.icon(..)`, `.tooltip("Refresh  ⌘R")`
 - `Checkbox`: `Checkbox::new(id, done).label("Ship").on_change(|v, w, cx| ..)`
@@ -325,13 +335,21 @@ losing focus hides them, so Cmd+key never flashes them. `state::hint_hold` is th
 modifiers on the root and gives `self.hinted::<Action>(el, HintAnchor::Corner | Inline | Below)` and `hint_group(..)`, which read
 keys and `available(&CmdCtx)` from the keymap (unavailable actions show nothing). Settings > General can turn it off.
 
-Activity tab: a timeline, not cards. 24px avatar, name medium, muted relative time (exact time tooltip),
-markdown body, no per-comment border; a 1px `border_subtle()` rail through the avatar centers; replies
-indent under the parent with 20px avatars. Comment actions have one registry (`pr_detail::comment_actions`:
-label, icon, menu group, availability from ownership, thread state and provider): hovering a comment shows a floating
-toolbar at its top right (overlapping the top edge, no layout shift; hidden while another layer is open) with the three
-most recently used reactions (`reaction_mru` in settings, default thumbs up, heart, tada), add reaction (the picker),
-Reply, Resolve / Unresolve and More; More and right-click open the same menu (`comment_menu`): an emoji row, then
+Conversation: events and threads separated by spacing only (no timeline rail). Every thread, here and
+under a diff line, is `pr_detail::thread_view` (GitLab style): a flat container; in the Conversation a
+header (path in mono with copy, status text, Show in code) and two to four lines of code context from
+the cached diff (`gv_core::code_context`); comment rows split by hairlines (28px avatar, name medium,
+@handle and time muted, neutral Author / Bot pills, a filled green check and "Resolved 2h ago by Ada"
+on a resolved thread's first comment); past two replies a "Collapse replies" / "Show N replies"
+toggle; a footer with a one-line Reply field and Resolve thread / Reopen thread. Suggested changes
+(```suggestion, GitLab ```suggestion:-N+M; `gv_core::split_suggestions`) render as a "Suggested
+change" box with the original lines against the suggestion; Copy everywhere, Apply suggestion only
+when the provider gives a suggestion handle (GitLab `PUT /suggestions/:id/apply`). Comment actions have one registry (`pr_detail::comment_actions`:
+label, icon, menu group, availability from ownership, thread state and provider): hovering a comment highlights the row and shows a floating
+toolbar at the row's top right, raised over the previous row (Slack style, no layout shift, never over the author line; hidden while
+another layer is open) with the three most recently used reactions (`reaction_mru` in settings, default thumbs up,
+heart, tada), add reaction (the picker), Reply, Resolve / Unresolve and More. More lists only what the toolbar does
+not show (`CommentAction::more_menu`); right-click opens the full menu (`comment_menu`): an emoji row, then
 Reply / Quote reply, Resolve, Copy text / Copy link to comment (GitHub `#issuecomment-{id}` / `#discussion_r{id}` from the
 node id, GitLab `#note_{id}`, Azure `?discussionId=`) / Open in browser / Show in code, Edit / Delete last. Delete asks
 "Delete comment? This can't be undone.", removes at once and restores with a toast if the provider refuses; an inline
@@ -341,7 +359,7 @@ file, copy path, open in browser), diff lines (comment, copy lines, copy link, v
 is selected first), repo names (rename, hide). GitLab notes fetch their
 award emoji lazily (`state::awards`: notes on screen queue, a debounced batch of 25 through the governor, cached by note
 id and re-applied on reload); Azure has likes only. Events (opened,
-approved, changes requested, merged, closed) sit on the rail as small icon circles with plain glyphs (check, x), never a
+approved, changes requested, merged, closed) are one line led by a small icon circle with a plain glyph (check, x), never a
 circled icon inside the circle. The composer is pinned under the tab pill.
 
 Stale PRs (no update for `stale_days`, default 60) and snoozed PRs leave the sections; one quiet footer line
@@ -463,9 +481,9 @@ Repository names: right-click to rename or hide; Settings > Repositories lists t
 Thread attention (`gv_core::thread_attention`, `state::attention`): each thread is Needs me (unresolved and I am
 mentioned, or someone else spoke last on a thread of a PR I author or review, or one I wrote in), Open (unresolved,
 waiting on others), Outdated, Resolved, or Plain (not resolvable). GitHub `isResolved`, GitLab `resolvable`/`resolved`
-and Azure thread status all map to `Thread::resolved`. Unresolved threads get a 2px left bar (`warning()` for Needs me,
-`accent()` for Open) and "Needs you" / "Unresolved" pills, in the Conversation and on diff thread cards; resolved threads
-collapse to one muted line with a check (click to expand); outdated ones are muted with "Outdated". The Conversation has
+and Azure thread status all map to `Thread::resolved`. Unresolved threads say so as header text (amber "Needs you", muted "Unresolved"), never with bars or
+pills; resolved threads collapse to one muted line with a filled check (click to expand); outdated ones are muted
+with "Outdated". The Conversation has
 an All / Unresolved / Needs me toggle with counts and "Next unresolved" (`u`, Shift+U back; needs-me first, in the diff
 when the thread sits on a current line, and scrolled into view in the Conversation). The file tree shows an amber dot for
 files with threads that need me; the review top bar shows "3 unresolved" (amber when some need me), click jumps.

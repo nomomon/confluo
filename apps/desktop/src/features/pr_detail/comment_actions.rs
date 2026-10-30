@@ -48,6 +48,13 @@ pub const MENU: [&[CommentAction]; 4] = [
     &[CommentAction::Edit, CommentAction::Delete],
 ];
 
+/// Actions with their own button in the hover toolbar (besides reactions and More).
+pub const TOOLBAR: [CommentAction; 3] = [
+    CommentAction::Reply,
+    CommentAction::Resolve,
+    CommentAction::Unresolve,
+];
+
 impl CommentAction {
     pub fn label(self) -> &'static str {
         match self {
@@ -99,11 +106,20 @@ impl CommentAction {
 
     /// Available actions in menu groups (empty groups dropped).
     pub fn menu(f: &CommentFacts) -> Vec<Vec<CommentAction>> {
+        Self::menu_without(f, &[])
+    }
+
+    /// The hover toolbar's More menu: only what the toolbar does not already show (Slack rule).
+    pub fn more_menu(f: &CommentFacts) -> Vec<Vec<CommentAction>> {
+        Self::menu_without(f, &TOOLBAR)
+    }
+
+    fn menu_without(f: &CommentFacts, skip: &[CommentAction]) -> Vec<Vec<CommentAction>> {
         MENU.iter()
             .map(|g| {
                 g.iter()
                     .copied()
-                    .filter(|a| a.available(f))
+                    .filter(|a| a.available(f) && !skip.contains(a))
                     .collect::<Vec<_>>()
             })
             .filter(|g| !g.is_empty())
@@ -232,6 +248,21 @@ mod tests {
             in_conversation: true,
             ..Default::default()
         }));
+    }
+
+    #[test]
+    fn more_menu_skips_toolbar_actions() {
+        let f = CommentFacts {
+            can_reply: true,
+            resolved: Some(false),
+            mine: true,
+            ..Default::default()
+        };
+        let more: Vec<CommentAction> = CommentAction::more_menu(&f).concat();
+        assert!(TOOLBAR.iter().all(|a| !more.contains(a)));
+        assert!(more.contains(&CommentAction::QuoteReply) && more.contains(&CommentAction::Edit));
+        let full: Vec<CommentAction> = CommentAction::menu(&f).concat();
+        assert!(full.contains(&CommentAction::Reply) && full.contains(&CommentAction::Resolve));
     }
 
     #[test]

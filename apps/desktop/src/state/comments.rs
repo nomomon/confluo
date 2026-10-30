@@ -25,6 +25,7 @@ impl GitViewer {
             created_at: Utc::now(),
             position: None,
             reactions: vec![],
+            suggestions: vec![],
         };
         let reply_to = d.reply_to.take();
         let editing = d.editing.take();
@@ -137,6 +138,7 @@ mod tests {
             body: String::new(),
             created_at: Utc::now(),
             position: None,
+            suggestions: vec![],
             reactions: vec![],
         }
     }

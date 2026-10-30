@@ -55,6 +55,8 @@ pub struct InlineState {
     pub editing: Option<String>,
     /// Resolved threads the user expanded.
     pub expanded: HashSet<String>,
+    /// Threads whose replies the user collapsed ("Collapse replies").
+    pub replies_folded: HashSet<String>,
     pub posting: bool,
     /// Thread to scroll to once its row exists ("Show in code").
     pub reveal: Option<String>,

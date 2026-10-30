@@ -322,6 +322,7 @@ fn comment_for(thread_id: u64, c: &Value, pos: Option<&DiffPosition>, me: &User)
             line: Some(p.line),
         }),
         reactions: likes(c, me),
+        suggestions: vec![],
     }
 }
 
@@ -358,6 +359,8 @@ pub(crate) fn parse_threads(threads: &[Value], me: &User) -> Vec<Thread> {
                 resolved: thread_resolved(t["status"].as_str()),
                 comments,
                 position: pos,
+                resolved_by: None,
+                resolved_at: None,
                 outdated: false,
             })
         })

@@ -8,6 +8,7 @@ use gpui::{
 };
 use std::ops::Range;
 
+use super::chips::with_chips;
 use super::inline::{Inline, Style};
 use super::Images;
 use crate::ui::atoms::{Icon, IconName};
@@ -72,7 +73,8 @@ fn text_run(len: usize, s: &Style, weight: FontWeight, base: Hsla, hovered: bool
         len,
         font: f,
         color,
-        background_color: s.code.then_some(theme::surface_active()),
+        // Code chips are painted behind the text (`chips`), rounded and padded.
+        background_color: None,
         underline: hovered.then(|| UnderlineStyle {
             thickness: px(1.),
             color: Some(color),
@@ -97,9 +99,16 @@ fn text_segment(
     let mut text = String::new();
     let mut links: Vec<(Range<usize>, String)> = vec![];
     let mut tr = vec![];
+    let mut code: Vec<Range<usize>> = vec![];
     for (t, s) in runs {
         let start = text.len();
         text.push_str(t);
+        if s.code && !t.is_empty() {
+            match code.last_mut() {
+                Some(r) if r.end == start => r.end = text.len(),
+                _ => code.push(start..text.len()),
+            }
+        }
         let link_ix = s.link.as_ref().map(|l| {
             links.push((start..text.len(), l.clone()));
             links.len() - 1
@@ -112,9 +121,11 @@ fn text_segment(
             link_ix.is_some() && link_ix == hovered,
         ));
     }
+    let source = text.clone();
     let styled = StyledText::new(text).with_runs(tr);
+    let layout = styled.layout().clone();
     if links.is_empty() {
-        return div().min_w(theme::SPACE_0).child(styled).into_any_element();
+        return with_chips(styled, layout, code, source);
     }
     let (ranges, urls): (Vec<_>, Vec<_>) = links.into_iter().unzip();
     let hover_ranges = ranges.clone();
@@ -126,11 +137,15 @@ fn text_segment(
                 cx,
             )
         });
-    div()
-        .min_w(theme::SPACE_0)
-        .cursor_pointer()
-        .child(interactive)
-        .into_any_element()
+    with_chips(
+        div()
+            .min_w(theme::SPACE_0)
+            .cursor_pointer()
+            .child(interactive),
+        layout,
+        code,
+        source,
+    )
 }
 
 impl RenderOnce for MdText {

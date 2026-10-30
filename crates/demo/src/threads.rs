@@ -23,6 +23,7 @@ fn c(
             line: Some(l),
         }),
         reactions,
+        suggestions: vec![],
     }
 }
 
@@ -42,7 +43,19 @@ fn inline(id: &str, path: &str, line: u32, resolved: bool, comments: Vec<Comment
         comments,
         position: Some(DiffPosition::new(path, DiffSide::New, line)),
         outdated: false,
+        resolved_by: resolved.then(|| user("ada")),
+        resolved_at: resolved.then(|| Utc::now() - Duration::minutes(250)),
     }
+}
+
+/// A suggested change (GitHub/GitLab fence) with a provider handle so "Apply suggestion" shows.
+fn suggested(mut cm: Comment) -> Comment {
+    cm.suggestions = vec![SuggestionRef {
+        id: "901".into(),
+        appliable: true,
+        applied: false,
+    }];
+    cm
 }
 
 /// Threads of the showcase PR (webhook retries).
@@ -56,7 +69,11 @@ pub fn showcase() -> Vec<Thread> {
         inline("t2", DELIVER_PATH, 16, false, vec![
             c("t2a", "mira", 150, "`Retry-After` on a 429 should win over our own delay, otherwise we retry too early.", Some((DELIVER_PATH, 16)), vec![]),
             c("t2b", "linus-k", 120, "Good call, adding it in a follow-up commit.", Some((DELIVER_PATH, 16)), vec![r(ReactionKind::ThumbsUp, &["mira"])]),
-            c("t2c", "mira", 90, "Sounds good, I'll re-review once it lands.", Some((DELIVER_PATH, 16)), vec![]),
+            c("t2c", "linus-k", 90, "Pushed: `deliver` now reads `Retry-After` (seconds or HTTP date) and caps it at `policy.cap`.", Some((DELIVER_PATH, 16)), vec![]),
+            c("t2d", "mira", 70, "Sounds good, I'll re-review once CI is green.", Some((DELIVER_PATH, 16)), vec![]),
+        ]),
+        inline("t4", DELIVER_PATH, 7, false, vec![
+            suggested(c("t4a", "lintbot", 230, "**Clarity:** `RetryPolicy::delay` takes a `u32`. Spell out the counter's type so it never gets inferred wider.\n\n```suggestion\n    let mut attempt: u32 = 0;\n```", Some((DELIVER_PATH, 7)), vec![])),
         ]),
         inline("t3", RETRY_PATH, 16, true, vec![
             c("t3a", "ada", 280, "nit: 8 attempts with a 5 minute cap is about 20 minutes total. Worth a comment?", Some((RETRY_PATH, 16)), vec![]),

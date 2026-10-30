@@ -5,47 +5,33 @@ use gv_engine::{ReviewState, TimelineEvent, TimelineKind};
 
 use crate::app::GitViewer;
 use crate::features::shared::relative_time;
-use crate::ui::atoms::{tooltip, Badge, Icon, IconName};
+use crate::ui::atoms::{tooltip, Icon, IconName};
 use crate::ui::theme;
 
 impl GitViewer {
     pub(super) fn render_event(&self, e: &TimelineEvent) -> impl IntoElement {
-        let (icon, color, text, badge) = match &e.kind {
+        let (icon, color, text) = match &e.kind {
             TimelineKind::Opened => (
                 IconName::GitPullRequest,
                 theme::success(),
                 "opened this pull request",
-                None,
             ),
-            TimelineKind::Reviewed(ReviewState::Approved) => (
-                IconName::Check,
-                theme::success(),
-                "approved these changes",
-                Some(("Approved", theme::success())),
-            ),
-            TimelineKind::Reviewed(ReviewState::ChangesRequested) => (
-                IconName::X,
-                theme::danger(),
-                "requested changes",
-                Some(("Changes requested", theme::danger())),
-            ),
-            TimelineKind::Reviewed(_) => (
-                IconName::MessageCircle,
-                theme::text_muted(),
-                "reviewed",
-                None,
-            ),
+            TimelineKind::Reviewed(ReviewState::Approved) => {
+                (IconName::Check, theme::success(), "approved these changes")
+            }
+            TimelineKind::Reviewed(ReviewState::ChangesRequested) => {
+                (IconName::X, theme::danger(), "requested changes")
+            }
+            TimelineKind::Reviewed(_) => (IconName::MessageCircle, theme::text_muted(), "reviewed"),
             TimelineKind::Merged => (
                 IconName::GitMerge,
                 theme::merged(),
                 "merged this pull request",
-                None,
             ),
             TimelineKind::Closed => (
                 IconName::GitPullRequestClosed,
                 theme::danger(),
                 "closed this pull request",
-                None,
             ),
         };
         let who = if e.actor.username.is_empty() || e.actor.username == "unknown" {
@@ -97,7 +83,6 @@ impl GitViewer {
                         )
                     })
                     .child(text)
-                    .children(badge.map(|(l, c)| Badge::new(l).tint(c)))
                     .child(
                         div()
                             .id(id)

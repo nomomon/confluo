@@ -12,6 +12,7 @@ mod provider;
 mod reactions;
 mod review;
 mod stale;
+mod suggestion;
 
 pub use attention::{thread_attention, threads_attention, Attention};
 pub use bots::{glob, BotFilter, DEFAULT_BOT_AUTHORS, DEFAULT_BOT_BRANCHES};
@@ -25,3 +26,4 @@ pub use provider::{Provider, ProviderError, ProviderResult};
 pub use reactions::*;
 pub use review::*;
 pub use stale::*;
+pub use suggestion::*;

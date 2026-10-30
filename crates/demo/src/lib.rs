@@ -1,6 +1,7 @@
 //! In-memory fixture providers for demo mode (`CONFLUO_DEMO=1`): invented orgs, people and PRs.
 //! Nothing here touches the network; writes change the in-memory copy only.
 
+mod avatars;
 mod catalog;
 mod detail;
 mod diffs;
@@ -14,6 +15,7 @@ use gv_core::*;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+pub use avatars::avatar;
 pub use catalog::{all as change_requests, GITHUB, GITLAB};
 pub use people::ME;
 
@@ -64,6 +66,7 @@ impl DemoProvider {
             created_at: Utc::now(),
             position,
             reactions: vec![],
+            suggestions: vec![],
         }
     }
 }
@@ -168,6 +171,8 @@ impl Provider for DemoProvider {
             resolved: Some(false),
             comments: vec![c.clone()],
             position: Some(position.clone()),
+            resolved_by: None,
+            resolved_at: None,
             outdated: false,
         };
         self.with_detail(id, |d| d.threads.push(t))?;

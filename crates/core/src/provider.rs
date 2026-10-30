@@ -92,6 +92,13 @@ pub trait Provider: Send + Sync {
             self.kind()
         )))
     }
+    /// Apply a suggested change server side (a commit on the source branch); GitLab only.
+    async fn apply_suggestion(&self, _suggestion_id: &str) -> ProviderResult<()> {
+        Err(ProviderError::Unsupported(format!(
+            "applying suggestions on {}",
+            self.kind()
+        )))
+    }
     /// Start an inline review thread on a diff line (or range); returns the first comment.
     async fn add_line_comment(
         &self,

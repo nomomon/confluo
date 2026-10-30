@@ -972,6 +972,15 @@ impl Engine {
             .await?)
     }
 
+    /// Apply a provider suggestion (GitLab `PUT /suggestions/:id/apply`).
+    pub async fn apply_suggestion(&self, id: &ChangeRequestId, suggestion_id: &str) -> Result<()> {
+        Ok(self
+            .provider(id.repo.kind, &id.repo.host)
+            .await?
+            .apply_suggestion(suggestion_id)
+            .await?)
+    }
+
     /// Inline threads of the cached detail placed on the cached diff (per path, side and line).
     pub fn inline_index(&self, id: &ChangeRequestId) -> InlineIndex {
         match (

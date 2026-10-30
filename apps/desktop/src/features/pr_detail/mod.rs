@@ -9,6 +9,7 @@ mod code;
 mod comment;
 mod comment_actions;
 mod comment_menu;
+mod comment_toolbar;
 mod description;
 mod edit_dialogs;
 mod edit_menu;
@@ -19,6 +20,7 @@ mod quick_open;
 mod reactions;
 mod review;
 mod right_panel;
+mod thread_view;
 
 pub(crate) use checkout::checkout_command;
 

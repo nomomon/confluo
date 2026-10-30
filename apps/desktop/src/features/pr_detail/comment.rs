@@ -1,17 +1,19 @@
-//! One comment in the timeline style shared by the Conversation and Code tab threads: avatar, name and
-//! relative time (exact time on hover), markdown body, reaction chips. Hovering shows a floating toolbar at
-//! the top right (Slack style, no layout shift): the three most recent reactions, add reaction, Reply,
-//! Resolve and More; right-click opens the same menu at the pointer. Actions come from `comment_actions`.
+//! One comment row of a thread (GitLab layout): avatar, name, @handle, relative time (exact on hover),
+//! neutral role pills (Author, Bot), the resolved check, markdown body with suggestions, reaction chips.
+//! Hovering highlights the row and shows a floating toolbar at its top right, raised over the previous row (Slack style,
+//! no layout shift): recent reactions, add reaction, Reply, Resolve and More (only what the toolbar
+//! lacks); right-click opens the full menu at the pointer. Actions come from `comment_actions`.
 
-use gpui::{div, prelude::*, ClickEvent, Context, Div, MouseButton, MouseDownEvent, SharedString};
-use gv_engine::{Comment, ProviderKind, ReactionKind};
+use gpui::{div, prelude::*, Context, Div, MouseButton, MouseDownEvent, SharedString};
+use gv_engine::{Comment, DiffPosition, ProviderKind};
 
-use super::comment_actions::{comment_link, CommentAction, CommentFacts};
-use super::comment_menu::{CommentTarget, EMOJI_FONT};
+use super::comment_actions::{comment_link, CommentFacts};
+use super::comment_menu::CommentTarget;
+use super::thread_view::display_name;
 use crate::app::{GitViewer, Layer};
 use crate::features::shared::relative_time;
 use crate::state::DetailState;
-use crate::ui::atoms::{tooltip, Avatar, Button, ButtonVariant, IconName};
+use crate::ui::atoms::{tooltip, Avatar, Badge, BadgeVariant, Icon, IconName};
 use crate::ui::theme;
 
 /// Where the comment is shown; decides where Reply and Edit type.
@@ -30,34 +32,23 @@ pub(super) struct CommentCtx {
     pub thread: Option<String>,
     /// Thread resolve state, when the thread can be resolved (first comment only).
     pub resolved: Option<bool>,
-    /// Nested reply: smaller avatar.
-    pub reply: bool,
     /// The thread sits on a diff line.
     pub inline: bool,
+    /// The thread's anchor (suggestions read the original lines there).
+    pub pos: Option<DiffPosition>,
+    /// "Resolved 2h ago by Ada" under the first comment of a resolved thread.
+    pub resolved_line: Option<String>,
 }
 
-fn display_name(c: &Comment) -> String {
-    c.author
-        .name
-        .clone()
-        .filter(|n| !n.is_empty())
-        .unwrap_or_else(|| c.author.username.clone())
-}
-
-/// Toolbar emoji: the three most recent reactions the provider supports.
-fn toolbar_reactions(mru: &[ReactionKind], kind: ProviderKind) -> Vec<ReactionKind> {
-    let ok = ReactionKind::for_provider(kind);
-    let mut out: Vec<ReactionKind> = mru.iter().copied().filter(|k| ok.contains(k)).collect();
-    for k in [
-        ReactionKind::ThumbsUp,
-        ReactionKind::Heart,
-        ReactionKind::Hooray,
-    ] {
-        if ok.contains(&k) && !out.contains(&k) {
-            out.push(k);
-        }
+/// Neutral role pills: Author (wrote the PR) and Bot.
+pub(super) fn roles(c: &Comment, pr_author: &str) -> Vec<&'static str> {
+    let mut out = vec![];
+    if c.author.username.eq_ignore_ascii_case(pr_author) {
+        out.push("Author");
     }
-    out.truncate(3);
+    if c.author.bot {
+        out.push("Bot");
+    }
     out
 }
 
@@ -85,11 +76,6 @@ impl GitViewer {
             .with_timezone(&chrono::Local)
             .format("%b %-d, %Y %H:%M")
             .to_string();
-        let size = if ctx.reply {
-            theme::SPACE_5
-        } else {
-            theme::SPACE_6
-        };
         let kind = d.summary.id.repo.kind;
         // GitLab notes: award emoji arrive lazily for notes on screen; reacting waits until they are known.
         d.want_awards(&c.id);
@@ -113,25 +99,53 @@ impl GitViewer {
             facts,
             can_react,
         };
+        let name = display_name(c);
+        let handle = (name != c.author.username).then(|| format!("@{}", c.author.username));
         let head = div()
             .flex()
+            .flex_wrap()
             .items_center()
-            .gap(theme::SPACE_2)
-            .min_h(theme::SPACE_6)
+            .gap_x(theme::SPACE_1P5)
+            .min_h(theme::SPACE_7)
             .text_size(theme::text_sm())
             .child(
                 div()
                     .font_weight(theme::WEIGHT_MEDIUM)
                     .text_color(theme::text())
-                    .child(display_name(c)),
+                    .child(name),
             )
+            .children(handle.map(|h| div().text_color(theme::text_subtle()).child(h)))
             .child(
                 div()
                     .id(SharedString::from(format!("when-{}", c.id)))
                     .text_color(theme::text_subtle())
                     .tooltip(tooltip(exact))
                     .child(when),
-            );
+            )
+            .children(
+                roles(c, &d.summary.author.username)
+                    .into_iter()
+                    .map(|r| Badge::new(r).variant(BadgeVariant::Outline)),
+            )
+            .when(ctx.resolved == Some(true), |e| {
+                e.child(
+                    div()
+                        .id(SharedString::from(format!("resolved-mark-{}", c.id)))
+                        .tooltip(tooltip("Thread resolved"))
+                        .child(
+                            Icon::new(IconName::CircleCheckFilled)
+                                .size(theme::ICON_LG)
+                                .color(theme::success()),
+                        ),
+                )
+            });
+        let resolved_line = ctx.resolved_line.clone().map(|l| {
+            div()
+                .text_size(theme::text_xs())
+                .text_color(theme::text_subtle())
+                .child(l)
+        });
+        let body = self.comment_body(c, ctx.pos.as_ref(), d, cx);
         let reactions = self.reactions_bar(Some(&c.id), &c.reactions, group.clone(), can_react, cx);
         let rt = t.id.clone();
         div()
@@ -139,6 +153,10 @@ impl GitViewer {
             .relative()
             .flex()
             .gap(theme::SPACE_3)
+            .px(theme::SPACE_3)
+            .py(theme::SPACE_2P5)
+            .rounded(theme::RADIUS_SM)
+            .hover(|s| s.bg(theme::surface_hover()))
             .when(!pending, |e| {
                 e.on_mouse_down(
                     MouseButton::Right,
@@ -151,7 +169,7 @@ impl GitViewer {
             })
             .child(
                 Avatar::new(c.author.username.clone())
-                    .size(size)
+                    .size(theme::SPACE_7)
                     .image(self.avatar(c.author.avatar_url.as_deref())),
             )
             .child(
@@ -162,7 +180,8 @@ impl GitViewer {
                     .min_w(theme::SPACE_0)
                     .gap(theme::SPACE_1)
                     .child(head)
-                    .child(self.markdown(format!("c-{}", c.id), &c.body))
+                    .children(resolved_line)
+                    .child(body)
                     .children(reactions),
             )
             .children(
@@ -171,104 +190,6 @@ impl GitViewer {
                     .flatten(),
             )
     }
-
-    /// Floating toolbar at the top right, shown on hover (and while its own menu or picker is open);
-    /// hidden while any other layer is open.
-    fn comment_toolbar(
-        &self,
-        t: &CommentTarget,
-        group: SharedString,
-        cx: &mut Context<Self>,
-    ) -> Option<gpui::AnyElement> {
-        let mine_open = matches!(&self.layer, Some(Layer::CommentMenu(id)) | Some(Layer::Reactions(id)) if *id == t.id)
-            || crate::dev::hover_comment().is_some_and(|h| h == t.id);
-        if self.layer_open() && !mine_open {
-            // A right-click menu of this comment still renders (at the pointer).
-            return self.comment_menu(t, cx);
-        }
-        let act = |id: String, icon: IconName, tip: &'static str| {
-            Button::new(id, "")
-                .icon(icon)
-                .variant(ButtonVariant::Ghost)
-                .tooltip(tip)
-        };
-        let kind = self
-            .detail
-            .as_ref()
-            .map(|d| d.summary.id.repo.kind)
-            .unwrap_or(ProviderKind::GitHub);
-        let mut bar = div()
-            .flex()
-            .items_center()
-            .gap(theme::SPACE_0P5)
-            .p(theme::SPACE_0P5)
-            .rounded(theme::RADIUS_MD)
-            .border_1()
-            .border_color(theme::border())
-            .bg(theme::overlay())
-            .shadow_md();
-        if t.can_react {
-            for k in toolbar_reactions(&self.settings.reaction_mru, kind) {
-                let id = t.id.clone();
-                bar = bar.child(
-                    div()
-                        .id(SharedString::from(format!("tb-rx-{}-{k:?}", t.id)))
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .size(theme::control_h())
-                        .rounded(theme::RADIUS_SM)
-                        .cursor_pointer()
-                        .hover(|s| s.bg(theme::surface_hover()))
-                        .font_family(EMOJI_FONT)
-                        .text_size(theme::text_sm())
-                        .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
-                            this.toggle_reaction(Some(id.clone()), k, cx)
-                        }))
-                        .child(k.emoji()),
-                );
-            }
-            bar = bar.child(self.add_reaction_button(&t.id, cx));
-        }
-        for a in [
-            CommentAction::Reply,
-            CommentAction::Resolve,
-            CommentAction::Unresolve,
-        ] {
-            if a.available(&t.facts) {
-                let t2 = t.clone();
-                bar = bar.child(
-                    act(format!("tb-{a:?}-{}", t.id), a.icon(), a.label()).on_click(cx.listener(
-                        move |this, _: &ClickEvent, window, cx| {
-                            this.run_comment_action(a, &t2, window, cx)
-                        },
-                    )),
-                );
-            }
-        }
-        let toggle = t.id.clone();
-        let more = act(format!("tb-more-{}", t.id), IconName::Ellipsis, "More").on_click(
-            cx.listener(move |this, _: &ClickEvent, _, cx| {
-                this.toggle_layer(Layer::CommentMenu(toggle.clone()), cx)
-            }),
-        );
-        bar = bar.child(
-            div()
-                .relative()
-                .child(more)
-                .children(self.comment_menu(t, cx)),
-        );
-        Some(
-            div()
-                .absolute()
-                .top(-theme::SPACE_4)
-                .right_0()
-                .opacity(if mine_open { 1. } else { 0. })
-                .group_hover(group, |s| s.opacity(1.))
-                .child(bar)
-                .into_any_element(),
-        )
-    }
 }
 
 #[cfg(test)]
@@ -276,28 +197,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn toolbar_shows_three_recent_supported_reactions() {
-        let mru = [ReactionKind::Rocket, ReactionKind::Eyes];
-        assert_eq!(
-            toolbar_reactions(&mru, ProviderKind::GitHub),
-            vec![
-                ReactionKind::Rocket,
-                ReactionKind::Eyes,
-                ReactionKind::ThumbsUp
-            ]
-        );
-        assert_eq!(
-            toolbar_reactions(&[], ProviderKind::GitHub),
-            vec![
-                ReactionKind::ThumbsUp,
-                ReactionKind::Heart,
-                ReactionKind::Hooray
-            ]
-        );
-        // Azure comments only have a like.
-        assert_eq!(
-            toolbar_reactions(&mru, ProviderKind::Azure),
-            vec![ReactionKind::ThumbsUp]
-        );
+    fn roles_are_author_and_bot() {
+        let mut c = Comment {
+            id: "1".into(),
+            author: gv_engine::User {
+                username: "Ada".into(),
+                name: None,
+                avatar_url: None,
+                bot: true,
+                id: None,
+            },
+            body: String::new(),
+            created_at: chrono::Utc::now(),
+            position: None,
+            reactions: vec![],
+            suggestions: vec![],
+        };
+        assert_eq!(roles(&c, "ada"), vec!["Author", "Bot"]);
+        c.author.bot = false;
+        assert!(roles(&c, "grace").is_empty());
     }
 }

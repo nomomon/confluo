@@ -382,6 +382,7 @@ fn comment(v: &Value) -> Comment {
                 .map(|l| l as u32),
         }),
         reactions: extras::reactions(v),
+        suggestions: vec![],
     }
 }
 
@@ -402,6 +403,7 @@ fn rest_comment(v: &Value) -> Comment {
             path: p.into(),
             line: v["line"].as_u64().map(|l| l as u32),
         }),
+        suggestions: vec![],
         reactions: vec![],
     }
 }

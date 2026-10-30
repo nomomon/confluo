@@ -80,6 +80,7 @@ fn note_to_comment(n: &Value) -> Comment {
                     .map(|l| l as u32),
             }),
         reactions: vec![],
+        suggestions: extras::suggestions(n),
     }
 }
 
@@ -595,7 +596,12 @@ impl Provider for GitLabProvider {
                     return None;
                 }
                 let resolvable = notes.iter().any(|n| n["resolvable"] == true);
+                let resolver = notes.iter().rev().find(|n| n["resolved_by"].is_object());
                 Some(Thread {
+                    resolved_by: resolver.map(|n| user(&n["resolved_by"])),
+                    resolved_at: resolver
+                        .filter(|n| n["resolved_at"].is_string())
+                        .map(|n| time(&n["resolved_at"])),
                     id: s(&d["id"]),
                     resolved: resolvable.then(|| {
                         notes
@@ -731,6 +737,12 @@ impl Provider for GitLabProvider {
             "{}/discussions/{thread_id}?resolved={resolved}",
             Self::mr_path(id)
         );
+        self.call(reqwest::Method::PUT, &path, None).await?;
+        Ok(())
+    }
+
+    async fn apply_suggestion(&self, suggestion_id: &str) -> ProviderResult<()> {
+        let path = format!("/suggestions/{}/apply", enc(suggestion_id));
         self.call(reqwest::Method::PUT, &path, None).await?;
         Ok(())
     }

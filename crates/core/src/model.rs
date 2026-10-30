@@ -252,6 +252,17 @@ pub struct Comment {
     pub position: Option<InlinePosition>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reactions: Vec<crate::ReactionGroup>,
+    /// Provider handles of the suggestion blocks in `body`, in order (GitLab only).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub suggestions: Vec<SuggestionRef>,
+}
+
+/// A suggestion the provider can apply server side.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SuggestionRef {
+    pub id: String,
+    pub appliable: bool,
+    pub applied: bool,
 }
 
 /// Which side of a diff a line belongs to: the base (old) or the head (new) file.
@@ -313,6 +324,11 @@ pub struct Thread {
     /// The anchored line is no longer part of the current diff.
     #[serde(default)]
     pub outdated: bool,
+    /// Who resolved the thread and when, when the provider says.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_by: Option<User>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_at: Option<DateTime<Utc>>,
 }
 
 impl Thread {
@@ -323,6 +339,8 @@ impl Thread {
             comments,
             position: None,
             outdated: false,
+            resolved_by: None,
+            resolved_at: None,
         }
     }
 }

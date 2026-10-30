@@ -1,6 +1,6 @@
 //! Running comment actions and the menu built from the registry (`comment_actions`): reactions as a row of
 //! emoji buttons on top, then Reply / Quote reply, Resolve, copy and links, Show in code, Edit / Delete last.
-//! The same items open from the hover toolbar's More button (anchored) and from a right-click (at the pointer).
+//! Right-click shows everything at the pointer; the hover toolbar's More shows only what the toolbar lacks.
 
 use gpui::{
     div, prelude::*, AnyElement, ClickEvent, Context, Focusable, MouseDownEvent, SharedString,
@@ -100,10 +100,16 @@ impl GitViewer {
         cx.notify();
     }
 
-    /// Menu rows for `t`: emoji row, then the available actions in their groups.
-    fn comment_menu_items(&self, t: &CommentTarget, cx: &mut Context<Self>) -> Vec<AnyElement> {
+    /// Menu rows for `t`. Right-click (`full`): emoji row, then every available action. The toolbar's
+    /// More: only actions the toolbar does not show (no emoji row, no Reply / Resolve).
+    fn comment_menu_items(
+        &self,
+        t: &CommentTarget,
+        full: bool,
+        cx: &mut Context<Self>,
+    ) -> Vec<AnyElement> {
         let mut out: Vec<AnyElement> = vec![];
-        if t.can_react {
+        if t.can_react && full {
             let kind = self
                 .detail
                 .as_ref()
@@ -137,7 +143,12 @@ impl GitViewer {
             );
             out.push(MenuSeparator.into_any_element());
         }
-        for (gi, group) in CommentAction::menu(&t.facts).into_iter().enumerate() {
+        let groups = if full {
+            CommentAction::menu(&t.facts)
+        } else {
+            CommentAction::more_menu(&t.facts)
+        };
+        for (gi, group) in groups.into_iter().enumerate() {
             if gi > 0 {
                 out.push(MenuSeparator.into_any_element());
             }
@@ -169,7 +180,7 @@ impl GitViewer {
         let dismiss = cx.listener(|this, _: &MouseDownEvent, _, cx| this.dismiss_layer(cx));
         match &self.layer {
             Some(Layer::CommentMenu(id)) if *id == t.id => {
-                let items = self.comment_menu_items(t, cx);
+                let items = self.comment_menu_items(t, false, cx);
                 Some(
                     DropdownMenu::new(SharedString::from(format!("comment-menu-{}", t.id)))
                         .on_dismiss(dismiss)
@@ -178,7 +189,7 @@ impl GitViewer {
                 )
             }
             Some(Layer::CommentMenuAt(id, at)) if *id == t.id => {
-                let items = self.comment_menu_items(t, cx);
+                let items = self.comment_menu_items(t, true, cx);
                 Some(
                     ContextMenu::new(SharedString::from(format!("comment-ctx-{}", t.id)), *at)
                         .on_dismiss(dismiss)

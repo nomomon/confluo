@@ -6,7 +6,7 @@ use gv_engine::{ReviewAction, ReviewInfo, ReviewState};
 use super::keymap::{self, Approve, MergePr, RequestChanges, ToggleDraft};
 use crate::app::{GitViewer, Layer, Overlay};
 use crate::state::DetailState;
-use crate::ui::atoms::{Badge, Button, ButtonVariant, IconName};
+use crate::ui::atoms::{Button, ButtonVariant, IconName};
 use crate::ui::molecules::{Dialog, DropdownMenu, MenuItem, MenuSeparator, Textarea};
 use crate::ui::theme;
 
@@ -150,9 +150,15 @@ impl GitViewer {
     /// "You approved" for the meta line (approval counts are the single `approvals` indicator).
     pub(crate) fn render_review_state(&self, d: &DetailState) -> Option<AnyElement> {
         let info = d.detail.as_ref().map(|x| &x.review)?;
-        info.my_state
-            .and_then(state_badge)
-            .map(|(label, color)| Badge::new(label).tint(color).into_any_element())
+        info.my_state.and_then(state_badge).map(|(label, color)| {
+            // Plain colored text, no tinted pill.
+            gpui::div()
+                .text_size(theme::text_xs())
+                .font_weight(theme::WEIGHT_MEDIUM)
+                .text_color(color)
+                .child(label)
+                .into_any_element()
+        })
     }
 
     /// Summary dialog for Comment and Request changes.

@@ -1,4 +1,5 @@
-//! Round author avatar: the loaded image, else a subtle initial.
+//! Round author avatar on a solid disc with a hairline ring (transparent logos stay visible):
+//! the loaded image clipped to the circle, else a subtle initial.
 
 use gpui::{div, img, prelude::*, App, Image, SharedString, Window};
 use std::sync::Arc;
@@ -42,6 +43,9 @@ impl RenderOnce for Avatar {
             .justify_center()
             .size(self.size)
             .rounded(theme::RADIUS_FULL)
+            .bg(theme::avatar_bg())
+            .border_1()
+            .border_color(theme::avatar_ring())
             .overflow_hidden();
         match self.image {
             Some(image) => base.child(img(image).size_full().rounded(theme::RADIUS_FULL)),
@@ -52,8 +56,7 @@ impl RenderOnce for Avatar {
                     .next()
                     .map(|c| c.to_uppercase().collect())
                     .unwrap_or_default();
-                base.bg(theme::surface())
-                    .text_color(theme::text_subtle())
+                base.text_color(theme::text_subtle())
                     .text_size(if self.size > theme::SPACE_5 {
                         theme::text_xs()
                     } else {

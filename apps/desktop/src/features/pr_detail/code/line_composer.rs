@@ -12,7 +12,11 @@ use crate::ui::theme;
 
 impl GitViewer {
     /// The inline input followed by right-aligned Cancel and `submit` buttons.
-    pub(super) fn inline_field(&self, submit: &'static str, cx: &mut Context<Self>) -> Div {
+    pub(in crate::features::pr_detail) fn inline_field(
+        &self,
+        submit: &'static str,
+        cx: &mut Context<Self>,
+    ) -> Div {
         let cancel = Button::new("inline-cancel", "Cancel")
             .variant(ButtonVariant::Ghost)
             .size(Size::Sm)

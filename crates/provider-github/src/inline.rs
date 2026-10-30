@@ -55,6 +55,8 @@ pub(crate) fn parse_thread(t: &Value) -> Thread {
             .collect(),
         position,
         outdated,
+        resolved_by: None,
+        resolved_at: None,
     }
 }
 

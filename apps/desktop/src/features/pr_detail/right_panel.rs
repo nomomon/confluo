@@ -31,12 +31,14 @@ impl GitViewer {
             },
         };
         div()
+            .id("right-panel")
             .flex()
             .flex_col()
             .size_full()
+            .on_scroll_wheel(cx.listener(Self::panel_wheel))
             .child(div().px(theme::SPACE_3).pt(theme::SPACE_2).child(tabs))
             .child(crate::ui::elastic::y_scroller(
-                div().id("right-scroll").track_scroll(&self.review.right_scroll).flex_1().min_h(theme::SPACE_0).map(crate::ui::scroll::y_only).px(theme::SPACE_3).pt(theme::SPACE_3).pb(layout::END_PAD).child(crate::ui::elastic::content("right-scroll").child(body)),
+                div().id("right-scroll").track_scroll(&self.review.right_scroll).flex_1().min_h(theme::SPACE_0).map(crate::ui::scroll::y_only).px(theme::SPACE_3).pt(theme::SPACE_3).pb(layout::END_PAD).child(crate::ui::elastic::content("right-scroll").left(gpui::px(self.review.swipe.panel_x)).child(body)),
                 "right-scroll",
                 self.review.right_scroll.clone(),
             ))

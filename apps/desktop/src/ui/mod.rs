@@ -8,6 +8,7 @@ pub mod layer;
 pub mod molecules;
 pub mod motion;
 pub mod scroll;
+pub mod swipe;
 pub mod theme;
 
 use gpui::{App, ClickEvent, MouseDownEvent, Window};

@@ -398,6 +398,7 @@ impl Render for GitViewer {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.fetch_avatars(cx);
         crate::ui::elastic::begin_frame(window);
+        self.swipe_frame(window, cx);
         if std::mem::take(&mut self.refocus) {
             window.focus(&self.focus);
         }
@@ -431,15 +432,29 @@ impl Render for GitViewer {
         let main = div().absolute().top_0().left_0().size_full().flex();
         let main = match self.detail.as_ref().filter(|_| self.reviewing) {
             // Review mode: the PR takes the whole content area; the sidebar and list step aside.
-            Some(d) => main.child(self.render_review(d, cx)),
+            Some(d) => {
+                let review = self.render_review(d, cx).into_any_element();
+                let x = self.review.swipe.page_x;
+                let review = if x != 0. { self.render_swipe_stack(review, x, cx) } else { review };
+                // Reduced motion: the view a swipe switched to fades in.
+                main.child(match self.review.swipe.fade {
+                    Some(n) => crate::ui::motion::fade_in_always(div().size_full().child(review), ("swipe-fade", n)),
+                    None => review,
+                })
+            }
             None => main
                 .when(!self.nav.sidebar_hidden, |m| m.child(crate::ui::motion::slide_in_left(div().h_full().child(self.render_sidebar(cx)), "sidebar", layout::SIDEBAR_SLIDE)))
                 .child(self.render_list(cx))
                 .children(self.detail.as_ref().filter(|_| previewing).map(|d| self.render_preview(d, cx))),
         };
+        let main = match self.review.swipe.fade.filter(|_| !self.reviewing) {
+            Some(n) => div().absolute().top_0().left_0().size_full().child(crate::ui::motion::fade_in_always(main, ("swipe-fade", n))).into_any_element(),
+            None => main.into_any_element(),
+        };
         let root = div().id("root");
         self.key_handlers(root, cx)
             .on_modifiers_changed(cx.listener(Self::hint_modifiers))
+            .on_scroll_wheel(cx.listener(Self::page_wheel))
             .relative()
             .size_full()
             .font_family(theme::ui_font())

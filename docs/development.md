@@ -16,6 +16,8 @@ Dev-only env (screenshots and walkthroughs; see `apps/desktop/src/dev.rs`):
 - `CONFLUO_DEV_MARKDOWN=<file>` renders that markdown file as the open PR's description and every comment body (wide tables);
   `CONFLUO_DEBUG_LAYOUT=1` logs each horizontal scroll box (`box_w`, `max_scroll_x`, `offset_x`) to stderr
 - `CONFLUO_THREADS=unresolved|needs` sets the Conversation filter
+- `CONFLUO_DEV_SWIPE=0.4` draws Review mode mid swipe-back (review moved 40% of the width, the list under it); trackpad
+  gestures cannot be synthesized, so this is how the swipe is screenshotted
 - `CONFLUO_HINTS=1` keeps the hold-Cmd shortcut hints visible
 - `CONFLUO_WINDOW=1100x760` window size; `CONFLUO_REDUCE_MOTION=1`; `CONFLUO_NO_REFRESH=1` stays on cached data (no network)
 

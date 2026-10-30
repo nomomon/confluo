@@ -112,6 +112,11 @@ pub fn fade_in<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId
     animate(el, id, FADE, |el, t| el.opacity(t))
 }
 
+/// `FADE` that also runs under reduced motion: the short cross-fade that replaces a tracked swipe there.
+pub fn fade_in_always<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId>) -> AnyElement {
+    el.with_animation(id, Animation::new(Duration::from_millis(FADE.ms)).with_easing(ease_in_out), |el, t| el.opacity(t)).into_any_element()
+}
+
 /// Slide in from the right by `distance` while fading (`PANEL`). The element
 /// is offset with `left`, so it must be relatively positioned.
 pub fn slide_in_right<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId>, distance: Pixels) -> AnyElement {

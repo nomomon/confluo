@@ -42,7 +42,8 @@ pub fn gesture_axis(locked: Option<Axis>, phase: TouchPhase, dx: Pixels, dy: Pix
     };
     let keep = match phase {
         TouchPhase::Ended => None,
-        _ if locked.is_none() && !moving => None,
+        // An empty first event (or a new gesture's empty start) decides nothing yet.
+        _ if !moving && (locked.is_none() || matches!(phase, TouchPhase::Started)) => None,
         _ => Some(axis),
     };
     (axis, keep)

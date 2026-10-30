@@ -54,6 +54,8 @@ pub struct ReviewUi {
     pub right_scroll: gpui::ScrollHandle,
     /// A Conversation thread to scroll into view on its next paint.
     pub reveal_conv: std::rc::Rc<std::cell::RefCell<Option<String>>>,
+    /// Two-finger swipes: page back / forward and right panel tabs.
+    pub swipe: super::SwipeUi,
     memory: HashMap<ChangeRequestId, Memory>,
     /// Restore the remembered position once files arrive.
     restore: Option<Memory>,
@@ -84,6 +86,7 @@ impl Default for ReviewUi {
             attn_at: None,
             right_scroll: Default::default(),
             reveal_conv: Default::default(),
+            swipe: Default::default(),
             memory: HashMap::new(),
             restore: None,
         }

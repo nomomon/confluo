@@ -36,6 +36,10 @@ impl GitViewer {
             this.settings.shortcut_hints = *on;
             this.save_settings(cx)
         }));
+        let swipe = Switch::new("swipe-pages", s.swipe_pages).on_change(cx.listener(|this, on: &bool, _, cx| {
+            this.settings.swipe_pages = *on;
+            this.save_settings(cx)
+        }));
         div().child(self.settings_group(
             None,
             vec![
@@ -43,6 +47,7 @@ impl GitViewer {
                 Field::new("Open pull requests in", open_in).description("Clicking a row opens the detail pane or the web page").horizontal().into_any_element(),
                 Field::new("At launch", launch).description("Start in the Inbox or the project you had open").horizontal().into_any_element(),
                 Field::new("Show shortcut hints when holding \u{2318}", hints).description("Hold Command alone to see the shortcuts of visible controls").horizontal().into_any_element(),
+                Field::new("Swipe between pages", swipe).description("Swipe sideways with two fingers to go back or forward in Review mode and between the panel tabs").horizontal().into_any_element(),
             ],
         ))
     }

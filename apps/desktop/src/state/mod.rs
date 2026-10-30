@@ -40,12 +40,14 @@ mod reactions;
 mod repo_menu;
 mod selection;
 mod sources;
+mod swipe_nav;
 mod split;
 pub mod timing;
 
 pub use connection::{auth_command, host_avatar_url, sign_in_hint, HostStatus};
 pub use attention::{attention, ThreadFilter};
 pub use code::CodeState;
+pub use swipe_nav::SwipeUi;
 pub use detail::{DetailState, DetailTab};
 pub use file_tree::{tree_entries, TreeEntry, TreeQuery};
 pub use file_view::FileView;

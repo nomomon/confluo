@@ -51,6 +51,11 @@ pub fn view() -> Option<String> {
     var("CONFLUO_VIEW")
 }
 
+/// `CONFLUO_DEV_SWIPE=0.4` draws Review mode mid swipe-back: the review moved 40% of the width, the list under it.
+pub fn swipe() -> Option<f32> {
+    var("CONFLUO_DEV_SWIPE")?.parse().ok()
+}
+
 /// `CONFLUO_SCROLL=<px>` scrolls the detail pane down that far once it has laid out.
 pub fn detail_scroll() -> Option<f32> {
     var("CONFLUO_SCROLL")?.parse().ok()

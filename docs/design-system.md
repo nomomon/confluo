@@ -416,6 +416,16 @@ movement, the block could still scroll that way (`ui::scroll::claims_x`, decided
 and stops the event, also once it reaches its edge. A swipe that starts at the block's edge bubbles to the page (swipe
 navigation, panel tabs). Vertical bubbles to the pane.
 
+Swipe between pages (Settings > General, on by default; `ui::swipe::Swipe`, `state::swipe_nav`): in Review mode a
+two-finger horizontal trackpad swipe that no block claimed (see above) moves the review with the fingers (1:1, rubber band
+where there is nothing to go to, and past a full page) over the list view, which sits dimmed at a -30% parallax offset;
+swiping left goes forward when history has a PR ahead (it comes in from the right). Release completes past a third of
+the width (`COMMIT_AT`) or on a flick faster than `FLICK_SPEED` toward it, else springs back; then it walks history like
+Cmd+[ / Cmd+]. Mouse wheels, momentum and vertical gestures never start it; the slim preview has none. In the right
+panel the same gesture switches Overview / Conversation (content follows the fingers, the new tab settles in); a swipe
+toward no tab bubbles to the page. Reduced motion: no tracking, the view switches on release with a short fade
+(`motion::fade_in_always`).
+
 Rubber band (`ui::elastic`): trackpad gestures stretch panes past their edges with resistance
 (`motion::spring::rubber_band`, UIScrollView's 0.55 curve), momentum hitting an edge overshoots once, release springs
 back with a critically damped spring (`motion::spring::Spring`, closed form, ~350ms, never oscillates). The scroll

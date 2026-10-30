@@ -20,3 +20,4 @@ mod settings;
 mod shared;
 pub(crate) use shared::layout;
 mod sidebar;
+mod swipe_nav;

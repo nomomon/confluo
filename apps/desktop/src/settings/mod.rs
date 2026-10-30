@@ -74,6 +74,8 @@ pub struct Settings {
     pub palette_mru: Vec<String>,
     /// Holding Cmd shows shortcut hints over the controls.
     pub shortcut_hints: bool,
+    /// Two-finger horizontal swipes go back / forward in Review mode and switch the right panel tabs.
+    pub swipe_pages: bool,
     /// Review mode file tree width (px) and right panel share of the content width, as last dragged.
     pub review_tree_w: f32,
     pub review_right_ratio: f32,
@@ -103,6 +105,7 @@ impl Default for Settings {
             diff_split: false,
             palette_mru: vec![],
             shortcut_hints: true,
+            swipe_pages: true,
             review_tree_w: 260.,
             review_right_ratio: 1. / 3.,
         }

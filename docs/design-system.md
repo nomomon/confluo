@@ -380,6 +380,27 @@ and skipped behind "Show N passed"; rows show status (spinner when running), nam
 duration, finish time and an open-logs button; failed rows expand to a lazily fetched log tail. "Re-run
 failed" appears when `ChecksInfo::can_rerun` and asks first.
 
+### Motion: physics
+
+Direct manipulation is physical, not tweened. `ui::motion::physics` is pure and app-agnostic:
+
+- `Spring` (`SpringParams::new(response, damping_fraction)`, SwiftUI-style, converted to stiffness / damping / mass;
+  semi-implicit Euler in 1/240 s sub-steps, frame gaps capped at 100ms, NaN-safe; starts from any velocity).
+  Presets: `SNAPPY` (response 0.3 s, critically damped: pages, rubber band), `BOUNCY` (0.35 s, 0.85: slight
+  overshoot), `GENTLE` (0.5 s, critically damped: large panels).
+- `VelocityTracker`: release velocity from the last ~100ms of samples, newer ones weighted more; fingers that
+  rested before lifting give 0.
+- `project(position, velocity, 0.998)`: Apple's momentum projection (`p + v_ms * d / (1 - d)`), picks snap targets.
+- `rubber_band(overflow, dimension, 0.55)`: Apple's `(1 - 1 / (x c / d + 1)) d`, symmetric; `rubber_band_inverse`
+  grabs a moving band without a jump. `Decay` for inertial coasting (same units as `project`).
+
+`ui::motion::interactive` builds reusable controllers on it: `Pager` (N snap points, 1:1 drag with rubber band past
+the allowed pages, release projects and springs with the release velocity, interruptible mid-flight, `progress()`
+for intermediate rendering, `tick` reports the settled page once), `SwipeGate` (wheel events to a horizontal drag:
+trackpad phases only, shared axis lock, no momentum), `ElasticScroll` (overscroll) and `Animated` (an `f32` springing
+to its target for spatial, non-gesture transitions). Frames are requested only while something moves. Reduced
+motion: pagers snap, elastic scrolls hard-stop; plain opacity fades stay on the tokens above.
+
 ## Triage and Review mode
 
 Triage: the list takes the full width; the selected row shows a slim preview (`PREVIEW_W` 360, Cmd+\\ hides it;
@@ -420,19 +441,21 @@ movement, the block could still scroll that way (`ui::scroll::claims_x`, decided
 and stops the event, also once it reaches its edge. A swipe that starts at the block's edge bubbles to the page (swipe
 navigation, panel tabs). Vertical bubbles to the pane.
 
-Swipe between pages (Settings > General, on by default; `ui::swipe::Swipe`, `state::swipe_nav`): in Review mode a
+Swipe between pages (Settings > General, on by default; a `Pager` in `state::swipe_nav`): in Review mode a
 two-finger horizontal trackpad swipe that no block claimed (see above) moves the review with the fingers (1:1, rubber band
 where there is nothing to go to, and past a full page) over the list view, which sits dimmed at a -30% parallax offset;
-swiping left goes forward when history has a PR ahead (it comes in from the right). Release completes past a third of
-the width (`COMMIT_AT`) or on a flick faster than `FLICK_SPEED` toward it, else springs back; then it walks history like
+swiping left goes forward when history has a PR ahead (it comes in from the right). Release projects the position with the
+release velocity and completes when that lands past a third of the width (`Pager::commit` 0.33), so a slow drag past a
+third or a short flick completes, else it springs back (the spring starts at the fingers' velocity); then it walks history like
 Cmd+[ / Cmd+]. Mouse wheels, momentum and vertical gestures never start it; the slim preview has none. In the right
-panel the same gesture switches Overview / Conversation (content follows the fingers, the new tab settles in); a swipe
-toward no tab bubbles to the page. Reduced motion: no tracking, the view switches on release with a short fade
+panel the same Pager moves a strip of both tabs (both built only while it moves); the underline and label emphasis
+follow its progress (`Tabs::progress`), and clicks, keys and code that set the tab animate through the same spring. A
+swipe toward no tab bubbles to the page. Reduced motion: no tracking, the view switches on release with a short fade
 (`motion::fade_in_always`).
 
-Rubber band (`ui::elastic`): trackpad gestures stretch panes past their edges with resistance
-(`motion::spring::rubber_band`, UIScrollView's 0.55 curve), momentum hitting an edge overshoots once, release springs
-back with a critically damped spring (`motion::spring::Spring`, closed form, ~350ms, never oscillates). The scroll
+Rubber band (`ui::elastic`, glue for `motion::interactive::ElasticScroll`): trackpad gestures stretch panes past their
+edges with resistance (`physics::rubber_band`), momentum reaching an edge hands its velocity to a `SNAPPY` spring (a
+small overshoot that returns), release springs back. The scroll
 offset stays in range; the stretch is only a translate of the content (`elastic::content(key)` inside a div scroller
 wrapped by `elastic::y_scroller`, a `top` shift of the whole `list` for the diff, a `left` shift inside `hscroll` and
 diff rows), so scroll-to-item, the scroll-past-end spacer and keyboard navigation are untouched. Frames come from

@@ -16,7 +16,8 @@ use gpui::{ease_in_out, ease_out_quint, linear, px, Animation, AnimationExt, Any
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-pub mod spring;
+pub mod interactive;
+pub mod physics;
 
 /// Upper bound for any duration.
 pub const MAX_MS: u64 = 300;

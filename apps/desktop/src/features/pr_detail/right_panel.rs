@@ -23,13 +23,30 @@ impl GitViewer {
                 this.review.right_tab = if *i == 0 { RightTab::Overview } else { RightTab::Conversation };
                 cx.notify()
             }));
-        let body: AnyElement = match tab {
-            RightTab::Overview => self.render_overview(d, cx).into_any_element(),
-            RightTab::Conversation => match &d.detail {
-                Some(det) => self.render_threads(det, d, cx).into_any_element(),
-                None => div().text_size(theme::text_sm()).text_color(theme::text_muted()).child(if d.loading { "Loading..." } else { "No detail available" }).into_any_element(),
-            },
-        };
+        let sw = &self.review.swipe;
+        let tabs = tabs.progress(sw.panel_progress);
+        // Pages side by side on a strip that follows the pager; at rest only the active one is built.
+        let pw = f32::from(self.viewport_w) * self.review.right_ratio;
+        let both = sw.panel.moving();
+        let mut strip = div().relative().flex_1().min_h(theme::SPACE_0).overflow_hidden();
+        for (i, t) in [RightTab::Overview, RightTab::Conversation].into_iter().enumerate() {
+            if !both && t != tab {
+                continue;
+            }
+            let (key, handle) = match t {
+                RightTab::Overview => ("right-overview", crate::ui::elastic::handle("right-overview")),
+                RightTab::Conversation => ("right-scroll", self.review.right_scroll.clone()),
+            };
+            let body: AnyElement = match t {
+                RightTab::Overview => self.render_overview(d, cx).into_any_element(),
+                RightTab::Conversation => match &d.detail {
+                    Some(det) => self.render_threads(det, d, cx).into_any_element(),
+                    None => div().text_size(theme::text_sm()).text_color(theme::text_muted()).child(if d.loading { "Loading..." } else { "No detail available" }).into_any_element(),
+                },
+            };
+            let scroller = div().id(key).track_scroll(&handle).size_full().map(crate::ui::scroll::y_only).px(theme::SPACE_3).pt(theme::SPACE_3).pb(layout::END_PAD).child(crate::ui::elastic::content(key).child(body));
+            strip = strip.child(div().absolute().top_0().bottom_0().w_full().left(gpui::px(sw.panel_x + i as f32 * pw)).child(crate::ui::elastic::y_scroller(scroller, key, handle)));
+        }
         div()
             .id("right-panel")
             .flex()
@@ -37,11 +54,7 @@ impl GitViewer {
             .size_full()
             .on_scroll_wheel(cx.listener(Self::panel_wheel))
             .child(div().px(theme::SPACE_3).pt(theme::SPACE_2).child(tabs))
-            .child(crate::ui::elastic::y_scroller(
-                div().id("right-scroll").track_scroll(&self.review.right_scroll).flex_1().min_h(theme::SPACE_0).map(crate::ui::scroll::y_only).px(theme::SPACE_3).pt(theme::SPACE_3).pb(layout::END_PAD).child(crate::ui::elastic::content("right-scroll").left(gpui::px(self.review.swipe.panel_x)).child(body)),
-                "right-scroll",
-                self.review.right_scroll.clone(),
-            ))
+            .child(strip)
             .when(tab == RightTab::Conversation, |p| p.child(div().px(theme::SPACE_3).pb(theme::SPACE_3).child(self.render_composer(d, cx))))
     }
 

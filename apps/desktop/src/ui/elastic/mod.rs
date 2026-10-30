@@ -1,6 +1,5 @@
-//! Rubber-band (elastic) overscroll, Apple-like. A trackpad gesture that pushes a scroller past its edge
-//! stretches it with resistance (`spring::rubber_band`), momentum hitting an edge overshoots a little, and
-//! release springs back (critically damped). The scroll offset itself never leaves its range: the stretch
+//! gpui glue for `motion::interactive::ElasticScroll` (rubber-band overscroll, one per scroller key):
+//! scroller adapters, per-key state and frame requests. The scroll offset itself never leaves its range: the stretch
 //! is a visual translate of the content (`shift`), so lists keep their scroll-to-item and spacer logic.
 //! Mouse wheels (line deltas) and reduced motion hard-stop at the edges.
 
@@ -12,8 +11,7 @@ use gpui::{point, px, Div, InteractiveElement, Styled, ListState, Pixels, Scroll
 
 use super::scroll::Axis;
 
-mod stretch;
-pub use stretch::{Pin, Stretch};
+pub use super::motion::interactive::{ElasticScroll, Pin};
 
 /// What a scroller reports for one axis: offset (GPUI sign, 0 at the start, `-max` at the end), max and viewport length.
 pub trait Scroller {
@@ -48,7 +46,7 @@ impl Scroller for ListState {
 }
 
 thread_local! {
-    static STRETCH: RefCell<HashMap<String, Stretch>> = Default::default();
+    static STRETCH: RefCell<HashMap<String, ElasticScroll>> = Default::default();
     static HANDLES: RefCell<HashMap<&'static str, ScrollHandle>> = Default::default();
 }
 
@@ -77,7 +75,7 @@ pub fn feed(key: &str, axis: Axis, ev: &ScrollWheelEvent, offset: f32, max: f32,
         ScrollDelta::Pixels(p) => (true, p),
         ScrollDelta::Lines(l) => (false, point(px(l.x), px(l.y))),
     };
-    STRETCH.with(|m| m.borrow_mut().entry(key.to_string()).or_default().feed(axis, ev.touch_phase, precise, delta.x.into(), delta.y.into(), offset >= -0.5, offset <= -max + 0.5, extent))
+    STRETCH.with(|m| m.borrow_mut().entry(key.to_string()).or_default().feed(axis, ev.touch_phase, precise, super::motion::reduced_motion(), delta.x.into(), delta.y.into(), offset >= -0.5, offset <= -max + 0.5, extent, Instant::now()))
 }
 
 /// Current stretch of `key` as a translate (steps its spring).

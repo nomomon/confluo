@@ -128,6 +128,8 @@ pub struct Governor {
     pub host: String,
     state: Mutex<State>,
     slots: Arc<Semaphore>,
+    /// Writes do not queue behind reads: their own slot, and no wait for a token.
+    write_slot: Arc<Semaphore>,
 }
 
 /// Outcome of applying a response to the governor.
@@ -148,6 +150,7 @@ impl Governor {
                 failures: 0,
             }),
             slots: Arc::new(Semaphore::new(MAX_CONCURRENT)),
+            write_slot: Arc::new(Semaphore::new(1)),
         }
     }
 
@@ -165,6 +168,12 @@ impl Governor {
 
     /// Wait for a slot and a token. Fails fast when the host is paused for longer than `MAX_INLINE_WAIT`.
     pub async fn acquire(&self) -> Result<OwnedSemaphorePermit, DateTime<Utc>> {
+        self.acquire_as(false).await
+    }
+
+    /// Like [`Governor::acquire`]; a `write` (user action) jumps the queue of background reads:
+    /// it takes the write slot and spends a token without waiting for one. Pauses still apply.
+    pub async fn acquire_as(&self, write: bool) -> Result<OwnedSemaphorePermit, DateTime<Utc>> {
         let pause = {
             let s = self.lock();
             s.paused_until
@@ -178,14 +187,14 @@ impl Governor {
                 tokio::time::sleep(left).await;
             }
         }
-        let permit = self
-            .slots
+        let slots = if write { &self.write_slot } else { &self.slots };
+        let permit = slots
             .clone()
             .acquire_owned()
             .await
             .expect("semaphore never closed");
         let wait = self.lock().bucket.take(Instant::now());
-        if !wait.is_zero() {
+        if !write && !wait.is_zero() {
             tokio::time::sleep(wait).await;
         }
         Ok(permit)
@@ -257,6 +266,26 @@ pub fn paused() -> Vec<(String, DateTime<Utc>)> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn writes_jump_the_read_queue() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_time()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            let g = super::Governor::new("h.test");
+            // Every read slot is taken and the bucket is empty.
+            let mut held = vec![];
+            for _ in 0..super::MAX_CONCURRENT {
+                held.push(g.acquire().await.unwrap());
+            }
+            let t0 = std::time::Instant::now();
+            let w = tokio::time::timeout(std::time::Duration::from_millis(50), g.acquire_as(true));
+            assert!(w.await.is_ok(), "write waited behind reads");
+            assert!(t0.elapsed() < std::time::Duration::from_millis(50));
+        });
+    }
+
     use super::*;
 
     #[test]

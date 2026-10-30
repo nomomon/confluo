@@ -952,6 +952,23 @@ mod tests {
     use super::*;
 
     #[test]
+    fn nested_group_paths_are_encoded_in_every_mr_endpoint() {
+        let id = ChangeRequestId {
+            repo: RepoRef {
+                kind: ProviderKind::GitLab,
+                host: "gitlab.com".into(),
+                path: "g/sub/p".into(),
+            },
+            number: 7,
+        };
+        let mr = GitLabProvider::mr_path(&id);
+        assert_eq!(mr, "/projects/g%2Fsub%2Fp/merge_requests/7");
+        // Notes take the note id, discussions the discussion id.
+        assert_eq!(delete_note_path(&mr, "42"), format!("{mr}/notes/42"));
+        assert!(!mr.contains("g/sub"));
+    }
+
+    #[test]
     fn delete_note_path_targets_the_note() {
         assert_eq!(
             delete_note_path("/projects/g%2Fp/merge_requests/7", "42"),

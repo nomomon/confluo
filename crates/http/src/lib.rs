@@ -52,7 +52,7 @@ pub async fn send(req: reqwest::RequestBuilder) -> ProviderResult<Resp> {
     let key = url.to_string();
 
     for attempt in 0..2 {
-        let permit = match gov.acquire().await {
+        let permit = match gov.acquire_as(!is_get).await {
             Ok(p) => p,
             Err(until) => {
                 stats::record(&host, &endpoint, stats::Outcome::Blocked);
@@ -125,6 +125,9 @@ pub async fn send(req: reqwest::RequestBuilder) -> ProviderResult<Resp> {
             headers,
             body,
         };
+        if !is_get && (200..300).contains(&status) {
+            forget_etags(&host);
+        }
         if is_get && (200..300).contains(&status) && out.body.len() <= ETAG_MAX_BODY {
             if let Some(tag) = out.header(ETAG.as_str()) {
                 let mut m = etags().lock().unwrap_or_else(|e| e.into_inner());
@@ -140,7 +143,46 @@ pub async fn send(req: reqwest::RequestBuilder) -> ProviderResult<Resp> {
     Err(ProviderError::RateLimited { host, until })
 }
 
+/// A write changed data on `host`: drop its revalidation cache so no read answers with a pre-write
+/// body via 304.
+fn forget_etags(host: &str) {
+    etags()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .retain(|k, _| key_host(k) != host);
+}
+
+fn key_host(url: &str) -> String {
+    reqwest::Url::parse(url)
+        .ok()
+        .and_then(|u| u.host_str().map(str::to_ascii_lowercase))
+        .unwrap_or_default()
+}
+
 /// Whether request debugging is on (`GV_DEBUG_HTTP=1`).
 pub fn debug_enabled() -> bool {
     std::env::var("GV_DEBUG_HTTP").is_ok_and(|v| !v.is_empty() && v != "0")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_write_drops_only_that_hosts_etags() {
+        let resp = Resp {
+            status: 200,
+            headers: Default::default(),
+            body: vec![],
+        };
+        {
+            let mut m = etags().lock().unwrap();
+            m.insert("https://a.test/x?p=1".into(), ("e1".into(), resp.clone()));
+            m.insert("https://b.test/y".into(), ("e2".into(), resp));
+        }
+        forget_etags("a.test");
+        let m = etags().lock().unwrap();
+        assert!(!m.contains_key("https://a.test/x?p=1"));
+        assert!(m.contains_key("https://b.test/y"));
+    }
 }

@@ -5,6 +5,7 @@ mod bots;
 mod checks;
 mod diff;
 mod edit;
+mod error_text;
 mod inline;
 mod model;
 mod needs_you;

@@ -83,5 +83,8 @@ pub use swipe_nav::SwipeUi;
 
 /// Format an error with its full context chain.
 pub fn err_str(e: anyhow::Error) -> String {
-    format!("{e:#}")
+    match e.downcast_ref::<gv_engine::ProviderError>() {
+        Some(p) => p.reason(),
+        None => format!("{e:#}"),
+    }
 }

@@ -70,6 +70,7 @@ impl Engine {
             (None, _) => String::new(),
         };
         prov.react(id, &target, kind, add).await?;
+        self.forget_detail(id);
         if let Some(mut d) = self.store().get_detail(id)? {
             let me = self.me(id.repo.kind, &id.repo.host).unwrap_or_default();
             let groups = match subject {

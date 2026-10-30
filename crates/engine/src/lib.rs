@@ -856,6 +856,13 @@ impl Engine {
         }
     }
 
+    /// After a write to `id`: the cached detail (and the host's ETags, see `gv_http`) are stale, so
+    /// the next [`Engine::detail`] refetches instead of serving the pre-write copy.
+    fn wrote<T>(&self, id: &ChangeRequestId, r: gv_core::ProviderResult<T>) -> Result<T> {
+        self.forget_detail(id);
+        Ok(r?)
+    }
+
     /// Drop the freshness mark so the next [`Engine::detail`] refetches.
     pub(crate) fn forget_detail(&self, id: &ChangeRequestId) {
         self.detail_fetched
@@ -962,11 +969,13 @@ impl Engine {
     // ---------- comment actions ----------
 
     pub async fn add_comment(&self, id: &ChangeRequestId, body: &str) -> Result<Comment> {
-        Ok(self
-            .provider(id.repo.kind, &id.repo.host)
-            .await?
-            .add_comment(id, body)
-            .await?)
+        self.wrote(
+            id,
+            self.provider(id.repo.kind, &id.repo.host)
+                .await?
+                .add_comment(id, body)
+                .await,
+        )
     }
 
     pub async fn reply_to_thread(
@@ -975,19 +984,23 @@ impl Engine {
         thread_id: &str,
         body: &str,
     ) -> Result<Comment> {
-        Ok(self
-            .provider(id.repo.kind, &id.repo.host)
-            .await?
-            .reply_to_thread(id, thread_id, body)
-            .await?)
+        self.wrote(
+            id,
+            self.provider(id.repo.kind, &id.repo.host)
+                .await?
+                .reply_to_thread(id, thread_id, body)
+                .await,
+        )
     }
 
     pub async fn delete_comment(&self, id: &ChangeRequestId, comment_id: &str) -> Result<()> {
-        Ok(self
-            .provider(id.repo.kind, &id.repo.host)
-            .await?
-            .delete_comment(id, comment_id)
-            .await?)
+        self.wrote(
+            id,
+            self.provider(id.repo.kind, &id.repo.host)
+                .await?
+                .delete_comment(id, comment_id)
+                .await,
+        )
     }
 
     pub async fn edit_comment(
@@ -996,11 +1009,13 @@ impl Engine {
         comment_id: &str,
         body: &str,
     ) -> Result<Comment> {
-        Ok(self
-            .provider(id.repo.kind, &id.repo.host)
-            .await?
-            .edit_comment(id, comment_id, body)
-            .await?)
+        self.wrote(
+            id,
+            self.provider(id.repo.kind, &id.repo.host)
+                .await?
+                .edit_comment(id, comment_id, body)
+                .await,
+        )
     }
 
     /// Start an inline thread at `position`. Fills the head sha from the cached detail when missing.
@@ -1024,11 +1039,13 @@ impl Engine {
                 .cached_changed_files(id)
                 .and_then(|fs| range_rows(&fs, &pos));
         }
-        Ok(self
-            .provider(id.repo.kind, &id.repo.host)
-            .await?
-            .add_line_comment(id, &pos, body)
-            .await?)
+        self.wrote(
+            id,
+            self.provider(id.repo.kind, &id.repo.host)
+                .await?
+                .add_line_comment(id, &pos, body)
+                .await,
+        )
     }
 
     pub async fn resolve_thread(
@@ -1037,20 +1054,24 @@ impl Engine {
         thread_id: &str,
         resolved: bool,
     ) -> Result<()> {
-        Ok(self
-            .provider(id.repo.kind, &id.repo.host)
-            .await?
-            .resolve_thread(id, thread_id, resolved)
-            .await?)
+        self.wrote(
+            id,
+            self.provider(id.repo.kind, &id.repo.host)
+                .await?
+                .resolve_thread(id, thread_id, resolved)
+                .await,
+        )
     }
 
     /// Apply a provider suggestion (GitLab `PUT /suggestions/:id/apply`).
     pub async fn apply_suggestion(&self, id: &ChangeRequestId, suggestion_id: &str) -> Result<()> {
-        Ok(self
-            .provider(id.repo.kind, &id.repo.host)
-            .await?
-            .apply_suggestion(suggestion_id)
-            .await?)
+        self.wrote(
+            id,
+            self.provider(id.repo.kind, &id.repo.host)
+                .await?
+                .apply_suggestion(suggestion_id)
+                .await,
+        )
     }
 
     /// Inline threads of the cached detail placed on the cached diff (per path, side and line).

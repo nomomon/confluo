@@ -7,8 +7,9 @@
 use gpui::{div, prelude::*, Context, Div, MouseButton, MouseDownEvent, SharedString};
 use gv_engine::{Comment, DiffPosition, ProviderKind};
 
-use super::comment_actions::{comment_link, CommentFacts};
-use super::comment_menu::CommentTarget;
+use super::comment_actions::CommentFacts;
+use super::comment_links::comment_link;
+use super::comment_run::CommentTarget;
 use super::thread_view::display_name;
 use crate::app::{GitViewer, Layer};
 use crate::features::shared::relative_time;

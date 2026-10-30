@@ -5,7 +5,8 @@ use gpui::{div, prelude::*, ClickEvent, Context, SharedString};
 use gv_engine::{ProviderKind, ReactionKind};
 
 use super::comment_actions::TOOLBAR;
-use super::comment_menu::{CommentTarget, EMOJI_FONT};
+use super::comment_menu::EMOJI_FONT;
+use super::comment_run::CommentTarget;
 use crate::app::{GitViewer, Layer};
 use crate::ui::atoms::{Button, ButtonVariant, IconName};
 use crate::ui::theme;

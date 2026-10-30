@@ -374,6 +374,29 @@ toggle, so hidden content uses `opacity(0.)`.
 Timers that are not animations (auto refresh, loading delay, "Copied" reset,
 toasts) live in `state::timing`.
 
+## Dialogs, find, zoom, wrap
+
+Dialogs (`molecules::Dialog`):
+
+- Every modal sits on a `theme::scrim()` that fades in. A press on the scrim, Esc and the close button all close it through one path (`state::overlay_close`).
+- A dialog holding typed input asks "Discard changes?" before closing (`CloseStep::Ask`); its scrim and Esc mean "Keep editing". Dialogs without input close at once.
+- The panel occludes: presses inside never reach the scrim. One dialog at a time; a confirm opened from a dialog replaces it.
+
+Find bar (Cmd+F in Review mode):
+
+- Compact bar over the diff: query `Input`, "3 of 12" count, case toggle, previous / next and close as ghost `Button`s with tooltips.
+- Enter / Shift+Enter step, Esc closes. Matches use `theme::find_match_bg()`, the current one `theme::find_current_bg()`. Folded files open to reveal the current match.
+
+Zoom (Cmd+= / Cmd+- / Cmd+0):
+
+- Steps are `settings::ZOOM_STEPS` (80% to 140%). Zoom goes through `theme::set_typography`, so every text size and the diff row height scale; never multiply by the zoom in a component.
+- A zoom change remeasures the diff rows and keeps the scroll position. Toast confirms the new level.
+
+Word wrap (Alt+Z):
+
+- Wrapped diff rows grow (`DiffRow::wrap`) and never scroll sideways; the sideways gesture goes on to the page.
+- In split view both cells of a row stretch to the taller side, so the shorter side's background fills the row.
+
 ## Motion
 
 Tokens in `ui::motion` (`Motion { ms, easing }`), all capped at `MAX_MS` = 300:

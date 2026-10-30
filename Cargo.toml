@@ -33,6 +33,8 @@ clap = { version = "4", features = ["derive"] }
 
 [profile.dev]
 debug = 0
+# Incremental caches grew to 8+ GB on an 8 GB / small-disk Mac.
+incremental = false
 
 [profile.dev.package."*"]
 opt-level = 1

@@ -11,6 +11,7 @@ pub struct NavItem {
     id: SharedString,
     label: SharedString,
     active: bool,
+    compact: bool,
     icon: Option<IconName>,
     trailing: Option<AnyElement>,
     on_click: Option<ClickHandler>,
@@ -19,11 +20,17 @@ pub struct NavItem {
 
 impl NavItem {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { base: div(), id: id.into(), label: label.into(), active: false, icon: None, trailing: None, on_click: None, on_right_click: None }
+        Self { base: div(), id: id.into(), label: label.into(), active: false, compact: false, icon: None, trailing: None, on_click: None, on_right_click: None }
     }
 
     pub fn active(mut self, active: bool) -> Self {
         self.active = active;
+        self
+    }
+
+    /// Icon only, centered, with the label as a tooltip (collapsed sidebar rail).
+    pub fn compact(mut self, compact: bool) -> Self {
+        self.compact = compact;
         self
     }
 
@@ -59,7 +66,9 @@ impl Styled for NavItem {
 impl RenderOnce for NavItem {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         let active = self.active;
+        let compact = self.compact && self.icon.is_some();
         let group = self.id.clone();
+        let label = self.label.clone();
         self.base
             .id(ElementId::Name(self.id))
             .group(group.clone())
@@ -76,8 +85,9 @@ impl RenderOnce for NavItem {
             .hover(|s| s.bg(theme::surface_hover()))
             .active(|s| s.bg(theme::surface_active()))
             .children(self.icon.map(|n| Icon::new(n).color(if active { theme::text() } else { theme::text_subtle() })))
-            .child(div().flex_1().min_w(theme::SPACE_0).truncate().child(self.label))
-            .when_some(self.trailing, |el, t| el.child(div().flex_shrink_0().opacity(0.).group_hover(group, |s| s.opacity(1.)).child(t)))
+            .when(compact, |d| d.justify_center().px(theme::SPACE_2).tooltip(super::tooltip(label)))
+            .when(!compact, |d| d.child(div().flex_1().min_w(theme::SPACE_0).truncate().child(self.label)))
+            .when_some(self.trailing.filter(|_| !compact), |el, t| el.child(div().flex_shrink_0().opacity(0.).group_hover(group, |s| s.opacity(1.)).child(t)))
             .when_some(self.on_click, |el, f| el.on_click(f))
             .when_some(self.on_right_click, |el, f| el.on_mouse_down(MouseButton::Right, f))
     }

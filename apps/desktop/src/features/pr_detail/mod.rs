@@ -76,7 +76,7 @@ impl GitViewer {
         let panel = div()
             .flex()
             .flex_col()
-            .w(self.detail_w)
+            .w(self.detail_width())
             .flex_shrink_0()
             .h_full()
             .bg(self.surfaces().panel())

@@ -71,6 +71,10 @@ pub struct GitViewer {
     pub(crate) toast: Option<String>,
     pub(crate) toast_gen: u64,
     pub(crate) detail_w: Pixels,
+    /// Window width at the last render, for layout decisions made while rendering children.
+    pub(crate) viewport_w: Pixels,
+    /// Detail pane open in a narrow window: sidebar collapses to a rail, rows drop secondary meta.
+    pub(crate) compact: bool,
     /// Dragging the detail pane's resize handle.
     pub(crate) resizing: bool,
     pub(crate) search: Entity<TextInput>,
@@ -175,6 +179,8 @@ impl GitViewer {
             toast: None,
             toast_gen: 0,
             detail_w: layout::DETAIL_W,
+            viewport_w: layout::COMPACT_BELOW,
+            compact: false,
             resizing: false,
             search,
             composer,
@@ -202,6 +208,7 @@ impl GitViewer {
         if this.settings.launch == crate::settings::Launch::LastView {
             this.selected = this.settings.last_project.filter(|id| this.projects.iter().any(|p| p.id == *id));
         }
+        this.apply_dev_view();
         this.cursor = this.restored_cursor();
         this.refreshed_at = this.engine.last_refreshed(&gv_engine::RefreshTarget::InvolvingMe);
         this.reload();
@@ -209,10 +216,62 @@ impl GitViewer {
         this.refresh(cx);
         this.start_clock(cx);
         this.open_from_env(cx);
+        this.scroll_detail_from_env(cx);
+        this.overlay_from_env(cx);
         if let Some(p) = SettingsPage::from_env() {
             this.open_settings(Some(p), cx);
         }
         this
+    }
+
+    /// Dev only: `CONFLUO_VIEW` picks the list view at launch (see `dev::view`).
+    fn apply_dev_view(&mut self) {
+        match crate::dev::view().as_deref() {
+            Some("starred") => self.starred_only = true,
+            Some("bots") => self.show_bots = true,
+            Some(v) if v.starts_with("project:") => {
+                let name = v["project:".len()..].to_lowercase();
+                self.selected = self.projects.iter().find(|p| p.name.to_lowercase() == name).map(|p| p.id);
+            }
+            _ => {}
+        }
+    }
+
+    /// Dev only: `CONFLUO_OVERLAY=add-project|rename|delete|menu` opens that overlay at launch
+    /// (rename, delete and menu act on the first project).
+    fn overlay_from_env(&mut self, cx: &mut Context<Self>) {
+        let first = self.projects.first().map(|p| p.id);
+        match (crate::dev::overlay().as_deref(), first) {
+            (Some("add-project"), _) => self.open_add_project(cx),
+            (Some("rename"), Some(id)) => self.open_rename(id, cx),
+            (Some("delete"), Some(id)) => self.confirm_delete(id, cx),
+            (Some("menu"), Some(id)) => self.menu = Some(Menu::Project(id)),
+            _ => {}
+        }
+    }
+
+    /// Dev only: `CONFLUO_SCROLL=<px>` scrolls the detail pane once it has content.
+    fn scroll_detail_from_env(&mut self, cx: &mut Context<Self>) {
+        let Some(y) = crate::dev::detail_scroll() else { return };
+        self.detail_scroll.set_offset(gpui::point(gpui::px(0.), gpui::px(-y)));
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(std::time::Duration::from_millis(1500)).await;
+            this.update(cx, |v, cx| {
+                v.detail_scroll.set_offset(gpui::point(gpui::px(0.), gpui::px(-y)));
+                cx.notify()
+            })
+            .ok();
+        })
+        .detach();
+    }
+
+    pub(crate) fn sidebar_w(&self) -> Pixels {
+        if self.compact { layout::SIDEBAR_RAIL_W } else { layout::SIDEBAR_W }
+    }
+
+    /// The dragged detail width, narrowed so the list keeps `LIST_MIN_W`.
+    pub(crate) fn detail_width(&self) -> Pixels {
+        self.detail_w.min(self.viewport_w - self.sidebar_w() - layout::LIST_MIN_W).max(layout::DETAIL_MIN_W)
     }
 
     /// Panel, card and window fills derived from the appearance settings.
@@ -227,6 +286,8 @@ impl Render for GitViewer {
         theme::set_typography(self.settings.typography());
         theme::set_light(self.settings.theme.is_light(window.appearance()));
         window.set_background_appearance(self.settings.appearance.to_gpui());
+        self.viewport_w = window.viewport_size().width;
+        self.compact = self.detail.is_some() && self.viewport_w < layout::COMPACT_BELOW;
         let bg_image = self.settings.background_image.clone().filter(|p| Path::new(p).is_file());
         let main = div()
             .absolute()

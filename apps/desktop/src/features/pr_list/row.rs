@@ -34,10 +34,10 @@ impl GitViewer {
                     .tooltip(tooltip(c.id.repo.path.clone()))
                     .child(self.repo_label(&c.id.repo)),
             )
-            .child(div().flex().items_center().gap(theme::SPACE_1P5).flex_shrink_0().child(Avatar::new(c.author.username.clone()).image(self.avatar(c.author.avatar_url.as_deref()))).child(c.author.username.clone()))
+            .when(!self.compact, |d| d.child(div().flex().items_center().gap(theme::SPACE_1P5).flex_shrink_0().child(Avatar::new(c.author.username.clone()).image(self.avatar(c.author.avatar_url.as_deref()))).child(c.author.username.clone())))
             .child(Pill::new(number_label(c), theme::success()).icon(IconName::GitPullRequest))
-            .child(div().flex_shrink_0().text_color(checks_color).child(checks))
-            .children(row_hint(c).map(|h| div().flex_shrink_0().text_color(theme::text_muted()).child(h)));
+            .child(div().flex_shrink_0().whitespace_nowrap().text_color(checks_color).child(checks))
+            .children(row_hint(c).filter(|_| !self.compact).map(|h| div().flex_shrink_0().whitespace_nowrap().text_color(theme::text_muted()).child(h)));
         let diff = match (c.additions, c.deletions) {
             (Some(a), Some(d)) => Some(
                 div()

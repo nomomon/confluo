@@ -1,0 +1,54 @@
+//! Dev-only launch hooks read from the environment, for screenshots and walkthroughs.
+//! Documented in `docs/development.md`. None of them is needed in normal use.
+
+use gpui::{px, size, Pixels, Size};
+
+use crate::settings::{Appearance, Settings, ThemeMode};
+
+fn var(name: &str) -> Option<String> {
+    std::env::var(name).ok().filter(|v| !v.trim().is_empty())
+}
+
+/// `CONFLUO_WINDOW=1100x760` opens the window at that size.
+pub fn window_size() -> Option<Size<Pixels>> {
+    let v = var("CONFLUO_WINDOW")?;
+    let (w, h) = v.split_once('x')?;
+    Some(size(px(w.trim().parse().ok()?), px(h.trim().parse().ok()?)))
+}
+
+/// `CONFLUO_THEME=light|dark|system` and `CONFLUO_MATERIAL=blurred|transparent|opaque`
+/// override the saved appearance for this launch (saved again only if Settings change).
+pub fn apply_overrides(s: &mut Settings) {
+    match var("CONFLUO_THEME").as_deref() {
+        Some("light") => s.theme = ThemeMode::Light,
+        Some("dark") => s.theme = ThemeMode::Dark,
+        Some("system") => s.theme = ThemeMode::System,
+        _ => {}
+    }
+    match var("CONFLUO_MATERIAL").as_deref() {
+        Some("blurred") => s.appearance = Appearance::Blurred,
+        Some("transparent") => s.appearance = Appearance::Transparent,
+        Some("opaque") => s.appearance = Appearance::Opaque,
+        _ => {}
+    }
+}
+
+/// `CONFLUO_NO_REFRESH=1` keeps the app on cached data: no refresh at launch, on focus or on the timer.
+pub fn no_refresh() -> bool {
+    var("CONFLUO_NO_REFRESH").is_some()
+}
+
+/// `CONFLUO_VIEW=starred|bots|project:<name>` opens that list view at launch.
+pub fn view() -> Option<String> {
+    var("CONFLUO_VIEW")
+}
+
+/// `CONFLUO_SCROLL=<px>` scrolls the detail pane down that far once it has laid out.
+pub fn detail_scroll() -> Option<f32> {
+    var("CONFLUO_SCROLL")?.parse().ok()
+}
+
+/// `CONFLUO_OVERLAY=add-project|rename|delete|menu` opens that sheet, dialog or menu at launch.
+pub fn overlay() -> Option<String> {
+    var("CONFLUO_OVERLAY")
+}

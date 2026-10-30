@@ -95,7 +95,7 @@ impl GitViewer {
             .max_w(layout::CONTENT_MAX_W)
             .h_full()
             .pt(layout::TITLEBAR_INSET)
-            .px(theme::SPACE_12)
+            .px(if self.detail.is_some() { theme::SPACE_6 } else { theme::SPACE_12 })
             .child(self.render_list_header(visible.len(), cx))
             .child(div().flex().items_center().gap(theme::SPACE_4).mt(theme::SPACE_6).child(self.render_involvement_tabs(cx)).child(self.render_search(cx)))
             .children(banner.map(|b| div().mt(theme::SPACE_4).child(b)))

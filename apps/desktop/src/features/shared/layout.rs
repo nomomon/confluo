@@ -3,6 +3,12 @@
 use gpui::{px, Pixels};
 
 pub const SIDEBAR_W: Pixels = px(240.);
+/// Sidebar collapsed to an icon rail, used while the detail pane is open in a narrow window.
+pub const SIDEBAR_RAIL_W: Pixels = px(60.);
+/// Below this window width an open detail pane collapses the sidebar to the rail.
+pub const COMPACT_BELOW: Pixels = px(1440.);
+/// The list keeps at least this width; the detail pane gives way first.
+pub const LIST_MIN_W: Pixels = px(420.);
 /// Max width of the centered list content column.
 pub const CONTENT_MAX_W: Pixels = px(1360.);
 pub const DETAIL_W: Pixels = px(540.);
@@ -32,3 +38,5 @@ pub const DIFF_GUTTER_W: Pixels = px(40.);
 pub const FILE_TREE_W: Pixels = px(200.);
 /// Approximate mono glyph width as a fraction of the font size, for horizontal scroll limits.
 pub const MONO_CHAR_RATIO: f32 = 0.62;
+/// Narrowest width of the add field after the chips in the Filters chip editors.
+pub const CHIP_INPUT_MIN_W: Pixels = px(240.);

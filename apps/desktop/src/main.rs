@@ -2,6 +2,7 @@
 
 mod app;
 mod assets;
+mod dev;
 mod features;
 mod fonts;
 mod settings;
@@ -24,7 +25,8 @@ fn main() {
             std::process::exit(1);
         }
     };
-    let settings = settings::Settings::load();
+    let mut settings = settings::Settings::load();
+    dev::apply_overrides(&mut settings);
     ui::motion::init();
 
     Application::new().with_assets(assets::Assets).run(move |cx: &mut App| {
@@ -37,7 +39,7 @@ fn main() {
         cx.on_window_closed(|cx| cx.quit()).detach();
         set_menus(cx);
 
-        let bounds = Bounds::centered(None, size(px(1280.), px(820.)), cx);
+        let bounds = Bounds::centered(None, dev::window_size().unwrap_or(size(px(1280.), px(820.))), cx);
         let opts = WindowOptions {
             window_bounds: Some(WindowBounds::Windowed(bounds)),
             titlebar: Some(TitlebarOptions {

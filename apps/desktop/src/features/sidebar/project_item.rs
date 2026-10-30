@@ -25,6 +25,7 @@ impl GitViewer {
             }));
         let item = NavItem::new(format!("nav-{id}"), p.name.clone())
             .icon(IconName::Folder)
+            .compact(self.compact)
             .active(self.selected == Some(id))
             .trailing_on_hover(kebab)
             .on_right_click(cx.listener(move |this, ev: &MouseDownEvent, _, cx| {

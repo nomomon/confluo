@@ -64,7 +64,7 @@ impl GitViewer {
     /// Coalesced: one refresh at a time, repeats of the same view within `MANUAL_DEBOUNCE` are
     /// ignored, and nothing is sent while a host is rate limited (the cache stays on screen).
     pub(crate) fn refresh(&mut self, cx: &mut Context<Self>) {
-        if self.refreshing {
+        if self.refreshing || crate::dev::no_refresh() {
             return;
         }
         let same_view = self.last_target == Some(self.selected);
@@ -193,6 +193,7 @@ impl GitViewer {
 
     pub(crate) fn project_name(&self) -> String {
         match self.selected {
+            None if self.starred_only => "Starred".into(),
             None => "Inbox".into(),
             Some(id) => self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default(),
         }

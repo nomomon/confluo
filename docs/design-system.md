@@ -342,3 +342,15 @@ Checks card: one plain-language line (`gv_core::checks_sentence`), failing/runni
 and skipped behind "Show N passed"; rows show status (spinner when running), name, stage or workflow,
 duration, finish time and an open-logs button; failed rows expand to a lazily fetched log tail. "Re-run
 failed" appears when `ChecksInfo::can_rerun` and asks first.
+
+## Triage and Review mode
+
+Triage: the list takes the full width; the selected row shows a slim preview (`PREVIEW_W` 360, Cmd+\\ hides it).
+Enter, a double click or "Open review" enters Review mode: the PR takes the whole content area (top bar; file tree,
+diff, right panel with Overview / Conversation). Esc, Cmd+[ or the back chevron return to the list with selection
+and scroll kept; Cmd+[ / Cmd+] walk the visited places (the list and reviewed PRs). File tree: viewed checkboxes
+(GitHub `markFileAsViewed`, local fingerprint elsewhere), filter, Hide viewed, foldable folders; n/p, v, Cmd+P,
+Cmd+Shift+E, Cmd+Shift+I, Cmd+Shift+S (unified / side by side, saved as `diff_split`). CI is one icon
+(`shared::ci`): hover lists jobs, click opens the checks popover, nothing when there are no checks.
+Reactions: chips plus a picker of eight under comments and the description (`pr_detail/reactions.rs`).
+Repository names: right-click to rename or hide; Settings > Repositories lists them by host.

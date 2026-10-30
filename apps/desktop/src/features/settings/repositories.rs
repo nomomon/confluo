@@ -24,12 +24,13 @@ impl GitViewer {
             this.repo_search.update(cx, |i, cx| i.set_text("", cx));
         }));
         let mut col = div()
+            .w_full()
             .flex()
             .flex_col()
             .gap(theme::SPACE_2)
             .pt(theme::SPACE_1)
             .child(div().text_size(theme::text_sm()).text_color(theme::text_muted()).child("Rename how a repository appears in Confluo. This doesn't change anything on GitHub or GitLab."))
-            .child(div().pt(theme::SPACE_2).child(search));
+            .child(div().w_full().flex().pt(theme::SPACE_2).child(div().flex_1().child(search)));
         if repos.is_empty() {
             col = col.child(div().pt(theme::SPACE_3).text_size(theme::text_sm()).text_color(theme::text_subtle()).child(if q.is_empty() { "No repositories yet. Refresh a project first." } else { "No matching repositories" }));
         }
@@ -39,7 +40,7 @@ impl GitViewer {
             let rows: Vec<AnyElement> = repos.iter().filter(|r| r.host == host).map(|r| self.repo_row(r, counts.get(r).copied().unwrap_or(0), cx)).collect();
             col = col
                 .child(div().pt(theme::SPACE_3).px(theme::SPACE_1).text_size(theme::text_xs()).font_weight(theme::WEIGHT_MEDIUM).text_color(theme::text_subtle()).child(host.to_string()))
-                .child(div().mt(-theme::SPACE_4).child(self.settings_group(None, rows)));
+                .child(div().w_full().flex().flex_col().mt(-theme::SPACE_4).child(self.settings_group(None, rows)));
         }
         col
     }
@@ -69,6 +70,7 @@ impl GitViewer {
                 .into_any_element()
         };
         div()
+            .w_full()
             .flex()
             .items_center()
             .gap(theme::SPACE_3)

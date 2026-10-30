@@ -57,8 +57,6 @@ pub struct GitViewer {
     pub(crate) cursor: Option<ChangeRequestId>,
     pub(crate) detail: Option<DetailState>,
     /// Changed files per PR, so reopening the Code tab is instant.
-    /// Code tab shows the file tree beside the diff.
-    pub(crate) code_tree: bool,
     pub(crate) code_cache: HashMap<ChangeRequestId, Arc<Vec<gv_engine::ChangedFile>>>,
     pub(crate) list_scroll: ScrollHandle,
     pub(crate) detail_scroll: ScrollHandle,
@@ -70,13 +68,10 @@ pub struct GitViewer {
     pub(crate) copied_gen: u64,
     pub(crate) toast: Option<String>,
     pub(crate) toast_gen: u64,
-    pub(crate) detail_w: Pixels,
     /// Window width at the last render, for layout decisions made while rendering children.
     pub(crate) viewport_w: Pixels,
     /// Detail pane open in a narrow window: sidebar collapses to a rail, rows drop secondary meta.
     pub(crate) compact: bool,
-    /// Dragging the detail pane's resize handle.
-    pub(crate) resizing: bool,
     pub(crate) search: Entity<TextInput>,
     pub(crate) composer: Entity<TextInput>,
     /// Shared field of the Code tab's inline composer, reply and edit.
@@ -116,6 +111,20 @@ pub struct GitViewer {
     pub(crate) merge_opts: gv_engine::MergeOptions,
     /// Reason under an error toast; None for success toasts.
     pub(crate) toast_error: Option<String>,
+    /// One PR takes the whole window (else triage: list plus preview).
+    pub(crate) reviewing: bool,
+    /// Cmd+\\ hid the triage preview.
+    pub(crate) preview_hidden: bool,
+    pub(crate) review: crate::state::ReviewUi,
+    /// File tree filter and the Cmd+P file picker query.
+    pub(crate) tree_filter: Entity<TextInput>,
+    pub(crate) quick_input: Entity<TextInput>,
+    pub(crate) refocus_quick: bool,
+    /// Right-click menu on a repository name (rename / hide).
+    pub(crate) repo_menu: Option<crate::state::RepoMenu>,
+    pub(crate) refocus_alias: bool,
+    /// Search field of Settings > Repositories.
+    pub(crate) repo_search: Entity<TextInput>,
 }
 
 /// Subscribe `f` to the input's Enter key.
@@ -196,8 +205,37 @@ impl GitViewer {
             }
         })
         .detach();
-        on_submit(cx, &alias_input, |this, _, cx| this.save_alias(cx));
+        on_submit(cx, &alias_input, |this, _, cx| {
+            if this.repo_menu.is_some() {
+                this.save_repo_rename(cx)
+            } else {
+                this.save_alias(cx)
+            }
+        });
         on_submit(cx, &rename_input, |this, _, cx| this.save_rename(cx));
+        let tree_filter = cx.new(|cx| TextInput::new("Filter files", cx).inset(crate::ui::molecules::INPUT_INSET, crate::ui::molecules::INPUT_INSET));
+        let quick_input = cx.new(|cx| TextInput::new("Go to file", cx));
+        let repo_search = cx.new(|cx| TextInput::new("Search repositories", cx).inset(crate::ui::molecules::INPUT_INSET, crate::ui::molecules::INPUT_INSET));
+        cx.subscribe(&repo_search, |_, _, ev: &InputEvent, cx| {
+            if matches!(ev, InputEvent::Changed) {
+                cx.notify()
+            }
+        })
+        .detach();
+        cx.subscribe(&tree_filter, |_, _, ev: &InputEvent, cx| {
+            if matches!(ev, InputEvent::Changed) {
+                cx.notify()
+            }
+        })
+        .detach();
+        cx.subscribe(&quick_input, |this, _, ev: &InputEvent, cx| match ev {
+            InputEvent::Changed => {
+                this.review.quick_sel = 0;
+                cx.notify()
+            }
+            InputEvent::Submit => this.run_quick_file(this.review.quick_sel, cx),
+        })
+        .detach();
         let focus = cx.focus_handle();
         window.focus(&focus);
         let mut this = Self {
@@ -226,7 +264,6 @@ impl GitViewer {
             error: None,
             cursor: None,
             detail: None,
-            code_tree: false,
             code_cache: HashMap::new(),
             list_scroll: ScrollHandle::new(),
             detail_scroll: ScrollHandle::new(),
@@ -237,10 +274,8 @@ impl GitViewer {
             copied_gen: 0,
             toast: None,
             toast_gen: 0,
-            detail_w: layout::DETAIL_W,
-            viewport_w: layout::COMPACT_BELOW,
+            viewport_w: layout::PREVIEW_COMPACT_BELOW,
             compact: false,
-            resizing: false,
             search,
             composer,
             inline_input,
@@ -267,6 +302,15 @@ impl GitViewer {
             people_input,
             merge_opts: Default::default(),
             toast_error: None,
+            reviewing: false,
+            preview_hidden: false,
+            review: Default::default(),
+            tree_filter,
+            quick_input,
+            refocus_quick: false,
+            repo_menu: None,
+            refocus_alias: false,
+            repo_search,
         };
         cx.observe_window_appearance(window, |_, _, cx| cx.notify()).detach();
         cx.observe_window_activation(window, |this, window, cx| {
@@ -305,11 +349,6 @@ impl GitViewer {
         }
     }
 
-    /// The dragged detail width, narrowed so the list keeps `LIST_MIN_W`.
-    pub(crate) fn detail_width(&self) -> Pixels {
-        self.detail_w.min(self.viewport_w - self.sidebar_w() - layout::LIST_MIN_W).max(layout::DETAIL_MIN_W)
-    }
-
     /// Panel, card and window fills derived from the appearance settings.
     pub(crate) fn surfaces(&self) -> Translucency {
         self.settings.surfaces()
@@ -322,6 +361,12 @@ impl Render for GitViewer {
         if std::mem::take(&mut self.refocus) {
             window.focus(&self.focus);
         }
+        if std::mem::take(&mut self.refocus_alias) {
+            window.focus(&gpui::Focusable::focus_handle(self.alias_input.read(cx), cx));
+        }
+        if std::mem::take(&mut self.refocus_quick) {
+            window.focus(&gpui::Focusable::focus_handle(self.quick_input.read(cx), cx));
+        }
         if std::mem::take(&mut self.refocus_palette) {
             window.focus(&gpui::Focusable::focus_handle(self.palette_input.read(cx), cx));
         }
@@ -329,17 +374,18 @@ impl Render for GitViewer {
         theme::set_light(self.settings.theme.is_light(window.appearance()));
         window.set_background_appearance(self.settings.appearance.to_gpui());
         self.viewport_w = window.viewport_size().width;
-        self.compact = self.detail.is_some() && self.viewport_w < layout::COMPACT_BELOW;
+        let previewing = !self.reviewing && !self.preview_hidden && self.detail.is_some();
+        self.compact = previewing && self.viewport_w < layout::PREVIEW_COMPACT_BELOW;
         let bg_image = self.settings.background_image.clone().filter(|p| Path::new(p).is_file());
-        let main = div()
-            .absolute()
-            .top_0()
-            .left_0()
-            .size_full()
-            .flex()
-            .when(!self.nav.sidebar_hidden, |m| m.child(crate::ui::motion::slide_in_left(div().h_full().child(self.render_sidebar(cx)), "sidebar", layout::SIDEBAR_SLIDE)))
-            .child(self.render_list(cx))
-            .children(self.detail.as_ref().map(|d| self.render_detail(d, cx)));
+        let main = div().absolute().top_0().left_0().size_full().flex();
+        let main = match self.detail.as_ref().filter(|_| self.reviewing) {
+            // Review mode: the PR takes the whole content area; the sidebar and list step aside.
+            Some(d) => main.child(self.render_review(d, cx)),
+            None => main
+                .when(!self.nav.sidebar_hidden, |m| m.child(crate::ui::motion::slide_in_left(div().h_full().child(self.render_sidebar(cx)), "sidebar", layout::SIDEBAR_SLIDE)))
+                .child(self.render_list(cx))
+                .children(self.detail.as_ref().filter(|_| previewing).map(|d| self.render_preview(d, cx))),
+        };
         let root = div().id("root");
         self.key_handlers(root, cx)
             .relative()
@@ -353,7 +399,7 @@ impl Render for GitViewer {
                 root.child(img(PathBuf::from(p)).absolute().top_0().left_0().size_full().object_fit(ObjectFit::Cover))
                     .child(div().absolute().top_0().left_0().size_full().bg(theme::scrim().opacity(self.settings.background_dim / theme::scrim().a)))
             })
-            .when(self.resizing, |root| self.resize_handlers(root, cx))
+            .when(self.review.resizing.is_some(), |root| self.resize_handlers(root, cx))
             .child(main)
             .children(self.toast.clone().map(|t| {
                 let toast = match &self.toast_error {
@@ -364,5 +410,6 @@ impl Render for GitViewer {
                 Toaster::new().toast(toast)
             }))
             .children(self.render_overlay(cx))
+            .children(self.render_repo_menu(cx))
     }
 }

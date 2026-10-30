@@ -5,7 +5,8 @@ use gv_engine::ChangeRequest;
 
 use crate::app::GitViewer;
 use crate::state;
-use crate::features::shared::{checks_text, layout, number_label, provider_icon, relative_time, row_hint, state_icon};
+use crate::features::shared::ci::{ci_status, ci_words, status_icon};
+use crate::features::shared::{layout, number_label, provider_icon, relative_time, row_hint, state_icon};
 use crate::ui::atoms::{tooltip, Avatar, Icon, IconName, ListItem, Pill};
 use crate::ui::theme;
 
@@ -19,7 +20,18 @@ impl GitViewer {
         let menu = self.render_row_menu(c, cx);
         let sid = c.id.clone();
         let group: SharedString = format!("row-{}", c.id.key()).into();
-        let (checks, checks_color) = checks_text(c);
+        let repo = c.id.repo.clone();
+        let ci = ci_status(&c.checks, None).map(|st| {
+            div()
+                .id(SharedString::from(format!("ci-{}", c.id.key())))
+                .flex()
+                .flex_shrink_0()
+                .items_center()
+                .gap(theme::SPACE_1)
+                .tooltip(tooltip(ci_words(&c.checks)))
+                .child(status_icon(&format!("row-{}", c.id.key()), st))
+                .when(c.checks.failed > 0, |e| e.child(div().whitespace_nowrap().text_color(theme::danger()).child(format!("{} failing", c.checks.failed))))
+        });
         let meta = div()
             .flex()
             .items_center()
@@ -33,12 +45,16 @@ impl GitViewer {
                     .id(SharedString::from(format!("repo-{}", c.id.key())))
                     .min_w(theme::SPACE_0)
                     .truncate()
-                    .tooltip(tooltip(c.id.repo.path.clone()))
+                    .tooltip(tooltip(format!("{}  right-click to rename", c.id.repo.path)))
+                    .on_mouse_down(MouseButton::Right, cx.listener(move |this, ev: &MouseDownEvent, _, cx| {
+                        cx.stop_propagation();
+                        this.open_repo_menu(repo.clone(), ev.position, cx)
+                    }))
                     .child(self.repo_label(&c.id.repo)),
             )
             .when(!self.compact, |d| d.child(div().flex().items_center().gap(theme::SPACE_1P5).flex_shrink_0().child(Avatar::new(c.author.username.clone()).image(self.avatar(c.author.avatar_url.as_deref()))).child(c.author.username.clone())))
             .child(Pill::new(number_label(c), theme::success()).icon(IconName::GitPullRequest))
-            .child(div().flex_shrink_0().whitespace_nowrap().text_color(checks_color).child(checks))
+            .children(ci)
             .children(row_hint(c).filter(|_| !self.compact).map(|h| div().flex_shrink_0().whitespace_nowrap().text_color(theme::text_muted()).child(h)));
         let diff = match (c.additions, c.deletions) {
             (Some(a), Some(d)) => Some(
@@ -92,13 +108,20 @@ impl GitViewer {
                 this.quiet.row_menu = Some((menu_id.clone(), ev.position));
                 cx.notify()
             }))
-            .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
+            .on_click(cx.listener(move |this, ev: &ClickEvent, window, cx| {
                 this.set_cursor(cr.id.clone(), cx);
                 window.focus(&this.focus);
                 if this.settings.open_in == crate::settings::OpenIn::Browser {
                     cx.open_url(&cr.web_url)
                 } else {
-                    this.open_detail(cr.clone(), cx)
+                    // Click previews; a double click (or Enter) opens the review.
+                    if this.detail.as_ref().map(|d| &d.summary.id) != Some(&cr.id) {
+                        this.preview_hidden = false;
+                        this.open_detail(cr.clone(), cx)
+                    }
+                    if ev.click_count() >= 2 {
+                        this.enter_review(cx)
+                    }
                 }
             }))
             .child(

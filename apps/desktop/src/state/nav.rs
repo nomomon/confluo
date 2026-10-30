@@ -11,8 +11,8 @@ use crate::settings::ThemeMode;
 pub struct NavState {
     /// Cmd+B hid the sidebar.
     pub sidebar_hidden: bool,
-    /// PRs opened in the detail pane, oldest first.
-    pub history: Vec<ChangeRequestId>,
+    /// Places visited, oldest first: a PR in Review mode, or the list (`None`).
+    pub history: Vec<Option<ChangeRequestId>>,
     /// Index into `history` of the PR on screen.
     pub pos: usize,
     /// The detail pane closed last, for Cmd+\ to bring back.
@@ -26,7 +26,7 @@ const HISTORY_MAX: usize = 50;
 
 impl NavState {
     /// Record a PR opened directly (not via back/forward): drop the forward part, then push.
-    pub fn push(&mut self, id: ChangeRequestId) {
+    pub fn push(&mut self, id: Option<ChangeRequestId>) {
         if self.history.get(self.pos) == Some(&id) {
             return;
         }
@@ -40,8 +40,8 @@ impl NavState {
         self.pos = self.history.len() - 1;
     }
 
-    /// Step back (-1) or forward (+1); returns the PR to show.
-    pub fn step(&mut self, delta: isize) -> Option<ChangeRequestId> {
+    /// Step back (-1) or forward (+1); returns the place to show (`Some(None)` is the list).
+    pub fn step(&mut self, delta: isize) -> Option<Option<ChangeRequestId>> {
         let next = self.pos as isize + delta;
         if next < 0 || next as usize >= self.history.len() {
             return None;
@@ -57,13 +57,18 @@ impl GitViewer {
         cx.notify();
     }
 
-    /// Cmd+\: close the detail pane, or reopen the last one (else the highlighted row).
+    /// Cmd+\ (triage): hide or show the preview pane.
     pub(crate) fn toggle_detail(&mut self, cx: &mut Context<Self>) {
-        if self.detail.is_some() {
-            self.close_detail(cx);
-        } else if let Some(c) = self.nav.last_closed.clone().or_else(|| self.cursor.as_ref().and_then(|id| self.find_item(id))) {
-            self.open_detail(c, cx);
+        if self.reviewing {
+            return;
         }
+        self.preview_hidden = !self.preview_hidden;
+        if !self.preview_hidden && self.detail.is_none() {
+            if let Some(c) = self.nav.last_closed.clone().or_else(|| self.cursor.as_ref().and_then(|id| self.find_item(id))) {
+                self.open_detail(c, cx);
+            }
+        }
+        cx.notify();
     }
 
     /// A PR in the list (or the older section) by id.
@@ -71,18 +76,34 @@ impl GitViewer {
         self.items.iter().chain(&self.quiet.stale).find(|c| &c.id == id).cloned()
     }
 
-    /// Cmd+[ / Cmd+]: walk the PRs opened in this session.
+    /// Cmd+[ / Cmd+]: walk the places visited this session (the list and PRs in Review mode).
     pub(crate) fn history_step(&mut self, delta: isize, cx: &mut Context<Self>) {
         let mut nav = std::mem::take(&mut self.nav);
         let target = nav.step(delta);
         self.nav = nav;
-        let Some(id) = target else { return };
-        let cr = self.find_item(&id).or_else(|| self.engine.store().get_change_request(&id).ok().flatten());
-        if let Some(c) = cr {
-            self.navigating = true;
-            self.open_detail(c, cx);
-            self.navigating = false;
+        let Some(place) = target else {
+            // Nothing earlier: Cmd+[ in Review mode still goes back to the list.
+            if delta < 0 && self.reviewing {
+                self.exit_review(cx);
+            }
+            return;
+        };
+        self.navigating = true;
+        match place {
+            None => {
+                if self.reviewing {
+                    self.exit_review(cx)
+                }
+            }
+            Some(id) => {
+                let cr = self.find_item(&id).or_else(|| self.engine.store().get_change_request(&id).ok().flatten());
+                if let Some(c) = cr {
+                    self.open_detail(c, cx);
+                    self.enter_review(cx);
+                }
+            }
         }
+        self.navigating = false;
     }
 
     /// Cmd+1/2/3: Inbox, Starred, first project.
@@ -125,15 +146,15 @@ mod tests {
     #[test]
     fn history_back_forward_and_branching() {
         let mut n = NavState::default();
-        n.push(id(1));
-        n.push(id(2));
-        n.push(id(3));
-        assert_eq!(n.step(-1), Some(id(2)));
-        assert_eq!(n.step(-1), Some(id(1)));
+        n.push(Some(id(1)));
+        n.push(None);
+        n.push(Some(id(3)));
+        assert_eq!(n.step(-1), Some(None));
+        assert_eq!(n.step(-1), Some(Some(id(1))));
         assert_eq!(n.step(-1), None);
-        assert_eq!(n.step(1), Some(id(2)));
-        n.push(id(4));
-        assert_eq!(n.history, vec![id(1), id(2), id(4)]);
+        assert_eq!(n.step(1), Some(None));
+        n.push(Some(id(4)));
+        assert_eq!(n.history, vec![Some(id(1)), None, Some(id(4))]);
         assert_eq!(n.step(1), None);
     }
 }

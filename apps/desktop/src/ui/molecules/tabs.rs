@@ -13,6 +13,7 @@ pub enum TabsVariant {
     #[default]
     Pill,
     Underline,
+    #[allow(dead_code)] // kit API
     Floating,
 }
 

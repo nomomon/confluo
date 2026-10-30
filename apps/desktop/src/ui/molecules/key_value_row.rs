@@ -5,11 +5,13 @@ use gpui::{div, prelude::*, AnyElement, App, SharedString, Window};
 use crate::ui::theme;
 
 #[derive(IntoElement)]
+#[allow(dead_code)] // kit API
 pub struct KeyValueRow {
     key: SharedString,
     value: AnyElement,
 }
 
+#[allow(dead_code)] // kit API
 impl KeyValueRow {
     pub fn new(key: impl Into<SharedString>, value: impl IntoElement) -> Self {
         Self { key: key.into(), value: value.into_any_element() }

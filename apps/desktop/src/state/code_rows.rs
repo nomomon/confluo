@@ -24,6 +24,8 @@ pub enum Row {
     Hunk(usize, usize),
     /// (file, hunk, line).
     Line(usize, usize, usize),
+    /// Side-by-side row: (file, hunk, old side line, new side line).
+    Pair(usize, usize, Option<usize>, Option<usize>),
     Notice(usize, Notice),
     /// Inline review thread: (file, index into `detail.threads`).
     Thread(usize, usize),
@@ -41,11 +43,29 @@ impl Row {
             Row::Header(f)
             | Row::Hunk(f, _)
             | Row::Line(f, _, _)
+            | Row::Pair(f, _, _, _)
             | Row::Notice(f, _)
             | Row::Thread(f, _)
             | Row::Composer(f)
             | Row::Outdated(f, _)
             | Row::End(f) => f,
+        }
+    }
+
+    /// The diff line a cursor on this row stands on (the new side of a pair when it has one).
+    pub fn line(self) -> Option<(usize, usize, usize)> {
+        match self {
+            Row::Line(f, h, l) => Some((f, h, l)),
+            Row::Pair(f, h, a, b) => b.or(a).map(|l| (f, h, l)),
+            _ => None,
+        }
+    }
+
+    pub fn has_line(self, fi: usize, hi: usize, li: usize) -> bool {
+        match self {
+            Row::Line(f, h, l) => (f, h, l) == (fi, hi, li),
+            Row::Pair(f, h, a, b) => (f, h) == (fi, hi) && (a == Some(li) || b == Some(li)),
+            _ => false,
         }
     }
 }
@@ -56,6 +76,8 @@ pub struct InlineRows<'a> {
     pub index: Option<&'a InlineIndex>,
     /// (file, side, line) of the open composer.
     pub draft: Option<(usize, DiffSide, u32)>,
+    /// Side-by-side rows instead of unified lines.
+    pub split: bool,
 }
 
 /// The side and number a new comment on this line anchors to: removed lines the old side, else the new side.
@@ -89,13 +111,26 @@ pub fn file_rows(fi: usize, f: &ChangedFile, collapsed: bool, show_large: bool, 
         } else {
             for (hi, h) in f.hunks.iter().enumerate() {
                 rows.push(Row::Hunk(fi, hi));
-                for (li, l) in h.lines.iter().enumerate() {
-                    rows.push(Row::Line(fi, hi, li));
+                let after = |rows: &mut Vec<Row>, li: usize| {
+                    let l = &h.lines[li];
                     if let Some(ix) = inline.index {
                         rows.extend(line_threads(ix, f.path(), l).map(|t| Row::Thread(fi, t)));
                     }
                     if inline.draft.is_some_and(|(df, side, n)| df == fi && line_anchor(l) == Some((side, n))) {
                         rows.push(Row::Composer(fi));
+                    }
+                };
+                if inline.split {
+                    for (a, b) in super::split::pair_lines(&h.lines) {
+                        rows.push(Row::Pair(fi, hi, a, b));
+                        let mut lis: Vec<usize> = a.into_iter().chain(b).collect();
+                        lis.dedup();
+                        lis.into_iter().for_each(|li| after(&mut rows, li));
+                    }
+                } else {
+                    for li in 0..h.lines.len() {
+                        rows.push(Row::Line(fi, hi, li));
+                        after(&mut rows, li);
                     }
                 }
             }
@@ -173,7 +208,7 @@ mod tests {
         gone.position = Some(gv_engine::DiffPosition::new("a", DiffSide::New, 99));
         let files = vec![file(2)];
         let ix = gv_engine::index_inline_threads(&[t, gone], &files);
-        let inline = InlineRows { index: Some(&ix), draft: Some((0, DiffSide::New, 1)) };
+        let inline = InlineRows { index: Some(&ix), draft: Some((0, DiffSide::New, 1)), split: false };
         let (rows, _) = build_rows(&files, &HashSet::new(), &HashSet::new(), inline);
         assert_eq!(
             rows,

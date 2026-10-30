@@ -172,32 +172,22 @@ impl GitViewer {
         cx.notify();
     }
 
-    pub(crate) fn open_alias(&mut self, repo: Option<RepoRef>, cx: &mut Context<Self>) {
-        self.overlay = Overlay::Alias;
-        self.set_alias_repo(repo, cx);
-    }
-
     pub(crate) fn set_alias_repo(&mut self, repo: Option<RepoRef>, cx: &mut Context<Self>) {
-        let cur = repo.as_ref().and_then(|r| self.engine.repo_override(r).ok()).and_then(|o| o.alias).unwrap_or_default();
-        self.alias_input.update(cx, |i, cx| i.set_text(cur, cx));
+        let cur = repo.as_ref().map(|r| self.repo_label(r)).unwrap_or_default();
+        let path = repo.as_ref().map(|r| r.path.clone()).unwrap_or_default();
+        self.alias_input.update(cx, |i, cx| {
+            i.set_placeholder(path, cx);
+            i.set_text(cur, cx)
+        });
         self.alias_repo = repo;
         cx.notify();
     }
 
+    /// Enter in the inline name field of Settings > Repositories.
     pub(crate) fn save_alias(&mut self, cx: &mut Context<Self>) {
-        let Some(repo) = self.alias_repo.clone() else { return };
-        let alias = self.alias_input.read(cx).text().trim().to_string();
-        let mut o = self.engine.repo_override(&repo).unwrap_or_default();
-        o.alias = (!alias.is_empty()).then_some(alias);
-        if let Err(e) = self.engine.set_repo_override(&repo, o) {
-            self.error = Some(err_str(e));
-        }
-        match self.overlay {
-            Overlay::Settings => self.alias_repo = None,
-            Overlay::Alias => self.overlay = Overlay::None,
-            _ => {}
-        }
-        self.reload();
-        cx.notify();
+        let Some(repo) = self.alias_repo.take() else { return };
+        let text = self.alias_input.read(cx).text().trim().to_string();
+        let default = repo.path.rsplit('/').next().unwrap_or(&repo.path).to_string();
+        self.set_alias(&repo, (!text.is_empty() && text != default).then_some(text), cx);
     }
 }

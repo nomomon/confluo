@@ -1,9 +1,9 @@
 //! Map engine provider, state, review and check data onto `ui` atoms.
 
-use gpui::{div, prelude::*, Div, Hsla};
+use gpui::Hsla;
 use gv_engine::{ChangeRequest, ChangeRequestState, ProviderKind, ReviewState};
 
-use crate::ui::atoms::{Icon, IconName, Pill};
+use crate::ui::atoms::{Icon, IconName};
 use crate::ui::theme;
 
 /// Tabler brand icon for a provider: outline, muted, `ICON_MD`.
@@ -14,15 +14,6 @@ pub fn provider_icon(kind: ProviderKind) -> Icon {
         ProviderKind::Azure => IconName::BrandAzure,
     };
     Icon::new(name).size(theme::ICON_MD).color(theme::text_muted())
-}
-
-pub fn state_pill(s: ChangeRequestState) -> Pill {
-    match s {
-        ChangeRequestState::Open => Pill::new("Open", theme::success()),
-        ChangeRequestState::Draft => Pill::new("Draft", theme::text_subtle()),
-        ChangeRequestState::Merged => Pill::new("Merged", theme::merged()),
-        ChangeRequestState::Closed => Pill::new("Closed", theme::danger()),
-    }
 }
 
 /// Leading pull request icon: green open, grey draft, purple merged, red closed.
@@ -52,28 +43,11 @@ pub fn number_label(c: &ChangeRequest) -> String {
     format!("{sep}{}", c.id.number)
 }
 
-pub fn review_summary(c: &ChangeRequest) -> Div {
-    let n = |s: ReviewState| c.reviewers.iter().filter(|r| r.state == s).count();
-    let (a, ch, p) = (n(ReviewState::Approved), n(ReviewState::ChangesRequested), n(ReviewState::Pending));
-    let (text, color) = if ch > 0 {
-        (format!("{ch} changes requested"), theme::danger())
-    } else if a > 0 {
-        (format!("{a} approved"), theme::success())
-    } else if p > 0 {
-        (format!("{p} pending review"), theme::warning())
-    } else if c.reviewers.is_empty() {
-        ("No reviewers".into(), theme::text_subtle())
-    } else {
-        ("Commented".into(), theme::text_muted())
-    };
-    div().text_size(theme::text_xs()).text_color(color).child(text)
-}
-
 /// Checks in words: green when all passed, red when something fails.
 pub fn checks_text(c: &ChangeRequest) -> (String, Hsla) {
     let k = c.checks;
     if k.total == 0 {
-        ("No checks reported".into(), theme::text_subtle())
+        (String::new(), theme::text_subtle())
     } else if k.failed > 0 {
         (format!("{} failing", k.failed), theme::danger())
     } else if k.pending > 0 {

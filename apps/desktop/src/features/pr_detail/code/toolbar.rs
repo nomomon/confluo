@@ -5,7 +5,9 @@ use gpui::{div, prelude::*, ClickEvent, Context};
 use crate::app::GitViewer;
 use crate::state::code_rows::patch_text;
 use crate::state::{Copied, DetailState};
+use crate::features::keymap::{self, ToggleFileTree};
 use crate::ui::atoms::{Button, ButtonVariant, IconName};
+use crate::ui::molecules::ToggleGroup;
 use crate::ui::theme;
 
 impl GitViewer {
@@ -23,16 +25,12 @@ impl GitViewer {
             .flex()
             .items_center()
             .gap(theme::SPACE_1)
-            .child(
-                icon("code-tree", IconName::LayoutSidebar, "Toggle file tree").on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
-                    this.code_tree = !this.code_tree;
-                    cx.notify()
-                })),
-            )
-            .child(icon("code-prev", IconName::ChevronUp, "Previous file  p").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.step_file(-1, cx))))
-            .child(icon("code-next", IconName::ChevronDown, "Next file  n").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.step_file(1, cx))))
+            .child(Button::new("code-tree", "").icon(IconName::LayoutSidebar).variant(ButtonVariant::Ghost).tooltip(keymap::tip::<ToggleFileTree>("Toggle file tree")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_tree(cx))))
+            .child(icon("code-prev", IconName::ChevronUp, "Previous file  P").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.step_file(-1, cx))))
+            .child(icon("code-next", IconName::ChevronDown, "Next file  N").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.step_file(1, cx))))
             .child(div().pl(theme::SPACE_1).text_size(theme::text_sm()).text_color(theme::text_muted()).child(label))
             .child(div().flex_1())
+            .child(ToggleGroup::new("diff-view").item("Unified", Some(IconName::LayoutRows), !c.split).item("Split", Some(IconName::LayoutColumns), c.split).on_change(cx.listener(|this, i: &usize, _, cx| this.set_split(*i == 1, cx))))
             .child(
                 icon("code-collapse", IconName::Fold, if all_collapsed { "Expand all" } else { "Collapse all" }).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
                     if let Some(d) = this.detail.as_mut() {
@@ -47,6 +45,7 @@ impl GitViewer {
                     this.copy(Copied::Diff, patch_text(&files), cx)
                 },
             )))
+            .child(Button::new("code-right", "").icon(IconName::LayoutSidebarRight).variant(ButtonVariant::Ghost).tooltip(keymap::tip::<keymap::ToggleRightPanel>("Toggle right panel")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_right(cx))))
     }
 
     /// Jump to the next (`1`) or previous (`-1`) file card.

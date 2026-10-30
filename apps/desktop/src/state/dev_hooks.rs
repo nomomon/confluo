@@ -18,7 +18,8 @@ impl GitViewer {
         }
     }
 
-    /// Dev only: `CONFLUO_OVERLAY=add-project|rename|delete|menu|palette|review|older|more|merge|close|people|checks`
+    /// Dev only: `CONFLUO_OVERLAY=add-project|rename|delete|menu|palette|review|older|more|merge|close|people|checks`,
+    /// also `checks-popover|quick-open|repo-menu|repo-rename` (Review mode popovers and the repository menu)
     /// opens that overlay at launch (people opens the reviewer picker, checks expands the first failed check)
     /// (rename, delete and menu act on the first project).
     pub(crate) fn overlay_from_env(&mut self, cx: &mut Context<Self>) {
@@ -46,6 +47,17 @@ impl GitViewer {
                 let failed = self.detail.as_ref().and_then(|d| d.detail.as_ref()).and_then(|x| x.checks.runs.iter().find(|r| r.has_log).map(|r| r.id.clone()));
                 if let Some(id) = failed {
                     self.toggle_check(id, cx);
+                }
+            }
+            (Some("checks-popover"), _) => self.review.checks_open = true,
+            (Some("quick-open"), _) => self.open_quick_file(cx),
+            (Some(o @ ("repo-menu" | "repo-rename")), _) => {
+                if let Some(repo) = self.detail.as_ref().map(|d| d.summary.id.repo.clone()) {
+                    let pos = gpui::point(gpui::px(if self.reviewing { 720. } else { 420. }), gpui::px(if self.reviewing { 40. } else { 160. }));
+                    self.open_repo_menu(repo, pos, cx);
+                    if o == "repo-rename" {
+                        self.start_repo_rename(cx);
+                    }
                 }
             }
             (Some("older"), _) => {

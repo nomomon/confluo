@@ -22,8 +22,10 @@ impl GitViewer {
                 self.code_cache.insert(id.clone(), f.clone());
                 d.code.set_files(f);
                 d.reindex();
+                self.after_files(cx);
             }
         }
+        let Some(d) = self.detail.as_mut() else { return };
         d.code.loading = true;
         d.code.show_skeleton = false;
         let engine = self.engine.clone();
@@ -56,7 +58,8 @@ impl GitViewer {
                         d.code.error = None;
                         d.code.set_files(f);
                         d.reindex();
-                        d.code.apply_pending_select()
+                        d.code.apply_pending_select();
+                        v.after_files(cx);
                     }
                     (None, Err(e)) => d.code.error = Some(e),
                     (None, Ok(_)) => {}

@@ -32,6 +32,8 @@ pub struct DiffRow {
     dot: bool,
     /// Selected: `line_selected_bg()` over the add/del tint and a 2px accent bar.
     selected: bool,
+    /// Side-by-side cell: one number gutter (whichever side is set) and the marker.
+    one_number: bool,
 }
 
 impl DiffRow {
@@ -49,6 +51,7 @@ impl DiffRow {
             action: None,
             dot: false,
             selected: false,
+            one_number: false,
         }
     }
 
@@ -62,6 +65,12 @@ impl DiffRow {
     /// File view: one gutter (the new number) and no marker column.
     pub fn single_gutter(mut self) -> Self {
         self.show_marker = false;
+        self
+    }
+
+    /// Side-by-side cell: a single number gutter plus the +/- marker.
+    pub fn split_cell(mut self) -> Self {
+        self.one_number = true;
         self
     }
 
@@ -114,7 +123,7 @@ impl RenderOnce for DiffRow {
                 .text_color(theme::text_subtle())
                 .child(n.map(|n| n.to_string()).unwrap_or_default())
         };
-        let marker_x = theme::SPACE_0P5 + self.gutter_w * if self.show_marker { 2. } else { 1. };
+        let marker_x = theme::SPACE_0P5 + self.gutter_w * if self.show_marker && !self.one_number { 2. } else { 1. };
         let dot = div().absolute().left(theme::SPACE_1).top((self.height - theme::SPACE_1P5) / 2.).size(theme::SPACE_1P5).rounded(theme::RADIUS_FULL).bg(theme::accent());
         div()
             .relative()
@@ -129,8 +138,8 @@ impl RenderOnce for DiffRow {
             .when(self.selected, |d| d.child(div().absolute().inset_0().bg(theme::line_selected_bg())))
             .when(self.dot, |d| d.child(dot))
             .child(div().flex_shrink_0().w(theme::SPACE_0P5).h_full().when_some(if self.selected { Some(theme::accent()) } else { accent }, |d, c| d.bg(c)))
-            .when(self.show_marker, |d| d.child(num(self.old_no)))
-            .child(num(self.new_no))
+            .when(self.show_marker && !self.one_number, |d| d.child(num(self.old_no)))
+            .child(num(if self.one_number { self.new_no.or(self.old_no) } else { self.new_no }))
             .when(self.show_marker, |d| {
                 d.child(div().flex_shrink_0().w(theme::SPACE_4).text_color(accent.unwrap_or(theme::text_subtle())).child(marker))
             })

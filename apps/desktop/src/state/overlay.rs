@@ -24,7 +24,6 @@ pub enum Overlay {
     None,
     Settings,
     AddProject,
-    Alias,
     Rename(i64),
     /// Confirm deleting a project.
     ConfirmDelete(i64),
@@ -48,12 +47,13 @@ pub enum SettingsPage {
     Appearance,
     Accounts,
     Projects,
+    Repositories,
     Filters,
     Shortcuts,
 }
 
 impl SettingsPage {
-    pub const ALL: [SettingsPage; 6] = [Self::General, Self::Appearance, Self::Accounts, Self::Projects, Self::Filters, Self::Shortcuts];
+    pub const ALL: [SettingsPage; 7] = [Self::General, Self::Appearance, Self::Accounts, Self::Projects, Self::Repositories, Self::Filters, Self::Shortcuts];
 
     pub fn label(self) -> &'static str {
         match self {
@@ -61,6 +61,7 @@ impl SettingsPage {
             Self::Appearance => "Appearance",
             Self::Accounts => "Accounts",
             Self::Projects => "Projects",
+            Self::Repositories => "Repositories",
             Self::Filters => "Filters",
             Self::Shortcuts => "Shortcuts",
         }
@@ -140,7 +141,7 @@ impl GitViewer {
         cx.notify();
     }
 
-    /// Every repo of every project plus those in view, for the alias table.
+    /// Every repo of every project plus those in view, for Settings > Repositories.
     pub(crate) fn all_repos(&self) -> Vec<RepoRef> {
         let mut v: Vec<RepoRef> = self.projects.iter().flat_map(|p| self.engine.store().project_repos(p.id).unwrap_or_default()).collect();
         v.extend(self.items.iter().map(|c| c.id.repo.clone()));

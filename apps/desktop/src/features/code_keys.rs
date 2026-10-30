@@ -23,7 +23,7 @@ pub fn bind_keys(cx: &mut App) {
 impl GitViewer {
     /// The Code tab (diff or whole-file viewer) is showing, so arrows drive the line cursor.
     pub(crate) fn code_lines_active(&self) -> bool {
-        self.detail.as_ref().is_some_and(|d| d.tab == DetailTab::Code && (d.code.viewer.is_some() || d.code.files.as_ref().is_some_and(|f| !f.is_empty())))
+        self.reviewing && self.detail.as_ref().is_some_and(|d| d.tab == DetailTab::Code && (d.code.viewer.is_some() || d.code.files.as_ref().is_some_and(|f| !f.is_empty())))
     }
 
     fn arrow(&mut self, delta: isize, extend: bool, cx: &mut Context<Self>) {

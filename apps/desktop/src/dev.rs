@@ -17,13 +17,16 @@ pub fn window_size() -> Option<Size<Pixels>> {
 }
 
 /// `CONFLUO_THEME=light|dark|system` and `CONFLUO_MATERIAL=blurred|transparent|opaque`
-/// override the saved appearance for this launch (saved again only if Settings change).
+/// (and `CONFLUO_SPLIT=1`, side-by-side diff) override the saved appearance for this launch (saved again only if Settings change).
 pub fn apply_overrides(s: &mut Settings) {
     match var("CONFLUO_THEME").as_deref() {
         Some("light") => s.theme = ThemeMode::Light,
         Some("dark") => s.theme = ThemeMode::Dark,
         Some("system") => s.theme = ThemeMode::System,
         _ => {}
+    }
+    if var("CONFLUO_SPLIT").is_some() {
+        s.diff_split = true;
     }
     match var("CONFLUO_MATERIAL").as_deref() {
         Some("blurred") => s.appearance = Appearance::Blurred,

@@ -1,101 +1,31 @@
-//! Right-hand detail panel: header, Summary, Code or Activity body, floating tab pill.
+//! The open PR: the triage preview and Review mode (top bar, file tree, diff, right panel).
 
 mod activity;
 mod check_row;
 mod checkout;
 mod checks;
+mod ci;
+mod code;
+mod comment;
 mod description;
 mod edit_dialogs;
 mod edit_menu;
-mod code;
-mod comment;
 mod header;
-mod overview;
+mod preview;
 mod properties;
-mod tabs;
+mod quick_open;
+mod review;
+mod right_panel;
 
 pub(crate) use checkout::checkout_command;
 
-use gpui::{div, prelude::*, Context, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Stateful, Div};
-
 use crate::app::GitViewer;
-use crate::features::shared::layout;
-use crate::state::{DetailState, DetailTab};
-use crate::ui::atoms::ErrorText;
 use crate::ui::molecules::markdown::{image_urls, Markdown};
-use crate::ui::{motion, theme};
 
 impl GitViewer {
     /// Markdown with whichever of its remote images have loaded.
     pub(super) fn markdown(&self, id: impl Into<gpui::SharedString>, src: &str) -> Markdown {
         let images: std::collections::HashMap<_, _> = image_urls(src).into_iter().filter_map(|u| self.avatar(Some(&u)).map(|i| (u, i))).collect();
         Markdown::new(id, src).images(std::rc::Rc::new(images))
-    }
-
-    /// Root listeners while the resize handle is dragged.
-    pub(crate) fn resize_handlers(&self, root: Stateful<Div>, cx: &mut Context<Self>) -> Stateful<Div> {
-        root.on_mouse_move(cx.listener(|this, ev: &MouseMoveEvent, window, cx| {
-            let w = window.viewport_size().width - ev.position.x;
-            this.detail_w = w.clamp(layout::DETAIL_MIN_W, layout::DETAIL_MAX_W);
-            cx.notify()
-        }))
-        .on_mouse_up(
-            MouseButton::Left,
-            cx.listener(|this, _: &MouseUpEvent, _, cx| {
-                this.resizing = false;
-                cx.notify()
-            }),
-        )
-    }
-
-    pub(crate) fn render_detail(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
-        let code = d.tab == DetailTab::Code;
-        let col = div()
-            .id("detail-scroll")
-            .track_scroll(&self.detail_scroll)
-            .flex()
-            .flex_col()
-            .flex_1()
-            .min_h(theme::SPACE_0)
-            .when(!code, |c| c.overflow_y_scroll())
-            .gap(theme::card_gap())
-            .when(!code, |c| c.pb(theme::section_gap()))
-            .child(self.render_detail_header(d, cx))
-            .when_some(d.error.clone(), |col, e| col.child(ErrorText::new(e)))
-            .child(self.render_detail_body(d, cx));
-        let handle = div()
-            .id("detail-resize")
-            .absolute()
-            .top_0()
-            .left_0()
-            .h_full()
-            .w(layout::RESIZE_HANDLE_W)
-            .cursor_col_resize()
-            .hover(|s| s.bg(theme::border()))
-            .on_mouse_down(
-                MouseButton::Left,
-                cx.listener(|this, _: &MouseDownEvent, _, cx| {
-                    this.resizing = true;
-                    cx.notify()
-                }),
-            );
-        let panel = div()
-            .flex()
-            .flex_col()
-            .w(self.detail_width())
-            .flex_shrink_0()
-            .h_full()
-            .bg(self.surfaces().panel())
-            .border_l_1()
-            .border_color(theme::border_subtle())
-            .pt(layout::TITLEBAR_INSET)
-            .px(theme::pane_pad())
-            .gap(theme::SPACE_3)
-            .child(col)
-            .child(div().flex().justify_center().pb(theme::SPACE_3).child(self.render_detail_tabs(d, cx)))
-            .when(d.tab == DetailTab::Activity, |p| p.child(self.render_composer(d, cx)))
-            .when(d.tab == DetailTab::Summary, |p| p.pb(theme::SPACE_3))
-            .child(handle);
-        motion::slide_in_right(panel, "detail-panel", theme::SPACE_6)
     }
 }

@@ -4,7 +4,7 @@ use chrono::Utc;
 use gpui::Context;
 use gv_engine::{Comment, Thread, User};
 
-use super::{bridge, err_str, DetailTab};
+use super::{bridge, err_str};
 use crate::app::GitViewer;
 
 impl GitViewer {
@@ -35,7 +35,8 @@ impl GitViewer {
             }
         }
         d.posting = true;
-        d.tab = DetailTab::Activity;
+        self.review.right_tab = super::RightTab::Conversation;
+        self.review.right_open = true;
         self.composer.update(cx, |i, cx| i.set_text("", cx));
         let engine = self.engine.clone();
         let (restore_reply, restore_edit, restore_body) = (reply_to.clone(), editing.clone(), body.clone());

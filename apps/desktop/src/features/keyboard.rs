@@ -27,8 +27,15 @@ impl GitViewer {
             .on_action(cx.listener(|this, _: &OpenSelected, window, cx| {
                 if this.code_tab_active() && this.has_line_selection() {
                     this.comment_on_selection(window, cx)
+                } else if this.reviewing {
+                    // Already reviewing.
                 } else if let Some(c) = this.cursor_item(cx) {
-                    this.open_detail(c, cx)
+                    if this.detail.as_ref().map(|d| &d.summary.id) != Some(&c.id) {
+                        this.open_detail(c, cx);
+                    }
+                    this.enter_review(cx)
+                } else if this.detail.is_some() {
+                    this.enter_review(cx)
                 }
             }))
             .on_action(cx.listener(Self::dismiss))
@@ -80,7 +87,7 @@ impl GitViewer {
 
     /// Code tab shortcuts (n/p, ]/[, x) act only while the diff is showing.
     fn code_tab_active(&self) -> bool {
-        self.detail.as_ref().is_some_and(|d| d.tab == crate::state::DetailTab::Code && d.code.viewer.is_none())
+        self.reviewing && self.detail.as_ref().is_some_and(|d| d.tab == crate::state::DetailTab::Code && d.code.viewer.is_none())
     }
 
     pub(crate) fn cursor_item(&self, cx: &App) -> Option<ChangeRequest> {
@@ -94,6 +101,9 @@ impl GitViewer {
     }
 
     pub(crate) fn move_cursor(&mut self, delta: isize, cx: &mut Context<Self>) {
+        if self.reviewing {
+            return;
+        }
         let order = self.nav_order(cx);
         if order.is_empty() {
             return;
@@ -106,7 +116,7 @@ impl GitViewer {
         };
         self.set_cursor(order[next].clone(), cx);
         self.reveal_cursor.set(true);
-        if self.detail.is_some() {
+        if !self.preview_hidden {
             if let Some(c) = self.cursor_item(cx) {
                 self.open_detail(c, cx);
             }
@@ -127,6 +137,14 @@ impl GitViewer {
             // Closed the inline comment composer; keep the detail open.
         } else if self.code_lines_active() && self.clear_line_selection(cx) {
             // Cleared the line selection.
+        } else if self.reviewing && self.review.quick_open {
+            self.review.quick_open = false;
+        } else if self.reviewing && self.review.checks_open {
+            self.review.checks_open = false;
+        } else if self.reviewing && self.tree_filter.focus_handle(cx).is_focused(window) {
+            self.tree_filter.update(cx, |i, cx| i.set_text("", cx));
+        } else if self.reviewing {
+            self.exit_review(cx);
         } else if self.search.focus_handle(cx).is_focused(window) || self.detail.is_none() {
             self.search.update(cx, |i, cx| i.set_text("", cx));
         } else {

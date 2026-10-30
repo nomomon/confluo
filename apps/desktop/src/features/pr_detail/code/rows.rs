@@ -22,6 +22,32 @@ fn files_url(c: &ChangeRequest) -> String {
 }
 
 impl GitViewer {
+    /// "Viewed" checkbox in the file card header (v).
+    fn viewed_toggle(&self, fi: usize, path: &str, cx: &mut Context<Self>) -> impl IntoElement {
+        let on = self.review.viewed.contains(path);
+        div()
+            .id(("file-viewed", fi))
+            .flex()
+            .items_center()
+            .gap(theme::SPACE_1)
+            .px(theme::SPACE_1P5)
+            .py(theme::SPACE_0P5)
+            .rounded(theme::RADIUS_SM)
+            .border_1()
+            .border_color(theme::border_subtle())
+            .when(on, |e| e.bg(theme::surface_active()))
+            .text_size(theme::text_xs())
+            .text_color(if on { theme::text() } else { theme::text_muted() })
+            .tooltip(crate::ui::atoms::tooltip(crate::features::keymap::tip::<crate::features::keymap::ToggleViewed>("Mark as viewed")))
+            .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
+            .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+                cx.stop_propagation();
+                this.toggle_viewed(fi, cx)
+            }))
+            .child(Icon::new(if on { IconName::Check } else { IconName::Eye }).size(theme::ICON_SM).color(if on { theme::success() } else { theme::text_subtle() }))
+            .child("Viewed")
+    }
+
     pub(super) fn card_side(&self) -> Div {
         div().w_full().bg(self.surfaces().card()).border_l_1().border_r_1().border_color(theme::border_subtle()).overflow_hidden()
     }
@@ -46,6 +72,7 @@ impl GitViewer {
                 .child(f.hunks[hi].header.clone())
                 .into_any_element(),
             Row::Line(fi, hi, li) => self.render_diff_line(ix, fi, hi, li, &files, d, cx),
+            Row::Pair(fi, hi, a, b) => self.render_pair(ix, fi, hi, a, b, &files, d, cx),
             Row::Thread(fi, ti) => self.render_inline_thread(fi, ti, d, cx),
             Row::Composer(_) => self.render_line_composer(d, cx),
             Row::Outdated(_, n) => self
@@ -153,6 +180,7 @@ impl GitViewer {
                         this.copy(Copied::Path, copy_path.clone(), cx)
                     })),
             )
+            .child(self.viewed_toggle(fi, f.path(), cx))
             .when(f.status != FileStatus::Deleted && !f.binary, |el| {
                 el.child(Button::new(format!("view-file-{fi}"), "View file").variant(ButtonVariant::Ghost).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                     cx.stop_propagation();

@@ -37,6 +37,8 @@ pub struct CodeState {
     pub sel_kbd: bool,
     /// Dev only (`CONFLUO_SELECT`): lines to select once files load.
     pub pending_select: Option<PendingSelect>,
+    /// Side-by-side rows.
+    pub split: bool,
 }
 
 impl CodeState {
@@ -58,11 +60,12 @@ impl CodeState {
             dragging: false,
             sel_kbd: false,
             pending_select: None,
+            split: false,
         }
     }
 
     pub(crate) fn inline_rows(&self) -> InlineRows<'_> {
-        InlineRows { index: Some(&self.inline.index), draft: self.inline.draft.as_ref().map(|d| (d.fi, d.side, d.line)) }
+        InlineRows { index: Some(&self.inline.index), draft: self.inline.draft.as_ref().map(|d| (d.fi, d.side, d.line)), split: self.split }
     }
 
     /// Recompute rows and splice only the changed middle, so the scroll position holds.

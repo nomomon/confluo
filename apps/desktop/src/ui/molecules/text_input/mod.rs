@@ -87,6 +87,11 @@ impl TextInput {
         }
     }
 
+    pub fn set_placeholder(&mut self, s: impl Into<SharedString>, cx: &mut Context<Self>) {
+        self.placeholder = s.into();
+        cx.notify();
+    }
+
     pub fn text(&self) -> String {
         self.content.to_string()
     }

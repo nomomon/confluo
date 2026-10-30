@@ -12,7 +12,7 @@ impl CodeState {
     }
 
     fn row_of(&self, fi: usize, hi: usize, li: usize) -> Option<usize> {
-        self.rows.iter().position(|r| *r == Row::Line(fi, hi, li))
+        self.rows.iter().position(|r| r.has_line(fi, hi, li))
     }
 
     /// Up/down: move a one-line cursor across hunks and files, or grow the selection in its hunk.
@@ -25,11 +25,11 @@ impl CodeState {
             }
             Some(s) => self.row_of(s.fi, s.hi, s.range.head).and_then(|ix| {
                 let mut it: Box<dyn Iterator<Item = &Row>> = if delta > 0 { Box::new(self.rows[ix + 1..].iter()) } else { Box::new(self.rows[..ix].iter().rev()) };
-                it.find_map(|r| if let Row::Line(f, h, l) = *r { Some(DiffSel::single(f, h, l)) } else { None })
+                it.find_map(|r| r.line().map(|(f, h, l)| DiffSel::single(f, h, l)))
             }),
             None => {
                 let top = self.list.logical_scroll_top().item_ix;
-                self.rows[top.min(self.rows.len())..].iter().find_map(|r| if let Row::Line(f, h, l) = *r { Some(DiffSel::single(f, h, l)) } else { None })
+                self.rows[top.min(self.rows.len())..].iter().find_map(|r| r.line().map(|(f, h, l)| DiffSel::single(f, h, l)))
             }
         };
         let Some(s) = next else { return };

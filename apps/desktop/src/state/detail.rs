@@ -10,8 +10,8 @@ use crate::app::GitViewer;
 #[derive(Clone, Copy, PartialEq)]
 pub enum DetailTab {
     Summary,
+    /// Review mode: the diff fills the center.
     Code,
-    Activity,
 }
 
 pub struct DetailState {
@@ -33,9 +33,6 @@ pub struct DetailState {
 impl GitViewer {
     pub(crate) fn open_detail(&mut self, cr: ChangeRequest, cx: &mut Context<Self>) {
         let cached = self.engine.cached_detail(&cr.id).ok().flatten();
-        if !self.navigating {
-            self.nav.push(cr.id.clone());
-        }
         self.detail = Some(DetailState {
             summary: cr,
             detail: cached,
@@ -65,7 +62,7 @@ impl GitViewer {
         cx.notify();
     }
 
-    /// Dev only: `CONFLUO_OPEN=<pr url>` opens that PR at launch, `CONFLUO_TAB=code|activity` picks the tab,
+    /// Dev only: `CONFLUO_OPEN=<pr url>` previews that PR at launch, `CONFLUO_MODE=review` reviews it,
     /// `CONFLUO_REVEAL=<thread id>` scrolls the Code tab to that inline thread,
     /// `CONFLUO_SELECT=path:start-end` selects those new-side diff lines.
     pub(crate) fn open_from_env(&mut self, cx: &mut Context<Self>) {
@@ -74,12 +71,14 @@ impl GitViewer {
         let cr = self.engine.store().get_change_request(&id).ok().flatten().or_else(|| self.engine.cached_detail(&id).ok().flatten().map(|d| d.summary));
         let Some(cr) = cr else { return };
         self.open_detail(cr, cx);
-        let tab = match std::env::var("CONFLUO_TAB").as_deref() {
-            Ok("code") => DetailTab::Code,
-            Ok("activity") => DetailTab::Activity,
-            _ => DetailTab::Summary,
-        };
-        self.set_detail_tab(tab, cx);
+        // `CONFLUO_MODE=review` (or `CONFLUO_TAB=code|activity`) enters Review mode; activity opens Conversation.
+        let tab = std::env::var("CONFLUO_TAB").ok();
+        if std::env::var("CONFLUO_MODE").as_deref() == Ok("review") || tab.is_some() {
+            self.enter_review(cx);
+            if tab.as_deref() == Some("activity") {
+                self.review.right_tab = super::RightTab::Conversation;
+            }
+        }
         if let (Ok(t), Some(d)) = (std::env::var("CONFLUO_REVEAL"), self.detail.as_mut()) {
             d.code.inline.reveal = Some(t);
         }
@@ -90,6 +89,7 @@ impl GitViewer {
     }
 
     pub(crate) fn close_detail(&mut self, cx: &mut Context<Self>) {
+        self.reviewing = false;
         self.nav.last_closed = self.detail.take().map(|d| d.summary);
         self.menu = None;
         cx.notify();

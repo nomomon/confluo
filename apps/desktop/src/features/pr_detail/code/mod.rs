@@ -19,7 +19,7 @@ use crate::ui::molecules::EmptyState;
 use crate::ui::theme;
 
 /// Color for a file's status: added green, deleted red, renamed amber.
-pub(super) fn status_color(s: FileStatus) -> Hsla {
+pub(in crate::features::pr_detail) fn status_color(s: FileStatus) -> Hsla {
     match s {
         FileStatus::Added => theme::success(),
         FileStatus::Deleted => theme::danger(),
@@ -29,7 +29,7 @@ pub(super) fn status_color(s: FileStatus) -> Hsla {
 }
 
 /// `+a -d` in green and red, omitting zero sides.
-pub(super) fn diff_counts(a: u32, d: u32) -> Div {
+pub(in crate::features::pr_detail) fn diff_counts(a: u32, d: u32) -> Div {
     div()
         .flex()
         .flex_shrink_0()
@@ -41,7 +41,7 @@ pub(super) fn diff_counts(a: u32, d: u32) -> Div {
 }
 
 /// Message icon with the number of inline threads on a file; nothing when zero.
-pub(super) fn comment_count(n: usize) -> Option<Div> {
+pub(in crate::features::pr_detail) fn comment_count(n: usize) -> Option<Div> {
     (n > 0).then(|| {
         div()
             .flex()
@@ -60,7 +60,7 @@ pub(super) fn comment_count(n: usize) -> Option<Div> {
 }
 
 impl GitViewer {
-    pub(super) fn render_code(&self, d: &DetailState, cx: &mut Context<Self>) -> AnyElement {
+    pub(in crate::features::pr_detail) fn render_code(&self, d: &DetailState, cx: &mut Context<Self>) -> AnyElement {
         let c = &d.code;
         if let Some(v) = &c.viewer {
             return self.render_file_viewer(v, cx);
@@ -77,7 +77,6 @@ impl GitViewer {
                     .flex_1()
                     .min_h(theme::SPACE_0)
                     .gap(theme::SPACE_3)
-                    .when(self.code_tree, |el| el.child(self.render_file_tree(d, cx)))
                     .child(
                         div()
                             .id("diff-list")

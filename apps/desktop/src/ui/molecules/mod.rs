@@ -36,6 +36,7 @@ pub use dropdown_menu::DropdownMenu;
 pub use empty_state::EmptyState;
 pub use field::Field;
 pub use floating_toolbar::FloatingToolbar;
+#[allow(unused_imports)] // kit API
 pub use key_value_row::KeyValueRow;
 pub use list_section::ListSection;
 pub use banner::Banner;

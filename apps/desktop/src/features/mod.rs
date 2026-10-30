@@ -12,6 +12,7 @@ mod overlay;
 mod pr_detail;
 mod pr_list;
 mod projects;
+mod repo_menu;
 mod settings;
 mod shared;
 pub(crate) use shared::layout;

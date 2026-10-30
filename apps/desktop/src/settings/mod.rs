@@ -71,6 +71,8 @@ pub struct Settings {
     pub collapsed_sections: std::collections::HashMap<String, Vec<crate::state::Section>>,
     /// PRs inactive longer than this many days move to the "Older" footer; `None` never. Read by the CLI.
     pub stale_days: Option<u32>,
+    /// Review mode shows the diff side by side.
+    pub diff_split: bool,
 }
 
 impl Default for Settings {
@@ -96,6 +98,7 @@ impl Default for Settings {
             last_project: None,
             collapsed_sections: Default::default(),
             stale_days: Some(gv_engine::DEFAULT_STALE_DAYS),
+            diff_split: false,
         }
     }
 }

@@ -10,7 +10,7 @@ actions!(
     [
         SelectNext, SelectPrev, OpenSelected, Dismiss, FocusSearch, Refresh, OpenInBrowser, CopyCheckout, ToggleStar, TabAuthored, TabReviewing, TabAll, NextFile, PrevFile,
         ToggleFile, OpenSettings, About, Minimize, Zoom, ToggleSidebar, ToggleDetail, CommandPalette, CloseDetail, GoInbox, GoStarred, GoProject, HistoryBack, HistoryForward,
-        CopyLink, PostComment, Approve, ToggleTheme
+        CopyLink, PostComment, Approve, ToggleTheme, ToggleFileTree, ToggleRightPanel, QuickOpenFile, ToggleViewed, ToggleDiffView
     ]
 );
 
@@ -58,7 +58,7 @@ keymap! {
         Refresh ["cmd-r"] Any "Refresh";
         FocusSearch ["cmd-f", "/"] Any "Search";
         ToggleSidebar ["cmd-b"] Any "Toggle sidebar";
-        ToggleDetail ["cmd-\\", "cmd-shift-d"] Any "Toggle detail pane";
+        ToggleDetail ["cmd-\\", "cmd-shift-d"] Any "Toggle preview";
         ToggleTheme ["cmd-shift-l"] Any "Toggle light / dark";
         Dismiss ["escape"] Any "Close or clear";
         Minimize ["cmd-m"] Any "Minimize";
@@ -67,13 +67,13 @@ keymap! {
         GoInbox ["cmd-1"] Any "Inbox";
         GoStarred ["cmd-2"] Any "Starred";
         GoProject ["cmd-3"] Any "First project";
-        HistoryBack ["cmd-["] Any "Back to previous PR";
+        HistoryBack ["cmd-["] Any "Back (to the list or previous PR)";
         HistoryForward ["cmd-]"] Any "Forward";
     }
     "List" => {
         SelectNext ["j"] List "Next";
         SelectPrev ["k"] List "Previous";
-        OpenSelected ["enter"] List "Open";
+        OpenSelected ["enter"] List "Open review";
         OpenInBrowser ["cmd-o", "o"] List "Open in browser";
         CopyCheckout ["c"] List "Copy checkout";
         ToggleStar ["s"] List "Star";
@@ -87,10 +87,15 @@ keymap! {
         PostComment ["cmd-enter"] Any "Post comment";
         Approve ["cmd-shift-a"] Any "Approve";
     }
-    "Code tab" => {
+    "Review" => {
         NextFile ["n", "]"] List "Next file";
         PrevFile ["p", "["] List "Previous file";
+        ToggleViewed ["v"] List "Viewed (collapse, next unviewed)";
         ToggleFile ["x"] List "Collapse file";
+        QuickOpenFile ["cmd-p"] Any "Go to file";
+        ToggleFileTree ["cmd-shift-e"] Any "Toggle file tree";
+        ToggleRightPanel ["cmd-shift-i"] Any "Toggle right panel";
+        ToggleDiffView ["cmd-shift-s"] Any "Unified / side by side";
     }
 }
 

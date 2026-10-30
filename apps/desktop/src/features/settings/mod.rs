@@ -7,6 +7,7 @@ mod appearance;
 mod filters;
 mod general;
 mod projects;
+mod repositories;
 mod shortcuts;
 
 use gpui::{div, prelude::*, AnyElement, ClickEvent, Context};
@@ -24,6 +25,7 @@ fn page_icon(p: SettingsPage) -> IconName {
         SettingsPage::Appearance => IconName::Brush,
         SettingsPage::Accounts => IconName::User,
         SettingsPage::Projects => IconName::Folder,
+        SettingsPage::Repositories => IconName::Code,
         SettingsPage::Filters => IconName::Filter,
         SettingsPage::Shortcuts => IconName::Keyboard,
     }
@@ -58,6 +60,7 @@ impl GitViewer {
             SettingsPage::Appearance => self.render_appearance(cx).into_any_element(),
             SettingsPage::Accounts => self.render_accounts(cx).into_any_element(),
             SettingsPage::Projects => self.render_projects_page(cx).into_any_element(),
+            SettingsPage::Repositories => self.render_repositories(cx).into_any_element(),
             SettingsPage::Filters => self.render_filters(cx).into_any_element(),
             SettingsPage::Shortcuts => self.render_shortcuts().into_any_element(),
         };

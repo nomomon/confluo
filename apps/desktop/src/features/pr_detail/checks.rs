@@ -8,20 +8,10 @@ use gv_engine::{checks_sentence, CheckStatus, ChecksInfo};
 use crate::app::GitViewer;
 use crate::features::shared::checks_text;
 use crate::state::DetailState;
-use crate::ui::atoms::{Button, ButtonVariant, Icon, IconName, ListItem, Spinner};
+use crate::ui::atoms::{Button, ButtonVariant, Icon, IconName, ListItem};
 use crate::ui::theme;
 
-/// Icon for a check status; running ones spin (still under reduced motion).
-pub(super) fn status_icon(id: &str, s: CheckStatus) -> AnyElement {
-    let icon = |n: IconName, c| Icon::new(n).size(theme::ICON_MD).color(c).into_any_element();
-    match s {
-        CheckStatus::Failed => icon(IconName::CircleX, theme::danger()),
-        CheckStatus::Running => Spinner::new(format!("spin-{id}")).color(theme::warning()).into_any_element(),
-        CheckStatus::Pending => icon(IconName::CircleDashed, theme::warning()),
-        CheckStatus::Passed => icon(IconName::CircleCheck, theme::success()),
-        CheckStatus::Skipped => icon(IconName::CircleMinus, theme::text_subtle()),
-    }
-}
+pub(super) use crate::features::shared::ci::status_icon;
 
 /// Overall status for the header icon.
 fn overall(c: &ChecksInfo) -> Option<CheckStatus> {

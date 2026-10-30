@@ -1,13 +1,11 @@
-//! Projects: each project's sources (add, remove), rename and delete, and the repo table with
-//! inline aliases and a hide switch.
+//! Projects: each project's sources (add, remove), rename and delete.
 
-use gpui::{div, prelude::*, AnyElement, ClickEvent, Context, Focusable};
-use gv_engine::{Project, RepoRef, Source};
+use gpui::{div, prelude::*, AnyElement, ClickEvent, Context};
+use gv_engine::{Project, Source};
 
 use crate::app::GitViewer;
-use crate::features::layout;
 use crate::features::shared::provider_icon;
-use crate::ui::atoms::{Button, ButtonVariant, Icon, IconName, Switch};
+use crate::ui::atoms::{Button, ButtonVariant, Icon, IconName};
 use crate::ui::molecules::{Card, EmptyState};
 use crate::ui::theme;
 
@@ -29,7 +27,7 @@ impl GitViewer {
         for p in &self.projects {
             col = col.child(self.project_card(p, cx));
         }
-        col.child(self.alias_table(cx))
+        col
     }
 
     fn project_card(&self, p: &Project, cx: &mut Context<Self>) -> impl IntoElement {
@@ -62,70 +60,5 @@ impl GitViewer {
                 .into_any_element()
         });
         Card::new(self.surfaces()).rows().child(header).children(sources)
-    }
-
-    fn alias_table(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let repos = self.all_repos();
-        let mut rows: Vec<AnyElement> = vec![div()
-            .flex()
-            .gap(theme::SPACE_3)
-            .px(theme::SPACE_4)
-            .py(theme::SPACE_2)
-            .text_size(theme::text_xs())
-            .text_color(theme::text_subtle())
-            .child(div().w(layout::ALIAS_REPO_W).child("Repository"))
-            .child(div().flex_1().child("Alias"))
-            .child("Hidden")
-            .into_any_element()];
-        rows.extend(repos.iter().map(|r| self.alias_row(r, cx)));
-        if repos.is_empty() {
-            rows.push(div().px(theme::SPACE_4).py(theme::SPACE_3).text_size(theme::text_sm()).text_color(theme::text_subtle()).child("No repos yet. Refresh a project first.").into_any_element());
-        }
-        self.settings_group(Some("Repositories"), rows)
-    }
-
-    fn alias_row(&self, r: &RepoRef, cx: &mut Context<Self>) -> AnyElement {
-        let o = self.engine.repo_override(r).unwrap_or_default();
-        let editing = self.alias_repo.as_ref() == Some(r);
-        let (edit_repo, hide_repo) = (r.clone(), r.clone());
-        let alias: AnyElement = if editing {
-            div().flex_1().child(self.alias_input.clone()).into_any_element()
-        } else {
-            div()
-                .id(gpui::SharedString::from(format!("alias-{r}")))
-                .flex_1()
-                .px(theme::SPACE_2)
-                .py(theme::SPACE_1)
-                .rounded(theme::RADIUS_SM)
-                .cursor_pointer()
-                .hover(|s| s.bg(theme::surface_hover()))
-                .text_size(theme::text_sm())
-                .text_color(if o.alias.is_some() { theme::text() } else { theme::text_subtle() })
-                .child(o.alias.clone().unwrap_or_else(|| "Add alias".into()))
-                .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
-                    this.set_alias_repo(Some(edit_repo.clone()), cx);
-                    window.focus(&this.alias_input.focus_handle(cx));
-                }))
-                .into_any_element()
-        };
-        div()
-            .flex()
-            .items_center()
-            .gap(theme::SPACE_3)
-            .px(theme::SPACE_4)
-            .py(theme::SPACE_1P5)
-            .child(div().w(layout::ALIAS_REPO_W).flex().items_center().gap(theme::SPACE_2).child(provider_icon(r.kind)).child(div().min_w(theme::SPACE_0).truncate().text_size(theme::text_xs()).font_family(theme::mono_font()).child(r.path.clone())))
-            .child(alias)
-            .child(Switch::new(format!("hide-{r}"), o.hidden).on_change(cx.listener(move |this, on: &bool, _, cx| this.set_repo_hidden(&hide_repo, *on, cx))))
-            .into_any_element()
-    }
-
-    /// Alias dialog opened from the detail menu: one input for the PR's repo.
-    pub(crate) fn render_alias_editor(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        div()
-            .flex()
-            .gap(theme::SPACE_2)
-            .child(div().flex_1().child(self.alias_input.clone()))
-            .child(Button::new("alias-save", "Save").variant(ButtonVariant::Primary).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.save_alias(cx))))
     }
 }

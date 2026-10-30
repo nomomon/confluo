@@ -24,10 +24,6 @@ impl GitViewer {
                 let sheet = Sheet::new("Add project").description("Follow the pull requests of a folder of clones, a repo or a group").on_close(move |w, cx| close(&(), w, cx));
                 return Some(sheet.child(self.render_add_project(cx)).into_any_element());
             }
-            Overlay::Alias => {
-                let repo = self.alias_repo.as_ref().map(|r| r.path.clone()).unwrap_or_default();
-                Dialog::new("Repo alias").description(format!("Short name shown for {repo}; leave empty to clear")).content(self.render_alias_editor(cx))
-            }
             Overlay::Rename(_) => Dialog::new("Rename project").content(self.render_rename(cx)),
             Overlay::ConfirmDelete(id) => Dialog::new("Delete project")
                 .description(format!("Delete \"{}\"? Its repos and cached pull requests are removed from Confluo. Nothing changes on the server.", name(id)))

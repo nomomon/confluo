@@ -18,6 +18,16 @@ pub fn viewed_paths(files: &[ChangedFile], remote: Option<&std::collections::Has
 }
 
 impl Engine {
+    /// Cached open PRs per repo, hidden repos included (Settings > Repositories).
+    pub fn repo_pr_counts(&self) -> std::collections::HashMap<RepoRef, usize> {
+        let q = gv_store::CacheQuery { include_hidden: true, ..Default::default() };
+        let mut out = std::collections::HashMap::new();
+        for cr in self.store().query(&q).unwrap_or_default() {
+            *out.entry(cr.id.repo).or_insert(0) += 1;
+        }
+        out
+    }
+
     /// Add or remove my reaction on a comment, or on the PR when `subject` is None.
     pub async fn react(&self, id: &ChangeRequestId, subject: Option<&str>, kind: ReactionKind, add: bool) -> Result<()> {
         let prov = self.provider(id.repo.kind, &id.repo.host).await?;

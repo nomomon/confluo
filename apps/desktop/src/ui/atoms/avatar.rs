@@ -18,7 +18,7 @@ impl Avatar {
         Self {
             name: name.into(),
             image: None,
-            size: theme::SPACE_4,
+            size: theme::space_4(),
         }
     }
 
@@ -57,7 +57,7 @@ impl RenderOnce for Avatar {
                     .map(|c| c.to_uppercase().collect())
                     .unwrap_or_default();
                 base.text_color(theme::text_subtle())
-                    .text_size(if self.size > theme::SPACE_5 {
+                    .text_size(if self.size > theme::space_5() {
                         theme::text_xs()
                     } else {
                         theme::text_2xs()

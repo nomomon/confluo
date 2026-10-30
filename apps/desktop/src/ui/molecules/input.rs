@@ -60,7 +60,7 @@ impl RenderOnce for Input {
                 .variant(ButtonVariant::Ghost)
                 .on_click(f);
             side()
-                .right(theme::SPACE_1P5)
+                .right(theme::space_1p5())
                 .child(match self.clear_tooltip {
                     Some(t) => b.tooltip(t),
                     None => b,
@@ -72,7 +72,7 @@ impl RenderOnce for Input {
             .child(self.input)
             .children(self.leading.map(|n| {
                 side()
-                    .left(theme::SPACE_3)
+                    .left(theme::space_3())
                     .child(Icon::new(n).color(theme::text_subtle()))
             }))
             .children(clear)

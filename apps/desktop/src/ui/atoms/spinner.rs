@@ -1,6 +1,6 @@
 //! Spinning loader icon for running work; a still icon under reduced motion.
 //!
-//! `Spinner::new("check-build").size(theme::ICON_MD).color(theme::warning())`
+//! `Spinner::new("check-build").size(theme::icon_md()).color(theme::warning())`
 
 use gpui::{
     percentage, prelude::*, svg, Animation, AnimationExt, App, ElementId, Hsla, Pixels,
@@ -25,7 +25,7 @@ impl Spinner {
     pub fn new(id: impl Into<SharedString>) -> Self {
         Self {
             id: id.into(),
-            size: theme::ICON_MD,
+            size: theme::icon_md(),
             color: theme::text_muted(),
         }
     }

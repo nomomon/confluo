@@ -84,7 +84,7 @@ impl RenderOnce for Card {
                 .flex_1()
                 .flex()
                 .flex_col()
-                .gap(theme::SPACE_0P5)
+                .gap(theme::space_0p5())
                 .children(self.title.map(|t| {
                     div()
                         .text_size(theme::text_sm())
@@ -100,7 +100,7 @@ impl RenderOnce for Card {
             div()
                 .flex()
                 .items_center()
-                .gap(theme::SPACE_3)
+                .gap(theme::space_3())
                 .child(text)
                 .children(self.action)
         });
@@ -109,19 +109,19 @@ impl RenderOnce for Card {
                 .flex()
                 .items_center()
                 .justify_end()
-                .gap(theme::SPACE_2)
+                .gap(theme::space_2())
                 .child(f)
         });
         if self.rows {
             let header = header.map(|h| {
                 h.px(theme::card_pad())
-                    .pt(theme::SPACE_3)
-                    .pb(theme::SPACE_2)
+                    .pt(theme::space_3())
+                    .pb(theme::space_2())
                     .into_any_element()
             });
             let footer = footer.map(|f| {
                 f.px(theme::card_pad())
-                    .py(theme::SPACE_3)
+                    .py(theme::space_3())
                     .into_any_element()
             });
             let rows = self.children.into_iter().enumerate().map(|(i, c)| {
@@ -143,7 +143,7 @@ impl RenderOnce for Card {
                         .child(f)
                 }))
         } else {
-            base.gap(theme::SPACE_2P5)
+            base.gap(theme::space_2p5())
                 .p(theme::card_pad())
                 .children(header)
                 .children(self.children)

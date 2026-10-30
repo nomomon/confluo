@@ -125,7 +125,7 @@ impl RenderOnce for CodeText {
         div()
             .map(|d| {
                 if self.wrap {
-                    d.w_full().min_w(theme::SPACE_0)
+                    d.w_full().min_w(theme::space_0())
                 } else {
                     d.flex_shrink_0().whitespace_nowrap()
                 }

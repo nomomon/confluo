@@ -16,7 +16,7 @@ impl GitViewer {
                 .map(|(label, keys)| {
                     let row = div()
                         .flex()
-                        .gap(theme::SPACE_1P5)
+                        .gap(theme::space_1p5())
                         .children(keys.into_iter().map(Kbd::new));
                     Field::new(label, row).horizontal().into_any_element()
                 })

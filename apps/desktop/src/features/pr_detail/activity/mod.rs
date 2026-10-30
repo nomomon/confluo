@@ -78,7 +78,7 @@ impl GitViewer {
             .flex()
             .flex_col()
             .gap(theme::section_gap())
-            .pt(theme::SPACE_2);
+            .pt(theme::space_2());
         let items = timeline(det, &attn, filter);
         let none = items.is_empty();
         for item in items {
@@ -90,7 +90,7 @@ impl GitViewer {
         if none && filter != ThreadFilter::All {
             col = col.child(
                 div()
-                    .pl(theme::SPACE_3)
+                    .pl(theme::space_3())
                     .text_size(theme::text_sm())
                     .text_color(theme::text_subtle())
                     .child(if filter == ThreadFilter::NeedsMe {
@@ -103,7 +103,7 @@ impl GitViewer {
         if det.threads.is_empty() {
             col = col.child(
                 div()
-                    .pl(theme::SPACE_3)
+                    .pl(theme::space_3())
                     .text_size(theme::text_sm())
                     .text_color(theme::text_subtle())
                     .child("No comments yet"),
@@ -113,7 +113,7 @@ impl GitViewer {
         div()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_3)
+            .gap(theme::space_3())
             .when(resolvable, |c| c.child(self.thread_filter_bar(&attn, cx)))
             .child(col)
             .into_any_element()
@@ -154,7 +154,7 @@ impl GitViewer {
             .flex()
             .items_center()
             .justify_between()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .child(group)
             .when(unresolved > 0, |r| r.child(next))
     }

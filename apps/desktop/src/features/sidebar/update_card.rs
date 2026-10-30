@@ -24,7 +24,7 @@ impl GitViewer {
         let body = match self.update.progress {
             Some(p) => {
                 let bar = div()
-                    .h(theme::SPACE_1)
+                    .h(theme::space_1())
                     .w_full()
                     .rounded(theme::RADIUS_FULL)
                     .bg(theme::surface_hover())
@@ -42,7 +42,7 @@ impl GitViewer {
                 div()
                     .flex()
                     .flex_col()
-                    .gap(theme::SPACE_1P5)
+                    .gap(theme::space_1p5())
                     .child(bar)
                     .child(label)
                     .into_any_element()
@@ -63,7 +63,7 @@ impl GitViewer {
                 div()
                     .flex()
                     .items_center()
-                    .gap(theme::SPACE_2)
+                    .gap(theme::space_2())
                     .child(install)
                     .child(notes)
                     .child(div().flex_1())
@@ -73,7 +73,7 @@ impl GitViewer {
         };
         Some(
             div()
-                .mb(theme::SPACE_2)
+                .mb(theme::space_2())
                 .child(
                     Card::new(self.surfaces())
                         .title(title)

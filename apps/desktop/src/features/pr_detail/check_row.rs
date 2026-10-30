@@ -49,9 +49,9 @@ impl GitViewer {
                 .group(gpui::SharedString::from(format!("check-g-{key}")))
                 .flex()
                 .items_center()
-                .gap(theme::SPACE_2)
+                .gap(theme::space_2())
                 .pl(theme::row_pad_x())
-                .pr(theme::SPACE_1)
+                .pr(theme::space_1())
                 .min_h(theme::control_h())
                 .text_size(theme::text_sm())
                 .list_item(open)
@@ -65,7 +65,7 @@ impl GitViewer {
                 )
                 .children(r.stage.clone().map(|s| {
                     div()
-                        .min_w(theme::SPACE_0)
+                        .min_w(theme::space_0())
                         .truncate()
                         .text_size(theme::text_xs())
                         .text_color(theme::text_subtle())
@@ -85,7 +85,7 @@ impl GitViewer {
                         } else {
                             IconName::ChevronRight
                         })
-                        .size(theme::ICON_SM)
+                        .size(theme::icon_sm())
                         .color(theme::text_subtle()),
                     )
                 })
@@ -111,9 +111,9 @@ impl GitViewer {
             None | Some(LogState::Loading) => div()
                 .flex()
                 .items_center()
-                .gap(theme::SPACE_2)
+                .gap(theme::space_2())
                 .text_color(theme::text_muted())
-                .child(Spinner::new(format!("log-{key}")).size(theme::ICON_SM))
+                .child(Spinner::new(format!("log-{key}")).size(theme::icon_sm()))
                 .child("Loading log...")
                 .into_any_element(),
             Some(LogState::Failed(e)) => {
@@ -138,9 +138,9 @@ impl GitViewer {
         };
         div()
             .mx(theme::row_pad_x())
-            .mt(theme::SPACE_1)
-            .mb(theme::SPACE_2)
-            .p(theme::SPACE_2P5)
+            .mt(theme::space_1())
+            .mb(theme::space_2())
+            .p(theme::space_2p5())
             .rounded(theme::RADIUS_MD)
             .bg(theme::surface())
             .text_size(theme::text_xs())

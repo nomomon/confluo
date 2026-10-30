@@ -40,12 +40,12 @@ impl GitViewer {
             );
         }
         let field = div()
-            .w(theme::SPACE_16 * 4.)
+            .w(theme::space_16() * 4.)
             .rounded(theme::RADIUS_MD)
             .border_1()
             .border_color(theme::focus_ring())
             .bg(theme::surface())
-            .py(theme::SPACE_1)
+            .py(theme::space_1())
             .child(self.alias_input.clone());
         let reset = Button::new("repo-reset", "Reset to default")
             .variant(ButtonVariant::Link)
@@ -57,8 +57,8 @@ impl GitViewer {
                 div()
                     .flex()
                     .flex_col()
-                    .gap(theme::SPACE_2)
-                    .p(theme::SPACE_2)
+                    .gap(theme::space_2())
+                    .p(theme::space_2())
                     .child(
                         div()
                             .text_size(theme::text_xs())

@@ -25,7 +25,7 @@ impl GitViewer {
         let states: Vec<ReviewState> = d.summary.reviewers.iter().map(|r| r.state).collect();
         let assignees = Self::current_people(d, PeopleRole::Assignees);
         let labels = (!d.summary.labels.is_empty()).then(|| {
-            let chips = div().flex().flex_wrap().gap(theme::SPACE_1).children(
+            let chips = div().flex().flex_wrap().gap(theme::space_1()).children(
                 d.summary
                     .labels
                     .iter()
@@ -78,7 +78,7 @@ impl GitViewer {
         let value = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_1P5)
+            .gap(theme::space_1p5())
             .child(crate::features::shared::provider_mark(s.id.repo.kind))
             .child(format!(
                 "{} {}",
@@ -141,8 +141,8 @@ impl GitViewer {
         div()
             .flex()
             .flex_wrap()
-            .gap_x(theme::SPACE_3)
-            .gap_y(theme::SPACE_1)
+            .gap_x(theme::space_3())
+            .gap_y(theme::space_1())
             .children(users.iter().enumerate().map(|(i, u)| {
                 let name = u
                     .username
@@ -165,12 +165,12 @@ impl GitViewer {
                     div()
                         .id(SharedString::from(format!("rev-state-{name}")))
                         .tooltip(tooltip(tip))
-                        .child(Icon::new(icon).size(theme::ICON_SM).color(color))
+                        .child(Icon::new(icon).size(theme::icon_sm()).color(color))
                 });
                 div()
                     .flex()
                     .items_center()
-                    .gap(theme::SPACE_1P5)
+                    .gap(theme::space_1p5())
                     .child(Avatar::new(name.clone()).image(self.avatar(u.avatar_url.as_deref())))
                     .child(name)
                     .children(badge)
@@ -257,10 +257,10 @@ fn row_shell(
         .id(id)
         .flex()
         .items_center()
-        .gap(theme::SPACE_4)
+        .gap(theme::space_4())
         .min_h(theme::kv_row_h())
         .px(theme::row_pad_x())
-        .py(theme::SPACE_1)
+        .py(theme::space_1())
         .text_size(theme::text_sm())
         .child(
             div()
@@ -269,7 +269,7 @@ fn row_shell(
                 .text_color(theme::text_muted())
                 .child(label),
         )
-        .child(div().flex_1().min_w(theme::SPACE_0).child(value));
+        .child(div().flex_1().min_w(theme::space_0()).child(value));
     if interactive {
         row.list_item(false)
     } else {

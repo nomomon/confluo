@@ -70,7 +70,7 @@ impl GitViewer {
         };
         let check = Button::new("check-updates", check_label)
             .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.check_for_updates(true, cx)));
-        div().flex().flex_col().gap(theme::SPACE_6).child(self.settings_group(
+        div().flex().flex_col().gap(theme::space_6()).child(self.settings_group(
             None,
             vec![
                 Field::new("Refresh", refresh).description("How often pull requests are fetched in the background").horizontal().into_any_element(),

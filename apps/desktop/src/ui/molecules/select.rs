@@ -108,10 +108,10 @@ impl RenderOnce for Select {
             .track_focus(&focus)
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .min_w(px(160.))
             .h(px(30.))
-            .px(theme::SPACE_2P5)
+            .px(theme::space_2p5())
             .rounded(theme::RADIUS_MD)
             .border_1()
             .border_color(if focus.is_focused(window) {
@@ -132,7 +132,7 @@ impl RenderOnce for Select {
                     })
                     .children(current.map(|c| c.0)),
             )
-            .child(Icon::new(IconName::Selector).size(theme::ICON_SM))
+            .child(Icon::new(IconName::Selector).size(theme::icon_sm()))
             .on_click(move |_: &ClickEvent, window, cx| {
                 window.focus(&st_focus);
                 set(&st_click, cx, |s| {
@@ -165,9 +165,9 @@ impl RenderOnce for Select {
         let list = open.then(|| {
             let st_out = state.clone();
             let panel = crate::ui::layer::track(div())
-                .mt(theme::SPACE_1)
+                .mt(theme::space_1())
                 .min_w(px(160.))
-                .p(theme::SPACE_1)
+                .p(theme::space_1())
                 .flex()
                 .flex_col()
                 .rounded(theme::RADIUS_LG)
@@ -185,8 +185,8 @@ impl RenderOnce for Select {
                         .id(ElementId::Name(format!("{}-opt-{i}", self.id).into()))
                         .flex()
                         .items_center()
-                        .gap(theme::SPACE_2)
-                        .px(theme::SPACE_2)
+                        .gap(theme::space_2())
+                        .px(theme::space_2())
                         .py(theme::item_pad_y())
                         .list_item_radius(i == hl, theme::RADIUS_SM)
                         .child(
@@ -198,7 +198,7 @@ impl RenderOnce for Select {
                         .when(i == selected, |d| {
                             d.child(
                                 Icon::new(IconName::Check)
-                                    .size(theme::ICON_SM)
+                                    .size(theme::icon_sm())
                                     .color(theme::text()),
                             )
                         })
@@ -211,7 +211,7 @@ impl RenderOnce for Select {
                 }));
             deferred(
                 anchored()
-                    .snap_to_window_with_margin(theme::SPACE_2)
+                    .snap_to_window_with_margin(theme::space_2())
                     .child(panel),
             )
             .with_priority(1)

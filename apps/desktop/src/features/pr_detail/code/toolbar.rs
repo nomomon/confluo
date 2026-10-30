@@ -36,7 +36,7 @@ impl GitViewer {
         div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_1)
+            .gap(theme::space_1())
             .child(
                 self.hinted::<ToggleFileTree>(
                     Button::new("code-tree", "")
@@ -58,7 +58,7 @@ impl GitViewer {
             .child(
                 self.hinted::<QuickOpenFile>(
                     div()
-                        .pl(theme::SPACE_1)
+                        .pl(theme::space_1())
                         .text_size(theme::text_sm())
                         .text_color(theme::text_muted())
                         .child(label),

@@ -77,8 +77,8 @@ impl RenderOnce for MenuItem {
             .id(ElementId::Name(self.id))
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
-            .px(theme::SPACE_2)
+            .gap(theme::space_2())
+            .px(theme::space_2())
             .py(theme::item_pad_y())
             .rounded(theme::RADIUS_SM)
             .text_color(if self.disabled {
@@ -117,7 +117,10 @@ pub struct MenuSeparator;
 
 impl RenderOnce for MenuSeparator {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        div().my(theme::SPACE_1).mx(px(-4.)).child(Separator::new())
+        div()
+            .my(theme::space_1())
+            .mx(px(-4.))
+            .child(Separator::new())
     }
 }
 
@@ -134,8 +137,8 @@ impl MenuLabel {
 impl RenderOnce for MenuLabel {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         div()
-            .px(theme::SPACE_2)
-            .py(theme::SPACE_1)
+            .px(theme::space_2())
+            .py(theme::space_1())
             .text_size(theme::text_xs())
             .font_weight(theme::WEIGHT_MEDIUM)
             .text_color(theme::text_subtle())

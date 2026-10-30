@@ -76,7 +76,7 @@ impl GitViewer {
             .flex()
             .flex_wrap()
             .items_center()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .text_size(theme::text_xs())
             .text_color(theme::text_muted())
             .child(provider_mark(s.id.repo.kind))
@@ -103,7 +103,7 @@ impl GitViewer {
                 div()
                     .flex()
                     .items_center()
-                    .gap(theme::SPACE_1)
+                    .gap(theme::space_1())
                     .child(
                         Avatar::new(s.author.username.clone())
                             .image(self.avatar(s.author.avatar_url.as_deref())),
@@ -114,8 +114,8 @@ impl GitViewer {
             .flex()
             .flex_wrap()
             .items_center()
-            .gap_y(theme::SPACE_2)
-            .gap(theme::SPACE_3)
+            .gap_y(theme::space_2())
+            .gap(theme::space_3())
             .child(stats(s))
             .children(self.render_ci(d, "preview", cx))
             .children(self.approvals(d))
@@ -124,7 +124,7 @@ impl GitViewer {
             .child(div().flex().children(avatars));
         let actions = div()
             .flex()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .child(
                 Button::new("preview-review", "Open review")
                     .variant(ButtonVariant::Primary)
@@ -144,17 +144,17 @@ impl GitViewer {
         let body = crate::ui::elastic::content("preview")
             .flex()
             .flex_col()
-            .gap(theme::SPACE_4)
+            .gap(theme::space_4())
             .child(
                 div()
                     .flex()
                     .items_start()
-                    .gap(theme::SPACE_2)
-                    .child(div().pt(theme::SPACE_0P5).child(state_icon(s.state)))
+                    .gap(theme::space_2())
+                    .child(div().pt(theme::space_0p5()).child(state_icon(s.state)))
                     .child(
                         div()
                             .flex_1()
-                            .min_w(theme::SPACE_0)
+                            .min_w(theme::space_0())
                             .text_size(theme::text_lg())
                             .font_weight(theme::WEIGHT_SEMIBOLD)
                             .child(s.title.clone()),
@@ -182,7 +182,7 @@ impl GitViewer {
                     .left_0()
                     .right_0()
                     .bottom_0()
-                    .h(theme::SPACE_10)
+                    .h(theme::space_10())
                     .bg(gpui::linear_gradient(
                         180.,
                         gpui::linear_color_stop(bg.opacity(0.), 0.),
@@ -212,10 +212,10 @@ impl GitViewer {
             .border_color(theme::border_subtle())
             .pt(layout::TITLEBAR_INSET)
             .px(theme::pane_pad())
-            .pb(theme::SPACE_6)
+            .pb(theme::space_6())
             .child(body);
         let panel = crate::ui::elastic::y_scroller(panel, "preview", h);
-        motion::slide_in_right(panel, "preview-panel", theme::SPACE_6)
+        motion::slide_in_right(panel, "preview-panel", theme::space_6())
     }
 }
 

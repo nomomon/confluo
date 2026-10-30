@@ -61,9 +61,9 @@ impl RenderOnce for ToggleGroup {
                             .id(ElementId::Name(format!("{}-{i}", self.id).into()))
                             .flex()
                             .items_center()
-                            .gap(theme::SPACE_1)
+                            .gap(theme::space_1())
                             .h(px(24.))
-                            .px(theme::SPACE_2P5)
+                            .px(theme::space_2p5())
                             .rounded(theme::RADIUS_SM)
                             .text_size(theme::text_xs())
                             .font_weight(theme::WEIGHT_MEDIUM)
@@ -76,7 +76,7 @@ impl RenderOnce for ToggleGroup {
                             .when(active, |d| d.bg(theme::surface_active()).shadow_sm())
                             .when(!active, |d| d.hover(|s| s.text_color(theme::text())))
                             .children(icon.map(|n| {
-                                Icon::new(n).size(theme::ICON_SM).color(if active {
+                                Icon::new(n).size(theme::icon_sm()).color(if active {
                                     theme::text()
                                 } else {
                                     theme::text_muted()

@@ -33,7 +33,7 @@ impl GitViewer {
                 .flex()
                 .flex_shrink_0()
                 .items_center()
-                .gap(theme::SPACE_1)
+                .gap(theme::space_1())
                 .tooltip(tooltip(ci_words(&c.checks)))
                 .child(status_icon(&format!("row-{}", c.id.key()), st))
                 .when(c.checks.failed > 0, |e| {
@@ -48,15 +48,15 @@ impl GitViewer {
         let meta = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
-            .min_w(theme::SPACE_0)
+            .gap(theme::space_2())
+            .min_w(theme::space_0())
             .text_size(theme::text_xs())
             .text_color(theme::text_muted())
             .child(provider_mark(c.id.repo.kind))
             .child(
                 div()
                     .id(SharedString::from(format!("repo-{}", c.id.key())))
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .truncate()
                     .tooltip(tooltip(format!(
                         "{}  right-click to rename",
@@ -76,7 +76,7 @@ impl GitViewer {
                     div()
                         .flex()
                         .items_center()
-                        .gap(theme::SPACE_1P5)
+                        .gap(theme::space_1p5())
                         .flex_shrink_0()
                         .child(
                             Avatar::new(c.author.username.clone())
@@ -98,7 +98,7 @@ impl GitViewer {
             (Some(a), Some(d)) => Some(
                 div()
                     .flex()
-                    .gap(theme::SPACE_2)
+                    .gap(theme::space_2())
                     .font_family(theme::mono_font())
                     .child(div().text_color(theme::success()).child(format!("+{a}")))
                     .child(div().text_color(theme::danger()).child(format!("-{d}"))),
@@ -123,7 +123,7 @@ impl GitViewer {
         });
         let star = div()
             .id(SharedString::from(format!("star-{}", c.id.key())))
-            .px(theme::SPACE_2)
+            .px(theme::space_2())
             .cursor_pointer()
             .child(
                 Icon::new(if starred {
@@ -147,10 +147,10 @@ impl GitViewer {
             .relative()
             .flex()
             .items_center()
-            .gap(theme::SPACE_3)
+            .gap(theme::space_3())
             .min_h(theme::row_min_h())
             .pl(theme::row_pad_x())
-            .pr(theme::SPACE_2)
+            .pr(theme::space_2())
             .py(theme::row_pad_y())
             .list_item(is_selected)
             .on_mouse_down(
@@ -174,20 +174,20 @@ impl GitViewer {
                     .flex()
                     .flex_col()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .gap(theme::row_line_gap())
                     .child(
                         div()
                             .flex()
                             .w_full()
-                            .min_w(theme::SPACE_0)
+                            .min_w(theme::space_0())
                             .items_center()
-                            .gap(theme::SPACE_2P5)
+                            .gap(theme::space_2p5())
                             .child(state_icon(c.state))
                             .child(
                                 div()
                                     .flex_1()
-                                    .min_w(theme::SPACE_0)
+                                    .min_w(theme::space_0())
                                     .text_size(theme::text_md())
                                     .font_weight(theme::WEIGHT_MEDIUM)
                                     .truncate()
@@ -197,9 +197,9 @@ impl GitViewer {
                     .child(
                         div()
                             .w_full()
-                            .min_w(theme::SPACE_0)
+                            .min_w(theme::space_0())
                             .overflow_hidden()
-                            .pl(theme::ICON_LG + theme::SPACE_2P5)
+                            .pl(theme::icon_lg() + theme::space_2p5())
                             .child(meta),
                     ),
             )

@@ -5,22 +5,54 @@
 
 use gpui::{px, FontWeight, Pixels};
 
-pub const SPACE_0: Pixels = px(0.);
-pub const SPACE_0P5: Pixels = px(2.);
-pub const SPACE_1: Pixels = px(4.);
-pub const SPACE_1P5: Pixels = px(6.);
-pub const SPACE_2: Pixels = px(8.);
-pub const SPACE_2P5: Pixels = px(10.);
-pub const SPACE_3: Pixels = px(12.);
-pub const SPACE_4: Pixels = px(16.);
-pub const SPACE_5: Pixels = px(20.);
-pub const SPACE_6: Pixels = px(24.);
-pub const SPACE_7: Pixels = px(28.);
-pub const SPACE_8: Pixels = px(32.);
-pub const SPACE_10: Pixels = px(40.);
-pub const SPACE_12: Pixels = px(48.);
-pub const SPACE_14: Pixels = px(56.);
-pub const SPACE_16: Pixels = px(64.);
+pub fn space_0() -> Pixels {
+    zoomed(0.)
+}
+pub fn space_0p5() -> Pixels {
+    zoomed(2.)
+}
+pub fn space_1() -> Pixels {
+    zoomed(4.)
+}
+pub fn space_1p5() -> Pixels {
+    zoomed(6.)
+}
+pub fn space_2() -> Pixels {
+    zoomed(8.)
+}
+pub fn space_2p5() -> Pixels {
+    zoomed(10.)
+}
+pub fn space_3() -> Pixels {
+    zoomed(12.)
+}
+pub fn space_4() -> Pixels {
+    zoomed(16.)
+}
+pub fn space_5() -> Pixels {
+    zoomed(20.)
+}
+pub fn space_6() -> Pixels {
+    zoomed(24.)
+}
+pub fn space_7() -> Pixels {
+    zoomed(28.)
+}
+pub fn space_8() -> Pixels {
+    zoomed(32.)
+}
+pub fn space_10() -> Pixels {
+    zoomed(40.)
+}
+pub fn space_12() -> Pixels {
+    zoomed(48.)
+}
+pub fn space_14() -> Pixels {
+    zoomed(56.)
+}
+pub fn space_16() -> Pixels {
+    zoomed(64.)
+}
 
 pub const RADIUS_SM: Pixels = px(6.);
 pub const RADIUS_MD: Pixels = px(8.);
@@ -29,9 +61,20 @@ pub const RADIUS_XL: Pixels = px(16.);
 pub const RADIUS_FULL: Pixels = px(9999.);
 
 /// Icon sizes: inline chevrons, buttons and row state.
-pub const ICON_SM: Pixels = px(12.);
-pub const ICON_MD: Pixels = px(14.);
-pub const ICON_LG: Pixels = px(16.);
+pub fn icon_sm() -> Pixels {
+    zoomed(12.)
+}
+pub fn icon_md() -> Pixels {
+    zoomed(14.)
+}
+pub fn icon_lg() -> Pixels {
+    zoomed(16.)
+}
+
+/// Spacing and icon sizes follow the UI zoom (Cmd+= / Cmd+-), like the type scale.
+fn zoomed(base: f32) -> Pixels {
+    px(base * super::runtime::typography().zoom)
+}
 
 /// Type scale. Sizes follow the user's text step (Settings, 13/14/15 body).
 fn sized(base: f32) -> Pixels {

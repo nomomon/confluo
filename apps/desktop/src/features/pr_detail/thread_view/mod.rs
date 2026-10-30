@@ -91,9 +91,9 @@ impl GitViewer {
             .id(SharedString::from(format!("thread-resolved-{}", t.id)))
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
-            .px(theme::SPACE_3)
-            .py(theme::SPACE_2)
+            .gap(theme::space_2())
+            .px(theme::space_3())
+            .py(theme::space_2())
             .rounded(theme::RADIUS_SM)
             .text_size(theme::text_xs())
             .text_color(theme::text_muted())
@@ -110,13 +110,13 @@ impl GitViewer {
             }))
             .child(
                 Icon::new(IconName::CircleCheckFilled)
-                    .size(theme::ICON_MD)
+                    .size(theme::icon_md())
                     .color(theme::success()),
             )
             .child(
                 div()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .truncate()
                     .child(format!("Thread resolved by {who}")),
             )
@@ -127,7 +127,7 @@ impl GitViewer {
                 } else {
                     IconName::ChevronDown
                 })
-                .size(theme::ICON_SM)
+                .size(theme::icon_sm())
                 .color(theme::text_subtle()),
             )
     }

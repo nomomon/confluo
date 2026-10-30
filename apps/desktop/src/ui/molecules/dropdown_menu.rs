@@ -54,7 +54,7 @@ impl RenderOnce for DropdownMenu {
         let panel = div()
             .min_w(theme::MENU_MIN_W)
             .text_size(theme::text_sm())
-            .p(theme::SPACE_1)
+            .p(theme::space_1())
             .flex()
             .flex_col()
             .rounded(theme::RADIUS_LG)

@@ -126,8 +126,8 @@ impl Combobox {
             .id(ElementId::Name(format!("{}-opt-{i}", self.id).into()))
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
-            .px(theme::SPACE_2)
+            .gap(theme::space_2())
+            .px(theme::space_2())
             .py(theme::item_pad_y())
             .list_item_radius(i == self.highlight, theme::RADIUS_SM)
             .children(o.avatar.map(|img| Avatar::new(o.label.clone()).image(img)))
@@ -135,7 +135,7 @@ impl Combobox {
             .child(
                 div()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .truncate()
                     .text_color(theme::text_subtle())
                     .children(o.detail),
@@ -143,7 +143,7 @@ impl Combobox {
             .when(o.selected, |d| {
                 d.child(
                     Icon::new(IconName::Check)
-                        .size(theme::ICON_SM)
+                        .size(theme::icon_sm())
                         .color(theme::text()),
                 )
             })
@@ -181,8 +181,8 @@ impl RenderOnce for Combobox {
                 div()
                     .flex()
                     .items_center()
-                    .gap(theme::SPACE_2)
-                    .child(Spinner::new(format!("{}-spin", self.id)).size(theme::ICON_SM))
+                    .gap(theme::space_2())
+                    .child(Spinner::new(format!("{}-spin", self.id)).size(theme::icon_sm()))
                     .child("Searching...")
                     .into_any_element(),
             )
@@ -195,20 +195,20 @@ impl RenderOnce for Combobox {
         let search = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_1)
-            .pl(theme::SPACE_2)
+            .gap(theme::space_1())
+            .pl(theme::space_2())
             .h(theme::control_h())
             .border_b_1()
             .border_color(theme::border_subtle())
             .child(
                 Icon::new(IconName::Search)
-                    .size(theme::ICON_SM)
+                    .size(theme::icon_sm())
                     .color(theme::text_subtle()),
             )
             .child(div().flex_1().child(self.input.clone()));
         let panel = crate::ui::layer::track(div())
             .id(ElementId::Name(format!("{}-panel", self.id).into()))
-            .mt(theme::SPACE_1)
+            .mt(theme::space_1())
             .w(PANEL_W)
             .flex()
             .flex_col()
@@ -243,13 +243,13 @@ impl RenderOnce for Combobox {
                     .track_scroll(&scroll)
                     .max_h(LIST_MAX_H)
                     .map(crate::ui::scroll::y_only)
-                    .p(theme::SPACE_1)
+                    .p(theme::space_1())
                     .flex()
                     .flex_col()
                     .children(rows)
                     .children(status.map(|s| {
                         div()
-                            .px(theme::SPACE_2)
+                            .px(theme::space_2())
                             .py(theme::item_pad_y())
                             .text_color(theme::text_subtle())
                             .child(s)
@@ -257,7 +257,7 @@ impl RenderOnce for Combobox {
             );
         deferred(
             anchored()
-                .snap_to_window_with_margin(theme::SPACE_2)
+                .snap_to_window_with_margin(theme::space_2())
                 .child(panel),
         )
         .with_priority(1)

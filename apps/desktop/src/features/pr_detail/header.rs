@@ -28,7 +28,7 @@ pub(super) fn stats(s: &gv_engine::ChangeRequest) -> impl IntoElement {
         .flex()
         .flex_shrink_0()
         .items_center()
-        .gap(theme::SPACE_1P5)
+        .gap(theme::space_1p5())
         .text_size(theme::text_xs())
         .font_family(theme::mono_font())
         .when_some(s.additions, |e, a| {
@@ -107,7 +107,7 @@ impl GitViewer {
                 .flex()
                 .flex_shrink_0()
                 .items_center()
-                .gap(theme::SPACE_1)
+                .gap(theme::space_1())
                 .text_size(theme::text_xs())
                 .text_color(color)
                 .tooltip(tooltip(tip))
@@ -117,7 +117,7 @@ impl GitViewer {
                     } else {
                         IconName::Check
                     })
-                    .size(theme::ICON_SM)
+                    .size(theme::icon_sm())
                     .color(color),
                 )
                 .child(format!("{}/{} approved", a.given, a.of)),
@@ -146,8 +146,8 @@ impl GitViewer {
         );
         let title = div()
             .id("review-title")
-            .px(theme::SPACE_1)
-            .min_w(theme::SPACE_0)
+            .px(theme::space_1())
+            .min_w(theme::space_0())
             .truncate()
             .text_size(theme::text_base())
             .font_weight(theme::WEIGHT_SEMIBOLD)
@@ -156,9 +156,9 @@ impl GitViewer {
         let heading = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .flex_1()
-            .min_w(theme::SPACE_0)
+            .min_w(theme::space_0())
             .child(title)
             .children(self.unresolved_count(d, cx));
         div()
@@ -166,10 +166,10 @@ impl GitViewer {
             .flex()
             .flex_shrink_0()
             .items_center()
-            .gap(theme::SPACE_2P5)
+            .gap(theme::space_2p5())
             .h(layout::REVIEW_BAR_H)
             .pl(layout::TRAFFIC_LIGHTS_W)
-            .pr(theme::SPACE_3)
+            .pr(theme::space_3())
             .border_b_1()
             .border_color(theme::border_subtle())
             .child(ShortcutHint::wrap(
@@ -182,7 +182,7 @@ impl GitViewer {
             ))
             .child(state_icon(s.state))
             .child(heading)
-            .child(div().w(theme::SPACE_1))
+            .child(div().w(theme::space_1()))
             .children(self.render_review_button(d, cx))
             .children(self.render_merge_button(d, cx))
             .child(
@@ -245,8 +245,8 @@ impl GitViewer {
                 .flex()
                 .flex_shrink_0()
                 .items_center()
-                .gap(theme::SPACE_1)
-                .px(theme::SPACE_1)
+                .gap(theme::space_1())
+                .px(theme::space_1())
                 .rounded(theme::RADIUS_SM)
                 .cursor_pointer()
                 .hover(|s| s.bg(theme::surface_hover()))
@@ -256,7 +256,7 @@ impl GitViewer {
                 .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.jump_unresolved(1, cx)))
                 .child(
                     Icon::new(IconName::MessageCircle)
-                        .size(theme::ICON_SM)
+                        .size(theme::icon_sm())
                         .color(color),
                 )
                 .child(format!("{n} unresolved")),

@@ -35,8 +35,8 @@ impl GitViewer {
         let mut col = div()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_4)
-            .pt(theme::SPACE_4)
+            .gap(theme::space_4())
+            .pt(theme::space_4())
             .child(div().flex().justify_end().child(add));
         if self.projects.is_empty() {
             col = col.child(EmptyState::new(
@@ -56,7 +56,7 @@ impl GitViewer {
         let title: AnyElement = if editing {
             div()
                 .flex()
-                .gap(theme::SPACE_2)
+                .gap(theme::space_2())
                 .child(div().flex_1().child(self.rename_input.clone()))
                 .child(
                     Button::new(format!("rename-save-{id}"), "Save")
@@ -72,7 +72,7 @@ impl GitViewer {
         };
         let actions = div()
             .flex()
-            .gap(theme::SPACE_1)
+            .gap(theme::space_1())
             .child(
                 Button::new(format!("src-add-{id}"), "")
                     .icon(IconName::Plus)
@@ -105,9 +105,9 @@ impl GitViewer {
         let header = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_3)
-            .px(theme::SPACE_4)
-            .py(theme::SPACE_3)
+            .gap(theme::space_3())
+            .px(theme::space_4())
+            .py(theme::space_3())
             .child(div().flex_1().child(title))
             .child(actions);
         let sources = p.sources.iter().enumerate().map(|(i, s)| {
@@ -116,14 +116,14 @@ impl GitViewer {
             div()
                 .flex()
                 .items_center()
-                .gap(theme::SPACE_2P5)
-                .px(theme::SPACE_4)
-                .py(theme::SPACE_2)
+                .gap(theme::space_2p5())
+                .px(theme::space_4())
+                .py(theme::space_2())
                 .child(icon)
                 .child(
                     div()
                         .flex_1()
-                        .min_w(theme::SPACE_0)
+                        .min_w(theme::space_0())
                         .truncate()
                         .text_size(theme::text_xs())
                         .font_family(theme::mono_font())

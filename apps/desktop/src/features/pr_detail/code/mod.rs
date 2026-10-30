@@ -38,7 +38,7 @@ pub(in crate::features::pr_detail) fn diff_counts(a: u32, d: u32) -> Div {
     div()
         .flex()
         .flex_shrink_0()
-        .gap(theme::SPACE_1)
+        .gap(theme::space_1())
         .font_family(theme::mono_font())
         .text_size(theme::text_xs())
         .when(a > 0, |el| {
@@ -56,8 +56,8 @@ pub(in crate::features::pr_detail) fn comment_count(n: usize) -> Option<Div> {
             .flex()
             .flex_shrink_0()
             .items_center()
-            .gap(theme::SPACE_0P5)
-            .px(theme::SPACE_1P5)
+            .gap(theme::space_0p5())
+            .px(theme::space_1p5())
             .rounded(theme::RADIUS_FULL)
             .bg(theme::tint_bg(theme::accent()))
             .text_color(theme::accent())
@@ -65,7 +65,7 @@ pub(in crate::features::pr_detail) fn comment_count(n: usize) -> Option<Div> {
             .font_weight(theme::WEIGHT_MEDIUM)
             .child(
                 Icon::new(IconName::Message)
-                    .size(theme::ICON_SM)
+                    .size(theme::icon_sm())
                     .color(theme::accent()),
             )
             .child(n.to_string())
@@ -114,25 +114,27 @@ impl GitViewer {
                         "commit-filter",
                         crate::state::commit_filter::commit_label(sha),
                     )
-                    .on_dismiss(cx.listener(|this, _: &gpui::ClickEvent, _, cx| {
-                        this.clear_commit(cx);
-                    }))
+                    .on_dismiss(cx.listener(
+                        |this, _: &gpui::ClickEvent, _, cx| {
+                            this.clear_commit(cx);
+                        },
+                    ))
                 });
                 div()
                     .relative()
                     .flex()
                     .flex_1()
-                    .min_h(theme::SPACE_0)
-                    .gap(theme::SPACE_3)
+                    .min_h(theme::space_0())
+                    .gap(theme::space_3())
                     .child(
                         div()
                             .id("diff-list")
                             .flex()
                             .flex_col()
                             .flex_1()
-                            .min_w(theme::SPACE_0)
+                            .min_w(theme::space_0())
                             .h_full()
-                            .pr(theme::SPACE_0P5)
+                            .pr(theme::space_0p5())
                             .overflow_hidden()
                             .on_scroll_wheel(move |ev, window, _| {
                                 if crate::ui::elastic::guard_vertical(ev, &band, drawn)
@@ -174,8 +176,8 @@ impl GitViewer {
             .flex()
             .flex_col()
             .flex_1()
-            .min_h(theme::SPACE_0)
-            .gap(theme::SPACE_3)
+            .min_h(theme::space_0())
+            .gap(theme::space_3())
             .child(self.render_code_toolbar(d, cx))
             .child(body)
             .into_any_element()
@@ -186,7 +188,7 @@ impl GitViewer {
 fn skeleton() -> impl IntoElement {
     let bar = |w: f32| {
         div()
-            .h(theme::SPACE_3)
+            .h(theme::space_3())
             .w(gpui::relative(w))
             .rounded(theme::RADIUS_SM)
             .bg(theme::surface_hover())
@@ -196,8 +198,8 @@ fn skeleton() -> impl IntoElement {
             .id(("code-skeleton", id))
             .flex()
             .flex_col()
-            .gap(theme::SPACE_2)
-            .p(theme::SPACE_4)
+            .gap(theme::space_2())
+            .p(theme::space_4())
             .rounded(theme::RADIUS_LG)
             .border_1()
             .border_color(theme::border_subtle())
@@ -209,6 +211,6 @@ fn skeleton() -> impl IntoElement {
     div()
         .flex()
         .flex_col()
-        .gap(theme::SPACE_3)
+        .gap(theme::space_3())
         .children((0..3).map(card))
 }

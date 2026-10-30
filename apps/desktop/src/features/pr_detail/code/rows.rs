@@ -29,9 +29,9 @@ impl GitViewer {
             .id(("file-viewed", fi))
             .flex()
             .items_center()
-            .gap(theme::SPACE_1)
-            .px(theme::SPACE_1P5)
-            .py(theme::SPACE_0P5)
+            .gap(theme::space_1())
+            .px(theme::space_1p5())
+            .py(theme::space_0p5())
             .rounded(theme::RADIUS_SM)
             .border_1()
             .border_color(theme::border_subtle())
@@ -52,7 +52,7 @@ impl GitViewer {
             }))
             .child(
                 Icon::new(if on { IconName::Check } else { IconName::Eye })
-                    .size(theme::ICON_SM)
+                    .size(theme::icon_sm())
                     .color(if on {
                         theme::success()
                     } else {
@@ -110,7 +110,7 @@ impl GitViewer {
                 .h(layout::DIFF_HUNK_H)
                 .flex()
                 .items_center()
-                .px(theme::SPACE_3)
+                .px(theme::space_3())
                 .bg(theme::diff_hunk_bg())
                 .font_family(theme::mono_font())
                 .text_size(theme::text_xs())
@@ -129,9 +129,9 @@ impl GitViewer {
             Row::Composer(_) => self.render_line_composer(d, cx),
             Row::Outdated(_, n) => self
                 .card_side()
-                .px(theme::SPACE_3)
-                .pt(theme::SPACE_3)
-                .pb(theme::SPACE_1)
+                .px(theme::space_3())
+                .pt(theme::space_3())
+                .pb(theme::space_1())
                 .border_t_1()
                 .text_size(theme::text_xs())
                 .text_color(theme::text_subtle())
@@ -140,11 +140,11 @@ impl GitViewer {
             Row::Notice(fi, n) => self.render_notice(fi, n, &d.summary, cx).into_any_element(),
             Row::End(_) => div()
                 .w_full()
-                .pb(theme::SPACE_3)
+                .pb(theme::space_3())
                 .child(
                     div()
                         .w_full()
-                        .h(theme::SPACE_1P5)
+                        .h(theme::space_1p5())
                         .bg(self.surfaces().card())
                         .rounded_b(theme::RADIUS_LG)
                         .border_1()
@@ -196,9 +196,9 @@ impl GitViewer {
         self.card_side()
             .flex()
             .items_center()
-            .gap(theme::SPACE_3)
-            .px(theme::SPACE_4)
-            .py(theme::SPACE_3)
+            .gap(theme::space_3())
+            .px(theme::space_4())
+            .py(theme::space_3())
             .text_size(theme::text_sm())
             .text_color(theme::text_muted())
             .child(text)
@@ -226,9 +226,9 @@ impl GitViewer {
             .w_full()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .h(layout::DIFF_HEADER_H)
-            .px(theme::SPACE_3)
+            .px(theme::space_3())
             .bg(self.surfaces().card())
             .border_1()
             .border_color(theme::border_subtle())
@@ -247,7 +247,7 @@ impl GitViewer {
                 } else {
                     IconName::ChevronDown
                 })
-                .size(theme::ICON_SM),
+                .size(theme::icon_sm()),
             )
             .child(Icon::new(IconName::FileCode).color(status_color(f.status)))
             .child({
@@ -260,9 +260,9 @@ impl GitViewer {
                 };
                 div()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .flex()
-                    .gap(theme::SPACE_2)
+                    .gap(theme::space_2())
                     .overflow_hidden()
                     .font_family(theme::mono_font())
                     .text_size(theme::text_xs())
@@ -279,7 +279,7 @@ impl GitViewer {
                     )
                     .child(
                         div()
-                            .min_w(theme::SPACE_0)
+                            .min_w(theme::space_0())
                             .flex_shrink()
                             .truncate()
                             .text_color(theme::text_subtle())

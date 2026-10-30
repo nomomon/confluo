@@ -57,7 +57,7 @@ impl Popover {
         Self {
             id: id.into(),
             placement: Placement::default(),
-            offset: theme::SPACE_1,
+            offset: theme::space_1(),
             children: vec![],
             on_dismiss: None,
             animate: true,
@@ -69,7 +69,7 @@ impl Popover {
         self
     }
 
-    /// Gap between trigger and panel (default `SPACE_1`).
+    /// Gap between trigger and panel (default `space_1()`).
     pub fn offset(mut self, gap: Pixels) -> Self {
         self.offset = gap;
         self

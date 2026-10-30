@@ -48,9 +48,9 @@ impl GitViewer {
                     .id(SharedString::from(format!("rx-{k}-{:?}", g.kind)))
                     .flex()
                     .items_center()
-                    .gap(theme::SPACE_1)
-                    .h(theme::SPACE_6)
-                    .px(theme::SPACE_2)
+                    .gap(theme::space_1())
+                    .h(theme::space_6())
+                    .px(theme::space_2())
                     .rounded(theme::RADIUS_FULL)
                     .border_1()
                     .border_color(if g.me {
@@ -96,7 +96,7 @@ impl GitViewer {
                 .flex()
                 .flex_wrap()
                 .items_center()
-                .gap(theme::SPACE_1)
+                .gap(theme::space_1())
                 .children(chips)
                 .children(add)
                 .into_any_element(),
@@ -147,7 +147,7 @@ impl GitViewer {
             }))
             .child(
                 Icon::new(IconName::MoodPlus)
-                    .size(theme::ICON_MD)
+                    .size(theme::icon_md())
                     .color(theme::text_subtle()),
             );
         div()
@@ -174,7 +174,7 @@ impl GitViewer {
                     .flex()
                     .items_center()
                     .justify_center()
-                    .size(theme::SPACE_8)
+                    .size(theme::space_8())
                     .rounded(theme::RADIUS_MD)
                     .cursor_pointer()
                     .hover(|s| s.bg(theme::surface_hover()))
@@ -188,7 +188,7 @@ impl GitViewer {
             });
         let panel = div()
             .flex()
-            .p(theme::SPACE_1)
+            .p(theme::space_1())
             .rounded(theme::RADIUS_LG)
             .border_1()
             .border_color(theme::border())

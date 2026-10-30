@@ -55,8 +55,8 @@ impl GitViewer {
             }
             let row = if place == Place::Code && inline.editing.as_deref() == Some(cm.id.as_str()) {
                 div()
-                    .px(theme::SPACE_3)
-                    .py(theme::SPACE_2P5)
+                    .px(theme::space_3())
+                    .py(theme::space_2p5())
                     .child(self.inline_field("Save", cx))
             } else {
                 let ctx = CommentCtx {
@@ -79,8 +79,8 @@ impl GitViewer {
             if let Some(last) = t.comments.last() {
                 c = c.child(
                     section()
-                        .px(theme::SPACE_3)
-                        .py(theme::SPACE_2)
+                        .px(theme::space_3())
+                        .py(theme::space_2())
                         .text_size(theme::text_xs())
                         .text_color(theme::text_subtle())
                         .child(format!(
@@ -106,9 +106,9 @@ impl GitViewer {
             .id(SharedString::from(format!("replies-toggle-{}", t.id)))
             .flex()
             .items_center()
-            .gap(theme::SPACE_1P5)
-            .px(theme::SPACE_3)
-            .py(theme::SPACE_2)
+            .gap(theme::space_1p5())
+            .px(theme::space_3())
+            .py(theme::space_2())
             .text_size(theme::text_xs())
             .text_color(theme::text_muted())
             .cursor_pointer()
@@ -128,7 +128,7 @@ impl GitViewer {
                 } else {
                     IconName::ChevronDown
                 })
-                .size(theme::ICON_SM),
+                .size(theme::icon_sm()),
             )
             .child(if hidden {
                 format!("Show {n} replies")

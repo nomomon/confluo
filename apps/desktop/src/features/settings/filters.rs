@@ -83,17 +83,17 @@ impl GitViewer {
             .w_full()
             .flex()
             .flex_wrap()
-            .gap(theme::SPACE_1P5)
+            .gap(theme::space_1p5())
             .children(values.iter().map(|v| {
                 let value = v.clone();
                 div()
                     .id(gpui::SharedString::from(format!("chip-{v}")))
                     .flex()
                     .items_center()
-                    .gap(theme::SPACE_1)
-                    .pl(theme::SPACE_2P5)
-                    .pr(theme::SPACE_1P5)
-                    .py(theme::SPACE_0P5)
+                    .gap(theme::space_1())
+                    .pl(theme::space_2p5())
+                    .pr(theme::space_1p5())
+                    .py(theme::space_0p5())
                     .rounded(theme::RADIUS_FULL)
                     .border_1()
                     .border_color(theme::border())
@@ -107,7 +107,7 @@ impl GitViewer {
                             .rounded(theme::RADIUS_FULL)
                             .cursor_pointer()
                             .hover(|s| s.bg(theme::surface_active()))
-                            .child(Icon::new(IconName::X).size(theme::ICON_SM))
+                            .child(Icon::new(IconName::X).size(theme::icon_sm()))
                             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                                 this.remove_bot_entry(list, &value, cx)
                             })),
@@ -120,7 +120,7 @@ impl GitViewer {
             .child(input.clone());
         div()
             .w_full()
-            .p(theme::SPACE_4)
+            .p(theme::space_4())
             .child(chips.items_center().child(field))
             .into_any_element()
     }

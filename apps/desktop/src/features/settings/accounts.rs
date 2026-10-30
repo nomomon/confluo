@@ -23,11 +23,11 @@ impl GitViewer {
                     div()
                         .flex()
                         .items_center()
-                        .gap(theme::SPACE_3)
-                        .px(theme::SPACE_4)
-                        .py(theme::SPACE_3)
-                        .child(Skeleton::new().size(theme::SPACE_4))
-                        .child(Skeleton::new().h(theme::SPACE_3).w(px(180.)))
+                        .gap(theme::space_3())
+                        .px(theme::space_4())
+                        .py(theme::space_3())
+                        .child(Skeleton::new().size(theme::space_4()))
+                        .child(Skeleton::new().h(theme::space_3()).w(px(180.)))
                         .into_any_element()
                 })
                 .collect(),
@@ -47,7 +47,7 @@ impl GitViewer {
                         Some(u) => div()
                             .flex()
                             .items_center()
-                            .gap(theme::SPACE_2)
+                            .gap(theme::space_2())
                             .child(Avatar::new(u.clone()).image(self.avatar(url.as_deref())))
                             .child(format!("@{u}")),
                         None => div()
@@ -62,16 +62,16 @@ impl GitViewer {
                     div()
                         .flex()
                         .items_center()
-                        .gap(theme::SPACE_3)
-                        .px(theme::SPACE_4)
-                        .py(theme::SPACE_3)
+                        .gap(theme::space_3())
+                        .px(theme::space_4())
+                        .py(theme::space_3())
                         .child(provider_icon(h.kind))
                         .child(
                             div()
                                 .flex_1()
                                 .flex()
                                 .flex_col()
-                                .gap(theme::SPACE_0P5)
+                                .gap(theme::space_0p5())
                                 .child(div().text_size(theme::text_sm()).child(self.host_label(h)))
                                 .child(div().text_size(theme::text_xs()).child(who)),
                         )
@@ -82,10 +82,16 @@ impl GitViewer {
         };
         div()
             .child(self.settings_group(Some("Connected hosts"), rows))
-            .child(div().flex().justify_end().pt(theme::SPACE_3).child(recheck))
             .child(
                 div()
-                    .pt(theme::SPACE_3)
+                    .flex()
+                    .justify_end()
+                    .pt(theme::space_3())
+                    .child(recheck),
+            )
+            .child(
+                div()
+                    .pt(theme::space_3())
                     .text_size(theme::text_xs())
                     .text_color(theme::text_subtle())
                     .child("Confluo uses the gh, glab and az CLI logins; it stores no tokens."),

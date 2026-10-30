@@ -52,7 +52,7 @@ impl GitViewer {
         let mut strip = div()
             .relative()
             .flex_1()
-            .min_h(theme::SPACE_0)
+            .min_h(theme::space_0())
             .overflow_hidden();
         for (i, t) in [RightTab::Overview, RightTab::Conversation]
             .into_iter()
@@ -88,8 +88,8 @@ impl GitViewer {
                 .track_scroll(&handle)
                 .size_full()
                 .map(crate::ui::scroll::y_only)
-                .px(theme::SPACE_3)
-                .pt(theme::SPACE_3)
+                .px(theme::space_3())
+                .pt(theme::space_3())
                 .pb(layout::END_PAD)
                 .child(crate::ui::elastic::content(key).child(body));
             strip = strip.child(
@@ -109,13 +109,13 @@ impl GitViewer {
             .flex_col()
             .size_full()
             .on_scroll_wheel(cx.listener(Self::panel_wheel))
-            .child(div().px(theme::SPACE_3).pt(theme::SPACE_2).child(tabs))
+            .child(div().px(theme::space_3()).pt(theme::space_2()).child(tabs))
             .child(strip)
             .when(tab == RightTab::Conversation, |p| {
                 p.child(
                     div()
-                        .px(theme::SPACE_3)
-                        .pb(theme::SPACE_3)
+                        .px(theme::space_3())
+                        .pb(theme::space_3())
                         .child(self.render_composer(d, cx)),
                 )
             })
@@ -150,16 +150,16 @@ impl GitViewer {
             div()
                 .flex()
                 .items_center()
-                .gap(theme::SPACE_2)
-                .px(theme::SPACE_3)
-                .py(theme::SPACE_2)
+                .gap(theme::space_2())
+                .px(theme::space_3())
+                .py(theme::space_2())
                 .rounded(theme::RADIUS_MD)
                 .bg(theme::tint_bg(theme::accent()))
                 .text_size(theme::text_xs())
                 .text_color(theme::accent())
                 .child(
                     Icon::new(IconName::GitCommit)
-                        .size(theme::ICON_SM)
+                        .size(theme::icon_sm())
                         .color(theme::accent()),
                 )
                 .child(if n == 1 {
@@ -185,8 +185,8 @@ impl GitViewer {
                     .id(("commit", i))
                     .flex()
                     .items_center()
-                    .gap(theme::SPACE_2)
-                    .px(theme::SPACE_2)
+                    .gap(theme::space_2())
+                    .px(theme::space_2())
                     .py(theme::item_pad_y())
                     .list_item_radius(false, theme::RADIUS_SM)
                     .text_size(theme::text_xs())
@@ -209,7 +209,7 @@ impl GitViewer {
                     .child(
                         div()
                             .flex_1()
-                            .min_w(theme::SPACE_0)
+                            .min_w(theme::space_0())
                             .truncate()
                             .child(c.message.clone()),
                     )
@@ -226,7 +226,7 @@ impl GitViewer {
         div()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_1)
+            .gap(theme::space_1())
             .child(
                 div()
                     .text_size(theme::text_sm())

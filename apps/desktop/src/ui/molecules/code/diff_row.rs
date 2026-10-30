@@ -48,8 +48,8 @@ impl DiffRow {
             mark,
             text: text.into(),
             lang,
-            gutter_w: theme::SPACE_10,
-            height: theme::SPACE_5,
+            gutter_w: theme::space_10(),
+            height: theme::space_5(),
             scroll_x: px(0.),
             show_marker: true,
             action: None,
@@ -138,13 +138,13 @@ impl RenderOnce for DiffRow {
                 .h(line_h)
                 .flex()
                 .items_center()
-                .pr(theme::SPACE_2)
+                .pr(theme::space_2())
                 .flex()
                 .justify_end()
                 .text_color(theme::text_subtle())
                 .child(n.map(|n| n.to_string()).unwrap_or_default())
         };
-        let marker_x = theme::SPACE_0P5
+        let marker_x = theme::space_0p5()
             + self.gutter_w
                 * if self.show_marker && !self.one_number {
                     2.
@@ -153,9 +153,9 @@ impl RenderOnce for DiffRow {
                 };
         let dot = div()
             .absolute()
-            .left(theme::SPACE_1)
-            .top((self.height - theme::SPACE_1P5) / 2.)
-            .size(theme::SPACE_1P5)
+            .left(theme::space_1())
+            .top((self.height - theme::space_1p5()) / 2.)
+            .size(theme::space_1p5())
             .rounded(theme::RADIUS_FULL)
             .bg(theme::accent());
         let wrap = self.wrap;
@@ -185,7 +185,7 @@ impl RenderOnce for DiffRow {
                     .left_0()
                     .top_0()
                     .bottom_0()
-                    .w(theme::SPACE_0P5)
+                    .w(theme::space_0p5())
                     .when_some(
                         if self.selected {
                             Some(theme::accent())
@@ -195,7 +195,7 @@ impl RenderOnce for DiffRow {
                         |d, c| d.bg(c),
                     ),
             )
-            .child(div().flex_shrink_0().w(theme::SPACE_0P5))
+            .child(div().flex_shrink_0().w(theme::space_0p5()))
             .when(self.show_marker && !self.one_number, |d| {
                 d.child(num(self.old_no))
             })
@@ -208,7 +208,7 @@ impl RenderOnce for DiffRow {
                 d.child(
                     div()
                         .flex_shrink_0()
-                        .w(theme::SPACE_4)
+                        .w(theme::space_4())
                         .text_color(accent.unwrap_or(theme::text_subtle()))
                         .child(marker),
                 )
@@ -216,10 +216,10 @@ impl RenderOnce for DiffRow {
             .child(
                 div()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .overflow_hidden()
-                    .pl(theme::SPACE_1)
-                    .when(wrap, |d| d.pr(theme::SPACE_2))
+                    .pl(theme::space_1())
+                    .when(wrap, |d| d.pr(theme::space_2()))
                     .min_h(line_h)
                     .flex()
                     .items_center()

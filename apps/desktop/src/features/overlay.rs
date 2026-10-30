@@ -66,7 +66,7 @@ impl GitViewer {
         let keep = cx.listener(|this, _: &(), _, cx| this.keep_editing(cx));
         let footer = div()
             .flex()
-            .gap(crate::ui::theme::SPACE_2)
+            .gap(crate::ui::theme::space_2())
             .child(
                 Button::new("discard-keep", "Keep editing")
                     .variant(ButtonVariant::Ghost)

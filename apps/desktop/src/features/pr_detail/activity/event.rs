@@ -51,7 +51,7 @@ impl GitViewer {
         div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_3)
+            .gap(theme::space_3())
             .text_size(theme::text_sm())
             .child(
                 div()
@@ -59,20 +59,20 @@ impl GitViewer {
                     .flex_shrink_0()
                     .items_center()
                     .justify_center()
-                    .size(theme::SPACE_6)
+                    .size(theme::space_6())
                     .rounded(theme::RADIUS_FULL)
                     .bg(self.surfaces().panel())
                     .border_1()
                     .border_color(theme::border_subtle())
-                    .child(Icon::new(icon).size(theme::ICON_SM).color(color)),
+                    .child(Icon::new(icon).size(theme::icon_sm()).color(color)),
             )
             .child(
                 div()
                     .flex()
                     .flex_wrap()
                     .items_center()
-                    .gap(theme::SPACE_1P5)
-                    .min_w(theme::SPACE_0)
+                    .gap(theme::space_1p5())
+                    .min_w(theme::space_0())
                     .text_color(theme::text_muted())
                     .when(!who.is_empty(), |d| {
                         d.child(

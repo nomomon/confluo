@@ -32,14 +32,14 @@ impl GitViewer {
             .w_full()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_2)
-            .pt(theme::SPACE_1)
+            .gap(theme::space_2())
+            .pt(theme::space_1())
             .child(div().text_size(theme::text_sm()).text_color(theme::text_muted()).child("Rename how a repository appears in Confluo. This doesn't change anything on GitHub or GitLab."))
-            .child(div().w_full().flex().pt(theme::SPACE_2).child(search));
+            .child(div().w_full().flex().pt(theme::space_2()).child(search));
         if repos.is_empty() {
             col = col.child(
                 div()
-                    .pt(theme::SPACE_3)
+                    .pt(theme::space_3())
                     .text_size(theme::text_sm())
                     .text_color(theme::text_subtle())
                     .child(if q.is_empty() {
@@ -60,8 +60,8 @@ impl GitViewer {
             col = col
                 .child(
                     div()
-                        .pt(theme::SPACE_3)
-                        .px(theme::SPACE_1)
+                        .pt(theme::space_3())
+                        .px(theme::space_1())
                         .text_size(theme::text_xs())
                         .font_weight(theme::WEIGHT_MEDIUM)
                         .text_color(theme::text_subtle())
@@ -72,7 +72,7 @@ impl GitViewer {
                         .w_full()
                         .flex()
                         .flex_col()
-                        .mt(-theme::SPACE_4)
+                        .mt(-theme::space_4())
                         .child(self.settings_group(None, rows)),
                 );
         }
@@ -90,13 +90,13 @@ impl GitViewer {
                 .border_1()
                 .border_color(theme::focus_ring())
                 .bg(theme::surface())
-                .py(theme::SPACE_0P5)
+                .py(theme::space_0p5())
                 .child(self.alias_input.clone())
                 .into_any_element()
         } else {
             div()
                 .id(gpui::SharedString::from(format!("repo-name-{r}")))
-                .px(theme::SPACE_1)
+                .px(theme::space_1())
                 .rounded(theme::RADIUS_SM)
                 .cursor_text()
                 .hover(|s| s.bg(theme::surface_hover()))
@@ -122,22 +122,22 @@ impl GitViewer {
             .w_full()
             .flex()
             .items_center()
-            .gap(theme::SPACE_3)
-            .px(theme::SPACE_4)
-            .py(theme::SPACE_2)
+            .gap(theme::space_3())
+            .px(theme::space_4())
+            .py(theme::space_2())
             .child(provider_icon(r.kind))
             .child(
                 div()
                     .flex()
                     .flex_col()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .overflow_hidden()
-                    .gap(theme::SPACE_0P5)
+                    .gap(theme::space_0p5())
                     .child(name)
                     .child(
                         div()
-                            .px(theme::SPACE_1)
+                            .px(theme::space_1())
                             .truncate()
                             .text_size(theme::text_xs())
                             .text_color(theme::text_subtle())

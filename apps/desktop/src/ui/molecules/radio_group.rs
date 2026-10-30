@@ -43,7 +43,7 @@ impl RadioGroup {
 
 impl RenderOnce for RadioGroup {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        div().flex().flex_col().gap(theme::SPACE_2).children(
+        div().flex().flex_col().gap(theme::space_2()).children(
             self.options.into_iter().enumerate().map(|(i, label)| {
                 let on = i == self.selected;
                 let dot = div()
@@ -67,7 +67,7 @@ impl RenderOnce for RadioGroup {
                     .id(ElementId::Name(format!("{}-{i}", self.id).into()))
                     .flex()
                     .items_center()
-                    .gap(theme::SPACE_2)
+                    .gap(theme::space_2())
                     .cursor_pointer()
                     .child(dot)
                     .child(label)

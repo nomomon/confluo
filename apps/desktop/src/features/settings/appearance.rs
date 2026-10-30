@@ -36,27 +36,26 @@ impl GitViewer {
                 this.settings.panel_opacity = *v;
                 this.save_settings(cx)
             }));
-        let swatches =
-            div()
-                .flex()
-                .gap(theme::SPACE_2)
-                .children(TINTS.iter().map(|(name, hex)| {
-                    let (name, hex) = (*name, *hex);
-                    let color = theme::parse_hex(hex).unwrap_or_else(theme::surface_active);
-                    let active = s.tint.eq_ignore_ascii_case(hex)
-                        || (hex.is_empty() && theme::parse_hex(&s.tint).is_none_or(|c| c.l <= 0.2));
-                    div()
-                        .id(gpui::SharedString::from(format!("tint-tip-{name}")))
-                        .tooltip(tooltip(name))
-                        .child(
-                            Swatch::new(format!("tint-{name}"), color)
-                                .active(active)
-                                .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
-                                    this.settings.tint = hex.to_string();
-                                    this.save_settings(cx)
-                                })),
-                        )
-                }));
+        let swatches = div()
+            .flex()
+            .gap(theme::space_2())
+            .children(TINTS.iter().map(|(name, hex)| {
+                let (name, hex) = (*name, *hex);
+                let color = theme::parse_hex(hex).unwrap_or_else(theme::surface_active);
+                let active = s.tint.eq_ignore_ascii_case(hex)
+                    || (hex.is_empty() && theme::parse_hex(&s.tint).is_none_or(|c| c.l <= 0.2));
+                div()
+                    .id(gpui::SharedString::from(format!("tint-tip-{name}")))
+                    .tooltip(tooltip(name))
+                    .child(
+                        Swatch::new(format!("tint-{name}"), color)
+                            .active(active)
+                            .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+                                this.settings.tint = hex.to_string();
+                                this.save_settings(cx)
+                            })),
+                    )
+            }));
         let ui_font = UiFont::ALL
             .iter()
             .fold(Select::new("ui-font"), |sel, f| {

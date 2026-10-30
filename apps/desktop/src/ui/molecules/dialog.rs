@@ -95,7 +95,7 @@ impl RenderOnce for Dialog {
                 .flex_1()
                 .flex()
                 .flex_col()
-                .gap(theme::SPACE_1)
+                .gap(theme::space_1())
                 .child(
                     div()
                         .text_size(theme::text_base())
@@ -125,19 +125,19 @@ impl RenderOnce for Dialog {
                 Some((w, h)) => d.w(w).h(h),
                 None => d.w(DIALOG_W).max_h(DIALOG_MAX_H),
             })
-            .when(!bare, |d| d.gap(theme::SPACE_4).p(theme::SPACE_5))
+            .when(!bare, |d| d.gap(theme::space_4()).p(theme::space_5()))
             .children(header)
             .children(self.content.map(|c| {
                 div()
                     .flex()
                     .flex_col()
                     .flex_1()
-                    .min_h(theme::SPACE_0)
+                    .min_h(theme::space_0())
                     .child(c)
             }))
             .children(
                 self.footer
-                    .map(|f| div().flex().justify_end().gap(theme::SPACE_2).child(f)),
+                    .map(|f| div().flex().justify_end().gap(theme::space_2()).child(f)),
             );
         let scrim = div()
             .absolute()

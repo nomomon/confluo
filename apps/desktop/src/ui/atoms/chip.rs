@@ -39,8 +39,8 @@ impl RenderOnce for Chip {
         let active = self.active;
         div()
             .id(ElementId::Name(self.id))
-            .px(theme::SPACE_2P5)
-            .py(theme::SPACE_0P5)
+            .px(theme::space_2p5())
+            .py(theme::space_0p5())
             .rounded(theme::RADIUS_FULL)
             .border_1()
             .text_size(theme::text_xs())

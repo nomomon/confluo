@@ -48,7 +48,7 @@ impl RenderOnce for ContextMenu {
         let panel = layer::track(div())
             .min_w(theme::MENU_MIN_W)
             .text_size(theme::text_sm())
-            .p(theme::SPACE_1)
+            .p(theme::space_1())
             .flex()
             .flex_col()
             .rounded(theme::RADIUS_LG)
@@ -62,7 +62,7 @@ impl RenderOnce for ContextMenu {
         deferred(
             anchored()
                 .position(self.position)
-                .snap_to_window_with_margin(theme::SPACE_2)
+                .snap_to_window_with_margin(theme::space_2())
                 .child(motion::pop_in(panel, self.id)),
         )
         .with_priority(2)

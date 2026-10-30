@@ -90,8 +90,8 @@ impl RenderOnce for NavItem {
             .group(group.clone())
             .flex()
             .items_center()
-            .gap(theme::SPACE_2P5)
-            .px(theme::SPACE_2P5)
+            .gap(theme::space_2p5())
+            .px(theme::space_2p5())
             .py(theme::item_pad_y())
             .list_item(active)
             .text_size(theme::text_sm())
@@ -109,14 +109,14 @@ impl RenderOnce for NavItem {
             }))
             .when(compact, |d| {
                 d.justify_center()
-                    .px(theme::SPACE_2)
+                    .px(theme::space_2())
                     .tooltip(super::tooltip(label))
             })
             .when(!compact, |d| {
                 d.child(
                     div()
                         .flex_1()
-                        .min_w(theme::SPACE_0)
+                        .min_w(theme::space_0())
                         .truncate()
                         .child(self.label),
                 )

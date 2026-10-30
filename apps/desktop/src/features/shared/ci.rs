@@ -12,7 +12,7 @@ use crate::ui::theme;
 pub fn status_icon(id: &str, s: CheckStatus) -> AnyElement {
     let icon = |n: IconName, c| {
         Icon::new(n)
-            .size(theme::ICON_MD)
+            .size(theme::icon_md())
             .color(c)
             .into_any_element()
     };
@@ -108,9 +108,9 @@ impl Render for CiCard {
         let card = div()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_1)
-            .p(theme::SPACE_2)
-            .max_w(theme::SPACE_16 * 5.)
+            .gap(theme::space_1())
+            .p(theme::space_2())
+            .max_w(theme::space_16() * 5.)
             .rounded(theme::RADIUS_MD)
             .border_1()
             .border_color(theme::border())
@@ -131,12 +131,12 @@ impl Render for CiCard {
                     div()
                         .flex()
                         .items_center()
-                        .gap(theme::SPACE_2)
+                        .gap(theme::space_2())
                         .child(status_icon(&format!("ci-card-{i}"), *s))
                         .child(
                             div()
                                 .flex_1()
-                                .min_w(theme::SPACE_0)
+                                .min_w(theme::space_0())
                                 .truncate()
                                 .child(name.clone()),
                         )

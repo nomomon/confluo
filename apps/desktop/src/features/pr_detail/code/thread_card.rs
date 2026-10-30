@@ -25,9 +25,9 @@ impl GitViewer {
             .copied()
             .unwrap_or(Attention::Plain);
         self.card_side()
-            .px(theme::SPACE_3)
-            .pt(theme::SPACE_7)
-            .pb(theme::SPACE_3)
+            .px(theme::space_3())
+            .pt(theme::space_7())
+            .pb(theme::space_3())
             .font_family(theme::ui_font())
             .child(self.thread_view(t, a, d, Place::Code, cx))
             .into_any_element()

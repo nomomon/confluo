@@ -200,7 +200,7 @@ impl GitViewer {
         let footer = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .child(
                 div()
                     .text_size(theme::text_xs())

@@ -56,7 +56,7 @@ impl RenderOnce for Checkbox {
             .when(on, |d| {
                 d.bg(theme::text()).child(
                     Icon::new(IconName::Check)
-                        .size(theme::ICON_SM)
+                        .size(theme::icon_sm())
                         .color(theme::bg()),
                 )
             });
@@ -64,7 +64,7 @@ impl RenderOnce for Checkbox {
             .id(ElementId::Name(self.id))
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .child(mark)
             .children(self.label)
             .when_some(self.on_change, |d, f| {

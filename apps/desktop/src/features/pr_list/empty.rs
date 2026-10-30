@@ -37,7 +37,7 @@ impl GitViewer {
                 .child(
                     div()
                         .flex()
-                        .gap(theme::SPACE_2)
+                        .gap(theme::space_2())
                         .child(
                             Button::new("empty-retry", "Retry").on_click(
                                 cx.listener(|this, _: &ClickEvent, _, cx| this.retry(cx)),

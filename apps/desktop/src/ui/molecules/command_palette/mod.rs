@@ -133,7 +133,7 @@ impl RenderOnce for CommandPalette {
         if rows.is_empty() {
             list.push(
                 div()
-                    .py(theme::SPACE_6)
+                    .py(theme::space_6())
                     .flex()
                     .justify_center()
                     .text_color(theme::text_subtle())
@@ -148,9 +148,9 @@ impl RenderOnce for CommandPalette {
                     div()
                         .relative()
                         .top(shift)
-                        .px(theme::SPACE_2)
-                        .pt(theme::SPACE_2)
-                        .pb(theme::SPACE_1)
+                        .px(theme::space_2())
+                        .pt(theme::space_2())
+                        .pb(theme::space_1())
                         .text_size(theme::text_xs())
                         .text_color(theme::text_subtle())
                         .child(it.group)
@@ -167,8 +167,8 @@ impl RenderOnce for CommandPalette {
                     .top(shift)
                     .flex()
                     .items_center()
-                    .gap(theme::SPACE_2P5)
-                    .px(theme::SPACE_2)
+                    .gap(theme::space_2p5())
+                    .px(theme::space_2())
                     .py(theme::item_pad_y())
                     .list_item(active)
                     .child(Icon::new(it.icon).color(if active {
@@ -179,7 +179,7 @@ impl RenderOnce for CommandPalette {
                     .child(
                         div()
                             .flex_1()
-                            .min_w(theme::SPACE_0)
+                            .min_w(theme::space_0())
                             .truncate()
                             .child(it.title),
                     )
@@ -246,7 +246,7 @@ impl RenderOnce for CommandPalette {
             .overflow_hidden()
             .child(
                 div()
-                    .p(theme::SPACE_2)
+                    .p(theme::space_2())
                     .border_b_1()
                     .border_color(theme::border_subtle())
                     .child(self.input),
@@ -257,7 +257,7 @@ impl RenderOnce for CommandPalette {
                     .track_scroll(&h)
                     .max_h(LIST_MAX_H)
                     .map(crate::ui::scroll::y_only)
-                    .p(theme::SPACE_1P5)
+                    .p(theme::space_1p5())
                     .flex()
                     .flex_col()
                     .children(list);
@@ -265,8 +265,8 @@ impl RenderOnce for CommandPalette {
             })
             .children(self.footer.map(|f| {
                 div()
-                    .px(theme::SPACE_3)
-                    .py(theme::SPACE_2)
+                    .px(theme::space_3())
+                    .py(theme::space_2())
                     .border_t_1()
                     .border_color(theme::border_subtle())
                     .text_size(theme::text_xs())

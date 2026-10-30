@@ -42,25 +42,25 @@ impl GitViewer {
         };
         let progress = div()
             .w_full()
-            .h(theme::SPACE_0P5)
+            .h(theme::space_0p5())
             .bg(theme::border_subtle())
             .child(div().h_full().w(gpui::relative(frac)).bg(theme::success()));
         let head = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
-            .px(theme::SPACE_3)
-            .pt(theme::SPACE_2)
+            .gap(theme::space_2())
+            .px(theme::space_3())
+            .pt(theme::space_2())
             .text_size(theme::text_xs())
             .text_color(theme::text_muted())
             .child(
                 div()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .overflow_hidden()
                     .flex()
                     .items_center()
-                    .gap(theme::SPACE_2)
+                    .gap(theme::space_2())
                     .child(
                         div()
                             .flex_shrink_0()
@@ -69,7 +69,7 @@ impl GitViewer {
                     .child(
                         div()
                             .flex()
-                            .gap(theme::SPACE_1)
+                            .gap(theme::space_1())
                             .font_family(theme::mono_font())
                             .when_some(d.summary.additions, |e, a| {
                                 e.child(div().text_color(theme::success()).child(format!("+{a}")))
@@ -101,7 +101,7 @@ impl GitViewer {
         let mut col = crate::ui::elastic::content("file-tree")
             .flex()
             .flex_col()
-            .gap(theme::SPACE_0P5);
+            .gap(theme::space_0p5());
         for e in entries {
             col = col.child(match e {
                 TreeEntry::Dir(dir, n) => {
@@ -111,10 +111,10 @@ impl GitViewer {
                         .id(gpui::SharedString::from(format!("tree-dir-{dir}")))
                         .flex()
                         .items_center()
-                        .gap(theme::SPACE_1)
-                        .mt(theme::SPACE_1)
-                        .px(theme::SPACE_1)
-                        .py(theme::SPACE_0P5)
+                        .gap(theme::space_1())
+                        .mt(theme::space_1())
+                        .px(theme::space_1())
+                        .py(theme::space_0p5())
                         .list_item_radius(false, theme::RADIUS_SM)
                         .text_size(theme::text_xs())
                         .text_color(theme::text_subtle())
@@ -130,18 +130,18 @@ impl GitViewer {
                             } else {
                                 IconName::ChevronDown
                             })
-                            .size(theme::ICON_SM)
+                            .size(theme::icon_sm())
                             .color(theme::text_subtle()),
                         )
                         .child(
                             Icon::new(IconName::Folder)
-                                .size(theme::ICON_SM)
+                                .size(theme::icon_sm())
                                 .color(theme::text_subtle()),
                         )
                         .child(
                             div()
                                 .flex_1()
-                                .min_w(theme::SPACE_0)
+                                .min_w(theme::space_0())
                                 .truncate()
                                 .child(dir.clone()),
                         )
@@ -162,7 +162,7 @@ impl GitViewer {
             .size_full()
             .child(progress)
             .child(head)
-            .child(div().px(theme::SPACE_2).py(theme::SPACE_2).child(input))
+            .child(div().px(theme::space_2()).py(theme::space_2()).child(input))
             .children(
                 self.render_code_menus(d, cx)
                     .filter(|_| matches!(self.layer, Some(crate::app::Layer::FileAt(..)))),
@@ -174,8 +174,8 @@ impl GitViewer {
                     .track_scroll(&h)
                     .map(crate::ui::scroll::y_only)
                     .flex_1()
-                    .min_h(theme::SPACE_0)
-                    .px(theme::SPACE_2)
+                    .min_h(theme::space_0())
+                    .px(theme::space_2())
                     .pb(layout::END_PAD)
                     .child(col);
                 crate::ui::elastic::y_scroller(pane, "file-tree", h)
@@ -205,14 +205,14 @@ impl GitViewer {
             .id(("tree-file", fi))
             .flex()
             .items_center()
-            .gap(theme::SPACE_1P5)
+            .gap(theme::space_1p5())
             .pl(if full_path {
-                theme::SPACE_1
+                theme::space_1()
             } else {
-                theme::SPACE_5
+                theme::space_5()
             })
-            .pr(theme::SPACE_1)
-            .py(theme::SPACE_1)
+            .pr(theme::space_1())
+            .py(theme::space_1())
             .list_item_radius(current, theme::RADIUS_SM)
             .tooltip(tooltip(path.to_string()))
             .on_mouse_down(
@@ -240,7 +240,7 @@ impl GitViewer {
             .child(
                 div()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .truncate()
                     .text_size(theme::text_xs())
                     .text_color(if viewed {
@@ -253,7 +253,7 @@ impl GitViewer {
             .children(needs_me(path, d).then(|| {
                 div()
                     .flex_shrink_0()
-                    .size(theme::SPACE_1P5)
+                    .size(theme::space_1p5())
                     .rounded(theme::RADIUS_FULL)
                     .bg(theme::warning())
             }))

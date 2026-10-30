@@ -17,7 +17,7 @@ impl GitViewer {
         let bar = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .child(
                 Button::new("viewer-back", "Back to diff")
                     .icon(IconName::ArrowLeft)
@@ -32,7 +32,7 @@ impl GitViewer {
             .child(
                 div()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .truncate()
                     .font_family(theme::mono_font())
                     .text_size(theme::text_xs())
@@ -40,7 +40,11 @@ impl GitViewer {
             )
             .when(v.goto, |d| {
                 // Ctrl+G: line number, Enter jumps, Esc closes.
-                d.child(div().w(theme::SPACE_16 * 2.).child(self.goto_input.clone()))
+                d.child(
+                    div()
+                        .w(theme::space_16() * 2.)
+                        .child(self.goto_input.clone()),
+                )
             });
         let body: AnyElement = match (&v.lines, &v.error) {
             (_, Some(e)) => ErrorText::new(e.clone()).into_any_element(),
@@ -53,8 +57,9 @@ impl GitViewer {
                 let lines = lines.clone();
                 let lang = Lang::from_path(&v.path);
                 let digits = lines.len().to_string().len() as f32;
-                let gutter = (theme::text_xs() * layout::MONO_CHAR_RATIO * digits + theme::SPACE_4)
-                    .max(layout::DIFF_GUTTER_W);
+                let gutter = (theme::text_xs() * layout::MONO_CHAR_RATIO * digits
+                    + theme::space_4())
+                .max(layout::DIFF_GUTTER_W);
                 uniform_list(
                     "file-viewer",
                     lines.len(),
@@ -123,7 +128,7 @@ impl GitViewer {
                 )
                 .flex_1()
                 .h_full()
-                .py(theme::SPACE_2)
+                .py(theme::space_2())
                 .rounded(theme::RADIUS_LG)
                 .border_1()
                 .border_color(theme::border_subtle())
@@ -135,8 +140,8 @@ impl GitViewer {
             .flex()
             .flex_col()
             .flex_1()
-            .min_h(theme::SPACE_0)
-            .gap(theme::SPACE_3)
+            .min_h(theme::space_0())
+            .gap(theme::space_3())
             .child(bar)
             .child(body)
             .into_any_element()

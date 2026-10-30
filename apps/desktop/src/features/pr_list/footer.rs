@@ -51,8 +51,8 @@ impl GitViewer {
             .flex()
             .justify_center()
             .items_center()
-            .gap(theme::SPACE_1P5)
-            .mt(theme::SPACE_8)
+            .gap(theme::space_1p5())
+            .mt(theme::space_8())
             .text_size(theme::text_sm())
             .text_color(theme::text_subtle())
             .child(text);

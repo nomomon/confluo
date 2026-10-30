@@ -38,8 +38,8 @@ impl GitViewer {
             .key_context("FindBar")
             .flex()
             .items_center()
-            .gap(theme::SPACE_1)
-            .p(theme::SPACE_1)
+            .gap(theme::space_1())
+            .p(theme::space_1())
             .rounded(theme::RADIUS_LG)
             .border_1()
             .border_color(theme::border())
@@ -50,8 +50,8 @@ impl GitViewer {
             .child(field)
             .child(
                 div()
-                    .min_w(theme::SPACE_16)
-                    .px(theme::SPACE_1)
+                    .min_w(theme::space_16())
+                    .px(theme::space_1())
                     .text_size(theme::text_xs())
                     .text_color(if none {
                         theme::danger()
@@ -89,8 +89,8 @@ impl GitViewer {
         Some(
             div()
                 .absolute()
-                .top(theme::SPACE_2)
-                .right(theme::SPACE_4)
+                .top(theme::space_2())
+                .right(theme::space_4())
                 .child(motion::pop_in(bar, "find-bar"))
                 .into_any_element(),
         )

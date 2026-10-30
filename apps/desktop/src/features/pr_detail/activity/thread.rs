@@ -31,7 +31,7 @@ impl GitViewer {
                     let off = handle.offset();
                     handle.set_offset(point(
                         off.x,
-                        off.y - (b.origin.y - view.origin.y) + theme::SPACE_3,
+                        off.y - (b.origin.y - view.origin.y) + theme::space_3(),
                     ));
                     window.refresh();
                 }

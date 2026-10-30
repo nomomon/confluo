@@ -35,7 +35,7 @@ impl GitViewer {
         div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2P5)
+            .gap(theme::space_2p5())
             .child(ShortcutHint::wrap(
                 div()
                     .text_size(theme::text_2xl())
@@ -55,7 +55,7 @@ impl GitViewer {
             )
             .child(
                 div()
-                    .pl(theme::SPACE_2)
+                    .pl(theme::space_2())
                     .text_size(theme::text_sm())
                     .text_color(theme::text_subtle())
                     .child(freshness),
@@ -99,7 +99,7 @@ impl GitViewer {
             .flex()
             .flex_col()
             .flex_1()
-            .min_h(theme::SPACE_0)
+            .min_h(theme::space_0())
             .map(crate::ui::scroll::y_only)
             .pb(layout::END_PAD)
             .child(body);
@@ -122,7 +122,7 @@ impl GitViewer {
                 div()
                     .flex()
                     .items_center()
-                    .gap(theme::SPACE_3)
+                    .gap(theme::space_3())
                     .mt(theme::card_gap())
                     .child(self.render_involvement_tabs(cx))
                     .child(self.render_search(cx)),
@@ -134,7 +134,7 @@ impl GitViewer {
             .flex()
             .justify_center()
             .flex_1()
-            .min_w(theme::SPACE_0)
+            .min_w(theme::space_0())
             .h_full()
             .bg(self.surfaces().content())
             .child(content)

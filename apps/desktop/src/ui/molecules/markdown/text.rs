@@ -139,7 +139,7 @@ fn text_segment(
         });
     with_chips(
         div()
-            .min_w(theme::SPACE_0)
+            .min_w(theme::space_0())
             .cursor_pointer()
             .child(interactive),
         layout,
@@ -179,8 +179,8 @@ impl RenderOnce for MdText {
             .flex()
             .flex_wrap()
             .items_center()
-            .gap(theme::SPACE_1)
-            .min_w(theme::SPACE_0);
+            .gap(theme::space_1())
+            .min_w(theme::space_0());
         let mut pending: Vec<(String, Style)> = vec![];
         let mut seg = 0;
         let flush = |row: gpui::Div, pending: &mut Vec<(String, Style)>, seg: &mut usize| {
@@ -215,9 +215,9 @@ impl RenderOnce for MdText {
                 None => div()
                     .flex()
                     .items_center()
-                    .gap(theme::SPACE_1)
+                    .gap(theme::space_1())
                     .text_color(theme::text_subtle())
-                    .child(Icon::new(IconName::Photo).size(theme::ICON_SM))
+                    .child(Icon::new(IconName::Photo).size(theme::icon_sm()))
                     .child(t.clone())
                     .into_any_element(),
             };

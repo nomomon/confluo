@@ -35,10 +35,10 @@ impl RenderOnce for Pill {
         div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_1)
+            .gap(theme::space_1())
             .flex_shrink_0()
-            .px(theme::SPACE_2)
-            .py(theme::SPACE_0P5)
+            .px(theme::space_2())
+            .py(theme::space_0p5())
             .rounded(theme::RADIUS_SM)
             .text_size(theme::text_xs())
             .font_weight(theme::WEIGHT_MEDIUM)
@@ -46,7 +46,7 @@ impl RenderOnce for Pill {
             .text_color(self.color)
             .children(
                 self.icon
-                    .map(|n| Icon::new(n).size(theme::ICON_SM).color(self.color)),
+                    .map(|n| Icon::new(n).size(theme::icon_sm()).color(self.color)),
             )
             .child(self.label)
     }

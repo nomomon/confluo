@@ -37,7 +37,7 @@ impl RenderOnce for Swatch {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         div()
             .id(ElementId::Name(self.id))
-            .size(theme::SPACE_5)
+            .size(theme::space_5())
             .rounded(theme::RADIUS_FULL)
             .border_2()
             .border_color(if self.active {

@@ -18,14 +18,14 @@ impl GitViewer {
         let id = p.id;
         let kebab = div()
             .id(gpui::SharedString::from(format!("project-more-{id}")))
-            .px(theme::SPACE_1)
+            .px(theme::space_1())
             .rounded(theme::RADIUS_SM)
             .text_color(theme::text_subtle())
             .hover(|s| s.text_color(theme::text()).bg(theme::surface_hover()))
             .tooltip(tooltip("More"))
             .child(
                 Icon::new(IconName::Ellipsis)
-                    .size(theme::ICON_SM)
+                    .size(theme::icon_sm())
                     .color(theme::text_subtle()),
             )
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {

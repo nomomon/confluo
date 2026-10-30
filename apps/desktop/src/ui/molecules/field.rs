@@ -48,16 +48,16 @@ impl RenderOnce for Field {
         if self.horizontal {
             let text = div()
                 .flex_1()
-                .min_w(theme::SPACE_0)
+                .min_w(theme::space_0())
                 .flex()
                 .flex_col()
-                .gap(theme::SPACE_0P5)
+                .gap(theme::space_0p5())
                 .child(div().text_size(theme::text_sm()).child(self.label))
                 .children(desc);
             return div()
                 .flex()
                 .items_center()
-                .gap(theme::SPACE_4)
+                .gap(theme::space_4())
                 .px(theme::card_pad())
                 .py(theme::row_pad_y())
                 .child(text)
@@ -66,7 +66,7 @@ impl RenderOnce for Field {
         div()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_1P5)
+            .gap(theme::space_1p5())
             .child(
                 div()
                     .text_size(theme::text_xs())

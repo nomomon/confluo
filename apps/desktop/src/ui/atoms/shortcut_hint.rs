@@ -59,8 +59,8 @@ impl ShortcutHint {
 fn pill(keys: &str) -> Div {
     div()
         .flex_none()
-        .px(theme::SPACE_1P5)
-        .py(theme::SPACE_0P5)
+        .px(theme::space_1p5())
+        .py(theme::space_0p5())
         .rounded(theme::RADIUS_SM)
         .bg(theme::text())
         .text_color(theme::bg())
@@ -76,19 +76,19 @@ impl RenderOnce for ShortcutHint {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         let row = div()
             .flex()
-            .gap(theme::SPACE_1)
+            .gap(theme::space_1())
             .children(self.keys.iter().map(|k| pill(k)));
         let placed = match self.anchor {
             HintAnchor::Corner => div()
                 .absolute()
-                .top(-theme::SPACE_2)
-                .right(-theme::SPACE_1P5)
+                .top(-theme::space_2())
+                .right(-theme::space_1p5())
                 .child(row),
             HintAnchor::Inline => div()
                 .absolute()
                 .top_0()
                 .bottom_0()
-                .right(theme::SPACE_2)
+                .right(theme::space_2())
                 .flex()
                 .items_center()
                 .child(row),
@@ -97,7 +97,7 @@ impl RenderOnce for ShortcutHint {
                 .top_full()
                 .left_0()
                 .right_0()
-                .mt(theme::SPACE_1)
+                .mt(theme::space_1())
                 .flex()
                 .justify_center()
                 .child(row),

@@ -53,10 +53,10 @@ impl GitViewer {
         let mut row = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_1)
+            .gap(theme::space_1())
             .min_h(theme::control_h())
-            .pl(theme::SPACE_3)
-            .pr(theme::SPACE_1)
+            .pl(theme::space_3())
+            .pr(theme::space_1())
             .text_size(theme::text_xs());
         let row_has_path = loc.is_some();
         if let Some((path, line)) = loc {
@@ -66,11 +66,11 @@ impl GitViewer {
                     .flex()
                     .flex_1()
                     .items_center()
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .font_family(theme::mono_font())
                     .child(
                         div()
-                            .min_w(theme::SPACE_0)
+                            .min_w(theme::space_0())
                             .truncate()
                             .text_color(theme::text())
                             .child(format!("{path}{line}")),
@@ -92,7 +92,7 @@ impl GitViewer {
         if let Some((label, color)) = status {
             row = row.child(
                 div()
-                    .px(theme::SPACE_1)
+                    .px(theme::space_1())
                     .text_color(color)
                     .when(a == Attention::NeedsMe, |e| {
                         e.font_weight(theme::WEIGHT_MEDIUM)
@@ -126,7 +126,7 @@ impl GitViewer {
         let lang = Lang::from_path(&pos.path);
         Some(
             section()
-                .py(theme::SPACE_1)
+                .py(theme::space_1())
                 .children(lines.into_iter().map(|l| {
                     let mark = match l.kind {
                         LineKind::Add => LineMark::Add,

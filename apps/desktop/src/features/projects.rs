@@ -26,7 +26,7 @@ impl GitViewer {
                 this.add_kind = KINDS[*i].1;
                 cx.notify();
             }));
-        let mut existing = div().flex().flex_wrap().gap(theme::SPACE_1);
+        let mut existing = div().flex().flex_wrap().gap(theme::space_1());
         for p in &self.projects {
             let n = p.name.clone();
             existing = existing.child(
@@ -64,14 +64,14 @@ impl GitViewer {
         });
         let value_row = div()
             .flex()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .items_center()
             .child(div().flex_1().child(self.add_value.clone()))
             .children(browse);
         div()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_3)
+            .gap(theme::space_3())
             .child(Field::new("Source", value_row))
             .child(Field::new("Kind (detected)", kinds))
             .child(Field::new(
@@ -79,7 +79,7 @@ impl GitViewer {
                 div()
                     .flex()
                     .flex_col()
-                    .gap(theme::SPACE_1)
+                    .gap(theme::space_1())
                     .child(self.add_name.clone())
                     .child(existing),
             ))
@@ -98,7 +98,7 @@ impl GitViewer {
     pub(super) fn render_rename(&self, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .flex()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .child(div().flex_1().child(self.rename_input.clone()))
             .child(
                 Button::new("rename-save", "Save")
@@ -114,7 +114,7 @@ impl GitViewer {
     ) -> impl IntoElement {
         div()
             .flex()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .child(
                 Button::new("delete-cancel", "Cancel")
                     .variant(ButtonVariant::Ghost)

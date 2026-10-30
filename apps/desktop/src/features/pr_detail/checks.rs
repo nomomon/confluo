@@ -53,7 +53,7 @@ impl GitViewer {
         let header = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .px(theme::row_pad_x())
             .min_h(theme::control_h())
             .children(overall(&info).map(|s| status_icon("checks-head", s)))
@@ -66,7 +66,7 @@ impl GitViewer {
             .child(
                 div()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .truncate()
                     .text_size(theme::text_sm())
                     .text_color(color)
@@ -100,7 +100,7 @@ impl GitViewer {
                 .id("checks-show-passed")
                 .flex()
                 .items_center()
-                .gap(theme::SPACE_2)
+                .gap(theme::space_2())
                 .px(theme::row_pad_x())
                 .py(theme::item_pad_y())
                 .text_size(theme::text_xs())
@@ -112,7 +112,7 @@ impl GitViewer {
                     } else {
                         IconName::ChevronRight
                     })
-                    .size(theme::ICON_SM)
+                    .size(theme::icon_sm())
                     .color(theme::text_subtle()),
                 )
                 .child(label)

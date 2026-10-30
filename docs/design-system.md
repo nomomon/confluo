@@ -129,10 +129,10 @@ panels 0.82; light (tested over pure black) window 0.94, content 0.96, sidebar 0
 
 ## Spacing, radius, type
 
-Spacing, Tailwind 4px steps: `SPACE_0` 0, `SPACE_0P5` 2, `SPACE_1` 4,
-`SPACE_1P5` 6, `SPACE_2` 8, `SPACE_2P5` 10, `SPACE_3` 12, `SPACE_4` 16,
-`SPACE_5` 20, `SPACE_6` 24, `SPACE_7` 28, `SPACE_8` 32, `SPACE_10` 40,
-`SPACE_12` 48, `SPACE_14` 56, `SPACE_16` 64.
+Spacing, Tailwind 4px steps: `space_0()` 0, `space_0p5()` 2, `space_1()` 4,
+`space_1p5()` 6, `space_2()` 8, `space_2p5()` 10, `space_3()` 12, `space_4()` 16,
+`space_5()` 20, `space_6()` 24, `space_7()` 28, `space_8()` 32, `space_10()` 40,
+`space_12()` 48, `space_14()` 56, `space_16()` 64.
 
 Rhythm tokens are functions driven by Settings > Appearance > Density (Compact default /
 Comfortable), so features never hard-code breathing room:
@@ -179,15 +179,15 @@ Calm but compact. The list column is centered, capped at `CONTENT_MAX_W`, with
 - One rounded card (`LIST_RADIUS`) per section, padded by `LIST_INSET`; rows are `ListItem`s split
   by 1px `border_subtle()` dividers inset to the row text (`ListSection`).
 - Rows: `row_min_h()`, `row_pad_y()`/`row_pad_x()`; title `text_md()` (13.5) medium; meta
-  `text_xs()` muted with `SPACE_2` between items; right column time over `+a -d` in `text_xs()`;
+  `text_xs()` muted with `space_2()` between items; right column time over `+a -d` in `text_xs()`;
   star outside it.
 - Meta color: CI passed `success()`, failing `danger()`; hints such as "Your
   review requested" and "Draft" are muted; the number is a green tinted
   `Pill` with the git-pull-request icon.
-- Sidebar: `SPACE_3` padding, nav items `SPACE_2` vertical.
+- Sidebar: `space_3()` padding, nav items `space_2()` vertical.
 - Narrow windows: with the detail pane open below `COMPACT_BELOW` (1440) the sidebar collapses to an
   icon rail (`SIDEBAR_RAIL_W`, `NavItem::compact`, labels become tooltips), the list padding drops to
-  `SPACE_6`, rows drop the author and hint, and the detail pane narrows so the list keeps `LIST_MIN_W`. Detail pane:
+  `space_6()`, rows drop the author and hint, and the detail pane narrows so the list keeps `LIST_MIN_W`. Detail pane:
   `pane_pad()` sides, cards `card_gap()` apart, title `text_xl()` (18) semibold, meta `text_xs()`,
   key/value rows in `Card::rows()`.
 
@@ -210,7 +210,7 @@ The hover "+" comments on one line, or drag from it across lines and release to 
 in the diff, else blob permalinks at the head sha (`state::permalink`). Character-level text
 selection inside a line is not implemented. Dev: `CONFLUO_SELECT=path:start-end` preselects lines.
 
-Icons: `ICON_SM` 12 (chevrons, section headers), `ICON_MD` 14 (buttons, nav), `ICON_LG` 16 (row state).
+Icons: `icon_sm()` 12 (chevrons, section headers), `icon_md()` 14 (buttons, nav), `icon_lg()` 16 (row state).
 Never use text glyphs as icons; add a Tabler outline SVG (stroke-width 1.75) and an `IconName` variant instead.
 
 Radius: `RADIUS_SM` 6, `RADIUS_MD` 8, `RADIUS_LG` 12, `RADIUS_XL` 16,
@@ -258,7 +258,7 @@ Atoms:
 - `Button`: `Button::new(id, "Save").variant(ButtonVariant::Primary)` (Outline, Ghost, Link, Primary, Destructive), `.icon(..)`, `.tooltip("Refresh  ⌘R")`
 - `Checkbox`: `Checkbox::new(id, done).label("Ship").on_change(|v, w, cx| ..)`
 - `Chip`, `Pill`, `NavItem` (`.icon(..)`, `.trailing_on_hover(..)`, `.on_right_click(..)`)
-- `Icon`: `Icon::new(IconName::BrandGithub).size(ICON_MD)`; Tabler outline SVGs in `assets/icons` (MIT)
+- `Icon`: `Icon::new(IconName::BrandGithub).size(icon_md())`; Tabler outline SVGs in `assets/icons` (MIT)
 - `Kbd`: `Kbd::new("⌘ R")`, one box per space separated key
 - `Separator`: `Separator::new()` or `Separator::vertical()`
 - `Spinner`: `Spinner::new(id).color(theme::warning())`, rotating loader, still under reduced motion
@@ -389,7 +389,7 @@ Find bar (Cmd+F in Review mode):
 
 Zoom (Cmd+= / Cmd+- / Cmd+0):
 
-- Steps are `settings::ZOOM_STEPS` (80% to 140%). Zoom goes through `theme::set_typography`, so every text size and the diff row height scale; never multiply by the zoom in a component.
+- Steps are `settings::ZOOM_STEPS` (80% to 140%). Zoom goes through `theme::set_typography`, so every text size, spacing (`theme::space_*()`), icon size (`theme::icon_*()`) and the diff row height scale; panel widths stay fixed. Never multiply by the zoom in a component.
 - A zoom change remeasures the diff rows and keeps the scroll position. Toast confirms the new level.
 
 Word wrap (Alt+Z):

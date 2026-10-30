@@ -19,11 +19,11 @@ impl GitViewer {
             .flex()
             .flex_col()
             .flex_1()
-            .min_w(theme::SPACE_0)
+            .min_w(theme::space_0())
             .h_full()
             .bg(self.surfaces().content())
-            .px(theme::SPACE_4)
-            .pt(theme::SPACE_3)
+            .px(theme::space_4())
+            .pt(theme::space_3())
             .when_some(d.error.clone(), |c, e| c.child(ErrorText::new(e)))
             .child(self.render_code(d, cx))
             .children(
@@ -33,7 +33,7 @@ impl GitViewer {
         let body = div()
             .flex()
             .flex_1()
-            .min_h(theme::SPACE_0)
+            .min_h(theme::space_0())
             .relative()
             .children(self.panel_frame(
                 Pane::Tree,

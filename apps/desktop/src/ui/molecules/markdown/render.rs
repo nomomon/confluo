@@ -39,10 +39,10 @@ pub fn render(prefix: &SharedString, blocks: &[Block], images: Images) -> Vec<An
 /// Space above a block that follows another one.
 fn gap_before(b: &Block, tight: bool) -> Pixels {
     match b {
-        Block::Heading(1 | 2, _) => theme::SPACE_6,
-        Block::Heading(..) => theme::SPACE_5,
-        _ if tight => theme::SPACE_1P5,
-        _ => theme::SPACE_3,
+        Block::Heading(1 | 2, _) => theme::space_6(),
+        Block::Heading(..) => theme::space_5(),
+        _ if tight => theme::space_1p5(),
+        _ => theme::space_3(),
     }
 }
 
@@ -52,7 +52,7 @@ fn stack(ctx: &Ctx, blocks: &[Block], depth: usize, tight: bool) -> Vec<AnyEleme
         .enumerate()
         .map(|(i, b)| {
             div()
-                .min_w(theme::SPACE_0)
+                .min_w(theme::space_0())
                 .when(i > 0, |d| d.mt(gap_before(b, tight)))
                 .child(block(ctx, b, depth))
                 .into_any_element()
@@ -94,7 +94,7 @@ fn block(ctx: &Ctx, b: &Block, depth: usize) -> AnyElement {
                 .text_size(size)
                 .line_height(relative(1.3))
                 .when(*level <= 2, |d| {
-                    d.pb(theme::SPACE_1P5)
+                    d.pb(theme::space_1p5())
                         .border_b_1()
                         .border_color(theme::border_subtle())
                 })
@@ -110,7 +110,7 @@ fn block(ctx: &Ctx, b: &Block, depth: usize) -> AnyElement {
         Block::List { start, items } => div()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_1)
+            .gap(theme::space_1())
             .children(
                 items
                     .iter()
@@ -122,7 +122,7 @@ fn block(ctx: &Ctx, b: &Block, depth: usize) -> AnyElement {
             alert: None,
             blocks,
         } => div()
-            .pl(theme::SPACE_3)
+            .pl(theme::space_3())
             .border_l_2()
             .border_color(theme::border())
             .text_color(theme::text_muted())
@@ -138,7 +138,7 @@ fn block(ctx: &Ctx, b: &Block, depth: usize) -> AnyElement {
             let title = div()
                 .flex()
                 .items_center()
-                .gap(theme::SPACE_1P5)
+                .gap(theme::space_1p5())
                 .text_size(theme::text_sm())
                 .font_weight(theme::WEIGHT_SEMIBOLD)
                 .text_color(color)
@@ -147,9 +147,9 @@ fn block(ctx: &Ctx, b: &Block, depth: usize) -> AnyElement {
             div()
                 .flex()
                 .flex_col()
-                .gap(theme::SPACE_1P5)
-                .px(theme::SPACE_3)
-                .py(theme::SPACE_2P5)
+                .gap(theme::space_1p5())
+                .px(theme::space_3())
+                .py(theme::space_2p5())
                 .border_l_2()
                 .border_color(color)
                 .rounded_r(theme::RADIUS_MD)
@@ -164,7 +164,7 @@ fn block(ctx: &Ctx, b: &Block, depth: usize) -> AnyElement {
         }
         Block::Footnote { label, blocks } => div()
             .flex()
-            .gap(theme::SPACE_1P5)
+            .gap(theme::space_1p5())
             .text_size(theme::text_xs())
             .text_color(theme::text_muted())
             .child(format!("{label}."))
@@ -177,7 +177,7 @@ fn block(ctx: &Ctx, b: &Block, depth: usize) -> AnyElement {
             )
             .into_any_element(),
         Block::Rule => div()
-            .my(theme::SPACE_1)
+            .my(theme::space_1())
             .child(Separator::new())
             .into_any_element(),
     }
@@ -204,14 +204,14 @@ fn list_item(ctx: &Ctx, start: Option<u64>, i: usize, item: &Item, depth: usize)
     };
     div()
         .flex()
-        .gap(theme::SPACE_2)
+        .gap(theme::space_2())
         .text_size(theme::text_sm())
         .line_height(relative(theme::MARKDOWN_LINE_HEIGHT))
         .child(
             div()
                 .flex()
                 .justify_end()
-                .w(theme::SPACE_5)
+                .w(theme::space_5())
                 .flex_shrink_0()
                 .child(marker),
         )
@@ -220,7 +220,7 @@ fn list_item(ctx: &Ctx, start: Option<u64>, i: usize, item: &Item, depth: usize)
                 .flex()
                 .flex_col()
                 .flex_1()
-                .min_w(theme::SPACE_0)
+                .min_w(theme::space_0())
                 .children(stack(ctx, &item.blocks, depth + 1, true)),
         )
         .into_any_element()

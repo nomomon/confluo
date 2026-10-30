@@ -53,7 +53,7 @@ impl RenderOnce for Markdown {
         div()
             .flex()
             .flex_col()
-            .min_w(crate::ui::theme::SPACE_0)
+            .min_w(crate::ui::theme::space_0())
             .children(render::render(&self.id, &blocks, self.images))
     }
 }

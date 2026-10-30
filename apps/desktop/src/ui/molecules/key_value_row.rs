@@ -26,7 +26,7 @@ impl RenderOnce for KeyValueRow {
         div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_4)
+            .gap(theme::space_4())
             .min_h(theme::kv_row_h())
             .px(theme::card_pad())
             .text_size(theme::text_sm())

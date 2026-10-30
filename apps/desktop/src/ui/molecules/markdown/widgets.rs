@@ -78,7 +78,7 @@ impl RenderOnce for CodeBlock {
                         .child(CodeText::new(l.to_string(), lang))
                 })),
         )
-        .p(theme::SPACE_3)
+        .p(theme::space_3())
         .text_size(theme::text_xs());
         div()
             .group(group.clone())
@@ -91,8 +91,8 @@ impl RenderOnce for CodeBlock {
             .child(
                 div()
                     .absolute()
-                    .top(theme::SPACE_1)
-                    .right(theme::SPACE_1)
+                    .top(theme::space_1())
+                    .right(theme::space_1())
                     .opacity(if done { 1. } else { 0. })
                     .group_hover(group, |s| s.opacity(1.))
                     .child(copy),
@@ -129,7 +129,7 @@ impl RenderOnce for Details {
             .id(ElementId::Name(self.id.clone()))
             .flex()
             .items_center()
-            .gap(theme::SPACE_1P5)
+            .gap(theme::space_1p5())
             .cursor_pointer()
             .text_color(theme::text_muted())
             .hover(|s| s.text_color(theme::text()))
@@ -139,7 +139,7 @@ impl RenderOnce for Details {
                 } else {
                     IconName::ChevronRight
                 })
-                .size(theme::ICON_SM),
+                .size(theme::icon_sm()),
             )
             .child(div().font_weight(theme::WEIGHT_MEDIUM).child(self.summary))
             .on_click(move |_: &ClickEvent, _, cx| {
@@ -156,8 +156,8 @@ impl RenderOnce for Details {
             .when(is_open, |d| {
                 d.child(
                     div()
-                        .mt(theme::SPACE_2)
-                        .pl(theme::SPACE_5)
+                        .mt(theme::space_2())
+                        .pl(theme::space_5())
                         .flex()
                         .flex_col()
                         .children(self.children),

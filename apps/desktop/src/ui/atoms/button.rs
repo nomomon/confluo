@@ -99,13 +99,13 @@ impl RenderOnce for Button {
             .id(ElementId::Name(self.id))
             .flex()
             .items_center()
-            .gap(theme::SPACE_1)
+            .gap(theme::space_1())
             .cursor_pointer();
         let styled = match self.variant {
             ButtonVariant::Outline => base
                 .flex_shrink_0()
-                .px(theme::SPACE_2P5)
-                .py(theme::SPACE_1)
+                .px(theme::space_2p5())
+                .py(theme::space_1())
                 .rounded(theme::RADIUS_MD)
                 .border_1()
                 .border_color(theme::border())
@@ -114,15 +114,15 @@ impl RenderOnce for Button {
                 .hover(|s| s.bg(theme::surface_hover()))
                 .active(|s| s.bg(theme::surface_active())),
             ButtonVariant::Ghost => base
-                .px(theme::SPACE_1P5)
+                .px(theme::space_1p5())
                 .rounded(theme::RADIUS_MD)
                 .text_color(theme::text_muted())
                 .hover(|s| s.bg(theme::surface_hover()).text_color(theme::text()))
                 .active(|s| s.bg(theme::surface_active())),
             ButtonVariant::Primary => base
                 .flex_shrink_0()
-                .px(theme::SPACE_3)
-                .py(theme::SPACE_1)
+                .px(theme::space_3())
+                .py(theme::space_1())
                 .rounded(theme::RADIUS_MD)
                 .bg(theme::text())
                 .text_color(theme::bg())
@@ -132,8 +132,8 @@ impl RenderOnce for Button {
                 .active(|s| s.opacity(0.8)),
             ButtonVariant::Destructive => base
                 .flex_shrink_0()
-                .px(theme::SPACE_3)
-                .py(theme::SPACE_1)
+                .px(theme::space_3())
+                .py(theme::space_1())
                 .rounded(theme::RADIUS_MD)
                 .bg(theme::tint_bg(theme::danger()))
                 .text_color(theme::danger())
@@ -154,8 +154,8 @@ impl RenderOnce for Button {
         };
         styled
             .when(self.size == Size::Md, |el| {
-                el.px(theme::SPACE_3)
-                    .py(theme::SPACE_1P5)
+                el.px(theme::space_3())
+                    .py(theme::space_1p5())
                     .text_size(theme::text_sm())
             })
             .children(self.icon.map(|n| {
@@ -168,12 +168,12 @@ impl RenderOnce for Button {
                 Icon::new(n).color(color)
             }))
             .when(self.icon.is_some() && self.label.is_empty(), |el| {
-                el.py(theme::SPACE_1P5)
+                el.py(theme::space_1p5())
             })
             .when(!self.label.is_empty(), |el| el.child(self.label))
             .children(
                 self.trailing
-                    .map(|n| Icon::new(n).size(theme::ICON_SM).color(fg)),
+                    .map(|n| Icon::new(n).size(theme::icon_sm()).color(fg)),
             )
             .when_some(self.tooltip, |el, t| el.tooltip(super::tooltip(t)))
             .when_some(self.on_click, |el, f| el.on_click(f))

@@ -26,7 +26,7 @@ impl GitViewer {
     ) -> impl IntoElement {
         div()
             .flex()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .child(
                 Button::new("edit-dialog-cancel", "Cancel")
                     .variant(ButtonVariant::Ghost)
@@ -112,7 +112,7 @@ impl GitViewer {
         let mut content = div()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_3)
+            .gap(theme::space_3())
             .text_size(theme::text_sm());
         if methods.len() > 1 {
             let mut radios = RadioGroup::new("merge-method")

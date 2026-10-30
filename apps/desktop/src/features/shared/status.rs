@@ -6,7 +6,7 @@ use gv_engine::{ChangeRequest, ChangeRequestState, ProviderKind, ReviewState};
 use crate::ui::atoms::{Icon, IconName};
 use crate::ui::theme;
 
-/// Tabler brand icon for a provider: outline, muted, `ICON_MD`.
+/// Tabler brand icon for a provider: outline, muted, `icon_md()`.
 pub fn provider_icon(kind: ProviderKind) -> Icon {
     let name = match kind {
         ProviderKind::GitHub => IconName::BrandGithub,
@@ -14,7 +14,7 @@ pub fn provider_icon(kind: ProviderKind) -> Icon {
         ProviderKind::Azure => IconName::BrandAzure,
     };
     Icon::new(name)
-        .size(theme::ICON_MD)
+        .size(theme::icon_md())
         .color(theme::text_muted())
 }
 
@@ -22,7 +22,7 @@ pub fn provider_icon(kind: ProviderKind) -> Icon {
 /// layout never shifts when the visible rows switch between one and several providers.
 pub fn provider_mark(kind: ProviderKind) -> Icon {
     provider_icon(kind)
-        .size(theme::ICON_SM)
+        .size(theme::icon_sm())
         .color(theme::text_subtle())
 }
 
@@ -44,7 +44,7 @@ pub fn state_icon(s: ChangeRequestState) -> Icon {
         ChangeRequestState::Merged => (IconName::GitMerge, theme::merged()),
         ChangeRequestState::Closed => (IconName::GitPullRequestClosed, theme::danger()),
     };
-    Icon::new(name).size(theme::ICON_LG).color(color)
+    Icon::new(name).size(theme::icon_lg()).color(color)
 }
 
 /// `#12` on GitHub and Azure, `!12` on GitLab.

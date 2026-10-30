@@ -58,14 +58,14 @@ impl GitViewer {
         let blank = || {
             div()
                 .flex_1()
-                .min_w(theme::SPACE_0)
+                .min_w(theme::space_0())
                 .min_h(layout::diff_line_h())
                 .bg(theme::surface())
         };
         let cell = |side: usize, li: Option<usize>, cx: &mut Context<Self>| match li {
             Some(li) => div()
                 .flex_1()
-                .min_w(theme::SPACE_0)
+                .min_w(theme::space_0())
                 // Column so the cell stretches to the taller wrapped side (row height).
                 .flex()
                 .flex_col()
@@ -228,7 +228,7 @@ impl GitViewer {
                 .flex()
                 .items_center()
                 .justify_center()
-                .size(theme::SPACE_4)
+                .size(theme::space_4())
                 .rounded(theme::RADIUS_SM)
                 .bg(theme::accent())
                 .opacity(0.)
@@ -245,7 +245,7 @@ impl GitViewer {
                 )
                 .child(
                     Icon::new(IconName::Plus)
-                        .size(theme::ICON_SM)
+                        .size(theme::icon_sm())
                         .color(theme::bg()),
                 )
         });

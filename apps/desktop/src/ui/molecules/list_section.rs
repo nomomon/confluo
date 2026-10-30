@@ -61,8 +61,8 @@ impl RenderOnce for ListSection {
                 .id(ElementId::Name(format!("{}-header", self.id).into()))
                 .flex()
                 .items_center()
-                .gap(theme::SPACE_2)
-                .px(theme::SPACE_2)
+                .gap(theme::space_2())
+                .px(theme::space_2())
                 .pt(theme::section_gap())
                 .pb(theme::section_header_gap())
                 .cursor_pointer()
@@ -75,7 +75,7 @@ impl RenderOnce for ListSection {
                     } else {
                         IconName::ChevronRight
                     })
-                    .size(theme::ICON_SM)
+                    .size(theme::icon_sm())
                     .color(theme::text_subtle()),
                 )
                 .child(div().font_weight(theme::WEIGHT_MEDIUM).child(title))

@@ -38,8 +38,8 @@ impl GitViewer {
         let edit = can_edit.then(|| {
             div()
                 .absolute()
-                .top(theme::SPACE_2)
-                .right(theme::SPACE_2)
+                .top(theme::space_2())
+                .right(theme::space_2())
                 .opacity(0.)
                 .group_hover("desc-card", |s| s.opacity(1.))
                 .child(
@@ -64,7 +64,7 @@ impl GitViewer {
         let body = div()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_3)
+            .gap(theme::space_3())
             .on_children_prepainted(move |b, _, _| {
                 if let Some(first) = b.first() {
                     desc_h.set(first.size.height)
@@ -118,8 +118,8 @@ impl GitViewer {
         let footer = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
-            .pt(theme::SPACE_2)
+            .gap(theme::space_2())
+            .pt(theme::space_2())
             .border_t_1()
             .border_color(theme::border_subtle())
             .child(tabs)

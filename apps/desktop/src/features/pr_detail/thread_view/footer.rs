@@ -22,7 +22,7 @@ impl GitViewer {
         if t.id == "pending" {
             return None;
         }
-        let foot = section().px(theme::SPACE_3).py(theme::SPACE_2);
+        let foot = section().px(theme::space_3()).py(theme::space_2());
         if place == Place::Code && d.code.inline.reply_to.as_deref() == Some(t.id.as_str()) {
             return Some(foot.child(self.inline_field("Reply", cx)));
         }
@@ -31,9 +31,9 @@ impl GitViewer {
         let field = div()
             .id(SharedString::from(format!("reply-field-{}", t.id)))
             .flex_1()
-            .min_w(theme::SPACE_0)
-            .px(theme::SPACE_2P5)
-            .py(theme::SPACE_1P5)
+            .min_w(theme::space_0())
+            .px(theme::space_2p5())
+            .py(theme::space_1p5())
             .rounded(theme::RADIUS_SM)
             .border_1()
             .border_color(if replying {
@@ -82,7 +82,7 @@ impl GitViewer {
         Some(
             foot.flex()
                 .items_center()
-                .gap(theme::SPACE_2)
+                .gap(theme::space_2())
                 .child(field)
                 .children(resolve),
         )

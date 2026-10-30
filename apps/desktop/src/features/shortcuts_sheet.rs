@@ -57,7 +57,7 @@ impl GitViewer {
             let heading = div()
                 .flex()
                 .items_center()
-                .gap(theme::SPACE_2)
+                .gap(theme::space_2())
                 .pt(theme::section_gap())
                 .pb(theme::section_header_gap())
                 .text_size(theme::text_sm())
@@ -74,7 +74,7 @@ impl GitViewer {
                         .flex()
                         .items_center()
                         .justify_between()
-                        .gap(theme::SPACE_4)
+                        .gap(theme::space_4())
                         .py(theme::item_pad_y())
                         .border_b_1()
                         .border_color(theme::border_subtle())
@@ -82,7 +82,7 @@ impl GitViewer {
                         .child(
                             div()
                                 .flex()
-                                .gap(theme::SPACE_1P5)
+                                .gap(theme::space_1p5())
                                 .children(keys.into_iter().map(Kbd::new)),
                         )
                         .into_any_element()
@@ -98,6 +98,6 @@ impl GitViewer {
         Dialog::new("Keyboard shortcuts")
             .description("Press ? anywhere outside a text field. The palette (\u{2318} K) runs every command.")
             .size(SHEET_W, SHEET_H)
-            .content(div().id("shortcuts-scroll").size_full().map(crate::ui::scroll::y_only).pr(theme::SPACE_2).children(body))
+            .content(div().id("shortcuts-scroll").size_full().map(crate::ui::scroll::y_only).pr(theme::space_2()).children(body))
     }
 }

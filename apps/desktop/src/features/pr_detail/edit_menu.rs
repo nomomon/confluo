@@ -17,7 +17,7 @@ impl GitViewer {
         let base = || {
             div()
                 .w_full()
-                .min_w(theme::SPACE_0)
+                .min_w(theme::space_0())
                 .text_size(theme::text_lg())
                 .font_weight(theme::WEIGHT_SEMIBOLD)
                 .line_height(gpui::relative(1.3))
@@ -28,14 +28,14 @@ impl GitViewer {
                 .border_1()
                 .border_color(theme::focus_ring())
                 .bg(theme::surface())
-                .py(theme::SPACE_1)
+                .py(theme::space_1())
                 .child(self.title_input.clone());
             return base().child(field).into_any_element();
         }
         let editable = d.detail.as_ref().is_some_and(|x| x.edit.caps.title);
         let title = div()
             .id("detail-title")
-            .px(theme::SPACE_1)
+            .px(theme::space_1())
             .rounded(theme::RADIUS_MD)
             .child(d.summary.title.clone());
         if !editable {

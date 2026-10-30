@@ -50,11 +50,11 @@ impl GitViewer {
         let footer = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .child(
                 div()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
+                    .min_w(theme::space_0())
                     .text_size(theme::text_xs())
                     .text_color(theme::text_muted())
                     .children(mode.map(|m| div().truncate().child(m))),
@@ -71,15 +71,15 @@ impl GitViewer {
         // Full width under the tab pill, never overlapped by it.
         div()
             .flex()
-            .gap(theme::SPACE_3)
-            .pt(theme::SPACE_3)
-            .pb(theme::SPACE_4)
+            .gap(theme::space_3())
+            .pt(theme::space_3())
+            .pb(theme::space_4())
             .border_t_1()
             .border_color(theme::border_subtle())
             .child(
-                div().pt(theme::SPACE_2).child(
+                div().pt(theme::space_2()).child(
                     Avatar::new(if me.is_empty() { "you".to_string() } else { me })
-                        .size(theme::SPACE_6)
+                        .size(theme::space_6())
                         .image(self.avatar(avatar_url.as_deref())),
                 ),
             )
@@ -88,8 +88,8 @@ impl GitViewer {
                     .flex()
                     .flex_col()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
-                    .gap(theme::SPACE_2)
+                    .min_w(theme::space_0())
+                    .gap(theme::space_2())
                     .child(Textarea::new(self.composer.clone()).rows(1))
                     .child(footer),
             )

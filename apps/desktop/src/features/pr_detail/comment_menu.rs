@@ -122,7 +122,7 @@ impl GitViewer {
                     .flex()
                     .items_center()
                     .justify_center()
-                    .size(theme::SPACE_7)
+                    .size(theme::space_7())
                     .rounded(theme::RADIUS_MD)
                     .cursor_pointer()
                     .hover(|s| s.bg(theme::surface_hover()))
@@ -137,7 +137,7 @@ impl GitViewer {
             out.push(
                 div()
                     .flex()
-                    .px(theme::SPACE_1)
+                    .px(theme::space_1())
                     .children(emoji)
                     .into_any_element(),
             );

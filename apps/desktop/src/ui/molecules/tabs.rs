@@ -69,22 +69,22 @@ impl RenderOnce for Tabs {
         let row = match v {
             TabsVariant::Pill => row
                 .h(theme::control_h())
-                .p(theme::SPACE_0P5)
-                .gap(theme::SPACE_0P5)
+                .p(theme::space_0p5())
+                .gap(theme::space_0p5())
                 .rounded(theme::RADIUS_MD)
                 .bg(theme::surface())
                 .border_1()
                 .border_color(theme::border()),
             TabsVariant::Floating => row
-                .p(theme::SPACE_1)
-                .gap(theme::SPACE_1)
+                .p(theme::space_1())
+                .gap(theme::space_1())
                 .rounded(theme::RADIUS_FULL)
                 .border_1()
                 .border_color(theme::border())
                 .bg(theme::overlay())
                 .shadow_lg(),
             TabsVariant::Underline => row
-                .gap(theme::SPACE_4)
+                .gap(theme::space_4())
                 .border_b_1()
                 .border_color(theme::border_subtle()),
         };
@@ -103,7 +103,7 @@ impl RenderOnce for Tabs {
                         .id(ElementId::Name(format!("{}-{i}", self.id).into()))
                         .flex()
                         .items_center()
-                        .gap(theme::SPACE_1P5)
+                        .gap(theme::space_1p5())
                         .text_size(theme::text_sm())
                         .font_weight(theme::WEIGHT_MEDIUM)
                         .cursor_pointer()
@@ -120,16 +120,16 @@ impl RenderOnce for Tabs {
                     match v {
                         TabsVariant::Pill => tab
                             .h_full()
-                            .px(theme::SPACE_3)
+                            .px(theme::space_3())
                             .rounded(theme::RADIUS_SM)
                             .when(active, |d| d.bg(theme::surface_active())),
                         TabsVariant::Floating => tab
-                            .px(theme::SPACE_3)
-                            .py(theme::SPACE_1)
+                            .px(theme::space_3())
+                            .py(theme::space_1())
                             .rounded(theme::RADIUS_FULL)
                             .when(active, |d| d.bg(theme::surface_active())),
                         TabsVariant::Underline => tab
-                            .py(theme::SPACE_2)
+                            .py(theme::space_2())
                             .border_b_2()
                             .mb(px(-1.))
                             .border_color(theme::text().opacity(on_k))

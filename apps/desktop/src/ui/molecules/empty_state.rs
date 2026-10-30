@@ -36,8 +36,8 @@ impl RenderOnce for EmptyState {
             .flex_col()
             .items_center()
             .justify_center()
-            .py(theme::SPACE_12 + theme::SPACE_8)
-            .gap(theme::SPACE_1)
+            .py(theme::space_12() + theme::space_8())
+            .gap(theme::space_1())
             .child(div().text_color(theme::text_muted()).child(self.title))
             .child(
                 div()
@@ -51,8 +51,8 @@ impl RenderOnce for EmptyState {
                         .flex()
                         .flex_col()
                         .items_center()
-                        .gap(theme::SPACE_2)
-                        .pt(theme::SPACE_3)
+                        .gap(theme::space_2())
+                        .pt(theme::space_3())
                         .children(self.children),
                 )
             })

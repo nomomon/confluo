@@ -79,7 +79,7 @@ pub(super) fn with_chips(
     .size_full();
     div()
         .relative()
-        .min_w(theme::SPACE_0)
+        .min_w(theme::space_0())
         .child(chips)
         .child(el)
         .into_any_element()

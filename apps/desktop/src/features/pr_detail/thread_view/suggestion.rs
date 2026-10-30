@@ -30,7 +30,7 @@ impl GitViewer {
                 .markdown(format!("c-{}", c.id), &c.body)
                 .into_any_element();
         }
-        let mut col = div().flex().flex_col().gap(theme::SPACE_2);
+        let mut col = div().flex().flex_col().gap(theme::space_2());
         let mut k = 0;
         for (i, p) in parts.iter().enumerate() {
             col = col.child(match p {
@@ -83,9 +83,9 @@ impl GitViewer {
         let head = div()
             .flex()
             .items_center()
-            .gap(theme::SPACE_2)
-            .pl(theme::SPACE_3)
-            .pr(theme::SPACE_1)
+            .gap(theme::space_2())
+            .pl(theme::space_3())
+            .pr(theme::space_1())
             .min_h(theme::control_h())
             .text_size(theme::text_xs())
             .child(
@@ -100,7 +100,7 @@ impl GitViewer {
             })
             .child(copy)
             .children(apply);
-        let mut rows = section().py(theme::SPACE_1);
+        let mut rows = section().py(theme::space_1());
         if let Some((from, lines)) = original {
             for (j, l) in lines.into_iter().enumerate() {
                 rows = rows.child(

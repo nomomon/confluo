@@ -105,8 +105,8 @@ impl GitViewer {
             .flex()
             .flex_wrap()
             .items_center()
-            .gap_x(theme::SPACE_1P5)
-            .min_h(theme::SPACE_7)
+            .gap_x(theme::space_1p5())
+            .min_h(theme::space_7())
             .text_size(theme::text_sm())
             .child(
                 div()
@@ -134,7 +134,7 @@ impl GitViewer {
                         .tooltip(tooltip("Thread resolved"))
                         .child(
                             Icon::new(IconName::CircleCheckFilled)
-                                .size(theme::ICON_LG)
+                                .size(theme::icon_lg())
                                 .color(theme::success()),
                         ),
                 )
@@ -152,9 +152,9 @@ impl GitViewer {
             .group(group.clone())
             .relative()
             .flex()
-            .gap(theme::SPACE_3)
-            .px(theme::SPACE_3)
-            .py(theme::SPACE_2P5)
+            .gap(theme::space_3())
+            .px(theme::space_3())
+            .py(theme::space_2p5())
             .rounded(theme::RADIUS_SM)
             .hover(|s| s.bg(theme::surface_hover()))
             .when(!pending, |e| {
@@ -169,7 +169,7 @@ impl GitViewer {
             })
             .child(
                 Avatar::new(c.author.username.clone())
-                    .size(theme::SPACE_7)
+                    .size(theme::space_7())
                     .image(self.avatar(c.author.avatar_url.as_deref())),
             )
             .child(
@@ -177,8 +177,8 @@ impl GitViewer {
                     .flex()
                     .flex_col()
                     .flex_1()
-                    .min_w(theme::SPACE_0)
-                    .gap(theme::SPACE_1)
+                    .min_w(theme::space_0())
+                    .gap(theme::space_1())
                     .child(head)
                     .children(resolved_line)
                     .child(body)

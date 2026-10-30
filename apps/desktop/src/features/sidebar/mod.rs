@@ -23,7 +23,7 @@ impl GitViewer {
             .flex()
             .justify_between()
             .items_center()
-            .pr(theme::SPACE_1)
+            .pr(theme::space_1())
             .child(SectionLabel::new("Projects"))
             .child(
                 div()
@@ -54,8 +54,8 @@ impl GitViewer {
                 }
             })
             .pt(layout::SIDEBAR_TOP)
-            .px(theme::SPACE_3)
-            .gap(theme::SPACE_1)
+            .px(theme::space_3())
+            .gap(theme::space_1())
             .relative()
             .child(
                 div()
@@ -94,8 +94,8 @@ impl GitViewer {
             )
             .child(if compact {
                 div()
-                    .my(theme::SPACE_3)
-                    .mx(theme::SPACE_2)
+                    .my(theme::space_3())
+                    .mx(theme::space_2())
                     .h(gpui::px(1.))
                     .bg(theme::border_subtle())
                     .into_any_element()
@@ -108,8 +108,8 @@ impl GitViewer {
         if self.projects.is_empty() && !compact {
             col = col.child(
                 div()
-                    .px(theme::SPACE_3)
-                    .py(theme::SPACE_2)
+                    .px(theme::space_3())
+                    .py(theme::space_2())
                     .text_size(theme::text_xs())
                     .text_color(theme::text_subtle())
                     .child("No projects yet"),
@@ -128,7 +128,7 @@ impl GitViewer {
             .children(self.render_update_card(cx))
             .child(
                 self.hinted::<OpenSettings>(settings, anchor)
-                    .mb(theme::SPACE_4),
+                    .mb(theme::space_4()),
             );
         // macOS 26 light: the sidebar floats as an inset glass panel; its width includes the margin.
         let inset = theme::sidebar_inset();

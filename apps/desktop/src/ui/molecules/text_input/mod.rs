@@ -182,7 +182,7 @@ impl TextInput {
             min_h: px(0.),
             scroll_y: px(0.),
             reveal: false,
-            inset: (theme::SPACE_3, theme::SPACE_3),
+            inset: (theme::space_3(), theme::space_3()),
         }
     }
 
@@ -332,7 +332,9 @@ impl Render for TextInput {
             .w_full()
             .when(!self.multiline, |d| d.h(theme::control_h()))
             .when(self.multiline && !self.document, |d| {
-                d.items_start().min_h(theme::control_h()).py(theme::SPACE_2)
+                d.items_start()
+                    .min_h(theme::control_h())
+                    .py(theme::space_2())
             })
             .when(self.document, |d| {
                 d.items_start()

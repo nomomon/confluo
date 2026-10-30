@@ -62,7 +62,7 @@ impl GitViewer {
             div()
                 .absolute()
                 .top(layout::diff_line_h())
-                .right(theme::SPACE_3)
+                .right(theme::space_3())
                 .child(bar),
         )
         .with_priority(1)

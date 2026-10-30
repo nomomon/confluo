@@ -29,7 +29,7 @@ impl GitViewer {
         div()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_2)
+            .gap(theme::space_2())
             .child(
                 Textarea::new(self.inline_input.clone())
                     .rows(2)
@@ -39,7 +39,7 @@ impl GitViewer {
                 div()
                     .flex()
                     .justify_end()
-                    .gap(theme::SPACE_2)
+                    .gap(theme::space_2())
                     .child(cancel)
                     .child(post),
             )
@@ -65,8 +65,8 @@ impl GitViewer {
         let card = div()
             .flex()
             .flex_col()
-            .gap(theme::SPACE_2)
-            .p(theme::SPACE_3)
+            .gap(theme::space_2())
+            .p(theme::space_3())
             .rounded(theme::RADIUS_MD)
             .border_1()
             .border_color(theme::border())
@@ -86,8 +86,8 @@ impl GitViewer {
                 cx,
             ));
         self.card_side()
-            .px(theme::SPACE_3)
-            .py(theme::SPACE_2)
+            .px(theme::space_3())
+            .py(theme::space_2())
             .font_family(theme::ui_font())
             .child(motion::pop_in(card, "line-composer"))
             .into_any_element()

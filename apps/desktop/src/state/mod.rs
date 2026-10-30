@@ -10,6 +10,7 @@ pub mod code_rows;
 mod comments;
 mod connection;
 mod detail;
+mod dev_hooks;
 mod feedback;
 mod file_view;
 mod inbox;

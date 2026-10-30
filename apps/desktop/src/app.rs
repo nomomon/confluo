@@ -103,6 +103,8 @@ pub struct GitViewer {
     pub(crate) navigating: bool,
     /// Give focus back to the root on the next render (after an overlay closed without a window).
     pub(crate) refocus: bool,
+    /// Focus the palette input on the next render (dev hook opens it before a window exists).
+    pub(crate) refocus_palette: bool,
     pub(crate) palette_input: Entity<TextInput>,
     /// Summary field of the review dialog.
     pub(crate) review_input: Entity<TextInput>,
@@ -236,6 +238,7 @@ impl GitViewer {
             nav: NavState::default(),
             navigating: false,
             refocus: false,
+            refocus_palette: false,
             palette_input,
             review_input,
         };
@@ -266,47 +269,6 @@ impl GitViewer {
         this
     }
 
-    /// Dev only: `CONFLUO_VIEW` picks the list view at launch (see `dev::view`).
-    fn apply_dev_view(&mut self) {
-        match crate::dev::view().as_deref() {
-            Some("starred") => self.starred_only = true,
-            Some("bots") => self.show_bots = true,
-            Some(v) if v.starts_with("project:") => {
-                let name = v["project:".len()..].to_lowercase();
-                self.selected = self.projects.iter().find(|p| p.name.to_lowercase() == name).map(|p| p.id);
-            }
-            _ => {}
-        }
-    }
-
-    /// Dev only: `CONFLUO_OVERLAY=add-project|rename|delete|menu` opens that overlay at launch
-    /// (rename, delete and menu act on the first project).
-    fn overlay_from_env(&mut self, cx: &mut Context<Self>) {
-        let first = self.projects.first().map(|p| p.id);
-        match (crate::dev::overlay().as_deref(), first) {
-            (Some("add-project"), _) => self.open_add_project(cx),
-            (Some("rename"), Some(id)) => self.open_rename(id, cx),
-            (Some("delete"), Some(id)) => self.confirm_delete(id, cx),
-            (Some("menu"), Some(id)) => self.menu = Some(Menu::Project(id)),
-            _ => {}
-        }
-    }
-
-    /// Dev only: `CONFLUO_SCROLL=<px>` scrolls the detail pane once it has content.
-    fn scroll_detail_from_env(&mut self, cx: &mut Context<Self>) {
-        let Some(y) = crate::dev::detail_scroll() else { return };
-        self.detail_scroll.set_offset(gpui::point(gpui::px(0.), gpui::px(-y)));
-        cx.spawn(async move |this, cx| {
-            cx.background_executor().timer(std::time::Duration::from_millis(1500)).await;
-            this.update(cx, |v, cx| {
-                v.detail_scroll.set_offset(gpui::point(gpui::px(0.), gpui::px(-y)));
-                cx.notify()
-            })
-            .ok();
-        })
-        .detach();
-    }
-
     pub(crate) fn sidebar_w(&self) -> Pixels {
         if self.nav.sidebar_hidden {
             gpui::px(0.)
@@ -333,6 +295,9 @@ impl Render for GitViewer {
         self.fetch_avatars(cx);
         if std::mem::take(&mut self.refocus) {
             window.focus(&self.focus);
+        }
+        if std::mem::take(&mut self.refocus_palette) {
+            window.focus(&gpui::Focusable::focus_handle(self.palette_input.read(cx), cx));
         }
         theme::set_typography(self.settings.typography());
         theme::set_light(self.settings.theme.is_light(window.appearance()));

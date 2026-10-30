@@ -199,10 +199,13 @@ Atoms:
 Molecules:
 
 - `Banner`: one-line dismissible error with an action such as Retry
+- `CommandPalette`: `CommandPalette::new(input).items(Vec<PaletteItem>).selected(i).on_move(..).on_run(..).on_close(..)`;
+  Up/Down (Ctrl+P/N) move, Enter runs, no open animation; `command_palette::score` is the fuzzy matcher
 - `Card`: `Card::new(s).title("Checkout").description("..").action(btn).footer(..)`; `.rows()` for flush divided rows
 - `ContextMenu`: `ContextMenu::new(id, event.position).on_dismiss(..).child(MenuItem::new(..))`
 - `CopyField`, `EmptyState`, `KeyValueRow`, `FloatingToolbar` (selection pill; `.animate(false)` for keyboard moves)
 - `Dialog`: `Dialog::new("Delete").description("..").content(..).footer(buttons)`; `Dialog::bare().size(w, h)` for custom chrome
+- `MenuItem::disabled(true).tooltip("Why")` for an action that exists but is not allowed (e.g. approving your own PR)
 - `DropdownMenu`: `DropdownMenu::new(id).top(..).right(..).on_dismiss(..)` with `MenuItem::new(id, "Delete").icon(..).shortcut("⌘ D").destructive()`, `MenuSeparator`, `MenuLabel::new("Project")`
 - `Field`: `Field::new("Source", input)`; settings row `Field::new("Refresh", select).description("..").horizontal()`
 - `Input`: `Input::new("search", entity, has_text).leading(IconName::Search).on_clear(..)` (create the entity with `TextInput::new(..).inset(INPUT_INSET, INPUT_INSET)`)
@@ -226,6 +229,19 @@ Settings (`features/settings/`) is a large `Dialog::bare()` (780x560): left nav 
 (General, Appearance, Accounts, Projects, Filters, Shortcuts), right side made of
 `settings_group` cards of horizontal `Field` rows. Cmd+, toggles it. Dev: `CONFLUO_SETTINGS=appearance`
 opens a page at launch; `CONFLUO_REDUCE_MOTION=1` forces reduced motion (screenshots).
+
+Shortcuts: `features/keymap.rs` is the only place bindings are defined (keys, context, label, group).
+Menus show them as key equivalents, tooltips use `keymap::tip::<Action>("Label")`, menu rows
+`keymap::kbd::<Action>()`, and Settings > Shortcuts renders the table.
+
+Activity tab: a timeline, not cards. 24px avatar, name semibold, muted relative time (exact time tooltip),
+markdown body, no per-comment border; a 1px `border_subtle()` rail through the avatar centers; replies
+indent under the parent with 20px avatars; Reply, Edit, Copy link, Resolve are ghost icon buttons shown on
+hover (`features/pr_detail/comment.rs`, shared with Code tab threads). Events (opened, approved, changes
+requested, merged, closed) sit on the rail as small icon circles. The composer is pinned under the tab pill.
+
+Stale PRs (no update for `stale_days`, default 60) and snoozed PRs leave the sections; one quiet footer line
+says what is hidden ("12 bot PRs and 8 older PRs hidden. Show bots · Show older").
 
 List sections (Needs you, Awaiting review, Yours, Drafts, Waiting on others) apply in every
 view; collapse state is saved per view (`inbox`, `starred`, `project:<id>`) in settings.json.

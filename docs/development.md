@@ -10,7 +10,7 @@ scripts/install-macos.sh         # build, bundle and copy to /Applications
 Dev-only env (screenshots and walkthroughs; see `apps/desktop/src/dev.rs`):
 
 - `CONFLUO_OPEN=<pr url>`, `CONFLUO_TAB=code|activity`, `CONFLUO_SELECT=path:start-end`, `CONFLUO_REVEAL=<thread id>`
-- `CONFLUO_SETTINGS=<page>` opens Settings on a page; `CONFLUO_OVERLAY=add-project|rename|delete|menu`
+- `CONFLUO_SETTINGS=<page>` opens Settings on a page; `CONFLUO_OVERLAY=add-project|rename|delete|menu|palette|review|older` (review opens the Review menu of the open PR, older shows the stale section)
 - `CONFLUO_VIEW=starred|bots|project:<name>` picks the list view; `CONFLUO_SCROLL=<px>` scrolls the detail pane
 - `CONFLUO_THEME=light|dark|system`, `CONFLUO_MATERIAL=blurred|transparent|opaque` override appearance for the launch
 - `CONFLUO_WINDOW=1100x760` window size; `CONFLUO_REDUCE_MOTION=1`; `CONFLUO_NO_REFRESH=1` stays on cached data (no network)

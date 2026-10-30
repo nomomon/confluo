@@ -12,8 +12,8 @@ impl GitViewer {
     pub(super) fn render_event(&self, e: &TimelineEvent) -> impl IntoElement {
         let (icon, color, text, badge) = match &e.kind {
             TimelineKind::Opened => (IconName::GitPullRequest, theme::success(), "opened this pull request", None),
-            TimelineKind::Reviewed(ReviewState::Approved) => (IconName::CircleCheck, theme::success(), "approved these changes", Some(("Approved", theme::success()))),
-            TimelineKind::Reviewed(ReviewState::ChangesRequested) => (IconName::CircleX, theme::danger(), "requested changes", Some(("Changes requested", theme::danger()))),
+            TimelineKind::Reviewed(ReviewState::Approved) => (IconName::Check, theme::success(), "approved these changes", Some(("Approved", theme::success()))),
+            TimelineKind::Reviewed(ReviewState::ChangesRequested) => (IconName::X, theme::danger(), "requested changes", Some(("Changes requested", theme::danger()))),
             TimelineKind::Reviewed(_) => (IconName::MessageCircle, theme::text_muted(), "reviewed", None),
             TimelineKind::Merged => (IconName::GitMerge, theme::merged(), "merged this pull request", None),
             TimelineKind::Closed => (IconName::GitPullRequestClosed, theme::danger(), "closed this pull request", None),

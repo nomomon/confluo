@@ -14,6 +14,7 @@ mod header;
 mod preview;
 mod properties;
 mod quick_open;
+mod reactions;
 mod review;
 mod right_panel;
 

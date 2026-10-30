@@ -99,12 +99,15 @@ impl GitViewer {
             .child(div().id(SharedString::from(format!("when-{}", c.id))).text_color(theme::text_subtle()).tooltip(tooltip(exact)).child(when))
             .child(div().flex_1())
             .child(actions);
+        // GitLab notes carry no award emoji (one request per note), so only GitHub comments can react.
+        let can_react = !pending && d.summary.id.repo.kind == ProviderKind::GitHub;
+        let reactions = self.reactions_bar(Some(&c.id), &c.reactions, group.clone(), can_react, cx);
         div()
             .group(group)
             .flex()
             .gap(theme::SPACE_3)
             .child(Avatar::new(c.author.username.clone()).size(size).image(self.avatar(c.author.avatar_url.as_deref())))
-            .child(div().flex().flex_col().flex_1().min_w(theme::SPACE_0).gap(theme::SPACE_1).child(head).child(self.markdown(format!("c-{}", c.id), &c.body)))
+            .child(div().flex().flex_col().flex_1().min_w(theme::SPACE_0).gap(theme::SPACE_1).child(head).child(self.markdown(format!("c-{}", c.id), &c.body)).children(reactions))
     }
 }
 

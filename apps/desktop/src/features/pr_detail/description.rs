@@ -26,6 +26,8 @@ impl GitViewer {
                 Button::new("desc-edit", "Edit").icon(IconName::Pencil).variant(ButtonVariant::Ghost).on_click(cx.listener(|this, _: &ClickEvent, window, cx| this.start_body_edit(window, cx))),
             )
         });
+        let reactions = d.detail.as_ref().and_then(|det| self.reactions_bar(None, &det.reactions, "desc-card".into(), d.summary.id.repo.kind != gv_engine::ProviderKind::Azure, cx));
+        let body = div().flex().flex_col().gap(theme::SPACE_3).child(body).children(reactions);
         div().relative().group("desc-card").child(Card::new(self.surfaces()).child(body)).children(edit).into_any_element()
     }
 

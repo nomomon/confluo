@@ -49,6 +49,8 @@ pub struct ReviewUi {
     pub quick_sel: usize,
     /// The checks popover under the CI icon.
     pub checks_open: bool,
+    /// Open reaction picker: a comment id, or "pr".
+    pub reaction_picker: Option<String>,
     memory: HashMap<ChangeRequestId, Memory>,
     /// Restore the remembered position once files arrive.
     restore: Option<Memory>,
@@ -69,6 +71,7 @@ impl Default for ReviewUi {
             quick_open: false,
             quick_sel: 0,
             checks_open: false,
+            reaction_picker: None,
             memory: HashMap::new(),
             restore: None,
         }

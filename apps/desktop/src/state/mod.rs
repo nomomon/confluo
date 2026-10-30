@@ -31,6 +31,7 @@ mod review;
 mod review_mode;
 mod projects;
 mod quiet;
+mod reactions;
 mod repo_menu;
 mod selection;
 mod sources;

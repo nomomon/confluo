@@ -78,6 +78,13 @@ impl Default for ReviewUi {
     }
 }
 
+impl ReviewUi {
+    /// Drop the remembered diff position of a PR, so it opens at the top.
+    pub fn forget(&mut self, id: &ChangeRequestId) {
+        self.memory.remove(id);
+    }
+}
+
 /// Next file at or after `from` (wrapping) that is not viewed.
 pub fn next_unviewed(paths: &[&str], viewed: &HashSet<String>, from: usize) -> Option<usize> {
     let n = paths.len();
@@ -122,7 +129,7 @@ impl GitViewer {
         cx.notify();
     }
 
-    fn remember_position(&mut self) {
+    pub(crate) fn remember_position(&mut self) {
         let Some(d) = self.detail.as_ref().filter(|_| self.reviewing) else { return };
         let m = Memory { offset: d.code.list.logical_scroll_top(), collapsed: d.code.collapsed.clone() };
         self.review.memory.insert(d.summary.id.clone(), m);

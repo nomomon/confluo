@@ -10,7 +10,7 @@ scripts/install-macos.sh         # build, bundle and copy to /Applications
 Dev-only env (screenshots and walkthroughs; see `apps/desktop/src/dev.rs`):
 
 - `CONFLUO_OPEN=<pr url>` previews a PR; `CONFLUO_MODE=review` (or `CONFLUO_TAB=code|activity`) opens it in Review mode; `CONFLUO_SPLIT=1` side-by-side diff; `CONFLUO_SELECT=path:start-end`, `CONFLUO_REVEAL=<thread id>`
-- `CONFLUO_SETTINGS=<page>` opens Settings on a page; `CONFLUO_OVERLAY=add-project|rename|delete|menu|palette|review|older` (review opens the Review menu of the open PR, older shows the stale section); also `more|merge|close|people|checks` (More menu, merge dialog, close confirm, reviewer picker, first failed check expanded), and `checks-popover|quick-open|repo-menu|repo-rename`
+- `CONFLUO_SETTINGS=<page>` opens Settings on a page; `CONFLUO_OVERLAY=add-project|rename|delete|menu|palette|shortcuts|review|older` (`CONFLUO_PALETTE_QUERY=<text>` prefills the palette, e.g. `#5` or `>`; shortcuts opens the `?` cheat sheet) (review opens the Review menu of the open PR, older shows the stale section); also `more|merge|close|people|checks` (More menu, merge dialog, close confirm, reviewer picker, first failed check expanded), and `checks-popover|quick-open|repo-menu|repo-rename`
 - `CONFLUO_VIEW=starred|bots|project:<name>` picks the list view; `CONFLUO_SCROLL=<px>` scrolls the detail pane
 - `CONFLUO_THEME=light|dark|system`, `CONFLUO_MATERIAL=blurred|transparent|opaque` override appearance for the launch
 - `CONFLUO_WINDOW=1100x760` window size; `CONFLUO_REDUCE_MOTION=1`; `CONFLUO_NO_REFRESH=1` stays on cached data (no network)

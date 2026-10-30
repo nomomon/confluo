@@ -7,6 +7,8 @@ pub(crate) mod keyboard;
 pub(crate) mod keymap;
 mod commands;
 mod palette;
+pub(crate) mod menus;
+mod shortcuts_sheet;
 mod review_dialog;
 mod overlay;
 mod pr_detail;

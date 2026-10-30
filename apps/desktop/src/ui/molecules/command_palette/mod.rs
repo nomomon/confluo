@@ -1,7 +1,8 @@
 //! Command palette like shadcn `Command` in a dialog: an input over a filtered list.
-//! Up/Down move, Enter runs, Esc closes (the caller's Dismiss). No open animation (keyboard driven).
+//! Up/Down move, Enter runs, Cmd+Enter runs the alternate action, Esc closes (the caller's Dismiss),
+//! hovering a row highlights it. No open animation (keyboard driven).
 //!
-//! `CommandPalette::new(input).items(items).selected(i).on_move(..).on_run(..).on_close(..)`
+//! `CommandPalette::new(input).items(items).selected(i).footer(hint).on_move(..).on_hover(..).on_run(..).on_alt_run(..).on_close(..)`
 
 mod fuzzy;
 
@@ -13,11 +14,13 @@ use super::text_input::TextInput;
 use crate::ui::atoms::{Icon, IconName, Kbd, ListItem};
 use crate::ui::theme;
 
-actions!(command_palette, [Up, Down]);
+actions!(command_palette, [Up, Down, AltRun]);
 
 pub fn bind_keys(cx: &mut App) {
     let ctx = Some("CommandPalette");
     cx.bind_keys([KeyBinding::new("up", Up, ctx), KeyBinding::new("down", Down, ctx), KeyBinding::new("ctrl-p", Up, ctx), KeyBinding::new("ctrl-n", Down, ctx)]);
+    // Deeper than the text input's own Cmd+Enter (Submit), registered after it, so it wins here.
+    cx.bind_keys([KeyBinding::new("cmd-enter", AltRun, Some("CommandPalette > TextInput"))]);
 }
 
 /// One row: icon, title, muted detail on the right, optional shortcut.
@@ -43,14 +46,17 @@ pub struct CommandPalette {
     input: Entity<TextInput>,
     items: Vec<PaletteItem>,
     selected: usize,
+    footer: Option<SharedString>,
     on_move: Option<MoveHandler>,
+    on_hover: Option<IndexHandler>,
     on_run: Option<IndexHandler>,
+    on_alt_run: Option<IndexHandler>,
     on_close: Option<CloseHandler>,
 }
 
 impl CommandPalette {
     pub fn new(input: Entity<TextInput>) -> Self {
-        Self { input, items: vec![], selected: 0, on_move: None, on_run: None, on_close: None }
+        Self { input, items: vec![], selected: 0, footer: None, on_move: None, on_hover: None, on_run: None, on_alt_run: None, on_close: None }
     }
     pub fn items(mut self, items: Vec<PaletteItem>) -> Self {
         self.items = items;
@@ -62,6 +68,21 @@ impl CommandPalette {
     }
     pub fn on_move(mut self, f: impl Fn(&isize, &mut Window, &mut App) + 'static) -> Self {
         self.on_move = Some(Box::new(f));
+        self
+    }
+    /// Muted hint line under the list (e.g. the query prefixes).
+    pub fn footer(mut self, text: impl Into<SharedString>) -> Self {
+        self.footer = Some(text.into());
+        self
+    }
+    /// The pointer entered row `i`.
+    pub fn on_hover(mut self, f: impl Fn(&usize, &mut Window, &mut App) + 'static) -> Self {
+        self.on_hover = Some(Box::new(f));
+        self
+    }
+    /// Cmd+Enter on the selected row.
+    pub fn on_alt_run(mut self, f: impl Fn(&usize, &mut Window, &mut App) + 'static) -> Self {
+        self.on_alt_run = Some(Box::new(f));
         self
     }
     pub fn on_run(mut self, f: impl Fn(&usize, &mut Window, &mut App) + 'static) -> Self {
@@ -78,6 +99,8 @@ impl RenderOnce for CommandPalette {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         let run = std::rc::Rc::new(self.on_run);
         let mv = std::rc::Rc::new(self.on_move);
+        let hover = std::rc::Rc::new(self.on_hover);
+        let (alt, selected) = (self.on_alt_run, self.selected);
         let mut list = div().id("palette-list").flex().flex_col().max_h(LIST_MAX_H).overflow_y_scroll().p(theme::SPACE_1P5);
         let mut last_group = "";
         if self.items.is_empty() {
@@ -90,6 +113,7 @@ impl RenderOnce for CommandPalette {
             }
             let active = i == self.selected;
             let run = run.clone();
+            let hover = hover.clone();
             list = list.child(
                 div()
                     .id(("palette-row", i))
@@ -103,6 +127,11 @@ impl RenderOnce for CommandPalette {
                     .child(div().flex_1().min_w(theme::SPACE_0).truncate().child(it.title))
                     .children(it.detail.map(|d| div().flex_shrink_0().max_w(px(200.)).truncate().text_size(theme::text_xs()).text_color(theme::text_subtle()).child(d)))
                     .children(it.shortcut.map(Kbd::new))
+                    .on_hover(move |on, w, cx| {
+                        if let (true, Some(f)) = (*on, hover.as_ref()) {
+                            f(&i, w, cx)
+                        }
+                    })
                     .on_click(move |_, w, cx| {
                         if let Some(f) = run.as_ref() {
                             f(&i, w, cx)
@@ -123,6 +152,11 @@ impl RenderOnce for CommandPalette {
                     f(&1, w, cx)
                 }
             })
+            .on_action(move |_: &AltRun, w, cx| {
+                if let Some(f) = alt.as_ref() {
+                    f(&selected, w, cx)
+                }
+            })
             .w(PALETTE_W)
             .flex()
             .flex_col()
@@ -133,7 +167,10 @@ impl RenderOnce for CommandPalette {
             .shadow_lg()
             .overflow_hidden()
             .child(div().p(theme::SPACE_2).border_b_1().border_color(theme::border_subtle()).child(self.input))
-            .child(list);
+            .child(list)
+            .children(self.footer.map(|f| {
+                div().px(theme::SPACE_3).py(theme::SPACE_2).border_t_1().border_color(theme::border_subtle()).text_size(theme::text_xs()).text_color(theme::text_subtle()).child(f)
+            }));
         let close = self.on_close;
         // Instant: the palette is keyboard driven (motion rules).
         div()

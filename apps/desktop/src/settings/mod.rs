@@ -73,6 +73,8 @@ pub struct Settings {
     pub stale_days: Option<u32>,
     /// Review mode shows the diff side by side.
     pub diff_split: bool,
+    /// Keys of the palette commands run most recently, newest first (ranking boost).
+    pub palette_mru: Vec<String>,
 }
 
 impl Default for Settings {
@@ -99,6 +101,7 @@ impl Default for Settings {
             collapsed_sections: Default::default(),
             stale_days: Some(gv_engine::DEFAULT_STALE_DAYS),
             diff_split: false,
+            palette_mru: vec![],
         }
     }
 }

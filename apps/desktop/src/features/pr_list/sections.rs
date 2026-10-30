@@ -8,15 +8,15 @@ use crate::state::Section;
 use crate::ui::molecules::ListSection;
 
 impl GitViewer {
-    /// Ids in on-screen order, skipping collapsed sections (for j/k).
+    /// Sections on screen with their ids, collapsed and empty ones skipped, search applied.
+    pub(crate) fn nav_sections(&self, cx: &App) -> Vec<(Section, Vec<ChangeRequestId>)> {
+        let rows: Vec<_> = self.visible_items(cx).into_iter().map(|c| (c.id.clone(), self.section_of(c))).collect();
+        crate::state::pr_nav::visible_sections(&rows, &self.collapsed_sections())
+    }
+
+    /// Ids in on-screen order, skipping collapsed sections (for j/k and Cmd+Up/Down).
     pub(crate) fn nav_order(&self, cx: &App) -> Vec<ChangeRequestId> {
-        let visible = self.visible_items(cx);
-        let collapsed = self.collapsed_sections();
-        Section::ALL
-            .into_iter()
-            .filter(|s| !collapsed.contains(s))
-            .flat_map(|s| visible.iter().filter(move |c| self.section_of(c) == s).map(|c| c.id.clone()).collect::<Vec<_>>())
-            .collect()
+        self.nav_sections(cx).into_iter().flat_map(|(_, ids)| ids).collect()
     }
 
     /// Every view (Inbox, Starred, projects) groups rows into the same sections.

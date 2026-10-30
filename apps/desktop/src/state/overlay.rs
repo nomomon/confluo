@@ -37,6 +37,8 @@ pub enum Overlay {
     Merge,
     /// Confirm re-running failed checks.
     ConfirmRerun,
+    /// The `?` keyboard shortcut cheat sheet.
+    Shortcuts,
 }
 
 /// Left navigation of the Settings dialog.

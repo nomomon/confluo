@@ -18,7 +18,8 @@ impl GitViewer {
         }
     }
 
-    /// Dev only: `CONFLUO_OVERLAY=add-project|rename|delete|menu|palette|review|older|more|merge|close|people|checks`,
+    /// Dev only: `CONFLUO_OVERLAY=add-project|rename|delete|menu|palette|shortcuts|review|older|more|merge|close|people|checks`
+    /// (`CONFLUO_PALETTE_QUERY` prefills the palette),
     /// also `checks-popover|quick-open|repo-menu|repo-rename` (Review mode popovers and the repository menu)
     /// opens that overlay at launch (people opens the reviewer picker, checks expands the first failed check)
     /// (rename, delete and menu act on the first project).
@@ -32,7 +33,11 @@ impl GitViewer {
             (Some("palette"), _) => {
                 self.overlay = Overlay::Palette;
                 self.refocus_palette = true;
+                if let Ok(q) = std::env::var("CONFLUO_PALETTE_QUERY") {
+                    self.palette_input.update(cx, |i, cx| i.set_text(q, cx));
+                }
             }
+            (Some("shortcuts"), _) => self.overlay = Overlay::Shortcuts,
             (Some("review"), _) => self.menu = Some(Menu::Review),
             (Some("more"), _) => self.menu = Some(Menu::DetailMore),
             (Some("merge"), _) => self.open_merge(cx),

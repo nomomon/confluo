@@ -3,7 +3,7 @@
 use gpui::{div, prelude::*, AnyElement, ClickEvent, Context, MouseDownEvent};
 use gv_engine::{ReviewAction, ReviewInfo, ReviewState};
 
-use super::keymap::{self, Approve};
+use super::keymap::{self, Approve, MergePr, RequestChanges, ToggleDraft};
 use crate::app::{GitViewer, Menu, Overlay};
 use crate::state::DetailState;
 use crate::ui::atoms::{Badge, Button, ButtonVariant, IconName};
@@ -20,6 +20,12 @@ fn state_badge(s: ReviewState) -> Option<(&'static str, gpui::Hsla)> {
     }
 }
 
+/// Review button tooltip: the review shortcuts.
+fn review_tip() -> String {
+    let k = |s: String| s.replace(' ', "");
+    format!("Approve {}, request changes {}, merge {}, draft {}", k(keymap::kbd::<Approve>()), k(keymap::kbd::<RequestChanges>()), k(keymap::kbd::<MergePr>()), k(keymap::kbd::<ToggleDraft>()))
+}
+
 impl GitViewer {
     /// The Review button, or nothing when the provider offers no review actions here.
     pub(crate) fn render_review_button(&self, d: &DetailState, cx: &mut Context<Self>) -> Option<AnyElement> {
@@ -28,7 +34,7 @@ impl GitViewer {
             return None;
         }
         let open = self.menu == Some(Menu::Review);
-        let btn = Button::new("review-menu", if d.posting { "Submitting..." } else { "Review" }).variant(ButtonVariant::Primary).trailing_icon(IconName::ChevronDown).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+        let btn = Button::new("review-menu", if d.posting { "Submitting..." } else { "Review" }).variant(ButtonVariant::Primary).trailing_icon(IconName::ChevronDown).tooltip(review_tip()).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
             this.menu = if this.menu == Some(Menu::Review) { None } else { Some(Menu::Review) };
             cx.notify()
         }));
@@ -49,7 +55,7 @@ impl GitViewer {
             menu = menu.child(item.on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.submit_review(ReviewAction::Approve, cx))));
         }
         if c.request_changes {
-            menu = menu.child(MenuItem::new("review-changes", "Request changes").icon(IconName::CircleX).on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
+            menu = menu.child(MenuItem::new("review-changes", "Request changes").icon(IconName::CircleX).shortcut(keymap::kbd::<RequestChanges>()).on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
                 this.open_review_summary(ReviewAction::RequestChanges, window, cx)
             })));
         }

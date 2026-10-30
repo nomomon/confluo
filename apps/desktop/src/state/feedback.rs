@@ -55,6 +55,14 @@ impl GitViewer {
 
     pub(crate) fn show_toast(&mut self, text: impl Into<String>, cx: &mut Context<Self>) {
         self.toast_error = None;
+        self.toast_plain = false;
+        self.start_toast(text.into(), timing::TOAST, cx);
+    }
+
+    /// Neutral toast without an icon: list ends, or why a shortcut is not possible.
+    pub(crate) fn show_info_toast(&mut self, text: impl Into<String>, cx: &mut Context<Self>) {
+        self.toast_error = None;
+        self.toast_plain = true;
         self.start_toast(text.into(), timing::TOAST, cx);
     }
 
@@ -62,6 +70,7 @@ impl GitViewer {
     pub(crate) fn show_error_toast(&mut self, title: impl Into<String>, reason: impl Into<String>, cx: &mut Context<Self>) {
         let reason: String = reason.into();
         self.toast_error = Some(reason.chars().take(200).collect());
+        self.toast_plain = false;
         self.start_toast(title.into(), timing::TOAST_ERROR, cx);
     }
 

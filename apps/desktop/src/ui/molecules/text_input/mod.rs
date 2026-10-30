@@ -37,6 +37,8 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("end", End, ctx),
         KeyBinding::new("cmd-left", Home, ctx),
         KeyBinding::new("cmd-right", End, ctx),
+        KeyBinding::new("cmd-up", Home, ctx),
+        KeyBinding::new("cmd-down", End, ctx),
         KeyBinding::new("enter", Submit, ctx),
         // Later bindings win at equal depth, so multi-line inputs get a newline on Enter.
         KeyBinding::new("enter", Newline, Some("TextInput && multiline")),

@@ -1,102 +1,212 @@
-//! The one place that defines every key binding and its label.
+//! The one place that defines every key binding, its label, palette placement and availability.
 //!
-//! Menus (via GPUI key equivalents), tooltips (`keymap::tip`) and the Settings Shortcuts page
-//! all read from this table, so a binding changes in one line.
+//! Menus (via GPUI key equivalents), tooltips (`keymap::tip`), the command palette (every entry is
+//! a command), the `?` cheat sheet and the Settings Shortcuts page all read from this table, so a
+//! binding changes in one line.
 
 use gpui::{actions, Action, App, KeyBinding, SharedString};
+
+use crate::state::cmd_ctx::{CmdCtx, PrAct};
+use crate::ui::atoms::IconName;
 
 actions!(
     git_viewer,
     [
         SelectNext, SelectPrev, OpenSelected, Dismiss, FocusSearch, Refresh, OpenInBrowser, CopyCheckout, ToggleStar, TabAuthored, TabReviewing, TabAll, NextFile, PrevFile,
-        ToggleFile, OpenSettings, About, Minimize, Zoom, ToggleSidebar, ToggleDetail, CommandPalette, CloseDetail, GoInbox, GoStarred, GoProject, HistoryBack, HistoryForward,
-        CopyLink, PostComment, Approve, ToggleTheme, ToggleFileTree, ToggleRightPanel, QuickOpenFile, ToggleViewed, ToggleDiffView
+        ToggleFile, OpenSettings, About, Minimize, Zoom, ToggleSidebar, ToggleDetail, CommandPalette, CloseDetail, GoInbox, GoStarred, HistoryBack, HistoryForward,
+        CopyLink, PostComment, Approve, ToggleTheme, ToggleFileTree, ToggleRightPanel, QuickOpenFile, ToggleViewed, ToggleDiffView,
+        GoProject1, GoProject2, GoProject3, GoProject4, GoProject5, GoProject6, GoProject7, NextPr, PrevPr, NextSection, PrevSection,
+        RequestChanges, MergePr, ToggleDraft, ClosePr, CopyBranch, ShowShortcuts
     ]
 );
 
 /// Where a binding is active.
 #[derive(Clone, Copy)]
 enum Ctx {
-    /// Anywhere in the window, also while typing.
+    /// Anywhere in the window, also while typing (bare character keys still skip text inputs).
     Any,
-    /// Outside text inputs (letter keys).
+    /// Outside text inputs (letter keys, Cmd+arrows that move the caret in inputs).
     List,
 }
 
-impl Ctx {
-    fn predicate(self) -> Option<&'static str> {
+/// Bare printable keys (`/`, `j`) must never fire inside a text input, whatever the entry says.
+fn predicate(ctx: Ctx, key: &str) -> Option<&'static str> {
+    let bare = key.chars().count() == 1;
+    match ctx {
+        Ctx::Any if !bare => Some("GitViewer"),
+        _ => Some("GitViewer && !TextInput"),
+    }
+}
+
+/// Cheat sheet and Settings sections, also the context a shortcut belongs to.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Group {
+    Global,
+    List,
+    Review,
+    Diff,
+    Palette,
+}
+
+impl Group {
+    pub const ALL: [Group; 5] = [Group::Global, Group::List, Group::Review, Group::Diff, Group::Palette];
+    pub fn title(self) -> &'static str {
         match self {
-            Ctx::Any => Some("GitViewer"),
-            Ctx::List => Some("GitViewer && !TextInput"),
+            Group::Global => "Global",
+            Group::List => "List",
+            Group::Review => "Review",
+            Group::Diff => "Diff",
+            Group::Palette => "Palette",
         }
     }
 }
 
-/// One row of the Shortcuts page: the action, its keys (first is the label) and a description.
+/// Where an entry shows in the command palette.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Pal {
+    /// Not a palette command (j/k, Escape, ...).
+    No,
+    /// Context action for the open PR, listed under Suggested.
+    Suggest,
+    /// Under Go to.
+    Go,
+    /// Under Actions.
+    Action,
+}
+
+/// One binding: the action, its keys (first is the label), label, sections and availability.
 pub struct Entry {
     pub action: &'static str,
     pub keys: &'static [&'static str],
     pub label: &'static str,
+    pub group: Group,
+    pub pal: Pal,
+    pub icon: IconName,
+    /// The command makes sense now (palette rows only appear when true).
+    pub available: fn(&CmdCtx) -> bool,
+    pub build: fn() -> Box<dyn Action>,
+}
+
+impl Entry {
+    /// Shown keys of the first binding, or empty.
+    pub fn shortcut(&self) -> String {
+        self.keys.first().map(|k| display(k)).unwrap_or_default()
+    }
 }
 
 macro_rules! keymap {
-    ($( $group:literal => { $( $action:ident [$($keys:literal),+] $ctx:ident $label:literal; )* } )*) => {
+    ($( $group:ident => { $( $action:ident [$($keys:literal),*] $ctx:ident $label:literal $pal:ident $icon:ident $avail:expr; )* } )*) => {
         /// Register every binding.
         pub fn bind_keys(cx: &mut App) {
-            cx.bind_keys([ $($( $( KeyBinding::new($keys, $action, Ctx::$ctx.predicate()), )+ )*)* ]);
+            cx.bind_keys([ $($( $( KeyBinding::new($keys, $action, predicate(Ctx::$ctx, $keys)), )* )*)* ]);
         }
 
-        /// Bindings grouped for the Shortcuts page.
-        pub const GROUPS: &[(&str, &[Entry])] = &[ $( ($group, &[ $( Entry { action: stringify!($action), keys: &[$($keys),+], label: $label }, )* ]), )* ];
+        /// Every entry, in display order.
+        pub static ENTRIES: &[Entry] = &[ $($( Entry {
+            action: stringify!($action),
+            keys: &[$($keys),*],
+            label: $label,
+            group: Group::$group,
+            pal: Pal::$pal,
+            icon: IconName::$icon,
+            available: $avail,
+            build: || Box::new($action),
+        }, )*)* ];
     };
 }
 
+fn always(_: &CmdCtx) -> bool {
+    true
+}
+
 keymap! {
-    "General" => {
-        CommandPalette ["cmd-k"] Any "Command palette";
-        OpenSettings ["cmd-,"] Any "Settings";
-        Refresh ["cmd-r"] Any "Refresh";
-        FocusSearch ["cmd-f", "/"] Any "Search";
-        ToggleSidebar ["cmd-b"] Any "Toggle sidebar";
-        ToggleDetail ["cmd-\\", "cmd-shift-d"] Any "Toggle preview";
-        ToggleTheme ["cmd-shift-l"] Any "Toggle light / dark";
-        Dismiss ["escape"] Any "Close or clear";
-        Minimize ["cmd-m"] Any "Minimize";
+    Global => {
+        CommandPalette ["cmd-k"] Any "Command palette" No Command always;
+        ShowShortcuts ["?", "shift-/"] List "Keyboard shortcuts" Action Keyboard always;
+        OpenSettings ["cmd-,"] Any "Settings" Action Settings always;
+        Refresh ["cmd-r"] Any "Refresh" Action Refresh always;
+        FocusSearch ["cmd-f", "/"] Any "Search the list" Action Search |c| !c.reviewing;
+        ToggleSidebar ["cmd-b"] Any "Toggle sidebar" Action LayoutSidebar |c| !c.reviewing;
+        ToggleDetail ["cmd-\\"] Any "Toggle preview" Action LayoutColumns |c| !c.reviewing;
+        ToggleTheme ["cmd-shift-l"] Any "Toggle light / dark" Action Moon always;
+        GoInbox ["cmd-1"] Any "Inbox" Go Inbox always;
+        GoStarred ["cmd-2"] Any "Starred" Go Star always;
+        GoProject1 ["cmd-3"] Any "Project 1" No Folder |c| c.projects > 0;
+        GoProject2 ["cmd-4"] Any "Project 2" No Folder |c| c.projects > 1;
+        GoProject3 ["cmd-5"] Any "Project 3" No Folder |c| c.projects > 2;
+        GoProject4 ["cmd-6"] Any "Project 4" No Folder |c| c.projects > 3;
+        GoProject5 ["cmd-7"] Any "Project 5" No Folder |c| c.projects > 4;
+        GoProject6 ["cmd-8"] Any "Project 6" No Folder |c| c.projects > 5;
+        GoProject7 ["cmd-9"] Any "Project 7" No Folder |c| c.projects > 6;
+        HistoryBack ["cmd-["] Any "Back" Action ArrowLeft always;
+        HistoryForward ["cmd-]"] Any "Forward" Action ArrowRight always;
+        CloseDetail ["cmd-w"] Any "Close (overlay, review, preview, window)" No X always;
+        Dismiss ["escape"] Any "Close or clear" No X always;
+        Minimize ["cmd-m"] Any "Minimize" No X always;
     }
-    "Go" => {
-        GoInbox ["cmd-1"] Any "Inbox";
-        GoStarred ["cmd-2"] Any "Starred";
-        GoProject ["cmd-3"] Any "First project";
-        HistoryBack ["cmd-["] Any "Back (to the list or previous PR)";
-        HistoryForward ["cmd-]"] Any "Forward";
+    List => {
+        SelectNext ["j"] List "Next row" No ChevronDown always;
+        SelectPrev ["k"] List "Previous row" No ChevronUp always;
+        NextPr ["cmd-down"] List "Next pull request" Action ChevronDown always;
+        PrevPr ["cmd-up"] List "Previous pull request" Action ChevronUp always;
+        NextSection ["alt-cmd-down"] List "Next section" Action ChevronDown always;
+        PrevSection ["alt-cmd-up"] List "Previous section" Action ChevronUp always;
+        OpenSelected ["enter"] List "Open in Review mode" Suggest Eye |c| c.pr_open && !c.reviewing;
+        OpenInBrowser ["cmd-o", "o"] List "Open in browser" Suggest ExternalLink |c| c.pr_open;
+        CopyCheckout ["c"] List "Copy checkout command" Suggest Terminal |c| c.pr_open;
+        ToggleStar ["s"] List "Star / unstar" Suggest Star |c| c.pr_open;
+        TabAuthored ["1"] List "Show authored" Action Filter |c| !c.reviewing;
+        TabReviewing ["2"] List "Show reviewing" Action Filter |c| !c.reviewing;
+        TabAll ["3"] List "Show all" Action Filter |c| !c.reviewing;
     }
-    "List" => {
-        SelectNext ["j"] List "Next";
-        SelectPrev ["k"] List "Previous";
-        OpenSelected ["enter"] List "Open review";
-        OpenInBrowser ["cmd-o", "o"] List "Open in browser";
-        CopyCheckout ["c"] List "Copy checkout";
-        ToggleStar ["s"] List "Star";
-        TabAuthored ["1"] List "Authored";
-        TabReviewing ["2"] List "Reviewing";
-        TabAll ["3"] List "All";
+    Review => {
+        Approve ["cmd-shift-a"] Any "Approve" Suggest CircleCheck |c| c.allows(PrAct::Approve);
+        RequestChanges ["cmd-shift-x"] Any "Request changes..." Suggest CircleX |c| c.allows(PrAct::RequestChanges);
+        MergePr ["cmd-shift-m"] Any "Merge..." Suggest GitMerge |c| c.allows(PrAct::Merge);
+        ToggleDraft ["cmd-shift-d"] Any "Toggle draft" Suggest GitPullRequestDraft |c| c.allows(PrAct::ToggleDraft);
+        ClosePr [] Any "Close or reopen pull request..." Suggest GitPullRequestClosed |c| c.allows(PrAct::Close);
+        CopyLink ["cmd-shift-c"] Any "Copy link" Suggest Link |c| c.pr_open;
+        CopyBranch [] Any "Copy branch name" Suggest Copy |c| c.pr_open;
+        PostComment ["cmd-enter"] Any "Post comment" No Message always;
+        QuickOpenFile ["cmd-p"] Any "Go to file..." Suggest Search |c| c.reviewing;
+        ToggleFileTree ["cmd-shift-e"] Any "Toggle file tree" Suggest LayoutSidebar |c| c.reviewing;
+        ToggleRightPanel ["cmd-shift-i"] Any "Toggle right panel" Suggest LayoutSidebarRight |c| c.reviewing;
+        ToggleDiffView ["cmd-shift-s"] Any "Unified / side by side" Suggest LayoutColumns |c| c.reviewing;
     }
-    "Pull request" => {
-        CloseDetail ["cmd-w"] Any "Close detail (or window)";
-        CopyLink ["cmd-shift-c"] Any "Copy link";
-        PostComment ["cmd-enter"] Any "Post comment";
-        Approve ["cmd-shift-a"] Any "Approve";
+    Diff => {
+        NextFile ["n", "]"] List "Next file" Suggest ChevronDown |c| c.diff;
+        PrevFile ["p", "["] List "Previous file" Suggest ChevronUp |c| c.diff;
+        ToggleViewed ["v"] List "Toggle viewed (next unviewed)" Suggest Eye |c| c.diff;
+        ToggleFile ["x"] List "Collapse file" Action Fold |c| c.diff;
     }
-    "Review" => {
-        NextFile ["n", "]"] List "Next file";
-        PrevFile ["p", "["] List "Previous file";
-        ToggleViewed ["v"] List "Viewed (collapse, next unviewed)";
-        ToggleFile ["x"] List "Collapse file";
-        QuickOpenFile ["cmd-p"] Any "Go to file";
-        ToggleFileTree ["cmd-shift-e"] Any "Toggle file tree";
-        ToggleRightPanel ["cmd-shift-i"] Any "Toggle right panel";
-        ToggleDiffView ["cmd-shift-s"] Any "Unified / side by side";
+}
+
+/// Diff keys handled by the line cursor (`code_keys`, not palette commands).
+pub const LINE_KEYS: [(&str, &str); 4] = [("Move line cursor", "\u{2191} \u{2193}"), ("Extend selection", "\u{21e7} \u{2191}"), ("Comment on lines", "C"), ("Copy lines", "\u{2318} C")];
+
+/// Keys inside the command palette.
+pub const PALETTE_KEYS: [(&str, &str); 9] = [
+    ("Move", "\u{2191} \u{2193}"),
+    ("Run", "\u{21a9}"),
+    ("Open pull request in browser", "\u{2318} \u{21a9}"),
+    ("Close", "esc"),
+    ("Actions only", ">"),
+    ("Pull requests by number", "#"),
+    ("Files of the pull request", "@"),
+    ("Views and projects", "/"),
+    ("Shortcuts", "?"),
+];
+
+/// Rows of a cheat sheet section: label and shown keys (all bindings joined).
+pub fn group_rows(g: Group) -> Vec<(&'static str, Vec<String>)> {
+    let mut rows: Vec<(&'static str, Vec<String>)> =
+        ENTRIES.iter().filter(|e| e.group == g && !e.keys.is_empty()).map(|e| (e.label, e.keys.iter().filter(|k| **k != "shift-/").map(|k| display(k)).collect())).collect();
+    match g {
+        Group::Diff => rows.extend(LINE_KEYS.iter().map(|(l, k)| (*l, vec![k.to_string()]))),
+        Group::Palette => rows.extend(PALETTE_KEYS.iter().map(|(l, k)| (*l, vec![k.to_string()]))),
+        _ => {}
     }
+    rows
 }
 
 /// `cmd-shift-c` as shown on keys: `⌘ ⇧ C`.
@@ -108,6 +218,8 @@ pub fn display(keys: &str) -> String {
             "alt" => "\u{2325}".to_string(),
             "ctrl" => "\u{2303}".to_string(),
             "enter" => "\u{21a9}".to_string(),
+            "up" => "\u{2191}".to_string(),
+            "down" => "\u{2193}".to_string(),
             "escape" => "esc".to_string(),
             "" => "-".to_string(),
             k => k.to_uppercase(),
@@ -116,15 +228,15 @@ pub fn display(keys: &str) -> String {
         .join(" ")
 }
 
-fn entry(action: &str) -> Option<&'static Entry> {
-    GROUPS.iter().flat_map(|(_, e)| e.iter()).find(|e| e.action == action)
+pub fn entry(action: &str) -> Option<&'static Entry> {
+    ENTRIES.iter().find(|e| e.action == action)
 }
 
 /// Shown keys of an action's first binding, e.g. `kbd::<Refresh>()` is `⌘ R`.
 pub fn kbd<A: Action>() -> String {
     let name = A::name_for_type();
     let short = name.rsplit("::").next().unwrap_or(name);
-    entry(short).map(|e| display(e.keys[0])).unwrap_or_default()
+    entry(short).map(Entry::shortcut).unwrap_or_default()
 }
 
 /// Tooltip text with the shortcut after a double space (rendered as `Kbd`).
@@ -133,27 +245,69 @@ pub fn tip<A: Action>(label: &str) -> SharedString {
     if k.is_empty() { label.to_string().into() } else { format!("{label}  {k}").into() }
 }
 
+/// The `GoProjectN` action for the project at sidebar index `i` (Cmd+3..9), if any.
+pub fn project_entry(i: usize) -> Option<&'static Entry> {
+    ENTRIES.iter().filter(|e| e.action.starts_with("GoProject")).nth(i)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state::cmd_ctx::Gate;
+    use gv_engine::{EditCapabilities, ReviewCapabilities};
 
     #[test]
     fn labels() {
         assert_eq!(display("cmd-shift-c"), "\u{2318} \u{21e7} C");
         assert_eq!(display("cmd-\\"), "\u{2318} \\");
+        assert_eq!(display("alt-cmd-down"), "\u{2325} \u{2318} \u{2193}");
         assert_eq!(kbd::<Refresh>(), "\u{2318} R");
         assert_eq!(kbd::<ToggleDetail>(), "\u{2318} \\");
+        assert_eq!(kbd::<ToggleDraft>(), "\u{2318} \u{21e7} D");
+        assert_eq!(project_entry(0).map(|e| e.keys[0]), Some("cmd-3"));
+        assert_eq!(project_entry(6).map(|e| e.keys[0]), Some("cmd-9"));
+        assert!(project_entry(7).is_none());
     }
 
     #[test]
-    fn no_duplicate_keys_in_a_context() {
+    fn no_duplicate_keys() {
         let mut seen = std::collections::HashSet::new();
-        for (_, es) in GROUPS {
-            for e in es.iter() {
-                for k in e.keys {
-                    assert!(seen.insert(*k), "{k} bound twice");
-                }
+        for e in ENTRIES {
+            for k in e.keys {
+                assert!(seen.insert(*k), "{k} bound twice");
             }
         }
+    }
+
+    #[test]
+    fn bare_keys_never_fire_in_text_inputs() {
+        assert_eq!(predicate(Ctx::Any, "/"), Some("GitViewer && !TextInput"));
+        assert_eq!(predicate(Ctx::Any, "cmd-f"), Some("GitViewer"));
+        assert_eq!(predicate(Ctx::List, "cmd-down"), Some("GitViewer && !TextInput"));
+    }
+
+    fn avail(c: &CmdCtx) -> Vec<&'static str> {
+        ENTRIES.iter().filter(|e| e.pal != Pal::No && (e.available)(c)).map(|e| e.action).collect()
+    }
+
+    #[test]
+    fn availability_follows_context_and_capabilities() {
+        let list = CmdCtx::default();
+        let a = avail(&list);
+        assert!(a.contains(&"Refresh") && a.contains(&"NextPr"));
+        assert!(!a.contains(&"Approve") && !a.contains(&"ToggleViewed") && !a.contains(&"OpenInBrowser"));
+
+        let own = CmdCtx {
+            pr_open: true,
+            reviewing: true,
+            diff: true,
+            projects: 2,
+            gate: Some(Gate { review: ReviewCapabilities { comment_review: true, approve_blocked: Some("You can't approve your own PR".into()), ..Default::default() }, edit: EditCapabilities::editor(true) }),
+        };
+        let a = avail(&own);
+        assert!(a.contains(&"ToggleDraft") && a.contains(&"ToggleViewed") && a.contains(&"ToggleDiffView"));
+        assert!(!a.contains(&"Approve") && !a.contains(&"RequestChanges") && !a.contains(&"MergePr"));
+        assert!(!a.contains(&"ToggleSidebar") && !a.contains(&"OpenSelected"));
+        assert!((project_entry(1).unwrap().available)(&own) && !(project_entry(2).unwrap().available)(&own));
     }
 }

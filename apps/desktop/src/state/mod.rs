@@ -5,6 +5,7 @@
 mod avatars;
 pub mod bridge;
 mod check_actions;
+pub mod cmd_ctx;
 mod code;
 mod code_load;
 pub mod code_rows;
@@ -25,6 +26,8 @@ mod permalink;
 mod list;
 mod overlay;
 mod nav;
+pub mod palette_rank;
+pub mod pr_nav;
 mod people;
 pub mod pr_edit;
 mod review;

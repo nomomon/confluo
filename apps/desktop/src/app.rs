@@ -111,6 +111,12 @@ pub struct GitViewer {
     pub(crate) merge_opts: gv_engine::MergeOptions,
     /// Reason under an error toast; None for success toasts.
     pub(crate) toast_error: Option<String>,
+    /// Neutral toast (no icon), e.g. "Last PR in Inbox" or why a shortcut did nothing.
+    pub(crate) toast_plain: bool,
+    /// A keymap action chosen in the palette, dispatched from the root on the next render.
+    pub(crate) pending_action: Option<Box<dyn gpui::Action>>,
+    /// Project names the app menus were last built with.
+    pub(crate) menu_projects: Option<Vec<String>>,
     /// One PR takes the whole window (else triage: list plus preview).
     pub(crate) reviewing: bool,
     /// Cmd+\\ hid the triage preview.
@@ -149,7 +155,7 @@ impl GitViewer {
         let rename_input = input(cx, "Project name");
         let bot_authors_input = input(cx, "Add an author, e.g. *-bot, then Enter");
         let bot_branches_input = input(cx, "Add a branch prefix, e.g. deps/, then Enter");
-        let palette_input = cx.new(|cx| TextInput::new("Search pull requests and commands", cx));
+        let palette_input = cx.new(|cx| TextInput::new("Search pull requests, files and commands", cx));
         let review_input = cx.new(|cx| TextInput::new("Leave a summary (optional)", cx).multiline());
         cx.subscribe(&palette_input, |this, _, ev: &InputEvent, cx| match ev {
             InputEvent::Changed => {
@@ -302,6 +308,9 @@ impl GitViewer {
             people_input,
             merge_opts: Default::default(),
             toast_error: None,
+            toast_plain: false,
+            pending_action: None,
+            menu_projects: None,
             reviewing: false,
             preview_hidden: false,
             review: Default::default(),
@@ -370,6 +379,15 @@ impl Render for GitViewer {
         if std::mem::take(&mut self.refocus_palette) {
             window.focus(&gpui::Focusable::focus_handle(self.palette_input.read(cx), cx));
         }
+        if let Some(a) = self.pending_action.take() {
+            window.focus(&self.focus);
+            window.dispatch_action(a, cx);
+        }
+        let names: Vec<String> = self.projects.iter().map(|p| p.name.clone()).collect();
+        if self.menu_projects.as_ref() != Some(&names) {
+            crate::features::menus::set_menus(cx, &names);
+            self.menu_projects = Some(names);
+        }
         theme::set_typography(self.settings.typography());
         theme::set_light(self.settings.theme.is_light(window.appearance()));
         window.set_background_appearance(self.settings.appearance.to_gpui());
@@ -404,6 +422,7 @@ impl Render for GitViewer {
             .children(self.toast.clone().map(|t| {
                 let toast = match &self.toast_error {
                     Some(why) => Toast::new(t).description(why.clone()).variant(ToastVariant::Error),
+                    None if self.toast_plain => Toast::new(t),
                     None => Toast::new(t).variant(ToastVariant::Success),
                 };
                 let toast = if self.quiet.undo.is_some() { toast.action("Undo", cx.listener(|this, _: &gpui::ClickEvent, _, cx| this.undo_snooze(cx))) } else { toast };

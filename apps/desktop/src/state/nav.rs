@@ -106,8 +106,11 @@ impl GitViewer {
         self.navigating = false;
     }
 
-    /// Cmd+1/2/3: Inbox, Starred, first project.
+    /// Cmd+1 Inbox, Cmd+2 Starred, Cmd+3..9 the projects in sidebar order.
     pub(crate) fn go_view(&mut self, which: u8, cx: &mut Context<Self>) {
+        if self.reviewing {
+            self.exit_review(cx);
+        }
         match which {
             1 => {
                 self.starred_only = false;
@@ -117,8 +120,8 @@ impl GitViewer {
                 self.starred_only = true;
                 self.select_project(None, cx)
             }
-            _ => {
-                if let Some(id) = self.projects.first().map(|p| p.id) {
+            n => {
+                if let Some(id) = self.projects.get(usize::from(n.saturating_sub(3))).map(|p| p.id) {
                     self.starred_only = false;
                     self.select_project(Some(id), cx)
                 }

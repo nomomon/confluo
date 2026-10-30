@@ -230,8 +230,10 @@ Atoms:
 Molecules:
 
 - `Banner`: one-line dismissible error with an action such as Retry
-- `CommandPalette`: `CommandPalette::new(input).items(Vec<PaletteItem>).selected(i).on_move(..).on_run(..).on_close(..)`;
-  Up/Down (Ctrl+P/N) move, Enter runs, no open animation; `command_palette::score` is the fuzzy matcher
+- `CommandPalette`: `CommandPalette::new(input).items(Vec<PaletteItem>).selected(i).footer(hint).on_move(..).on_hover(..).on_run(..).on_alt_run(..).on_close(..)`;
+  Up/Down (Ctrl+P/N) move, hover highlights, Enter runs, Cmd+Enter alt-runs, no open animation; `command_palette::score` is the fuzzy matcher.
+  The app palette is the command hub: every `keymap::ENTRIES` row is a command (its `available(&CmdCtx)` predicate decides
+  when it shows, its keys render as `Kbd`); ranking, prefixes (`>` `#` `@` `/` `?`) and the MRU live in `state::palette_rank`
 - `Combobox`: `Combobox::new(id, input).option(ComboOption::new("ada").detail(name).avatar(img).selected(true)).highlight(i).loading(b).on_toggle(..).on_highlight(..).on_dismiss(..)`;
   searchable multi-select popover, the caller owns the query input and (remote) filtering
 - `Card`: `Card::new(s).title("Checkout").description("..").action(btn).footer(..)`; `.rows()` for flush divided rows
@@ -263,9 +265,12 @@ Settings (`features/settings/`) is a large `Dialog::bare()` (780x560): left nav 
 `settings_group` cards of horizontal `Field` rows. Cmd+, toggles it. Dev: `CONFLUO_SETTINGS=appearance`
 opens a page at launch; `CONFLUO_REDUCE_MOTION=1` forces reduced motion (screenshots).
 
-Shortcuts: `features/keymap.rs` is the only place bindings are defined (keys, context, label, group).
-Menus show them as key equivalents, tooltips use `keymap::tip::<Action>("Label")`, menu rows
-`keymap::kbd::<Action>()`, and Settings > Shortcuts renders the table.
+Shortcuts: `features/keymap.rs` is the only place bindings are defined (keys, context, label, cheat sheet
+group, palette placement, icon and an `available(&CmdCtx)` predicate). Menus (`features/menus.rs`) show them
+as key equivalents, tooltips use `keymap::tip::<Action>("Label")`, menu rows `keymap::kbd::<Action>()`, and
+the palette, the `?` cheat sheet and Settings > Shortcuts are generated from it. Bare character keys never fire
+inside text inputs. PR actions (approve, request changes, merge, draft, close) are gated by capabilities
+(`state::cmd_ctx`): not allowed means a neutral toast with the reason, never a silent no-op.
 
 Activity tab: a timeline, not cards. 24px avatar, name medium, muted relative time (exact time tooltip),
 markdown body, no per-comment border; a 1px `border_subtle()` rail through the avatar centers; replies

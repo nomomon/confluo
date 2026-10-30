@@ -16,6 +16,7 @@ impl GitViewer {
             Overlay::ConfirmClose => self.render_close_dialog(cx),
             Overlay::Merge => self.render_merge_dialog(cx),
             Overlay::ConfirmRerun => self.render_rerun_dialog(cx),
+            Overlay::Shortcuts => self.render_shortcuts_sheet(),
             Overlay::AddProject => {
                 let close = cx.listener(|this, _: &(), _, cx| {
                     this.overlay = Overlay::None;

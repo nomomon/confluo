@@ -5,6 +5,7 @@ use gpui::{div, prelude::*, AnyElement, ClickEvent, Context};
 use gv_engine::ChangeRequestState;
 
 use crate::app::{GitViewer, Overlay};
+use crate::features::keymap::{self, MergePr, ToggleDraft};
 use crate::state::{Copied, DetailState};
 use crate::ui::atoms::{tooltip, Button, IconName};
 use crate::ui::molecules::{MenuItem, MenuSeparator};
@@ -35,7 +36,7 @@ impl GitViewer {
     pub(super) fn render_merge_button(&self, d: &DetailState, cx: &mut Context<Self>) -> Option<AnyElement> {
         let caps = &d.detail.as_ref()?.edit.caps;
         caps.merge.then(|| {
-            Button::new("merge-open", "Merge").icon(IconName::GitMerge).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.open_merge(cx))).into_any_element()
+            Button::new("merge-open", "Merge").icon(IconName::GitMerge).tooltip(keymap::tip::<MergePr>("Merge")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.open_merge(cx))).into_any_element()
         })
     }
 
@@ -47,7 +48,7 @@ impl GitViewer {
         let draft = d.summary.state == ChangeRequestState::Draft;
         if c.draft {
             let (label, icon) = if draft { ("Ready for review", IconName::Eye) } else { ("Mark as draft", IconName::GitPullRequestDraft) };
-            out.push(MenuItem::new("menu-draft", label).icon(icon).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.set_draft(!draft, cx))).into_any_element());
+            out.push(MenuItem::new("menu-draft", label).icon(icon).shortcut(keymap::kbd::<ToggleDraft>()).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.set_draft(!draft, cx))).into_any_element());
         }
         if c.title {
             out.push(MenuItem::new("menu-edit-title", "Edit title").icon(IconName::Pencil).on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
@@ -61,7 +62,7 @@ impl GitViewer {
             this.copy(Copied::Branch, branch.clone(), cx)
         })).into_any_element());
         if let Some(why) = c.merge_blocked.clone().filter(|_| !c.merge) {
-            out.push(MenuItem::new("menu-merge", "Merge").icon(IconName::GitMerge).disabled(true).tooltip(why).into_any_element());
+            out.push(MenuItem::new("menu-merge", "Merge").icon(IconName::GitMerge).shortcut(keymap::kbd::<MergePr>()).disabled(true).tooltip(why).into_any_element());
         }
         if c.close || c.reopen {
             out.push(MenuSeparator.into_any_element());

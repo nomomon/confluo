@@ -112,6 +112,8 @@ pub struct GitViewer {
     pub(crate) toast_error: Option<String>,
     /// Neutral toast (no icon), e.g. "Last PR in Inbox" or why a shortcut did nothing.
     pub(crate) toast_plain: bool,
+    /// File the toast's "Open log" action opens (crash report from the last run).
+    pub(crate) toast_file: Option<std::path::PathBuf>,
     /// A keymap action chosen in the palette, dispatched from the root on the next render.
     pub(crate) pending_action: Option<Box<dyn gpui::Action>>,
     /// Project names the app menus were last built with.
@@ -312,6 +314,7 @@ impl GitViewer {
             merge_opts: Default::default(),
             toast_error: None,
             toast_plain: false,
+            toast_file: None,
             pending_action: None,
             menu_projects: None,
             reviewing: false,
@@ -341,6 +344,9 @@ impl GitViewer {
             }
         })
         .detach();
+        if let Some(log) = crate::crash::take_unseen() {
+            this.show_crash_toast(log, cx);
+        }
         this.reload_projects();
         if this.settings.launch == crate::settings::Launch::LastView {
             this.selected = this.settings.last_project.filter(|id| this.projects.iter().any(|p| p.id == *id));
@@ -435,7 +441,13 @@ impl Render for GitViewer {
                     None if self.toast_plain => Toast::new(t),
                     None => Toast::new(t).variant(ToastVariant::Success),
                 };
-                let toast = if self.quiet.undo.is_some() { toast.action("Undo", cx.listener(|this, _: &gpui::ClickEvent, _, cx| this.undo_snooze(cx))) } else { toast };
+                let toast = if self.quiet.undo.is_some() {
+                    toast.action("Undo", cx.listener(|this, _: &gpui::ClickEvent, _, cx| this.undo_snooze(cx)))
+                } else if let Some(file) = self.toast_file.clone() {
+                    toast.action("Open log", move |_: &gpui::ClickEvent, _: &mut Window, cx: &mut gpui::App| cx.open_with_system(&file))
+                } else {
+                    toast
+                };
                 Toaster::new().toast(toast)
             }))
             .children(self.render_overlay(cx))

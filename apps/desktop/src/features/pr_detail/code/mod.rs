@@ -71,7 +71,10 @@ impl GitViewer {
             None => div().into_any_element(),
             Some(f) if f.is_empty() => EmptyState::new("No changed files", "This change has no file diffs").into_any_element(),
             Some(_) => {
-                let rows = list(c.list.clone(), cx.processor(|this, ix: usize, _, cx| this.render_code_row(ix, cx))).flex_1().h_full();
+                // Read the viewport here: inside the item callback the list state is mutably borrowed
+                // (calling `viewport_bounds()` there panics, which aborted the app).
+                let view_h = c.list.viewport_bounds().size.height;
+                let rows = list(c.list.clone(), cx.processor(move |this, ix: usize, _, cx| this.render_code_row(ix, view_h, cx))).flex_1().h_full();
                 div()
                     .flex()
                     .flex_1()

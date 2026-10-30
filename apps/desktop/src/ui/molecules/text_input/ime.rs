@@ -9,7 +9,7 @@ impl EntityInputHandler for TextInput {
     fn text_for_range(&mut self, r: Range<usize>, actual: &mut Option<Range<usize>>, _: &mut Window, _: &mut Context<Self>) -> Option<String> {
         let range = self.range_from_utf16(&r);
         actual.replace(self.range_to_utf16(&range));
-        Some(self.content[range].to_string())
+        Some(self.content[self.clamp_range(range)].to_string())
     }
     fn selected_text_range(&mut self, _: bool, _: &mut Window, _: &mut Context<Self>) -> Option<UTF16Selection> {
         Some(UTF16Selection { range: self.range_to_utf16(&self.selected_range), reversed: self.selection_reversed })
@@ -26,6 +26,7 @@ impl EntityInputHandler for TextInput {
             .map(|r| self.range_from_utf16(r))
             .or(self.marked_range.clone())
             .unwrap_or(self.selected_range.clone());
+        let range = self.clamp_range(range);
         self.record_edit(new_text, &range);
         self.content = (self.content[0..range.start].to_owned() + new_text + &self.content[range.end..]).into();
         self.selected_range = range.start + new_text.len()..range.start + new_text.len();
@@ -46,6 +47,7 @@ impl EntityInputHandler for TextInput {
             .map(|r| self.range_from_utf16(r))
             .or(self.marked_range.clone())
             .unwrap_or(self.selected_range.clone());
+        let range = self.clamp_range(range);
         if self.marked_range.is_none() {
             self.record_edit(new_text, &range);
         }
@@ -54,8 +56,9 @@ impl EntityInputHandler for TextInput {
         self.selected_range = new_sel
             .as_ref()
             .map(|r| self.range_from_utf16(r))
-            .map(|n| n.start + range.start..n.end + range.end)
+            .map(|n| n.start + range.start..n.end + range.start)
             .unwrap_or_else(|| range.start + new_text.len()..range.start + new_text.len());
+        self.selected_range = self.clamp_range(self.selected_range.clone());
         cx.emit(InputEvent::Changed);
         cx.notify();
     }

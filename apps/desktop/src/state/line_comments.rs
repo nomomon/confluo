@@ -20,7 +20,7 @@ impl GitViewer {
     pub(crate) fn open_line_draft(&mut self, fi: usize, hi: usize, lo: usize, last: usize, window: &mut Window, cx: &mut Context<Self>) {
         let Some(d) = self.detail.as_mut() else { return };
         let Some(files) = d.code.files.clone() else { return };
-        let f = &files[fi];
+        let Some(f) = files.get(fi) else { return };
         let Some(lines) = f.hunks.get(hi).and_then(|h| h.lines.get(lo..=last)) else { return };
         let Some((side, start, line, other_line)) = comment_span(lines) else { return };
         let inline = &mut d.code.inline;

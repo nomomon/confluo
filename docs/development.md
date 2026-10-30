@@ -21,6 +21,13 @@ prefer cached data (`CONFLUO_NO_REFRESH=1`) so the first frame is complete.
 Data: `~/Library/Application Support/Confluo/` (override cache with `GV_DB`; avatars in `avatars/`).
 `GV_DEBUG_HTTP=1 gv list` prints request counts per host and endpoint after the refresh.
 
+## Crash logs
+
+A panic writes `~/Library/Logs/Confluo/crash-<timestamp>.log` (message, location, backtrace; last 10 kept).
+GPUI calls app code from platform callbacks that cannot unwind, so any panic aborts the app; the next launch
+shows "Confluo quit unexpectedly last time" with Open log. Never call `ListState` methods (`viewport_bounds`,
+`logical_scroll_top`, ...) from inside a `list(..)` item callback: the state is mutably borrowed there.
+
 ## Rate limits
 
 Every provider request goes through `crates/http`: one governor per host (token bucket 5 req/s,

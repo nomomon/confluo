@@ -74,8 +74,17 @@ impl GitViewer {
         self.start_toast(title.into(), timing::TOAST_ERROR, cx);
     }
 
+    /// Quiet notice that the last run crashed, with "Open log".
+    pub(crate) fn show_crash_toast(&mut self, log: std::path::PathBuf, cx: &mut Context<Self>) {
+        self.toast_error = None;
+        self.toast_plain = true;
+        self.start_toast("Confluo quit unexpectedly last time.".into(), timing::TOAST_ERROR, cx);
+        self.toast_file = Some(log);
+    }
+
     fn start_toast(&mut self, text: String, after: std::time::Duration, cx: &mut Context<Self>) {
         self.toast = Some(text);
+        self.toast_file = None;
         self.quiet.undo = None;
         self.toast_gen += 1;
         let gen = self.toast_gen;
@@ -84,6 +93,7 @@ impl GitViewer {
             this.update(cx, |v, cx| {
                 if v.toast_gen == gen {
                     v.toast = None;
+                    v.toast_file = None;
                     v.quiet.undo = None;
                     cx.notify()
                 }

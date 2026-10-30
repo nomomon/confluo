@@ -2,6 +2,7 @@
 
 mod app;
 mod assets;
+mod crash;
 mod dev;
 mod features;
 mod fonts;
@@ -15,6 +16,7 @@ use std::sync::Arc;
 actions!(git_viewer, [Quit]);
 
 fn main() {
+    crash::install();
     let engine = match gv_engine::Engine::open_default() {
         Ok(e) => Arc::new(e),
         Err(e) => {

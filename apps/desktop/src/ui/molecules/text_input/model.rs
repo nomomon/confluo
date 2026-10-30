@@ -98,13 +98,23 @@ impl Rows {
     }
 }
 
+/// `off` clamped into `text` and moved back to a char boundary.
+pub fn floor_boundary(text: &str, off: usize) -> usize {
+    let mut o = off.min(text.len());
+    while !text.is_char_boundary(o) {
+        o -= 1;
+    }
+    o
+}
+
 fn is_word(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
 }
 
 /// Option+Left: skip non-word characters, then the word before the caret.
 pub fn word_left(text: &str, off: usize) -> usize {
-    let mut it = text[..off].char_indices().rev().peekable();
+    let Some(head) = text.get(..off) else { return off.min(text.len()) };
+    let mut it = head.char_indices().rev().peekable();
     let mut pos = off;
     while let Some(&(i, c)) = it.peek() {
         if is_word(c) {
@@ -125,7 +135,8 @@ pub fn word_left(text: &str, off: usize) -> usize {
 
 /// Option+Right: skip non-word characters, then the word after the caret.
 pub fn word_right(text: &str, off: usize) -> usize {
-    let mut it = text[off..].char_indices().peekable();
+    let Some(tail) = text.get(off..) else { return off.min(text.len()) };
+    let mut it = tail.char_indices().peekable();
     let mut pos = off;
     let mut skip = |word: bool, it: &mut std::iter::Peekable<std::str::CharIndices>| {
         while let Some(&(i, c)) = it.peek() {
@@ -143,7 +154,7 @@ pub fn word_right(text: &str, off: usize) -> usize {
 
 /// Double click: the word (or whitespace run, or single symbol) under `off`.
 pub fn word_at(text: &str, off: usize) -> Range<usize> {
-    let off = off.min(text.len());
+    let off = floor_boundary(text, off);
     let Some(c) = text[off..].chars().next().or_else(|| text[..off].chars().next_back()) else { return off..off };
     let at = if text[off..].is_empty() { off - c.len_utf8() } else { off };
     let class = |ch: char| if is_word(ch) { 0 } else if ch.is_whitespace() && ch != '\n' { 1 } else { 2 };
@@ -158,7 +169,7 @@ pub fn word_at(text: &str, off: usize) -> Range<usize> {
 
 /// Triple click: the paragraph (logical line, without its newline) under `off`.
 pub fn line_at(text: &str, off: usize) -> Range<usize> {
-    let off = off.min(text.len());
+    let off = floor_boundary(text, off);
     let start = text[..off].rfind('\n').map(|i| i + 1).unwrap_or(0);
     let end = text[off..].find('\n').map(|i| off + i).unwrap_or(text.len());
     start..end

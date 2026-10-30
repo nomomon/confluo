@@ -60,7 +60,7 @@ impl GitViewer {
                 return;
             }
             cx.stop_propagation();
-            let max_chars = files[fi].hunks.iter().flat_map(|h| &h.lines).map(|l| l.text.len()).max().unwrap_or(0);
+            let max_chars = files.get(fi).into_iter().flat_map(|f| &f.hunks).flat_map(|h| &h.lines).map(|l| l.text.len()).max().unwrap_or(0);
             let max_x = (theme::text_xs() * layout::MONO_CHAR_RATIO * max_chars as f32 - layout::DIFF_GUTTER_W * 4.).max(px(0.));
             if let Some(d) = this.detail.as_mut() {
                 let e = d.code.scroll_x.entry(fi).or_insert(px(0.));
@@ -71,9 +71,9 @@ impl GitViewer {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn diff_cell(&self, ix: usize, side: usize, fi: usize, hi: usize, li: usize, files: &Arc<Vec<ChangedFile>>, d: &DetailState, split: bool, cx: &mut Context<Self>) -> impl IntoElement {
-        let f = &files[fi];
-        let l = &f.hunks[hi].lines[li];
+    fn diff_cell(&self, ix: usize, side: usize, fi: usize, hi: usize, li: usize, files: &Arc<Vec<ChangedFile>>, d: &DetailState, split: bool, cx: &mut Context<Self>) -> AnyElement {
+        let Some(f) = files.get(fi) else { return div().into_any_element() };
+        let Some(l) = f.hunks.get(hi).and_then(|h| h.lines.get(li)) else { return div().into_any_element() };
         let mark = match l.kind {
             LineKind::Add => LineMark::Add,
             LineKind::Del => LineMark::Del,
@@ -131,5 +131,6 @@ impl GitViewer {
                 _ => this.finish_line_drag(window, cx),
             }))
             .child(row)
+            .into_any_element()
     }
 }

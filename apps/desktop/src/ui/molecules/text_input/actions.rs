@@ -224,16 +224,25 @@ impl TextInput {
     }
     pub(super) fn copy(&mut self, _: &Copy, _: &mut Window, cx: &mut Context<Self>) {
         if !self.selected_range.is_empty() {
-            cx.write_to_clipboard(ClipboardItem::new_string(self.content[self.selected_range.clone()].to_string()));
+            cx.write_to_clipboard(ClipboardItem::new_string(self.content[self.clamp_range(self.selected_range.clone())].to_string()));
         }
     }
     pub(super) fn cut(&mut self, _: &Cut, window: &mut Window, cx: &mut Context<Self>) {
         if !self.selected_range.is_empty() {
-            cx.write_to_clipboard(ClipboardItem::new_string(self.content[self.selected_range.clone()].to_string()));
+            cx.write_to_clipboard(ClipboardItem::new_string(self.content[self.clamp_range(self.selected_range.clone())].to_string()));
             self.replace_text_in_range(None, "", window, cx)
         }
     }
+    /// Offsets from last frame's layout can be stale after an edit; keep them inside the text on a char boundary.
+    pub(super) fn clamp_offset(&self, offset: usize) -> usize {
+        model::floor_boundary(&self.content, offset)
+    }
+    pub(super) fn clamp_range(&self, r: Range<usize>) -> Range<usize> {
+        let (a, b) = (self.clamp_offset(r.start), self.clamp_offset(r.end));
+        a.min(b)..b.max(a)
+    }
     pub(super) fn move_to(&mut self, offset: usize, cx: &mut Context<Self>) {
+        let offset = self.clamp_offset(offset);
         self.selected_range = offset..offset;
         self.selection_reversed = false;
         self.after_caret_move();
@@ -268,6 +277,8 @@ impl TextInput {
         self.rows.offset_at(row, f32::from(position.x - b.left()))
     }
     pub(super) fn select_to(&mut self, offset: usize, cx: &mut Context<Self>) {
+        let offset = self.clamp_offset(offset);
+        self.selected_range = self.clamp_range(self.selected_range.clone());
         if self.selection_reversed {
             self.selected_range.start = offset
         } else {

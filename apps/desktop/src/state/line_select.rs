@@ -61,7 +61,7 @@ impl DiffSel {
     }
 
     pub fn lines<'a>(&self, f: &'a ChangedFile) -> &'a [DiffLine] {
-        f.hunks.get(self.hi).map(|h| &h.lines[self.range.lo()..=self.range.hi().min(h.lines.len().saturating_sub(1))]).unwrap_or(&[])
+        f.hunks.get(self.hi).and_then(|h| h.lines.get(self.range.lo()..=self.range.hi())).unwrap_or(&[])
     }
 }
 

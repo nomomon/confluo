@@ -24,7 +24,7 @@ impl CodeState {
                 Some(s)
             }
             Some(s) => self.row_of(s.fi, s.hi, s.range.head).and_then(|ix| {
-                let mut it: Box<dyn Iterator<Item = &Row>> = if delta > 0 { Box::new(self.rows[ix + 1..].iter()) } else { Box::new(self.rows[..ix].iter().rev()) };
+                let mut it: Box<dyn Iterator<Item = &Row>> = if delta > 0 { Box::new(self.rows.iter().skip(ix + 1)) } else { Box::new(self.rows.iter().take(ix).rev()) };
                 it.find_map(|r| r.line().map(|(f, h, l)| DiffSel::single(f, h, l)))
             }),
             None => {

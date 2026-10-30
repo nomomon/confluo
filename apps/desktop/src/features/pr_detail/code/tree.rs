@@ -70,7 +70,7 @@ impl GitViewer {
                         .when(folded, |el| el.child(n.to_string()))
                         .into_any_element()
                 }
-                TreeEntry::File(fi) => self.tree_file(fi, &files[fi], fi == current, !filter.is_empty(), d, cx).into_any_element(),
+                TreeEntry::File(fi) => match files.get(fi) { Some(f) => self.tree_file(fi, f, fi == current, !filter.is_empty(), d, cx).into_any_element(), None => div().into_any_element() },
             });
         }
         div().flex().flex_col().size_full().child(progress).child(head).child(div().px(theme::SPACE_2).py(theme::SPACE_2).child(input)).child(col)

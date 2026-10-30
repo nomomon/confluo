@@ -52,15 +52,14 @@ impl GitViewer {
         div().w_full().bg(self.surfaces().card()).border_l_1().border_r_1().border_color(theme::border_subtle()).overflow_hidden()
     }
 
-    pub(super) fn render_code_row(&mut self, ix: usize, cx: &mut Context<Self>) -> AnyElement {
+    pub(super) fn render_code_row(&mut self, ix: usize, view_h: gpui::Pixels, cx: &mut Context<Self>) -> AnyElement {
         let Some(d) = self.detail.as_ref() else { return div().into_any_element() };
         if ix == d.code.rows.len() {
-            let h = d.code.list.viewport_bounds().size.height;
-            let h = if h > px(0.) { h * layout::SCROLL_PAST_END } else { layout::SCROLL_PAST_END_FALLBACK };
+            let h = if view_h > px(0.) { view_h * layout::SCROLL_PAST_END } else { layout::SCROLL_PAST_END_FALLBACK };
             return div().h(h).into_any_element();
         }
         let (Some(files), Some(&row)) = (d.code.files.clone(), d.code.rows.get(ix)) else { return div().into_any_element() };
-        let f = &files[row.file()];
+        let Some(f) = files.get(row.file()) else { return div().into_any_element() };
         match row {
             Row::Header(fi) => self.render_file_header(fi, f, d.code.collapsed.contains(&fi), d.code.inline.index.count(f.path()), cx).into_any_element(),
             Row::Hunk(_, hi) => self
@@ -74,7 +73,7 @@ impl GitViewer {
                 .text_size(theme::text_xs())
                 .text_color(theme::text_subtle())
                 .whitespace_nowrap()
-                .child(f.hunks[hi].header.clone())
+                .child(f.hunks.get(hi).map(|h| h.header.clone()).unwrap_or_default())
                 .into_any_element(),
             Row::Line(fi, hi, li) => self.render_diff_line(ix, fi, hi, li, &files, d, cx),
             Row::Pair(fi, hi, a, b) => self.render_pair(ix, fi, hi, a, b, &files, d, cx),

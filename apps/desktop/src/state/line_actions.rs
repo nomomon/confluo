@@ -137,10 +137,10 @@ impl GitViewer {
         let c = &self.detail.as_ref()?.code;
         if let Some(v) = &c.viewer {
             let (r, lines) = (v.sel?, v.lines.as_ref()?);
-            return Some(copy_text(lines[r.lo()..=r.hi().min(lines.len() - 1)].iter().map(String::as_str)));
+            return Some(copy_text(lines.get(r.lo()..=r.hi().min(lines.len().saturating_sub(1)))?.iter().map(String::as_str)));
         }
         let s = c.sel?;
-        Some(copy_text(s.lines(&c.files.as_ref()?[s.fi]).iter().map(|l| l.text.as_str())))
+        Some(copy_text(s.lines(c.files.as_ref()?.get(s.fi)?).iter().map(|l| l.text.as_str())))
     }
 
     /// Provider permalink to the selected lines.

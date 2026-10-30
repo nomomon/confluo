@@ -103,6 +103,10 @@ impl CodeState {
     pub fn rebuild(&mut self) {
         let Some(files) = &self.files else { return };
         (self.rows, self.starts) = build_rows(files, &self.collapsed, &self.shown_large, self.inline_rows());
+        // A selection from an older diff may point past the new files or hunks.
+        if self.sel.is_some_and(|s| files.get(s.fi).is_none_or(|f| s.lines(f).is_empty())) {
+            self.sel = None;
+        }
         // One extra trailing item: the scroll past end spacer, never a row.
         self.list.reset(self.rows.len() + 1);
     }
@@ -120,9 +124,12 @@ impl CodeState {
     /// Re-render one file's rows in place, keeping the scroll position.
     fn respan(&mut self, fi: usize) {
         let Some(files) = self.files.clone() else { return };
-        let start = self.starts[fi];
-        let end = self.starts.get(fi + 1).copied().unwrap_or(self.rows.len());
-        let new = file_rows(fi, &files[fi], self.collapsed.contains(&fi), self.shown_large.contains(&fi), self.inline_rows());
+        let (Some(&start), Some(f)) = (self.starts.get(fi), files.get(fi)) else { return };
+        let end = self.starts.get(fi + 1).copied().unwrap_or(self.rows.len()).clamp(start, self.rows.len());
+        if start > self.rows.len() {
+            return;
+        }
+        let new = file_rows(fi, f, self.collapsed.contains(&fi), self.shown_large.contains(&fi), self.inline_rows());
         let delta = new.len() as isize - (end - start) as isize;
         self.list.splice(start..end, new.len());
         self.rows.splice(start..end, new);

@@ -7,6 +7,7 @@ use serde_json::{json, Value};
 use tokio::sync::OnceCell;
 
 mod inline;
+mod review;
 
 /// GitHub rejects search queries longer than this.
 const MAX_QUERY_LEN: usize = 250;
@@ -388,9 +389,9 @@ impl Provider for GitHubProvider {
         let me = self.me().await?;
         let query = format!(
             "query($o: String!, $n: String!, $num: Int!) {{ repository(owner: $o, name: $n) {{ pullRequest(number: $num) {{
-               {PR_FIELDS} body
+               {PR_FIELDS} body mergedAt closedAt mergedBy {{ login avatarUrl }}
                comments(first: 100) {{ nodes {{ id body createdAt author {{ login avatarUrl ... on User {{ name }} }} }} }}
-               reviews(first: 50) {{ nodes {{ id body createdAt author {{ login avatarUrl ... on User {{ name }} }} }} }}
+               reviews(first: 50) {{ nodes {{ id state body createdAt author {{ login avatarUrl ... on User {{ name }} }} }} }}
                reviewThreads(first: 100) {{ nodes {{ {} }} }}
              }} }} }}",
             inline::THREAD_FIELDS
@@ -415,7 +416,11 @@ impl Provider for GitHubProvider {
             threads.push(inline::parse_thread(t));
         }
         threads.sort_by_key(|t| t.comments.first().map(|c| c.created_at));
+        let events = review::timeline(pr, &summary);
+        let review = ReviewInfo { caps: github_capabilities(&summary, &me), my_state: my_review_state(&summary, &me), approvals: None };
         Ok(ChangeRequestDetail {
+            review,
+            events,
             summary,
             description: s(&pr["body"]),
             threads,
@@ -500,6 +505,14 @@ impl Provider for GitHubProvider {
         let (owner, name) = split_repo(&id.repo)?;
         let path: String = path.split('/').map(urlencoding_seg).collect::<Vec<_>>().join("/");
         self.get_raw(&format!("{}/repos/{owner}/{name}/contents/{path}?ref={rev}", self.api)).await
+    }
+
+    async fn submit_review(&self, id: &ChangeRequestId, action: ReviewAction, body: Option<&str>) -> ProviderResult<()> {
+        let payload = review::review_payload(action, body).ok_or_else(|| ProviderError::Unsupported(format!("{} on GitHub", action.label())))?;
+        let (o, n) = split_repo(&id.repo)?;
+        let url = format!("{}/repos/{o}/{n}/pulls/{}/reviews", self.api, id.number);
+        self.send(self.http.post(url).json(&payload)).await?;
+        Ok(())
     }
 
     async fn edit_comment(&self, _id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment> {

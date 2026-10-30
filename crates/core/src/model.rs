@@ -283,6 +283,12 @@ pub struct ChangeRequestDetail {
     pub description: String,
     pub threads: Vec<Thread>,
     pub head_sha: Option<String>,
+    /// Review actions I can take and my current verdict.
+    #[serde(default)]
+    pub review: crate::ReviewInfo,
+    /// Opened, reviews, merged: the non-comment items of the timeline.
+    #[serde(default)]
+    pub events: Vec<crate::TimelineEvent>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]

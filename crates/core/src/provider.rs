@@ -57,6 +57,10 @@ pub trait Provider: Send + Sync {
     async fn add_line_comment(&self, id: &ChangeRequestId, position: &DiffPosition, body: &str) -> ProviderResult<Comment>;
     /// Mark an inline thread resolved or unresolved.
     async fn resolve_thread(&self, id: &ChangeRequestId, thread_id: &str, resolved: bool) -> ProviderResult<()>;
+    /// Submit a review (approve, request changes, comment) or revoke an approval.
+    async fn submit_review(&self, _id: &ChangeRequestId, action: ReviewAction, _body: Option<&str>) -> ProviderResult<()> {
+        Err(ProviderError::Unsupported(format!("{} on {}", action.label(), self.kind())))
+    }
     /// Files changed by the PR/MR with parsed hunks.
     async fn list_changed_files(&self, id: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>>;
     /// Whole file at `rev` (a commit sha); None when it does not exist there.

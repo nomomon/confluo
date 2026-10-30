@@ -9,6 +9,7 @@ use serde_json::{json, Value};
 use tokio::sync::{OnceCell, RwLock};
 
 mod inline;
+mod review;
 
 /// Concurrent per-MR enrichments; the host governor caps requests in flight anyway.
 const CONCURRENCY: usize = 4;
@@ -385,6 +386,13 @@ impl Provider for GitLabProvider {
             summary.deletions = Some(d);
         }
         let discussions = self.get_all(&format!("{base}/discussions")).await?;
+        let review = match self.get(&format!("{base}/approvals")).await {
+            Ok(a) => review::review_info(&summary, &me, &a),
+            Err(_) => ReviewInfo { caps: gitlab_capabilities(&summary, &me, false, !summary.author.username.eq_ignore_ascii_case(&me)), my_state: my_review_state(&summary, &me), approvals: None },
+        };
+        let mut events = vec![TimelineEvent { kind: TimelineKind::Opened, actor: summary.author.clone(), at: summary.created_at }];
+        events.extend(discussions.iter().flat_map(|d| d["notes"].as_array().into_iter().flatten()).filter(|n| n["system"] == true).filter_map(review::system_event));
+        events.sort_by_key(|e| e.at);
         let threads = discussions
             .iter()
             .filter_map(|d| {
@@ -403,6 +411,8 @@ impl Provider for GitLabProvider {
             })
             .collect();
         Ok(ChangeRequestDetail {
+            review,
+            events,
             summary,
             description: s(&v["description"]),
             threads,
@@ -458,6 +468,22 @@ impl Provider for GitLabProvider {
     async fn get_file_content(&self, id: &ChangeRequestId, path: &str, rev: &str) -> ProviderResult<Option<String>> {
         let p = path.replace('%', "%25").replace('/', "%2F").replace(' ', "%20").replace('#', "%23").replace('?', "%3F").replace('&', "%26");
         self.get_text(&format!("/projects/{}/repository/files/{p}/raw?ref={rev}", enc(&id.repo.path))).await
+    }
+
+    async fn submit_review(&self, id: &ChangeRequestId, action: ReviewAction, body: Option<&str>) -> ProviderResult<()> {
+        let (method, suffix) = review::review_request(action).ok_or_else(|| ProviderError::Unsupported(format!("{} on GitLab", action.label())))?;
+        let base = Self::mr_path(id);
+        if action == ReviewAction::Comment {
+            let Some(b) = body else { return Ok(()) };
+            self.call(method, &format!("{base}{suffix}"), Some(&json!({"body": b}))).await?;
+            return Ok(());
+        }
+        self.call(method, &format!("{base}{suffix}"), None).await?;
+        // A summary with an approval goes in as a note.
+        if let Some(b) = body {
+            self.call(reqwest::Method::POST, &format!("{base}/notes"), Some(&json!({"body": b}))).await?;
+        }
+        Ok(())
     }
 
     async fn edit_comment(&self, id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment> {

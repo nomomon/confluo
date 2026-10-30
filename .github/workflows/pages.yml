@@ -1,0 +1,33 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths: [site/**, assets/**, .github/workflows/pages.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency: pages
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy images from assets
+        run: |
+          cp assets/brand/icon-1024.png site/icon.png
+          cp assets/brand/social.png site/social.png
+          cp assets/screenshots/review-dark.png site/review.png
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4

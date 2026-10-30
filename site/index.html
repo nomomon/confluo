@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confluo</title>
+<meta name="description" content="Every pull request, one calm place. GitHub, GitLab and Azure DevOps in a native macOS app.">
+<meta property="og:title" content="Confluo">
+<meta property="og:description" content="Every pull request, one calm place.">
+<meta property="og:image" content="https://confluo.nomomon.xyz/social.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="frame">
+  <header class="row bar">
+    <a class="brand" href="/"><img src="icon.png" alt="" width="20" height="20">Confluo</a>
+    <a href="https://github.com/nomomon/confluo">GitHub &#8599;</a>
+  </header>
+
+  <section class="row hero">
+    <p class="eyebrow">open source &middot; mit &middot; native macOS</p>
+    <h1>Every pull request,<br><span>one calm place.</span></h1>
+    <p class="lede">Reviews from GitHub, GitLab and Azure DevOps in one native app. Uses your existing <code>gh</code>, <code>glab</code> and <code>az</code> logins.</p>
+    <div class="actions">
+      <a class="btn primary" data-asset=".dmg" href="https://github.com/nomomon/confluo/releases/latest">Download for macOS</a>
+      <a class="btn" href="#download">All downloads</a>
+    </div>
+  </section>
+
+  <figure class="row shot">
+    <img src="review.png" alt="Confluo review mode with a split diff, inline threads and the PR overview" width="1440" height="900">
+  </figure>
+
+  <section class="row grid3">
+    <div><h2>One inbox</h2><p>What needs you, across every provider, sorted by what to do next.</p></div>
+    <div><h2>Focused review</h2><p>Split or unified diffs, inline threads, checks and the overview side by side.</p></div>
+    <div><h2>Keyboard first</h2><p>A command palette for everything. Rust and GPUI, fast and light.</p></div>
+  </section>
+
+  <section class="row" id="download">
+    <h2 class="label">Download <span data-version></span></h2>
+    <ul class="dl">
+      <li><b>macOS</b><span>apple silicon &middot; dmg</span><a data-asset=".dmg" href="https://github.com/nomomon/confluo/releases/latest">Download</a></li>
+      <li><b>Linux</b><span>x64 &middot; AppImage</span><a data-asset="x86_64.AppImage" href="https://github.com/nomomon/confluo/releases/latest">Download</a></li>
+      <li><b>Linux</b><span>x64 &middot; deb</span><a data-asset="amd64.deb" href="https://github.com/nomomon/confluo/releases/latest">Download</a></li>
+      <li><b>Linux</b><span>arm64 &middot; AppImage</span><a data-asset="aarch64.AppImage" href="https://github.com/nomomon/confluo/releases/latest">Download</a></li>
+    </ul>
+    <p class="note"><a href="https://github.com/nomomon/confluo/releases/latest">Release notes and checksums &#8599;</a></p>
+  </section>
+
+  <footer class="row bar small">
+    <span>&copy; 2026 confluo &middot; mit licensed</span>
+    <span>con&middot;FLOO&middot;oh, latin for &ldquo;I flow together&rdquo;</span>
+  </footer>
+</main>
+<script>
+// Point download links at the exact assets of the latest release.
+fetch("https://api.github.com/repos/nomomon/confluo/releases/latest")
+  .then(r => r.json())
+  .then(rel => {
+    document.querySelector("[data-version]").textContent = rel.tag_name || "";
+    document.querySelectorAll("[data-asset]").forEach(a => {
+      const hit = (rel.assets || []).find(x => x.name.endsWith(a.dataset.asset));
+      if (hit) a.href = hit.browser_download_url;
+    });
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>

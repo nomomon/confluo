@@ -37,24 +37,20 @@ impl GitViewer {
                 this.reload();
             }));
         div()
-            .child(
-                self.settings_group(
-                    None,
-                    vec![Field::new("Hide PRs inactive for", stale)
+            .child(self.settings_group(
+                None,
+                vec![Field::new("Hide PRs inactive for", stale)
                         .description("Older pull requests move to a quiet footer under the list")
                         .horizontal()
                         .into_any_element()],
-                ),
-            )
-            .child(
-                self.settings_group(
-                    None,
-                    vec![Field::new("Hide bot pull requests", hide)
+            ))
+            .child(self.settings_group(
+                None,
+                vec![Field::new("Hide bot pull requests", hide)
                         .description("Renovate, Dependabot and the patterns below")
                         .horizontal()
                         .into_any_element()],
-                ),
-            )
+            ))
             .child(self.settings_group(
                 Some("Hidden authors (* matches anything)"),
                 vec![self.chip_editor(

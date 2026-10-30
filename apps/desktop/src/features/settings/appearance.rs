@@ -106,10 +106,9 @@ impl GitViewer {
                 this.save_settings(cx)
             }));
         div()
-            .child(
-                self.settings_group(
-                    Some("Window"),
-                    vec![
+            .child(self.settings_group(
+                Some("Window"),
+                vec![
                         Field::new("Theme", mode)
                             .description("System follows the macOS appearance")
                             .horizontal()
@@ -127,12 +126,10 @@ impl GitViewer {
                             .horizontal()
                             .into_any_element(),
                     ],
-                ),
-            )
-            .child(
-                self.settings_group(
-                    Some("Text"),
-                    vec![
+            ))
+            .child(self.settings_group(
+                Some("Text"),
+                vec![
                         Field::new("Interface font", ui_font)
                             .horizontal()
                             .into_any_element(),
@@ -148,7 +145,6 @@ impl GitViewer {
                             .horizontal()
                             .into_any_element(),
                     ],
-                ),
-            )
+            ))
     }
 }

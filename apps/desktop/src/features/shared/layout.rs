@@ -15,7 +15,14 @@ pub const SIDEBAR_TOP: Pixels = px(52.);
 /// Top padding of the list and detail columns, under the transparent titlebar.
 pub const TITLEBAR_INSET: Pixels = px(48.);
 pub const TIME_COL_W: Pixels = px(72.);
-pub const ALIAS_LIST_MAX_H: Pixels = px(300.);
+/// Settings dialog size, its left navigation and the background image thumbnail.
+pub const SETTINGS_W: Pixels = px(780.);
+pub const SETTINGS_H: Pixels = px(560.);
+pub const SETTINGS_NAV_W: Pixels = px(188.);
+pub const SETTINGS_THUMB_W: Pixels = px(72.);
+pub const SETTINGS_THUMB_H: Pixels = px(44.);
+/// Repo column of the alias table.
+pub const ALIAS_REPO_W: Pixels = px(260.);
 /// Code tab: one diff line, the file card header, the `@@` band and line number gutters.
 pub const DIFF_LINE_H: Pixels = px(20.);
 pub const DIFF_HEADER_H: Pixels = px(40.);

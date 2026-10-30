@@ -3,15 +3,17 @@
 use gpui::{div, prelude::*, Div, Hsla};
 use gv_engine::{ChangeRequest, ChangeRequestState, ProviderKind, ReviewState};
 
-use crate::ui::atoms::{Badge, Icon, IconName, Pill};
+use crate::ui::atoms::{Icon, IconName, Pill};
 use crate::ui::theme;
 
-pub fn provider_badge(kind: ProviderKind) -> Badge {
-    match kind {
-        ProviderKind::GitHub => Badge::new("GH", theme::text_muted()),
-        ProviderKind::GitLab => Badge::new("GL", theme::text_muted()),
-        ProviderKind::Azure => Badge::new("AZ", theme::text_muted()),
-    }
+/// Tabler brand icon for a provider: outline, muted, `ICON_MD`.
+pub fn provider_icon(kind: ProviderKind) -> Icon {
+    let name = match kind {
+        ProviderKind::GitHub => IconName::BrandGithub,
+        ProviderKind::GitLab => IconName::BrandGitlab,
+        ProviderKind::Azure => IconName::BrandAzure,
+    };
+    Icon::new(name).size(theme::ICON_MD).color(theme::text_muted())
 }
 
 pub fn state_pill(s: ChangeRequestState) -> Pill {

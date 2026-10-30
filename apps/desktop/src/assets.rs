@@ -10,7 +10,7 @@ macro_rules! icons {
 }
 
 const FILES: &[(&str, &[u8])] = icons![
-    "arrow-left", "check", "chevron-down", "chevron-right", "chevron-up", "copy", "dots", "external-link", "file", "file-code", "file-text", "fold", "folder", "git-merge", "git-pull-request", "git-pull-request-closed", "git-pull-request-draft", "inbox", "layout-columns", "layout-rows", "layout-sidebar", "link", "message", "plus", "refresh", "search", "settings", "star", "star-filled", "x",
+    "adjustments", "alert-circle", "alert-triangle", "arrow-left", "brand-azure", "brand-github", "brand-gitlab", "brush", "bulb", "check", "chevron-down", "chevron-right", "chevron-up", "circle-check", "copy", "dots", "external-link", "eye", "eye-off", "file", "file-code", "file-text", "filter", "fold", "folder", "git-merge", "git-pull-request", "git-pull-request-closed", "git-pull-request-draft", "inbox", "info-circle", "keyboard", "layout-columns", "layout-rows", "layout-sidebar", "link", "message", "pencil", "photo", "plus", "refresh", "search", "selector", "settings", "star", "star-filled", "trash", "user", "x",
 ];
 
 pub struct Assets;
@@ -31,7 +31,7 @@ mod tests {
 
     #[test]
     fn every_icon_is_embedded() {
-        for name in crate::ui::atoms::IconName::ALL {
+        for name in crate::ui::atoms::IconName::ALL.iter().copied() {
             assert!(Assets.load(name.path()).unwrap().is_some(), "{}", name.path());
         }
     }

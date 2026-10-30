@@ -1,8 +1,8 @@
-//! Review mode top bar: back, state icon, the short read-only title with a muted line under it (repo and
-//! number, stats, unresolved count), then Review, Merge and the More menu. Branch, CI and approvals live
-//! in the Overview properties.
+//! Review mode top bar, one line: back, state icon, the short read-only title (repo, number and branch on
+//! hover), the unresolved count, then Review, Merge and the More menu. Repo, branch, CI and approvals live in
+//! the Overview properties; +/- counts in the file tree header.
 
-use gpui::{div, prelude::*, ClickEvent, Context, MouseButton, MouseDownEvent};
+use gpui::{div, prelude::*, ClickEvent, Context, MouseDownEvent};
 use gv_engine::ReviewState;
 
 use crate::app::{GitViewer, Layer};
@@ -81,31 +81,11 @@ impl GitViewer {
 
     pub(super) fn render_review_bar(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
         let s = &d.summary;
-        let repo = s.id.repo.clone();
         let back = Button::new("review-back", "").icon(IconName::ChevronLeft).variant(ButtonVariant::Ghost).tooltip(keymap::tip::<HistoryBack>("Back to list")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.exit_review(cx)));
-        let repo_el = div()
-            .id("review-repo")
-            .flex_shrink_0()
-            .whitespace_nowrap()
-            .text_size(theme::text_xs())
-            .text_color(theme::text_muted())
-            .tooltip(tooltip(format!("{}  right-click to rename", s.id.repo.path)))
-            .on_mouse_down(MouseButton::Right, cx.listener(move |this, ev: &MouseDownEvent, _, cx| this.open_repo_menu(repo.clone(), ev.position, cx)))
-            .child(format!("{} {}", self.repo_label(&s.id.repo), number_label(s)));
-        // Title on the first line (ellipsis), everything else on one muted line under it, so nothing overflows.
-        let meta = div()
-            .flex()
-            .items_center()
-            .gap(theme::SPACE_2P5)
-            .min_w(theme::SPACE_0)
-            .overflow_hidden()
-            .child(crate::features::shared::provider_mark(s.id.repo.kind))
-            .child(repo_el)
-            .child(stats(s))
-            .children(self.unresolved_count(d, cx));
-        // Short, read-only title: it is edited at the top of the Overview, never in two places.
-        let title = div().id("review-title").px(theme::SPACE_1).min_w(theme::SPACE_0).truncate().text_size(theme::text_base()).font_weight(theme::WEIGHT_SEMIBOLD).tooltip(tooltip(s.title.clone())).child(s.title.clone());
-        let heading = div().flex().flex_col().flex_1().min_w(theme::SPACE_0).gap(theme::SPACE_0P5).child(div().flex().min_w(theme::SPACE_0).child(title)).child(div().pl(theme::SPACE_1).child(meta));
+        // One line: the short read-only title (edited at the top of the Overview), repo and branch on hover.
+        let tip = format!("{}\n{} {}  {} -> {}", s.title, self.repo_label(&s.id.repo), number_label(s), s.source_branch, s.target_branch);
+        let title = div().id("review-title").px(theme::SPACE_1).min_w(theme::SPACE_0).truncate().text_size(theme::text_base()).font_weight(theme::WEIGHT_SEMIBOLD).tooltip(tooltip(tip)).child(s.title.clone());
+        let heading = div().flex().items_center().gap(theme::SPACE_2).flex_1().min_w(theme::SPACE_0).child(title).children(self.unresolved_count(d, cx));
         div()
             .relative()
             .flex()

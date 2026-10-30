@@ -32,8 +32,15 @@ impl GitViewer {
             .pt(theme::SPACE_2)
             .text_size(theme::text_xs())
             .text_color(theme::text_muted())
-            .child(div().flex_1().child(format!("{seen} of {total} viewed")))
-            .child(div().text_color(theme::text_subtle()).child("Hide viewed"))
+            .child(div().flex_1().min_w(theme::SPACE_0).overflow_hidden().flex().items_center().gap(theme::SPACE_2).child(div().flex_shrink_0().child(format!("{seen} of {total} viewed"))).child(
+                div()
+                    .flex()
+                    .gap(theme::SPACE_1)
+                    .font_family(theme::mono_font())
+                    .when_some(d.summary.additions, |e, a| e.child(div().text_color(theme::success()).child(format!("+{a}"))))
+                    .when_some(d.summary.deletions, |e, n| e.child(div().text_color(theme::danger()).child(format!("-{n}")))),
+            ))
+            .child(div().flex_shrink_0().text_color(theme::text_subtle()).child("Hide viewed"))
             .child(Switch::new("hide-viewed", r.hide_viewed).on_change(cx.listener(|this, on: &bool, _, cx| {
                 this.review.hide_viewed = *on;
                 cx.notify()

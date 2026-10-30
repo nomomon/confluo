@@ -29,12 +29,24 @@ impl GitViewer {
             .border_1()
             .border_color(theme::border_subtle())
             .bg(self.surfaces().card())
+            .child(self.pr_repo_row(d, cx))
             .child(self.people_row(d, PeopleRole::Reviewers, &reviewers, Some(&states), caps.reviewers, cx))
             .child(self.people_row(d, PeopleRole::Assignees, &assignees, None, caps.assignees, cx))
             .children(self.render_ci(d, "overview", cx).map(|ci| row_shell("prop-pipeline", "Pipeline", ci, false)))
             .children(self.approvals(d).map(|a| row_shell("prop-approvals", "Approvals", a.into_any_element(), false)))
             .children(labels)
             .child(self.branch_row(d, cx))
+    }
+
+    /// Repository and number; right-click renames the repo.
+    fn pr_repo_row(&self, d: &DetailState, cx: &mut Context<Self>) -> AnyElement {
+        let s = &d.summary;
+        let repo = s.id.repo.clone();
+        let value = div().flex().items_center().gap(theme::SPACE_1P5).child(crate::features::shared::provider_mark(s.id.repo.kind)).child(format!("{} {}", self.repo_label(&s.id.repo), crate::features::shared::number_label(s)));
+        row_shell("prop-repo", "Repository", value.into_any_element(), false)
+            .tooltip(tooltip(format!("{}  right-click to rename", s.id.repo.path)))
+            .on_mouse_down(gpui::MouseButton::Right, cx.listener(move |this, ev: &MouseDownEvent, _, cx| this.open_repo_menu(repo.clone(), ev.position, cx)))
+            .into_any_element()
     }
 
     /// `source -> target` in mono; a click copies the source branch.

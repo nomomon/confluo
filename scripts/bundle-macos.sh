@@ -1,20 +1,26 @@
 #!/usr/bin/env bash
 # Build Confluo in release mode and wrap it in target/release/Confluo.app.
 # Usage: scripts/bundle-macos.sh   (CARGO_BUILD_JOBS limits parallelism, default 4)
+# CONFLUO_BINARY=path skips the build and bundles that binary (release-macos.sh passes a universal one).
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 
 jobs="${CARGO_BUILD_JOBS:-4}"
-cargo build --release -p gv-desktop -j "$jobs"
+binary="${CONFLUO_BINARY:-}"
+if [ -z "$binary" ]; then
+  cargo build --release -p gv-desktop -j "$jobs"
+  binary=target/release/confluo
+fi
 
 version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)"
-app="target/release/Confluo.app"
+app="${CONFLUO_APP_DIR:-target/release}/Confluo.app"
 
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-cp target/release/confluo "$app/Contents/MacOS/confluo"
+mkdir -p "$(dirname "$app")"
+cp "$binary" "$app/Contents/MacOS/confluo"
 cp assets/brand/AppIcon.icns "$app/Contents/Resources/AppIcon.icns"
 
 cat > "$app/Contents/Info.plist" <<PLIST

@@ -20,7 +20,7 @@ win_w=660 win_h=495 icon=128 app_x=170 apps_x=490 slot_y=190
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 # One TIFF holding the 1x and 2x backgrounds, so Retina windows stay sharp.
-tiffutil -cathidpicheck "$root/assets/brand/dmg-background.png" "$root/assets/brand/dmg-background@2x.png" -out "$work/background.tiff" >/dev/null
+tiffutil -cathidpicheck "$root/assets/brand/dmg-background.png" "$root/assets/brand/dmg-background@2x.png" -out "$work/background.tiff" >/dev/null 2>&1
 rm -f "$dmg"
 mkdir -p "$out"
 

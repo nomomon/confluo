@@ -1,6 +1,7 @@
 //! Confluo desktop app (GPUI).
 
 mod app;
+mod app_render;
 mod assets;
 mod crash;
 mod dev;

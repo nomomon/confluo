@@ -4,6 +4,21 @@ Tagging `vX.Y.Z` runs `.github/workflows/release.yml`: a universal build, signed
 notarized and stapled, published as a GitHub release with `Confluo-X.Y.Z.dmg`, `Confluo-X.Y.Z-macos.zip`
 (used by the in-app updater) and `SHA256SUMS`. Notes come from Conventional Commits since the previous tag.
 
+## Without Xcode
+
+Create the certificate with OpenSSL and the browser:
+
+```sh
+openssl genrsa -out devid.key 2048
+openssl req -new -key devid.key -out devid.csr -subj "/emailAddress=<apple id>/CN=<name>/C=<country>"
+# developer.apple.com > Certificates > + > Developer ID Application (G2 Sub-CA), upload devid.csr, download the .cer
+openssl x509 -inform DER -in developerID_application.cer -out devid.pem
+openssl pkcs12 -export -legacy -inkey devid.key -in devid.pem -name "Developer ID Application" -out devid.p12
+openssl x509 -in devid.pem -noout -subject   # identity for APPLE_SIGNING_IDENTITY
+```
+
+The API key comes from App Store Connect > Users and Access > Integrations > Team Keys (Developer role).
+
 ## One-time Apple setup
 
 Needs a paid Apple Developer Program membership.

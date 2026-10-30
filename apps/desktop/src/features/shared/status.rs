@@ -1,7 +1,7 @@
 //! Map engine provider, state, review and check data onto `ui` atoms.
 
 use gpui::Hsla;
-use gv_engine::{ChangeRequest, ChangeRequestState, ProviderKind, ReviewState};
+use gv_engine::{needs_reason, ChangeRequest, ChangeRequestState, ProviderKind};
 
 use crate::ui::atoms::{Icon, IconName};
 use crate::ui::theme;
@@ -71,22 +71,10 @@ pub fn checks_text(c: &ChangeRequest) -> (String, Hsla) {
     }
 }
 
-/// Muted hint after the checks in a list row: draft, review asked, changes asked.
-pub fn row_hint(c: &ChangeRequest) -> Option<&'static str> {
-    if c.state == ChangeRequestState::Draft {
-        return Some("Draft");
+/// Muted hint after the checks in a list row: why it needs me ("Re-review: 3 new commits"), else draft.
+pub fn row_hint(c: &ChangeRequest, me: Option<&str>) -> Option<String> {
+    if let Some(r) = me.and_then(|m| needs_reason(c, m)) {
+        return Some(r.label());
     }
-    if !c.needs_you {
-        return None;
-    }
-    if c.reviewers
-        .iter()
-        .any(|r| r.state == ReviewState::ChangesRequested)
-    {
-        Some("Changes requested")
-    } else if c.checks.failed == 0 {
-        Some("Your review requested")
-    } else {
-        None
-    }
+    (c.state == ChangeRequestState::Draft).then(|| "Draft".into())
 }

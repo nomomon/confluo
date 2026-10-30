@@ -90,7 +90,7 @@ pub(crate) fn user(v: &Value) -> User {
     }
 }
 
-fn same(u: &User, me: &User) -> bool {
+pub(crate) fn same(u: &User, me: &User) -> bool {
     match (&u.id, &me.id) {
         (Some(a), Some(b)) => a.eq_ignore_ascii_case(b),
         _ => u.username.eq_ignore_ascii_case(&me.username),
@@ -249,6 +249,10 @@ pub(crate) fn parse_pr(host: &str, org: &str, v: &Value, me: &User) -> ChangeReq
             seg(repo)
         ),
         needs_you: false,
+        signals: Signals {
+            conflicts: v["mergeStatus"] == "conflicts",
+            ..Default::default()
+        },
     };
     // My username on this host is the unique name; match reviewers by id first.
     let me_name = cr
@@ -548,7 +552,14 @@ mod tests {
             .map(|p| parse_pr("dev.azure.com", "contoso", p, &me()))
             .collect();
         assert_eq!(items[0].state, ChangeRequestState::Draft);
-        assert!(!items[0].needs_you);
+        // A draft still needs me when my review is requested on it.
+        assert_eq!(
+            needs_reason(&items[0], &me().username).is_some(),
+            items[0]
+                .reviewers
+                .iter()
+                .any(|r| r.state == ReviewState::Pending && same(&r.user, &me()))
+        );
         assert_eq!(items[1].state, ChangeRequestState::Merged);
         assert!(items[1].updated_at > items[1].created_at);
         assert_eq!(items[2].state, ChangeRequestState::Closed);

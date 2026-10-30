@@ -122,6 +122,7 @@ mod tests {
             created_at: t,
             web_url: String::new(),
             needs_you: n == 2,
+            signals: Default::default(),
         }
     }
 

@@ -13,6 +13,7 @@ mod edit;
 mod extras;
 mod inline;
 mod review;
+mod signals;
 mod versions;
 
 /// Concurrent per-MR enrichments; the host governor caps requests in flight anyway.
@@ -134,6 +135,10 @@ fn parse_mr(host: &str, v: &Value) -> ChangeRequest {
         created_at: time(&v["created_at"]),
         web_url: s(&v["web_url"]),
         needs_you: false,
+        signals: Signals {
+            conflicts: v["has_conflicts"] == true,
+            ..Default::default()
+        },
     }
 }
 
@@ -384,6 +389,7 @@ impl GitLabProvider {
                 pipeline = Some(format!("{proj}/{pid}"));
             }
         }
+        cr.signals.since_my_review = self.review_signal(&base, &cr, me).await;
         cr.needs_you = compute_needs_you(&cr, me);
         Ok((cr, jobs, pipeline))
     }

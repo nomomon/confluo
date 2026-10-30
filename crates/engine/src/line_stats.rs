@@ -95,6 +95,7 @@ mod tests {
             created_at: chrono::Utc::now(),
             web_url: String::new(),
             needs_you: false,
+            signals: Default::default(),
         }
     }
 

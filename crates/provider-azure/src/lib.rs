@@ -19,6 +19,7 @@ mod commit_diff;
 mod diff;
 mod edit;
 mod parse;
+mod signals;
 
 use parse::*;
 pub use parse::{vote_action, vote_state};
@@ -285,6 +286,7 @@ impl AzureProvider {
         let evals = self.policy_evaluations(&cr.id).await?;
         let (org, project, _) = split_repo(&cr.id.repo.path).unwrap_or_default();
         cr.checks = checks::summary(&checks::policy_runs(&evals, org, project));
+        cr.signals.since_my_review = self.review_signal(&cr, me).await;
         cr.needs_you = compute_needs_you(&cr, &me.username);
         Ok(cr)
     }
@@ -331,8 +333,14 @@ impl Provider for AzureProvider {
             .get(&cr.id.key())
             .cloned()
             .unwrap_or_default();
-        // The leading version re-enriches cached rows when the check mapping changes.
-        format!("2|{}|{head}", cr.updated_at.to_rfc3339())
+        // The leading version re-enriches cached rows when the check mapping changes; votes are in it so
+        // a new vote recounts the commits since it.
+        let votes: String = cr
+            .reviewers
+            .iter()
+            .map(|r| format!("{:?}", r.state))
+            .collect();
+        format!("3|{}|{head}|{votes}", cr.updated_at.to_rfc3339())
     }
 
     async fn enrich(&self, items: Vec<ChangeRequest>) -> Vec<ProviderResult<ChangeRequest>> {

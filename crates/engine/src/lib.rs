@@ -20,6 +20,7 @@ mod line_stats;
 mod post;
 mod quiet;
 mod review;
+mod thread_signal;
 mod tokens;
 
 pub use avatars::small_avatar_url;
@@ -667,6 +668,9 @@ impl Engine {
                     report.paused_until = later(report.paused_until, t);
                 }
             }
+            for (_, items) in ok.iter_mut() {
+                self.carry_threads(items);
+            }
             for (scope, items) in ok {
                 report.fetched += items.len();
                 self.store.upsert_change_requests(&items)?;
@@ -841,6 +845,7 @@ impl Engine {
             Ok(mut d) => {
                 let head = d.head_sha.clone();
                 self.fill_counts(&mut d.summary, head.as_deref());
+                self.note_threads(&mut d);
                 self.store.put_detail(&d)?;
                 self.detail_fetched
                     .lock()
@@ -1147,6 +1152,7 @@ fn carry_enrichment(
     cr.changed_files = cached.changed_files.or(cr.changed_files);
     cr.additions = cached.additions;
     cr.deletions = cached.deletions;
+    cr.signals.since_my_review = cached.signals.since_my_review;
     if let Some(me) = me {
         cr.needs_you = compute_needs_you(cr, me);
     }
@@ -1236,6 +1242,10 @@ mod tests {
         std::fs::remove_dir_all(dir).unwrap();
     }
 
+    pub(crate) fn sample() -> ChangeRequest {
+        cr(1, "t")
+    }
+
     fn cr(n: u64, title: &str) -> ChangeRequest {
         ChangeRequest {
             id: ChangeRequestId {
@@ -1258,6 +1268,7 @@ mod tests {
             created_at: Utc::now(),
             web_url: String::new(),
             needs_you: false,
+            signals: Default::default(),
         }
     }
 

@@ -86,13 +86,20 @@ impl GitViewer {
             })
             .child(Pill::new(number_label(c), theme::success()).icon(IconName::GitPullRequest))
             .children(ci)
-            .children(row_hint(c).filter(|_| !self.compact).map(|h| {
-                div()
-                    .flex_shrink_0()
-                    .whitespace_nowrap()
-                    .text_color(theme::text_muted())
-                    .child(h)
-            }));
+            .children(
+                row_hint(
+                    c,
+                    self.engine.me(c.id.repo.kind, &c.id.repo.host).as_deref(),
+                )
+                .filter(|_| !self.compact)
+                .map(|h| {
+                    div()
+                        .flex_shrink_0()
+                        .whitespace_nowrap()
+                        .text_color(theme::text_muted())
+                        .child(h)
+                }),
+            );
         let diff = match (c.additions, c.deletions) {
             (Some(a), Some(d)) => Some(
                 div()

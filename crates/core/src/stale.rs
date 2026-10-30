@@ -84,6 +84,7 @@ mod tests {
             created_at: t,
             web_url: String::new(),
             needs_you: true,
+            signals: Default::default(),
         }
     }
 

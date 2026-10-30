@@ -11,6 +11,7 @@ mod edit;
 mod extras;
 mod inline;
 mod review;
+mod signals;
 
 /// GitHub rejects search queries longer than this.
 const MAX_QUERY_LEN: usize = 250;
@@ -132,8 +133,9 @@ impl GitHubProvider {
     async fn search(&self, q: &str, me: &str) -> ProviderResult<Vec<ChangeRequest>> {
         let query = format!(
             "query($q: String!, $after: String) {{ search(query: $q, type: ISSUE, first: 50, after: $after) {{
-               pageInfo {{ hasNextPage endCursor }} nodes {{ ... on PullRequest {{ {PR_FIELDS} }} }} }}
-               rateLimit {{ cost remaining resetAt }} }}"
+               pageInfo {{ hasNextPage endCursor }} nodes {{ ... on PullRequest {{ {PR_FIELDS} {} }} }} }}
+               rateLimit {{ cost remaining resetAt }} }}",
+            signals::fields(me)
         );
         let mut out = vec![];
         let mut after = Value::Null;
@@ -259,6 +261,7 @@ impl GitHubProvider {
             created_at: time(&n["createdAt"]),
             web_url: s(&n["url"]),
             needs_you: false,
+            signals: signals::parse(n),
         };
         cr.needs_you = compute_needs_you(&cr, me);
         Ok(cr)
@@ -548,11 +551,12 @@ impl Provider for GitHubProvider {
         let me = self.me().await?;
         let query = format!(
             "query($o: String!, $n: String!, $num: Int!) {{ repository(owner: $o, name: $n) {{ pullRequest(number: $num) {{
-               {PR_FIELDS} {} {} {} {R} body mergedAt closedAt mergedBy {{ login avatarUrl }}
+               {PR_FIELDS} {} {} {} {} {R} body mergedAt closedAt mergedBy {{ login avatarUrl }}
                comments(first: 100) {{ nodes {{ id body createdAt author {{ login avatarUrl ... on User {{ name }} }} {R} }} }}
                reviews(first: 50) {{ nodes {{ id state body createdAt commit {{ oid }} author {{ login avatarUrl ... on User {{ name }} }} {R} }} }}
                reviewThreads(first: 100) {{ nodes {{ {} }} }}
              }} }} }}",
+            signals::fields(&me),
             edit::EDIT_FIELDS,
             checks::CHECK_FIELDS,
             extras::PR_EXTRA_FIELDS,

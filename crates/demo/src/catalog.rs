@@ -327,6 +327,10 @@ fn web_url(repo: &RepoRef, n: u64) -> String {
     }
 }
 
+/// Commits pushed after my review, by PR number: #77 is approved with nothing new (Reviewed), #309 was
+/// approved and then pushed to (Needs you, re-review). Others I reviewed have nothing new.
+const SINCE_MY_REVIEW: &[(u64, u32)] = &[(77, 0), (309, 3)];
+
 fn build(s: &Spec) -> ChangeRequest {
     let (
         ri,
@@ -376,6 +380,13 @@ fn build(s: &Spec) -> ChangeRequest {
         updated_at: updated,
         created_at: updated - Duration::hours(26 + mins / 60),
         needs_you: false,
+        signals: Signals {
+            since_my_review: SINCE_MY_REVIEW
+                .iter()
+                .find(|(n, _)| *n == number)
+                .map(|(_, c)| *c),
+            ..Default::default()
+        },
     };
     cr.needs_you = compute_needs_you(&cr, ME);
     cr
@@ -420,6 +431,9 @@ mod tests {
         assert!(all.iter().any(|c| c.needs_you));
         assert!(all.iter().any(|c| c.author.bot));
         assert_eq!(repos(ProviderKind::GitLab, GITLAB, "orbit").len(), 2);
+        let at = |n: u64| all.iter().find(|c| c.id.number == n).unwrap();
+        assert_eq!(classify(at(77), Some(ME)), Section::Reviewed);
+        assert_eq!(needs_reason(at(309), ME), Some(NeedsReason::ReReview(3)));
         let first = &all[0];
         assert_eq!(find(&first.id).unwrap().title, first.title);
     }

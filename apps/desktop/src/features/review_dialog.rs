@@ -1,7 +1,7 @@
-//! Review actions in the detail header: a Review menu button, my state badge, and the summary dialog.
+//! Review actions in the detail header: a Review menu button and the summary dialog.
 
 use gpui::{div, prelude::*, AnyElement, ClickEvent, Context, MouseDownEvent};
-use gv_engine::{ReviewAction, ReviewInfo, ReviewState};
+use gv_engine::{ReviewAction, ReviewInfo};
 
 use super::keymap::{self, Approve, MergePr, RequestChanges, ToggleDraft};
 use crate::app::{GitViewer, Layer, Overlay};
@@ -9,16 +9,6 @@ use crate::state::DetailState;
 use crate::ui::atoms::{Button, ButtonVariant, IconName};
 use crate::ui::molecules::{Dialog, DropdownMenu, MenuItem, MenuSeparator, Textarea};
 use crate::ui::theme;
-
-/// Badge text and color for my current review.
-fn state_badge(s: ReviewState) -> Option<(&'static str, gpui::Hsla)> {
-    match s {
-        ReviewState::Approved => Some(("You approved", theme::success())),
-        ReviewState::ChangesRequested => Some(("You requested changes", theme::danger())),
-        ReviewState::Commented => Some(("You reviewed", theme::text_muted())),
-        ReviewState::Pending => None,
-    }
-}
 
 /// Review button tooltip: the review shortcuts.
 fn review_tip(draft: Option<bool>) -> String {
@@ -146,20 +136,6 @@ impl GitViewer {
             );
         }
         menu
-    }
-
-    /// "You approved" for the meta line (approval counts are the single `approvals` indicator).
-    pub(crate) fn render_review_state(&self, d: &DetailState) -> Option<AnyElement> {
-        let info = d.detail.as_ref().map(|x| &x.review)?;
-        info.my_state.and_then(state_badge).map(|(label, color)| {
-            // Plain colored text, no tinted pill.
-            gpui::div()
-                .text_size(theme::text_xs())
-                .font_weight(theme::WEIGHT_MEDIUM)
-                .text_color(color)
-                .child(label)
-                .into_any_element()
-        })
     }
 
     /// Summary dialog for Comment and Request changes.

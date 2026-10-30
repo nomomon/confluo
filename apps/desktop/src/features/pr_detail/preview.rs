@@ -105,8 +105,7 @@ impl GitViewer {
             .gap_y(theme::space_2())
             .gap(theme::space_3())
             .child(stats(s, d.stats_loading))
-            .children(self.render_ci(d, "preview", cx))
-            .children(self.render_review_state(d));
+            .children(self.render_ci(d, "preview", cx));
         let actions = div()
             .flex()
             .gap(theme::space_2())

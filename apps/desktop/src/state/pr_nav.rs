@@ -127,11 +127,12 @@ mod tests {
     #[test]
     fn section_jumps_land_on_first_pr() {
         let s = visible_sections(&rows(), &[]);
-        // Section order: Needs you [1, 2], Yours [4], Drafts [3], Waiting [5].
+        // Section order: Needs you [1, 2], Yours [4], Waiting [5], Drafts [3].
         assert_eq!(adjacent_section(&s, Some(&2), 1), Step::To(4));
-        assert_eq!(adjacent_section(&s, Some(&4), 1), Step::To(3));
+        assert_eq!(adjacent_section(&s, Some(&4), 1), Step::To(5));
         assert_eq!(adjacent_section(&s, Some(&4), -1), Step::To(1));
-        assert_eq!(adjacent_section(&s, Some(&5), 1), Step::End);
+        assert_eq!(adjacent_section(&s, Some(&5), 1), Step::To(3));
+        assert_eq!(adjacent_section(&s, Some(&3), 1), Step::End);
         assert_eq!(adjacent_section(&s, Some(&1), -1), Step::End);
         let c = visible_sections(&rows(), &[Drafts]);
         assert_eq!(adjacent_section(&c, Some(&4), 1), Step::To(5));

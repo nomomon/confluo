@@ -229,6 +229,9 @@ pub struct ChangeRequest {
     pub web_url: String,
     /// Whether the viewer is expected to act. See [`crate::compute_needs_you`].
     pub needs_you: bool,
+    /// Per-viewer review signals behind [`crate::needs_reason`] and [`crate::classify`].
+    #[serde(default)]
+    pub signals: crate::Signals,
 }
 
 impl ChangeRequest {

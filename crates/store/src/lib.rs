@@ -488,6 +488,7 @@ mod tests {
             created_at: Utc::now(),
             web_url: String::new(),
             needs_you: false,
+            signals: Default::default(),
         }
     }
 

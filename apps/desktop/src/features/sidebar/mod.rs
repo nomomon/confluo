@@ -41,7 +41,7 @@ impl GitViewer {
         let mut col = div()
             .flex()
             .flex_col()
-            .w(self.sidebar_w())
+            .w(self.sidebar_w_open())
             .h_full()
             .flex_shrink_0()
             .bg(self.surfaces().sidebar())
@@ -137,7 +137,7 @@ impl GitViewer {
             .flex_shrink_0()
             .when(inset, |d| d.p(layout::SIDEBAR_INSET))
             .child(col.when(inset, |c| {
-                c.w(self.sidebar_w() - layout::SIDEBAR_INSET * 2.)
+                c.w(self.sidebar_w_open() - layout::SIDEBAR_INSET * 2.)
                     .pt(layout::SIDEBAR_TOP - layout::SIDEBAR_INSET)
             }))
     }

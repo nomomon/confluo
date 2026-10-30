@@ -224,6 +224,12 @@ impl Pager {
     }
 }
 
+/// Left edge of each of `n` side-by-side pages `width` wide on a strip at `position` (page i rests at
+/// `-i * width`): always exactly one width apart, so pages never overlap at any width.
+pub fn page_offsets(position: f32, width: f32, n: usize) -> Vec<f32> {
+    (0..n).map(|i| position + i as f32 * width).collect()
+}
+
 #[cfg(test)]
 #[path = "pager_tests.rs"]
 mod tests;

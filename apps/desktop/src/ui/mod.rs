@@ -9,6 +9,7 @@ pub mod layer;
 pub mod molecules;
 pub mod motion;
 pub mod scroll;
+pub mod split;
 
 pub mod theme;
 

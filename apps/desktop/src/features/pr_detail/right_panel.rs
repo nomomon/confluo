@@ -41,8 +41,14 @@ impl GitViewer {
         let sw = &self.review.swipe;
         let tabs = tabs.progress(sw.panel_progress);
         // Pages side by side on a strip that follows the pager; at rest only the active one is built.
-        let pw = f32::from(self.viewport_w) * self.review.right_ratio;
-        let both = sw.panel.moving();
+        let pw = self.right_page_w();
+        let offsets = crate::ui::motion::interactive::page_offsets(sw.panel_x, pw, 2);
+        // While both draw, each page is opaque (the panel surface) so the other never shows through.
+        let page_bg = gpui::Hsla {
+            a: 1.,
+            ..self.surfaces().panel()
+        };
+        let both = sw.panel.moving() || crate::dev::panel().is_some();
         let mut strip = div()
             .relative()
             .flex_1()
@@ -91,8 +97,9 @@ impl GitViewer {
                     .absolute()
                     .top_0()
                     .bottom_0()
-                    .w_full()
-                    .left(gpui::px(sw.panel_x + i as f32 * pw))
+                    .w(gpui::px(pw))
+                    .left(gpui::px(offsets[i]))
+                    .when(both, |p| p.bg(page_bg))
                     .child(crate::ui::elastic::y_scroller(scroller, key, handle)),
             );
         }

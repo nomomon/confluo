@@ -461,35 +461,44 @@ impl GitViewer {
     /// Sidebar, list and (when open) the preview: the window outside Review mode, also drawn under a
     /// review that slides in or out. The sidebar slides in only right after Cmd+B shows it.
     pub(crate) fn render_triage(&self, cx: &mut Context<Self>) -> gpui::Div {
-        let previewing = !self.preview_hidden && self.detail.is_some();
         let fresh = self
             .nav
             .sidebar_shown_at
             .is_some_and(|t| t.elapsed() < std::time::Duration::from_millis(400));
+        let sidebar = self
+            .panel_frame(
+                crate::state::Pane::Sidebar,
+                div().h_full().child(self.render_sidebar(cx)),
+                cx,
+            )
+            .map(|f| {
+                if fresh {
+                    crate::ui::motion::slide_in_left(f, "sidebar", layout::SIDEBAR_SLIDE)
+                } else {
+                    f.into_any_element()
+                }
+            });
+        let preview = self.detail.as_ref().and_then(|d| {
+            self.panel_frame(crate::state::Pane::Preview, self.render_preview(d, cx), cx)
+        });
         div()
+            .relative()
             .flex()
             .size_full()
-            .when(!self.nav.sidebar_hidden, |m| {
-                let side = div().h_full().child(self.render_sidebar(cx));
-                m.child(if fresh {
-                    crate::ui::motion::slide_in_left(side, "sidebar", layout::SIDEBAR_SLIDE)
-                } else {
-                    side.into_any_element()
-                })
-            })
+            .children(sidebar)
             .child(self.render_list(cx))
+            .children(preview)
+            .children(self.panel_edge(crate::state::Pane::Sidebar, cx))
             .children(
                 self.detail
                     .as_ref()
-                    .filter(|_| previewing)
-                    .map(|d| self.render_preview(d, cx)),
+                    .and_then(|_| self.panel_edge(crate::state::Pane::Preview, cx)),
             )
     }
 
-    pub(crate) fn sidebar_w(&self) -> Pixels {
-        if self.nav.sidebar_hidden {
-            gpui::px(0.)
-        } else if self.compact {
+    /// Sidebar width when shown (rail in compact layouts).
+    pub(crate) fn sidebar_w_open(&self) -> Pixels {
+        if self.compact {
             layout::SIDEBAR_RAIL_W
         } else {
             layout::SIDEBAR_W
@@ -507,6 +516,7 @@ impl Render for GitViewer {
         self.fetch_avatars(cx);
         crate::ui::elastic::begin_frame(window);
         self.swipe_frame(window, cx);
+        self.split_frame(window, cx);
         // Notes drawn this frame queue their award emoji; fetch after the frame is built.
         cx.defer_in(window, |this, _, cx| this.flush_awards(cx));
         if std::mem::take(&mut self.refocus) {
@@ -596,8 +606,8 @@ impl Render for GitViewer {
             .text_size(theme::text_sm())
             .line_height(gpui::relative(theme::LINE_HEIGHT))
             .bg(self.surfaces().window_bg())
-            .when(self.review.resizing.is_some(), |root| {
-                self.resize_handlers(root, cx)
+            .when(self.review.split.drag.is_some(), |root| {
+                self.panel_drag_handlers(root, cx)
             })
             .child(main)
             .children(self.toast.clone().map(|t| {

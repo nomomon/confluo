@@ -20,5 +20,6 @@ mod shared;
 mod shortcuts_sheet;
 pub(crate) use shared::layout;
 mod sidebar;
+mod split_panels;
 mod swipe_nav;
 mod view_commands;

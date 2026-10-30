@@ -231,7 +231,7 @@ impl GitViewer {
         let w = f32::from(window.viewport_size().width);
         let can_fwd = self.nav.pos + 1 < self.nav.history.len();
         let tab = tab_index(self.review.right_tab);
-        let pw = (w * self.review.right_ratio).max(1.);
+        let pw = self.right_page_w();
         let s = &mut self.review.swipe;
         s.page
             .set_snaps(vec![-w, 0., w], if can_fwd { 0 } else { HERE }, 2);
@@ -264,6 +264,10 @@ impl GitViewer {
         }
         if let Some(p) = crate::dev::swipe() {
             self.review.swipe.page_x = if self.reviewing { p * w } else { 0. };
+        }
+        if let Some(p) = crate::dev::panel() {
+            self.review.swipe.panel_x = -p * pw;
+            self.review.swipe.panel_progress = p;
         }
         // `CONFLUO_DEV_ENTER=0.3`: Review mode 30% into its slide-in.
         if let Some(p) = crate::dev::enter() {

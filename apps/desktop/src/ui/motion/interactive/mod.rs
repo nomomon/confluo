@@ -11,4 +11,4 @@ mod pager;
 pub use animated::Animated;
 pub use elastic::{ElasticScroll, Pin};
 pub use gesture::{Drag, SwipeGate};
-pub use pager::Pager;
+pub use pager::{page_offsets, Pager};

@@ -18,11 +18,13 @@ pub enum RightTab {
     Conversation,
 }
 
-/// A resizable pane being dragged.
-#[derive(Clone, Copy, PartialEq, Eq)]
+/// A side panel that resizes and collapses by dragging (`state::panels`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Pane {
     Tree,
     Right,
+    Sidebar,
+    Preview,
 }
 
 /// Diff position and collapsed files of a PR left in this session.
@@ -44,7 +46,8 @@ pub struct ReviewUi {
     pub viewed: HashSet<String>,
     /// Folders folded in the file tree.
     pub folded: HashSet<String>,
-    pub resizing: Option<Pane>,
+    /// Divider drags and panel width springs of every side panel.
+    pub split: super::SplitUi,
     /// Cmd+P file picker is open, and its highlighted row.
     pub quick_open: bool,
     pub quick_sel: usize,
@@ -83,7 +86,7 @@ impl Default for ReviewUi {
             hide_viewed: false,
             viewed: HashSet::new(),
             folded: HashSet::new(),
-            resizing: None,
+            split: Default::default(),
             quick_open: false,
             quick_sel: 0,
             thread_filter: Default::default(),

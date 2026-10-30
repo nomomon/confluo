@@ -79,6 +79,18 @@ pub fn enter() -> Option<f32> {
     var("CONFLUO_DEV_ENTER")?.parse().ok()
 }
 
+/// `CONFLUO_DEV_PANEL=0.4` draws the right panel 40% of the way from Overview to Conversation.
+pub fn panel() -> Option<f32> {
+    var("CONFLUO_DEV_PANEL")?.parse().ok()
+}
+
+/// `CONFLUO_DEV_DRAG=tree:120` (or `right|sidebar|preview:<px>`) draws that panel mid-drag at that width.
+pub fn drag() -> Option<(String, f32)> {
+    let v = var("CONFLUO_DEV_DRAG")?;
+    let (p, w) = v.split_once(':')?;
+    Some((p.to_string(), w.parse().ok()?))
+}
+
 /// `CONFLUO_SCROLL=<px>` scrolls the detail pane down that far once it has laid out.
 pub fn detail_scroll() -> Option<f32> {
     var("CONFLUO_SCROLL")?.parse().ok()

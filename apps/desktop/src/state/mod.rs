@@ -35,6 +35,7 @@ pub mod palette_rank;
 mod people;
 mod permalink;
 pub mod pr_edit;
+mod panels;
 pub mod pr_nav;
 mod projects;
 mod quiet;
@@ -70,6 +71,7 @@ pub use repo_menu::RepoMenu;
 pub use review_mode::{Pane, ReviewUi, RightTab};
 pub use selection::reveal;
 pub use sources::SourceKind;
+pub use panels::SplitUi;
 pub use swipe_nav::SwipeUi;
 
 /// Format an error with its full context chain.

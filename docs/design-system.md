@@ -516,6 +516,14 @@ follow its progress (`Tabs::progress`), and clicks, keys and code that set the t
 swipe toward no tab bubbles to the page. Reduced motion: no tracking, the view switches on release with a short fade
 (`motion::fade_in_always`).
 
+Side panels (sidebar, triage preview, review file tree, review right panel) share one model (`ui::split`,
+`state::panels`, `features/split_panels`): drag a divider to resize between the panel's limits (fixed-width panels only
+resist); under the minimum it resists like a rubber band, and released 40% under it the panel collapses on a spring to
+the same state as its toggle (Cmd+B, Cmd+\\, Cmd+Shift+E, Cmd+Shift+I). A collapsed panel leaves a 5px edge; dragging
+it out 24px reopens it at its last width. Content keeps its resting width and is clipped while the frame moves.
+The right panel pager steps by the panel's measured content width (`right_page_w`, `page_offsets`); while both tabs
+draw, each is opaque and the strip clips.
+
 Rubber band (`ui::elastic`, glue for `motion::interactive::ElasticScroll`): trackpad gestures stretch panes past their
 edges with resistance (`physics::rubber_band`), momentum reaching an edge hands its velocity to a `SNAPPY` spring (a
 small overshoot that returns), release springs back. The scroll

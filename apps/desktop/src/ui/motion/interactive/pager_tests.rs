@@ -115,3 +115,15 @@ fn settles_once_and_reduced_motion_snaps() {
     assert!(!r.moving());
     assert_eq!(r.position(), -1000.);
 }
+
+#[test]
+fn page_offsets_tile_exactly_at_any_width() {
+    for w in [299., 300., 451.5, 1200.] {
+        // At rest on either page the active one sits at 0 and the other is exactly one width away.
+        assert_eq!(page_offsets(0., w, 2), vec![0., w]);
+        assert_eq!(page_offsets(-w, w, 2), vec![-w, 0.]);
+        // Mid-swipe they stay adjacent: no overlap, no gap.
+        let o = page_offsets(-0.37 * w, w, 2);
+        assert!((o[1] - o[0] - w).abs() < 1e-3 && o[0] < 0. && o[1] > 0. && o[1] < w);
+    }
+}

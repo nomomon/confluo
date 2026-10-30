@@ -55,7 +55,7 @@ Semantic tokens (`ui::theme::*`), dark / light:
 | `text()`           | zinc 100              | zinc 900                    |
 | `text_muted()`     | zinc 400              | zinc 600                    |
 | `text_subtle()`    | zinc 500              | zinc 500                    |
-| `overlay()`        | zinc 900, 97%         | zinc 50, 98%                |
+| `overlay()`        | zinc 900, opaque      | zinc 50, opaque             |
 | `scrim()`          | black 45%             | black 25%                   |
 
 Code tokens: `diff_add_bg()`, `diff_del_bg()`, `diff_hunk_bg()`, `line_selected_bg()` (accent 16% dark /
@@ -120,7 +120,10 @@ The UI should breathe. The list column is centered, capped at
 - Meta color: CI passed `success()`, failing `danger()`; hints such as "Your
   review requested" and "Draft" are muted; the number is a green tinted
   `Pill` with the git-pull-request icon.
-- Sidebar: `SPACE_3` padding, nav items `SPACE_2` vertical. Detail pane:
+- Sidebar: `SPACE_3` padding, nav items `SPACE_2` vertical.
+- Narrow windows: with the detail pane open below `COMPACT_BELOW` (1440) the sidebar collapses to an
+  icon rail (`SIDEBAR_RAIL_W`, `NavItem::compact`, labels become tooltips), the list padding drops to
+  `SPACE_6`, rows drop the author and hint, and the detail pane narrows so the list keeps `LIST_MIN_W`. Detail pane:
   `SPACE_6` padding, cards `SPACE_5` apart, key/value rows in `Card::rows()`.
 
 Code tab: files, hunks and lines flatten into one `Row` list (`state::code_rows`) rendered
@@ -251,7 +254,8 @@ Helpers wrap GPUI `with_animation` with `Animation::new(d).with_easing(..)`
 (easings come from `gpui::{linear, ease_in_out, ease_out_quint}`):
 
 - `fade_in(el, id)`: opacity 0 to 1 over `FADE`
-- `slide_in_right(el, id, distance)`: offset from the right plus fade, `PANEL`
+- `slide_in_right(el, id, distance)`: offset from the right plus fade, `PANEL` (elements in the flow; it makes them `relative`)
+- `slide_in_from_edge(el, id, distance)`: same for an `absolute().right_0()` element such as `Sheet`, keeping its position
 - `pop_in(el, id)`: 6px rise plus fade, `FADE` timing with quint ease
 - `animate(el, id, motion, animator)`: the generic building block
 - `Motion::duration()` / `Motion::animation()` for custom cases

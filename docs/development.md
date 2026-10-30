@@ -7,7 +7,16 @@ cargo test --workspace
 scripts/install-macos.sh         # build, bundle and copy to /Applications
 ```
 
-Dev-only env: `CONFLUO_OPEN=<pr url>`, `CONFLUO_TAB=code|activity`, `CONFLUO_SELECT=path:start-end`, `CONFLUO_REVEAL=<thread id>`.
+Dev-only env (screenshots and walkthroughs; see `apps/desktop/src/dev.rs`):
+
+- `CONFLUO_OPEN=<pr url>`, `CONFLUO_TAB=code|activity`, `CONFLUO_SELECT=path:start-end`, `CONFLUO_REVEAL=<thread id>`
+- `CONFLUO_SETTINGS=<page>` opens Settings on a page; `CONFLUO_OVERLAY=add-project|rename|delete|menu`
+- `CONFLUO_VIEW=starred|bots|project:<name>` picks the list view; `CONFLUO_SCROLL=<px>` scrolls the detail pane
+- `CONFLUO_THEME=light|dark|system`, `CONFLUO_MATERIAL=blurred|transparent|opaque` override appearance for the launch
+- `CONFLUO_WINDOW=1100x760` window size; `CONFLUO_REDUCE_MOTION=1`; `CONFLUO_NO_REFRESH=1` stays on cached data (no network)
+
+Note: macOS stops repainting the window while the screen is locked, so only the first frames can be captured then;
+prefer cached data (`CONFLUO_NO_REFRESH=1`) so the first frame is complete.
 Data: `~/Library/Application Support/Confluo/` (override cache with `GV_DB`; avatars in `avatars/`).
 `GV_DEBUG_HTTP=1 gv list` prints request counts per host and endpoint after the refresh.
 

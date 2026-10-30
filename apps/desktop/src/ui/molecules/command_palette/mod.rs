@@ -27,7 +27,7 @@ pub fn bind_keys(cx: &mut App) {
     ]);
     // Deeper than the text input's own Cmd+Enter (Submit), registered after it, so it wins here.
     cx.bind_keys([KeyBinding::new(
-        "cmd-enter",
+        &crate::platform::key("cmd-enter"),
         AltRun,
         Some("CommandPalette > TextInput"),
     )]);

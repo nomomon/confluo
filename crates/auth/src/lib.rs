@@ -167,6 +167,8 @@ fn cli_search_dirs(path: Option<&std::ffi::OsStr>, home: Option<&std::path::Path
     let mut extra = vec![
         PathBuf::from("/opt/homebrew/bin"),
         PathBuf::from("/usr/local/bin"),
+        PathBuf::from("/usr/bin"),
+        PathBuf::from("/home/linuxbrew/.linuxbrew/bin"),
     ];
     if let Some(h) = home {
         extra.push(h.join(".local/bin"));

@@ -34,6 +34,14 @@ impl Release {
     pub fn zip_name(&self) -> String {
         format!("Confluo-{}-macos.zip", self.version())
     }
+    /// Name of the Linux AppImage of this release: `Confluo-X.Y.Z-<arch>.AppImage`.
+    pub fn appimage_name(&self) -> String {
+        format!(
+            "Confluo-{}-{}.AppImage",
+            self.version(),
+            std::env::consts::ARCH
+        )
+    }
     pub fn asset(&self, name: &str) -> Option<&Asset> {
         self.assets.iter().find(|a| a.name == name)
     }

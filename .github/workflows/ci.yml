@@ -26,3 +26,48 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Test
         run: cargo test --workspace
+
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: System packages
+        run: sudo apt-get update && sudo apt-get install -y $(cat packaging/linux/build-deps.txt) sway grim imagemagick mesa-vulkan-drivers libvulkan1 vulkan-tools
+      - name: Toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy && rustup default stable
+      - uses: Swatinem/rust-cache@v2.7.8
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace
+      - name: Build
+        run: cargo build -p gv-desktop
+      - name: Smoke test under headless Wayland
+        run: scripts/smoke-linux.sh target/debug/confluo smoke
+      - uses: actions/upload-artifact@v4.6.2
+        if: always()
+        with:
+          name: linux-smoke
+          path: smoke/
+
+  linux-package:
+    # Release packaging dry run on pull requests (the tag workflow does it for real).
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: System packages
+        run: sudo apt-get update && sudo apt-get install -y $(cat packaging/linux/build-deps.txt) file
+      - name: Toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - uses: Swatinem/rust-cache@v2.7.8
+      - name: Build
+        run: cargo build --release -p gv-desktop
+      - name: Package
+        run: cargo install cargo-deb --locked && scripts/package-linux.sh
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: linux-packages
+          path: dist/

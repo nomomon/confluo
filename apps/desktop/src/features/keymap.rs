@@ -169,7 +169,7 @@ macro_rules! keymap {
     ($( $group:ident => { $( $action:ident [$($keys:literal),*] $ctx:ident $label:literal $pal:ident $icon:ident $avail:expr; )* } )*) => {
         /// Register every binding.
         pub fn bind_keys(cx: &mut App) {
-            cx.bind_keys([ $($( $( KeyBinding::new($keys, $action, predicate(Ctx::$ctx, $keys)), )* )*)* ]);
+            cx.bind_keys([ $($( $( KeyBinding::new(&crate::platform::key($keys), $action, predicate(Ctx::$ctx, $keys)), )* )*)* ]);
         }
 
         /// Every entry, in display order.
@@ -331,6 +331,7 @@ pub fn group_rows(g: Group, draft: Option<bool>) -> Vec<(&'static str, Vec<Strin
 
 /// `cmd-shift-c` as shown on keys: `⌘ ⇧ C`.
 pub fn display(keys: &str) -> String {
+    let keys = crate::platform::key(keys);
     let mut parts: Vec<&str> = keys.split('-').collect();
     // `cmd--` is Cmd and the minus key: the split leaves two empty parts.
     if parts.len() >= 2 && parts[parts.len() - 2..] == ["", ""] {
@@ -339,22 +340,9 @@ pub fn display(keys: &str) -> String {
     }
     parts
         .into_iter()
-        .map(|k| match k {
-            "cmd" => "\u{2318}".to_string(),
-            "shift" => "\u{21e7}".to_string(),
-            "alt" => "\u{2325}".to_string(),
-            "ctrl" => "\u{2303}".to_string(),
-            "enter" => "\u{21a9}".to_string(),
-            "up" => "\u{2191}".to_string(),
-            "down" => "\u{2193}".to_string(),
-            "left" => "\u{2190}".to_string(),
-            "right" => "\u{2192}".to_string(),
-            "escape" => "esc".to_string(),
-            "" => "-".to_string(),
-            k => k.to_uppercase(),
-        })
+        .map(crate::platform::key_label)
         .collect::<Vec<_>>()
-        .join(" ")
+        .join(crate::platform::KEY_SEP)
 }
 
 pub fn entry(action: &str) -> Option<&'static Entry> {
@@ -393,6 +381,7 @@ mod tests {
     use gv_engine::{EditCapabilities, ReviewCapabilities};
 
     #[test]
+    #[cfg(target_os = "macos")]
     fn labels() {
         assert_eq!(display("cmd-shift-c"), "\u{2318} \u{21e7} C");
         assert_eq!(display("cmd-\\"), "\u{2318} \\");
@@ -410,11 +399,22 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(target_os = "macos"))]
+    fn labels_ctrl() {
+        assert_eq!(display("cmd-shift-c"), "Ctrl+Shift+C");
+        assert_eq!(display("cmd--"), "Ctrl+-");
+        assert_eq!(kbd::<ToggleFullScreen>(), "F11");
+    }
+
+    #[test]
     fn no_duplicate_keys() {
         let mut seen = std::collections::HashSet::new();
+        let mut linux = std::collections::HashSet::new();
         for e in ENTRIES {
             for k in e.keys {
                 assert!(seen.insert(*k), "{k} bound twice");
+                let l = crate::platform::to_ctrl(k);
+                assert!(linux.insert(l.clone()), "{l} bound twice with Ctrl for Cmd");
             }
         }
     }

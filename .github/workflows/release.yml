@@ -70,3 +70,48 @@ jobs:
         run: |
           security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
           rm -f "$RUNNER_TEMP/AuthKey.p8"
+
+  linux:
+    # After the macOS job has created the release; adds Linux assets and their checksums.
+    needs: release
+    strategy:
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: System packages
+        run: sudo apt-get update && sudo apt-get install -y $(cat packaging/linux/build-deps.txt) file
+      - name: Toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - uses: Swatinem/rust-cache@v2.7.8
+      - name: Build
+        run: cargo build --release -p gv-desktop
+      - name: Package
+        run: cargo install cargo-deb --locked && scripts/package-linux.sh
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          sha256sum *.AppImage *.deb *.tar.gz > "SHA256SUMS-linux-$(uname -m)"
+          gh release upload "$GITHUB_REF_NAME" *.AppImage *.deb *.tar.gz "SHA256SUMS-linux-$(uname -m)"
+
+  checksums:
+    # One SHA256SUMS for every asset (the updater reads it), merged after both Linux uploads.
+    needs: linux
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Merge SHA256SUMS
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mkdir sums && cd sums
+          gh release download "$GITHUB_REF_NAME" -p 'SHA256SUMS*'
+          cat SHA256SUMS SHA256SUMS-linux-* | sort -u -k2 > merged
+          mv merged SHA256SUMS
+          gh release upload "$GITHUB_REF_NAME" SHA256SUMS --clobber
+          for f in SHA256SUMS-linux-*; do gh release delete-asset "$GITHUB_REF_NAME" "$f" -y; done

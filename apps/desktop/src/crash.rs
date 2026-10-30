@@ -1,4 +1,4 @@
-//! Crash logs: a panic hook writes `~/Library/Logs/Confluo/crash-<timestamp>.log` (message, location,
+//! Crash logs: a panic hook writes `crash-<timestamp>.log` into `platform::log_dir()` (message, location,
 //! backtrace) and keeps the last `KEEP`. GPUI runs app code inside platform callbacks that cannot
 //! unwind, so a panic aborts the process; the log is the only trace. The next launch reports a log
 //! it has not seen yet (`last-seen` marker) with a quiet toast.
@@ -9,7 +9,7 @@ const KEEP: usize = 10;
 const SEEN: &str = "last-seen";
 
 pub fn log_dir() -> PathBuf {
-    PathBuf::from(std::env::var("HOME").unwrap_or_default()).join("Library/Logs/Confluo")
+    crate::platform::log_dir()
 }
 
 pub fn install() {

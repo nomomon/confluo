@@ -7,6 +7,7 @@ mod crash;
 mod dev;
 mod features;
 mod fonts;
+mod platform;
 mod settings;
 mod state;
 mod ui;
@@ -21,6 +22,9 @@ actions!(git_viewer, [Quit]);
 
 fn main() {
     crash::install();
+    // gpui reports renderer and windowing errors through `log`; RUST_LOG surfaces them.
+    #[cfg(target_os = "linux")]
+    env_logger::init();
     let engine = match gv_engine::Engine::open_default() {
         Ok(e) => Arc::new(e),
         Err(e) => {
@@ -41,7 +45,7 @@ fn main() {
             ui::molecules::command_palette::bind_keys(cx);
             features::keyboard::bind_keys(cx);
             cx.on_action(|_: &Quit, cx| cx.quit());
-            cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
+            cx.bind_keys([KeyBinding::new(&crate::platform::key("cmd-q"), Quit, None)]);
             cx.on_window_closed(|cx| cx.quit()).detach();
             features::menus::set_menus(cx, &[], settings.theme, None);
 

@@ -1,9 +1,12 @@
 //! Checks a downloaded update must pass: checksum, a valid signature and the same team.
 
-use anyhow::{bail, Context, Result};
+#[cfg(target_os = "macos")]
+use anyhow::bail;
+use anyhow::{Context, Result};
 use sha2::{Digest, Sha256};
 use std::io::Read;
 use std::path::Path;
+#[cfg(target_os = "macos")]
 use std::process::Command;
 
 /// Lowercase hex SHA-256 of a file.
@@ -30,6 +33,7 @@ pub fn parse_team_id(codesign_dv: &str) -> Option<String> {
     (!id.is_empty() && id != "not set").then(|| id.to_string())
 }
 
+#[cfg(target_os = "macos")]
 /// Team ID the bundle at `app` is signed with (None when ad-hoc or unsigned).
 pub fn team_id(app: &Path) -> Option<String> {
     let out = Command::new("/usr/bin/codesign")
@@ -41,6 +45,7 @@ pub fn team_id(app: &Path) -> Option<String> {
     parse_team_id(&String::from_utf8_lossy(&out.stderr))
 }
 
+#[cfg(target_os = "macos")]
 /// `codesign --verify --deep --strict`, and when `expected_team` is set, the same Team ID.
 pub fn check_signature(app: &Path, expected_team: Option<&str>) -> Result<()> {
     let out = Command::new("/usr/bin/codesign")

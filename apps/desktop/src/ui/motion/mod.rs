@@ -100,14 +100,7 @@ pub fn reduced_motion() -> bool {
 }
 
 fn system_prefers_reduced_motion() -> bool {
-    if !cfg!(target_os = "macos") {
-        return false;
-    }
-    std::process::Command::new("defaults")
-        .args(["read", "com.apple.universalaccess", "reduceMotion"])
-        .output()
-        .ok()
-        .is_some_and(|o| String::from_utf8_lossy(&o.stdout).trim() == "1")
+    crate::platform::prefers_reduced_motion()
 }
 
 impl Motion {

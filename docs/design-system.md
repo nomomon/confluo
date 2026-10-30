@@ -309,7 +309,10 @@ Reply, Resolve / Unresolve and More; More and right-click open the same menu (`c
 Reply / Quote reply, Resolve, Copy text / Copy link to comment (GitHub `#issuecomment-{id}` / `#discussion_r{id}` from the
 node id, GitLab `#note_{id}`, Azure `?discussionId=`) / Open in browser / Show in code, Edit / Delete last. Delete asks
 "Delete comment? This can't be undone.", removes at once and restores with a toast if the provider refuses; an inline
-thread's last comment takes the thread (`Provider::delete_comment`, `gv delete-comment`). GitLab notes fetch their
+thread's last comment takes the thread (`Provider::delete_comment`, `gv delete-comment`). Right-click is consistent elsewhere, always on the shared `ContextMenu`: PR rows (open,
+open review, open in browser, copy link, star, rename repository, snooze, hide), file tree items (mark viewed, view
+file, copy path, open in browser), diff lines (comment, copy lines, copy link, view file; a line outside the selection
+is selected first), repo names (rename, hide). GitLab notes fetch their
 award emoji lazily (`state::awards`: notes on screen queue, a debounced batch of 25 through the governor, cached by note
 id and re-applied on reload); Azure has likes only. Events (opened,
 approved, changes requested, merged, closed) sit on the rail as small icon circles with plain glyphs (check, x), never a

@@ -158,6 +158,16 @@ impl GitViewer {
         Some(diff_link(&base, f.path(), s.lines(f)))
     }
 
+    /// Web link to a whole file at the head commit (no line anchor), else the PR.
+    pub(crate) fn file_web_link(&self, path: &str) -> Option<String> {
+        let d = self.detail.as_ref()?;
+        let repo_url = d.summary.id.repo.web_url();
+        let sha = d.detail.as_ref().and_then(|x| x.head_sha.as_deref());
+        let base = LinkBase { kind: d.summary.id.repo.kind, pr_url: &d.summary.web_url, repo_url: &repo_url, head_sha: sha };
+        let link = file_link(&base, path, 1, 1);
+        Some(if sha.is_some() { link.split('#').next().unwrap_or(&link).to_string() } else { link })
+    }
+
     pub(crate) fn copy_selection(&mut self, cx: &mut Context<Self>) {
         if let Some(t) = self.selection_text() {
             self.copy(Copied::Lines, t, cx)

@@ -27,6 +27,10 @@ pub enum Layer {
     CommentMenu(String),
     /// A comment's context menu at the pointer.
     CommentMenuAt(String, gpui::Point<gpui::Pixels>),
+    /// A file tree item's context menu at the pointer (file index).
+    FileAt(usize, gpui::Point<gpui::Pixels>),
+    /// The diff lines' context menu at the pointer (acts on the selection).
+    LinesAt(gpui::Point<gpui::Pixels>),
     /// A list row's context menu at the pointer.
     Row(gv_engine::ChangeRequestId, gpui::Point<gpui::Pixels>),
 }

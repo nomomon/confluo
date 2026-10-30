@@ -23,7 +23,8 @@ impl GitViewer {
             .px(theme::SPACE_4)
             .pt(theme::SPACE_3)
             .when_some(d.error.clone(), |c, e| c.child(ErrorText::new(e)))
-            .child(self.render_code(d, cx));
+            .child(self.render_code(d, cx))
+            .children(self.render_code_menus(d, cx).filter(|_| matches!(self.layer, Some(crate::app::Layer::LinesAt(_)))));
         let body = div()
             .flex()
             .flex_1()

@@ -1,5 +1,6 @@
 //! Code tab: toolbar, optional file tree and the virtualized diff of every changed file.
 
+mod context_menus;
 mod line;
 mod line_composer;
 mod rows;

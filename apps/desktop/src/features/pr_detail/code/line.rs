@@ -146,6 +146,10 @@ impl GitViewer {
                 window.focus(&this.focus);
                 this.press_diff_line(fi, hi, li, ev.modifiers.shift, cx)
             }))
+            .on_mouse_down(MouseButton::Right, cx.listener(move |this, ev: &MouseDownEvent, window, cx| {
+                cx.stop_propagation();
+                this.open_lines_menu(fi, hi, li, ev.position, window, cx)
+            }))
             .on_mouse_move(cx.listener(move |this, ev: &MouseMoveEvent, window, cx| match ev.pressed_button {
                 Some(MouseButton::Left) => this.drag_diff_line(fi, hi, li, cx),
                 _ => this.finish_line_drag(window, cx),

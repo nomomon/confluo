@@ -80,7 +80,8 @@ impl GitViewer {
                 TreeEntry::File(fi) => match files.get(fi) { Some(f) => self.tree_file(fi, f, fi == current, !filter.is_empty(), d, cx).into_any_element(), None => div().into_any_element() },
             });
         }
-        div().flex().flex_col().size_full().child(progress).child(head).child(div().px(theme::SPACE_2).py(theme::SPACE_2).child(input)).child({
+        div().flex().flex_col().size_full().child(progress).child(head).child(div().px(theme::SPACE_2).py(theme::SPACE_2).child(input)).children(self.render_code_menus(d, cx).filter(|_| matches!(self.layer, Some(crate::app::Layer::FileAt(..)))))
+            .child({
             let h = crate::ui::elastic::handle("file-tree");
             let pane = div().id("file-tree").track_scroll(&h).map(crate::ui::scroll::y_only).flex_1().min_h(theme::SPACE_0).px(theme::SPACE_2).pb(layout::END_PAD).child(col);
             crate::ui::elastic::y_scroller(pane, "file-tree", h)
@@ -101,6 +102,7 @@ impl GitViewer {
             .py(theme::SPACE_1)
             .list_item_radius(current, theme::RADIUS_SM)
             .tooltip(tooltip(path.to_string()))
+            .on_mouse_down(gpui::MouseButton::Right, cx.listener(move |this, ev: &gpui::MouseDownEvent, _, cx| this.open_file_menu(fi, ev.position, cx)))
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 if let Some(d) = this.detail.as_mut() {
                     if d.code.collapsed.remove(&fi) {

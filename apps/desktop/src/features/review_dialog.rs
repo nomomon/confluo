@@ -73,18 +73,10 @@ impl GitViewer {
         menu
     }
 
-    /// "You approved" and "1 of 2 approvals" for the meta line.
-    pub(crate) fn render_review_state(&self, d: &DetailState) -> Vec<AnyElement> {
-        let Some(info) = d.detail.as_ref().map(|x| &x.review) else { return vec![] };
-        let mut out = vec![];
-        if let Some((label, color)) = info.my_state.and_then(state_badge) {
-            out.push(Badge::new(label).tint(color).into_any_element());
-        }
-        if let Some(a) = info.approvals.filter(|a| a.required > 0 || a.given > 0) {
-            let text = if a.required > 0 { format!("{} of {} approvals", a.given, a.required) } else { format!("{} approved", a.given) };
-            out.push(div().flex_shrink_0().text_color(theme::text_subtle()).child(text).into_any_element());
-        }
-        out
+    /// "You approved" for the meta line (approval counts are the single `approvals` indicator).
+    pub(crate) fn render_review_state(&self, d: &DetailState) -> Option<AnyElement> {
+        let info = d.detail.as_ref().map(|x| &x.review)?;
+        info.my_state.and_then(state_badge).map(|(label, color)| Badge::new(label).tint(color).into_any_element())
     }
 
     /// Summary dialog for Comment and Request changes.

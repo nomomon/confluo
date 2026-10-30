@@ -363,7 +363,10 @@ failed" appears when `ChecksInfo::can_rerun` and asks first.
 ## Triage and Review mode
 
 Triage: the list takes the full width; the selected row shows a slim preview (`PREVIEW_W` 360, Cmd+\\ hides it).
-Enter, a double click or "Open review" enters Review mode: the PR takes the whole content area (top bar; file tree,
+The preview shows the description start as rendered markdown (about six lines, `PREVIEW_EXCERPT_H`) fading into the panel.
+Enter, a double click or "Open review" enters Review mode: the PR takes the whole content area (top bar of `REVIEW_BAR_H`:
+title line with ellipsis, a muted line under it with repo #n, branch, stats, CI and one approvals indicator "1/1 approved"
+that reconciles the provider's approval rule with reviewer states, approvers on hover; file tree,
 diff, right panel with Overview / Conversation). Esc, Cmd+[ or the back chevron return to the list with selection
 and scroll kept; Cmd+[ / Cmd+] walk the visited places (the list and reviewed PRs). Files use one order everywhere (`file_tree::tree_cmp`: folders before files at each level, case-insensitive, so root
 files come last): the tree, the diff list, n/p and "File i of N". File tree: viewed checkboxes

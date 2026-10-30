@@ -1,5 +1,5 @@
-//! Review mode top bar, one calm row: back, state icon, title, repo and number, branches,
-//! stats, CI, approvals, then Review, Merge and the More menu.
+//! Review mode top bar: back, state icon, the title with a muted line under it (repo and number,
+//! branches, stats, CI, approvals), then Review, Merge and the More menu.
 
 use gpui::{div, prelude::*, ClickEvent, Context, MouseButton, MouseDownEvent, SharedString};
 use gv_engine::ReviewState;
@@ -27,18 +27,43 @@ pub(super) fn stats(s: &gv_engine::ChangeRequest) -> impl IntoElement {
         .when_some(files, |e, f| e.child(div().text_color(theme::text_subtle()).child("\u{00b7}")).child(div().text_color(theme::text_muted()).child(f)))
 }
 
+/// Approvals shown once: given of needed, and whether anyone requested changes.
+#[derive(Debug, PartialEq)]
+pub(super) struct ApprovalCounts {
+    pub given: u32,
+    pub of: u32,
+    pub changes: bool,
+}
+
+/// Reconciles the provider's approval rule (`approved_by` count, `required`) with reviewer states: an approver
+/// need not be a requested reviewer, and reviewer states can lag, so given is the larger of both; the target is
+/// the required count, else the reviewers (never below given). None when there is nothing to show.
+pub(super) fn approval_counts(api: Option<gv_engine::Approvals>, reviewers: &[gv_engine::Review]) -> Option<ApprovalCounts> {
+    let by_state = reviewers.iter().filter(|r| r.state == ReviewState::Approved).count() as u32;
+    let given = api.map(|a| a.given).unwrap_or(0).max(by_state);
+    let of = match api {
+        Some(a) if a.required > 0 => a.required,
+        _ => (reviewers.len() as u32).max(given),
+    };
+    let changes = reviewers.iter().any(|r| r.state == ReviewState::ChangesRequested);
+    (of > 0).then_some(ApprovalCounts { given, of, changes })
+}
+
 impl GitViewer {
-    /// "1/2" with a check: approvals given of required, else approved of requested reviewers.
+    /// One approvals indicator: "1/1" with a check (tooltip lists approvers), red when changes are requested.
     pub(super) fn approvals(&self, d: &DetailState) -> Option<impl IntoElement> {
         let s = &d.summary;
-        let (given, of) = match d.detail.as_ref().and_then(|x| x.review.approvals) {
-            Some(a) if a.required > 0 => (a.given, a.required),
-            _ => (s.reviewers.iter().filter(|r| r.state == ReviewState::Approved).count() as u32, s.reviewers.len() as u32),
-        };
-        let changes = s.reviewers.iter().any(|r| r.state == ReviewState::ChangesRequested);
-        (of > 0).then(|| {
-            let color = if changes { theme::danger() } else if given >= of { theme::success() } else { theme::text_muted() };
-            let tip = if changes { "Changes requested".to_string() } else { format!("{given} of {of} approved") };
+        let a = approval_counts(d.detail.as_ref().and_then(|x| x.review.approvals), &s.reviewers)?;
+        let color = if a.changes { theme::danger() } else if a.given >= a.of { theme::success() } else { theme::text_muted() };
+        let names: Vec<&str> = s.reviewers.iter().filter(|r| r.state == ReviewState::Approved).map(|r| r.user.username.as_str()).collect();
+        let mut tip = format!("{} of {} approvals", a.given, a.of);
+        if !names.is_empty() {
+            tip.push_str(&format!(": {}", names.join(", ")));
+        }
+        if a.changes {
+            tip = format!("Changes requested. {tip}");
+        }
+        Some(
             div()
                 .id("approvals")
                 .flex()
@@ -48,9 +73,9 @@ impl GitViewer {
                 .text_size(theme::text_xs())
                 .text_color(color)
                 .tooltip(tooltip(tip))
-                .child(Icon::new(if changes { IconName::AlertCircle } else { IconName::Check }).size(theme::ICON_SM).color(color))
-                .child(format!("{given}/{of}"))
-        })
+                .child(Icon::new(if a.changes { IconName::AlertCircle } else { IconName::Check }).size(theme::ICON_SM).color(color))
+                .child(format!("{}/{} approved", a.given, a.of)),
+        )
     }
 
     pub(super) fn render_review_bar(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
@@ -85,13 +110,26 @@ impl GitViewer {
             .tooltip(tooltip(if copied { "Copied" } else { "Copy source branch" }))
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.copy(Copied::Branch, branch.clone(), cx)))
             .child(div().min_w(theme::SPACE_0).truncate().child(SharedString::from(format!("{} -> {}", s.source_branch, s.target_branch))));
+        // Title on the first line (ellipsis), everything else on one muted line under it, so nothing overflows.
+        let meta = div()
+            .flex()
+            .items_center()
+            .gap(theme::SPACE_2P5)
+            .min_w(theme::SPACE_0)
+            .overflow_hidden()
+            .child(repo_el)
+            .child(branch_el)
+            .child(stats(s))
+            .children(self.render_ci(d, "review", cx))
+            .children(self.approvals(d));
+        let heading = div().flex().flex_col().flex_1().min_w(theme::SPACE_0).gap(theme::SPACE_0P5).child(div().flex().min_w(theme::SPACE_0).child(self.render_title(d, cx))).child(div().pl(theme::SPACE_1).child(meta));
         div()
             .relative()
             .flex()
             .flex_shrink_0()
             .items_center()
             .gap(theme::SPACE_2P5)
-            .h(layout::TITLEBAR_INSET)
+            .h(layout::REVIEW_BAR_H)
             .pl(layout::TRAFFIC_LIGHTS_W)
             .pr(theme::SPACE_3)
             .border_b_1()
@@ -101,12 +139,7 @@ impl GitViewer {
                 self.hint_group("hint-review-pr-nav", vec![self.hint_keys::<PrevPr>(), self.hint_keys::<NextPr>()], HintAnchor::Below),
             ))
             .child(state_icon(s.state))
-            .child(div().flex().flex_1().min_w(theme::SPACE_8 * 4.).child(self.render_title(d, cx)))
-            .child(repo_el)
-            .child(branch_el)
-            .child(stats(s))
-            .children(self.render_ci(d, "review", cx))
-            .children(self.approvals(d))
+            .child(heading)
             .child(div().w(theme::SPACE_1))
             .children(self.render_review_button(d, cx))
             .children(self.render_merge_button(d, cx))
@@ -124,7 +157,7 @@ impl GitViewer {
     fn render_detail_menu(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
         let link = d.summary.web_url.clone();
         DropdownMenu::new("detail-more-menu")
-            .top(layout::TITLEBAR_INSET - theme::SPACE_1)
+            .top(layout::REVIEW_BAR_H - theme::SPACE_1)
             .right(theme::SPACE_3)
             .on_dismiss(cx.listener(|this, _: &MouseDownEvent, _, cx| {
                 this.menu = None;
@@ -147,5 +180,28 @@ impl GitViewer {
             .children(self.edit_menu_items(d, cx))
             .child(MenuSeparator)
             .children(self.snooze_items(&d.summary, cx))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use gv_engine::{Approvals, Review, User};
+
+    fn rev(state: ReviewState) -> Review {
+        Review { user: User { username: "ada".into(), ..Default::default() }, state }
+    }
+
+    #[test]
+    fn approvals_reconcile_rule_and_reviewer_states() {
+        // Approver not among reviewers: the rule says 1 given, the reviewer is pending. One indicator, 1/1.
+        let a = approval_counts(Some(Approvals { given: 1, required: 0 }), &[rev(ReviewState::Pending)]).unwrap();
+        assert_eq!((a.given, a.of), (1, 1));
+        // Required approvals win as the target.
+        let a = approval_counts(Some(Approvals { given: 0, required: 2 }), &[rev(ReviewState::Approved)]).unwrap();
+        assert_eq!((a.given, a.of), (1, 2));
+        let a = approval_counts(None, &[rev(ReviewState::ChangesRequested), rev(ReviewState::Pending)]).unwrap();
+        assert!(a.changes && a.given == 0 && a.of == 2);
+        assert_eq!(approval_counts(Some(Approvals { given: 0, required: 0 }), &[]), None);
     }
 }

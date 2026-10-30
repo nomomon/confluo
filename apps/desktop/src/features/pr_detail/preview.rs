@@ -11,21 +11,39 @@ use crate::state::DetailState;
 use crate::ui::atoms::{tooltip, Avatar, Button, ButtonVariant, IconName};
 use crate::ui::{motion, theme};
 
-/// First paragraph of the description as plain text, at most `max` characters.
-pub(super) fn excerpt(md: &str, max: usize) -> String {
-    let text: String = md
-        .lines()
-        .map(str::trim)
-        .filter(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with("<!--") && !l.starts_with('|') && !l.starts_with("```"))
-        .take(6)
-        .collect::<Vec<_>>()
-        .join(" ");
-    let clean: String = text.chars().filter(|c| !matches!(c, '*' | '`' | '_')).collect();
-    if clean.chars().count() > max {
-        format!("{}...", clean.chars().take(max).collect::<String>().trim_end())
-    } else {
-        clean
+/// The start of the description as markdown: up to `max_lines` non-blank source lines, HTML comments
+/// dropped, an open code fence closed. Also says whether anything was cut.
+pub(super) fn excerpt(md: &str, max_lines: usize) -> (String, bool) {
+    let mut out = vec![];
+    let (mut kept, mut in_comment, mut fences) = (0, false, 0);
+    let mut lines = md.lines();
+    for line in lines.by_ref() {
+        let t = line.trim();
+        if in_comment || t.starts_with("<!--") {
+            in_comment = !t.contains("-->");
+            continue;
+        }
+        if kept == max_lines {
+            if t.is_empty() {
+                continue;
+            }
+            if fences % 2 == 1 {
+                out.push("```");
+            }
+            return (out.join("\n").trim().to_string(), true);
+        }
+        if t.starts_with("```") {
+            fences += 1;
+        }
+        if !t.is_empty() {
+            kept += 1;
+        }
+        out.push(line);
     }
+    if fences % 2 == 1 {
+        out.push("```");
+    }
+    (out.join("\n").trim().to_string(), false)
 }
 
 impl GitViewer {
@@ -33,7 +51,7 @@ impl GitViewer {
         let s = &d.summary;
         let url = s.web_url.clone();
         let repo = s.id.repo.clone();
-        let desc = d.detail.as_ref().map(|x| excerpt(&x.description, 320)).filter(|e| !e.is_empty());
+        let desc = d.detail.as_ref().map(|x| excerpt(&x.description, 6)).filter(|e| !e.0.is_empty());
         let avatars = s.reviewers.iter().map(|r| {
             div()
                 .id(gpui::SharedString::from(format!("pv-rev-{}", r.user.username)))
@@ -58,7 +76,9 @@ impl GitViewer {
             .child(div().flex().items_center().gap(theme::SPACE_1).child(Avatar::new(s.author.username.clone()).image(self.avatar(s.author.avatar_url.as_deref()))).child(s.author.username.clone()));
         let status = div()
             .flex()
+            .flex_wrap()
             .items_center()
+            .gap_y(theme::SPACE_2)
             .gap(theme::SPACE_3)
             .child(stats(s))
             .children(self.render_ci(d, "preview", cx))
@@ -103,7 +123,24 @@ impl GitViewer {
             )
             .child(meta)
             .child(status)
-            .when_some(desc, |p, t| p.child(div().text_size(theme::text_sm()).text_color(theme::text_muted()).child(t)))
+            .when_some(desc, |p, (md, cut)| {
+                // Rendered markdown, clipped to about six lines with a fade into the panel.
+                let bg = self.surfaces().panel();
+                let fade = div().absolute().left_0().right_0().bottom_0().h(theme::SPACE_10).bg(gpui::linear_gradient(
+                    180.,
+                    gpui::linear_color_stop(bg.opacity(0.), 0.),
+                    gpui::linear_color_stop(bg, 1.),
+                ));
+                p.child(
+                    div()
+                        .relative()
+                        .max_h(layout::PREVIEW_EXCERPT_H)
+                        .overflow_hidden()
+                        .text_color(theme::text_muted())
+                        .child(self.markdown("preview-desc", &md))
+                        .when(cut, |d| d.child(fade)),
+                )
+            })
             .child(actions);
         motion::slide_in_right(panel, "preview-panel", theme::SPACE_6)
     }
@@ -114,8 +151,10 @@ mod tests {
     use super::excerpt;
 
     #[test]
-    fn excerpt_skips_headings_and_trims() {
-        assert_eq!(excerpt("## Summary\n\nAdds **fast** path.\n\n- one", 100), "Adds fast path. - one");
-        assert_eq!(excerpt("abcdef", 3), "abc...");
+    fn excerpt_keeps_markdown_drops_comments_and_closes_fences() {
+        assert_eq!(excerpt("<!-- tpl\nx -->\n## Summary\n\nAdds **fast** path.", 6), ("## Summary\n\nAdds **fast** path.".to_string(), false));
+        let (md, cut) = excerpt("a\nb\n```rs\nc\nd\ne\nf\ng", 6);
+        assert!(cut);
+        assert_eq!(md, "a\nb\n```rs\nc\nd\ne\n```");
     }
 }

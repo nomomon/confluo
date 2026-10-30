@@ -11,6 +11,8 @@ pub const SIDEBAR_RAIL_W: Pixels = px(60.);
 pub const CONTENT_MAX_W: Pixels = px(1360.);
 /// Triage preview beside the full-width list.
 pub const PREVIEW_W: Pixels = px(360.);
+/// Preview description excerpt: about six lines of body text, then a fade.
+pub const PREVIEW_EXCERPT_H: Pixels = px(132.);
 /// Below this window width an open preview collapses the sidebar to the rail.
 pub const PREVIEW_COMPACT_BELOW: Pixels = px(1100.);
 /// Review mode side panes: file tree and right panel bounds.
@@ -26,6 +28,8 @@ pub const RESIZE_HANDLE_W: Pixels = px(6.);
 pub const SIDEBAR_TOP: Pixels = px(52.);
 /// Top padding of the list and detail columns, under the transparent titlebar.
 pub const TITLEBAR_INSET: Pixels = px(48.);
+/// Review mode top bar: title line plus a muted meta line.
+pub const REVIEW_BAR_H: Pixels = px(54.);
 pub const TIME_COL_W: Pixels = px(72.);
 /// Settings dialog size, its left navigation and the background image thumbnail.
 pub const SETTINGS_W: Pixels = px(780.);

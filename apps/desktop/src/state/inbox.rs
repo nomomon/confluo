@@ -5,7 +5,7 @@ use gv_engine::{ChangeRequest, ChangeRequestState};
 
 use crate::app::GitViewer;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, serde::Serialize, serde::Deserialize)]
 pub enum Section {
     NeedsYou,
     AwaitingReview,
@@ -54,11 +54,31 @@ impl GitViewer {
         classify(c, self.engine.me(c.id.repo.kind, &c.id.repo.host).as_deref())
     }
 
-    pub(crate) fn toggle_section(&mut self, s: Section, cx: &mut Context<Self>) {
-        if !self.collapsed.remove(&s) {
-            self.collapsed.insert(s);
+    /// Key of the current view for remembered collapse state: Inbox, Starred or a project.
+    fn view_key(&self) -> String {
+        match (self.selected, self.starred_only) {
+            (_, true) => "starred".into(),
+            (Some(id), _) => format!("project:{id}"),
+            (None, false) => "inbox".into(),
         }
-        cx.notify();
+    }
+
+    /// Collapsed sections of the current view; defaults until the user toggles one there.
+    pub(crate) fn collapsed_sections(&self) -> Vec<Section> {
+        self.settings.collapsed_sections.get(&self.view_key()).cloned().unwrap_or_else(|| Section::ALL.into_iter().filter(|s| s.collapsed_by_default()).collect())
+    }
+
+    /// Collapse or open a section in the current view; remembered per view in settings.json.
+    pub(crate) fn toggle_section(&mut self, s: Section, cx: &mut Context<Self>) {
+        let mut v = self.collapsed_sections();
+        match v.iter().position(|x| *x == s) {
+            Some(i) => {
+                v.remove(i);
+            }
+            None => v.push(s),
+        }
+        self.settings.collapsed_sections.insert(self.view_key(), v);
+        self.save_settings(cx);
     }
 }
 

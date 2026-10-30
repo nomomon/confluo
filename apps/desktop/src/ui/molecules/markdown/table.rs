@@ -7,34 +7,52 @@ use super::blocks::Align;
 use super::inline::Inline;
 use super::render::Ctx;
 use super::text::MdText;
-use crate::ui::scroll::{locked_axis, Axis};
+use crate::ui::scroll::{claims_x, locked_axis, Axis};
 use crate::ui::theme;
 
-/// Horizontal scroll container that never grows past its parent: trackpad swipes and Shift+wheel scroll
+/// Horizontal scroll container around `child` that never grows past its parent: trackpad swipes and Shift+wheel scroll
 /// it sideways, plain vertical wheel passes through to the page.
 ///
 /// It lays its child out as a flex row so the child keeps its max-content width; as a block box it
 /// was stretched to the container width, the content size equalled the box and there was nothing to
 /// scroll (the overflow was only clipped). When the content is wider, a thin thumb along the bottom
 /// edge shows that it scrolls and where it is. The scroll offset lives in a handle kept per id.
-pub fn hscroll(id: ElementId) -> Stateful<Div> {
+pub fn hscroll(id: ElementId, child: impl IntoElement) -> Stateful<Div> {
     let key = format!("{id:?}");
     let h = scroll_handle(&key);
     let thumb = h.clone();
-    let mut d = div().id(id).w_full().min_w(theme::SPACE_0).flex().items_start().overflow_x_scroll().track_scroll(&h);
+    // The content moves by the rubber-band stretch at the x edges (`ui::elastic`).
+    let content = div().flex_none().relative().left(crate::ui::elastic::shift(&key)).child(child);
+    let mut d = div().id(id).w_full().min_w(theme::SPACE_0).flex().items_start().overflow_x_scroll().track_scroll(&h).child(content);
     d.style().restrict_scroll_to_axis = Some(true);
     // GPUI's own handler (it runs first) already moved x by the event's x delta. Lock each gesture to
-    // its dominant axis: horizontal keeps the x and stops the event, even at the edges, so the pane
-    // never moves; vertical takes the x back and lets the y bubble to the pane.
+    // its dominant axis. Horizontal: the block claims the gesture when it could still scroll that way as
+    // the gesture began; then it keeps the x (stretching at the edges) and stops the event. A swipe that
+    // starts at its edge is given back and bubbles (swipe navigation). Vertical takes the x back and lets
+    // the y bubble to the pane.
     let (lock_key, undo) = (key.clone(), h.clone());
     d = d.on_scroll_wheel(move |ev, window, cx| {
         let delta = ev.delta.pixel_delta(window.line_height());
-        match locked_axis(&lock_key, ev.touch_phase, delta.x, delta.y) {
-            Axis::X => cx.stop_propagation(),
-            Axis::Y if delta.x != gpui::px(0.) => {
-                let off = undo.offset();
-                undo.set_offset(point(off.x - delta.x, off.y));
+        let precise = matches!(ev.delta, gpui::ScrollDelta::Pixels(_));
+        let axis = locked_axis(&lock_key, ev.touch_phase, delta.x, delta.y);
+        let off = undo.offset();
+        let before = off.x - delta.x;
+        match axis {
+            _ if matches!(ev.touch_phase, gpui::TouchPhase::Started) => {
+                crate::ui::elastic::wheel(&lock_key, Axis::X, ev, &undo);
             }
+            Axis::X => {
+                let can = if delta.x > px(0.) { before < px(-0.5) } else { delta.x < px(0.) && before > -undo.max_offset().width + px(0.5) };
+                if claims_x(&lock_key, ev.touch_phase, precise, can) {
+                    cx.stop_propagation();
+                    if crate::ui::elastic::wheel(&lock_key, Axis::X, ev, &undo) {
+                        window.refresh();
+                    }
+                } else {
+                    undo.set_offset(point(before, off.y));
+                }
+            }
+            Axis::Y if delta.x != px(0.) => undo.set_offset(point(before, off.y)),
             Axis::Y => {}
         }
     });
@@ -129,7 +147,7 @@ pub fn table(ctx: &Ctx, aligns: &[Align], head: &[Inline], rows: &[Vec<Inline>])
         .overflow_hidden()
         .child(row(head, true, n == 0))
         .children(rows.iter().enumerate().map(|(i, r)| row(r, false, i + 1 == n)));
-    hscroll(ElementId::Name(ctx.id())).text_size(theme::text_xs()).child(grid).into_any_element()
+    hscroll(ElementId::Name(ctx.id()), grid).text_size(theme::text_xs()).into_any_element()
 }
 
 #[cfg(test)]

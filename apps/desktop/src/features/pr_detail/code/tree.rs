@@ -41,7 +41,7 @@ impl GitViewer {
         let input = Input::new("tree-filter", self.tree_filter.clone(), !filter.is_empty()).leading(IconName::Search).on_clear(cx.listener(|this, _: &ClickEvent, _, cx| {
             this.tree_filter.update(cx, |i, cx| i.set_text("", cx));
         }));
-        let mut col = div().id("file-tree").flex().flex_col().gap(theme::SPACE_0P5).map(crate::ui::scroll::y_only).flex_1().min_h(theme::SPACE_0).px(theme::SPACE_2).pb(layout::END_PAD);
+        let mut col = crate::ui::elastic::content("file-tree").flex().flex_col().gap(theme::SPACE_0P5);
         for e in entries {
             col = col.child(match e {
                 TreeEntry::Dir(dir, n) => {
@@ -73,7 +73,11 @@ impl GitViewer {
                 TreeEntry::File(fi) => match files.get(fi) { Some(f) => self.tree_file(fi, f, fi == current, !filter.is_empty(), d, cx).into_any_element(), None => div().into_any_element() },
             });
         }
-        div().flex().flex_col().size_full().child(progress).child(head).child(div().px(theme::SPACE_2).py(theme::SPACE_2).child(input)).child(col)
+        div().flex().flex_col().size_full().child(progress).child(head).child(div().px(theme::SPACE_2).py(theme::SPACE_2).child(input)).child({
+            let h = crate::ui::elastic::handle("file-tree");
+            let pane = div().id("file-tree").track_scroll(&h).map(crate::ui::scroll::y_only).flex_1().min_h(theme::SPACE_0).px(theme::SPACE_2).pb(layout::END_PAD).child(col);
+            crate::ui::elastic::y_scroller(pane, "file-tree", h)
+        })
     }
 
     fn tree_file(&self, fi: usize, f: &gv_engine::ChangedFile, current: bool, full_path: bool, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {

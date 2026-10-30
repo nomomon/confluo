@@ -54,13 +54,15 @@ impl GitViewer {
                     cx.notify()
                 }))
         });
-        let mut rows = div().id("pr-list").track_scroll(&self.list_scroll).flex().flex_col().flex_1().min_h(theme::SPACE_0).map(crate::ui::scroll::y_only).pb(layout::END_PAD);
+        let mut body = crate::ui::elastic::content("pr-list").flex().flex_col();
         if visible.is_empty() {
-            rows = rows.child(self.render_empty(cx));
+            body = body.child(self.render_empty(cx));
         }
-        rows = rows.children(self.render_sections(&visible, cx));
-        rows = rows.children(self.render_stale_section(cx));
-        rows = rows.children(self.render_quiet_footer(cx));
+        body = body.children(self.render_sections(&visible, cx));
+        body = body.children(self.render_stale_section(cx));
+        body = body.children(self.render_quiet_footer(cx));
+        let rows = div().id("pr-list").track_scroll(&self.list_scroll).flex().flex_col().flex_1().min_h(theme::SPACE_0).map(crate::ui::scroll::y_only).pb(layout::END_PAD).child(body);
+        let rows = crate::ui::elastic::y_scroller(rows, "pr-list", self.list_scroll.clone());
 
         let content = div()
             .flex()

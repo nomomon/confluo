@@ -55,18 +55,37 @@ impl GitViewer {
     fn scrollable(&self, row: Stateful<Div>, fi: usize, files: &Arc<Vec<ChangedFile>>, cx: &mut Context<Self>) -> Stateful<Div> {
         let files = files.clone();
         row.relative().on_scroll_wheel(cx.listener(move |this, ev: &ScrollWheelEvent, _, cx| {
+            use crate::ui::scroll::{claims_x, locked_axis, Axis};
             let delta = ev.delta.pixel_delta(layout::DIFF_LINE_H);
+            let key = format!("diff-x-{fi}");
+            let max_chars = files.get(fi).into_iter().flat_map(|f| &f.hunks).flat_map(|h| &h.lines).map(|l| l.text.len()).max().unwrap_or(0);
+            let max_x = (theme::text_xs() * layout::MONO_CHAR_RATIO * max_chars as f32 - layout::DIFF_GUTTER_W * 4.).max(px(0.));
+            let Some(d) = this.detail.as_mut() else { return };
+            let cur = d.code.scroll_x.get(&fi).copied().unwrap_or(px(0.));
+            let extent = f32::from(d.code.list.viewport_bounds().size.width).max(200.);
             // One axis per trackpad gesture (shared rule with markdown blocks); vertical goes to the list.
-            if crate::ui::scroll::locked_axis("diff-rows", ev.touch_phase, delta.x, delta.y) == crate::ui::scroll::Axis::Y {
+            if matches!(ev.touch_phase, gpui::TouchPhase::Started) {
+                crate::ui::elastic::feed(&key, Axis::X, ev, -f32::from(cur), max_x.into(), extent);
+            }
+            if locked_axis("diff-rows", ev.touch_phase, delta.x, delta.y) == Axis::Y {
+                return;
+            }
+            // A swipe that starts where the code cannot scroll that way is left to the page (swipe navigation).
+            let can = if delta.x > px(0.) { cur > px(0.5) } else { delta.x < px(0.) && cur < max_x - px(0.5) };
+            let precise = matches!(ev.delta, gpui::ScrollDelta::Pixels(_));
+            if !claims_x("diff-rows", ev.touch_phase, precise, can) {
                 return;
             }
             cx.stop_propagation();
-            let max_chars = files.get(fi).into_iter().flat_map(|f| &f.hunks).flat_map(|h| &h.lines).map(|l| l.text.len()).max().unwrap_or(0);
-            let max_x = (theme::text_xs() * layout::MONO_CHAR_RATIO * max_chars as f32 - layout::DIFF_GUTTER_W * 4.).max(px(0.));
-            if let Some(d) = this.detail.as_mut() {
-                let e = d.code.scroll_x.entry(fi).or_insert(px(0.));
-                *e = (*e - delta.x).clamp(px(0.), max_x);
-            }
+            let next = (cur - delta.x).clamp(px(0.), max_x);
+            d.code.scroll_x.insert(fi, next);
+            // Past the ends the row stretches (rubber band), drawn as an extra shift of the code.
+            let unclamped = -f32::from(cur - delta.x);
+            match crate::ui::elastic::feed(&key, Axis::X, ev, unclamped, max_x.into(), extent).1 {
+                Some(crate::ui::elastic::Pin::Start) => d.code.scroll_x.insert(fi, px(0.)),
+                Some(crate::ui::elastic::Pin::End) => d.code.scroll_x.insert(fi, max_x),
+                None => None,
+            };
             cx.notify()
         }))
     }
@@ -80,7 +99,7 @@ impl GitViewer {
             LineKind::Del => LineMark::Del,
             LineKind::Context => LineMark::Context,
         };
-        let x = d.code.scroll_x.get(&fi).copied().unwrap_or(px(0.));
+        let x = d.code.scroll_x.get(&fi).copied().unwrap_or(px(0.)) - crate::ui::elastic::shift(&format!("diff-x-{fi}"));
         let has_threads = line_threads(&d.code.inline.index, f.path(), l).next().is_some();
         let anchor = line_anchor(l);
         let in_sel = d.code.sel.is_some_and(|s| s.covers(fi, hi, li));

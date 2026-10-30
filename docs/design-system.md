@@ -411,5 +411,16 @@ files with threads that need me; the review top bar shows "3 unresolved" (amber 
 
 Scrolling: panes scroll y only through `ui::scroll::y_only` (overflow y plus `restrict_scroll_to_axis`, so a sideways swipe
 never becomes vertical scrolling). Horizontal blocks (`markdown::table::hscroll`, diff rows) lock each trackpad gesture to
-its dominant axis (`ui::scroll::locked_axis`): horizontal keeps the x and stops the event even at the edges, vertical
-bubbles to the pane.
+its dominant axis (`ui::scroll::locked_axis`). A sideways gesture belongs to the block only if, at its first horizontal
+movement, the block could still scroll that way (`ui::scroll::claims_x`, decided once per gesture); then it keeps the x
+and stops the event, also once it reaches its edge. A swipe that starts at the block's edge bubbles to the page (swipe
+navigation, panel tabs). Vertical bubbles to the pane.
+
+Rubber band (`ui::elastic`): trackpad gestures stretch panes past their edges with resistance
+(`motion::spring::rubber_band`, UIScrollView's 0.55 curve), momentum hitting an edge overshoots once, release springs
+back with a critically damped spring (`motion::spring::Spring`, closed form, ~350ms, never oscillates). The scroll
+offset stays in range; the stretch is only a translate of the content (`elastic::content(key)` inside a div scroller
+wrapped by `elastic::y_scroller`, a `top` shift of the whole `list` for the diff, a `left` shift inside `hscroll` and
+diff rows), so scroll-to-item, the scroll-past-end spacer and keyboard navigation are untouched. Frames come from
+`elastic::begin_frame` (window `request_animation_frame` while a spring runs). Mouse wheels (line deltas) and reduced
+motion hard-stop at the edges.

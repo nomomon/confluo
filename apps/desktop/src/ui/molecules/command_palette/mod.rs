@@ -101,7 +101,7 @@ impl RenderOnce for CommandPalette {
         let mv = std::rc::Rc::new(self.on_move);
         let hover = std::rc::Rc::new(self.on_hover);
         let (alt, selected) = (self.on_alt_run, self.selected);
-        let mut list = div().id("palette-list").flex().flex_col().max_h(LIST_MAX_H).map(crate::ui::scroll::y_only).p(theme::SPACE_1P5);
+        let mut list = crate::ui::elastic::content("palette-list").flex().flex_col();
         let mut last_group = "";
         if self.items.is_empty() {
             list = list.child(div().py(theme::SPACE_6).flex().justify_center().text_color(theme::text_subtle()).child("No results"));
@@ -167,7 +167,11 @@ impl RenderOnce for CommandPalette {
             .shadow_lg()
             .overflow_hidden()
             .child(div().p(theme::SPACE_2).border_b_1().border_color(theme::border_subtle()).child(self.input))
-            .child(list)
+            .child({
+                let h = crate::ui::elastic::handle("palette-list");
+                let pane = div().id("palette-list").track_scroll(&h).max_h(LIST_MAX_H).map(crate::ui::scroll::y_only).p(theme::SPACE_1P5).child(list);
+                crate::ui::elastic::y_scroller(pane, "palette-list", h)
+            })
             .children(self.footer.map(|f| {
                 div().px(theme::SPACE_3).py(theme::SPACE_2).border_t_1().border_color(theme::border_subtle()).text_size(theme::text_xs()).text_color(theme::text_subtle()).child(f)
             }));

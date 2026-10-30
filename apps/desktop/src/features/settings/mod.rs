@@ -82,7 +82,12 @@ impl GitViewer {
             .flex()
             .flex_col()
             .child(header)
-            .child(div().id("settings-body").flex_1().min_h(theme::SPACE_0).map(crate::ui::scroll::y_only).flex().flex_col().px(theme::SPACE_6).pb(theme::SPACE_6).child(div().w(layout::SETTINGS_W - layout::SETTINGS_NAV_W - theme::SPACE_6 * 2.).flex().flex_col().child(body)));
+            .child({
+                let h = crate::ui::elastic::handle("settings-body");
+                let pane = div().id("settings-body").track_scroll(&h).flex_1().min_h(theme::SPACE_0).map(crate::ui::scroll::y_only).flex().flex_col().px(theme::SPACE_6).pb(theme::SPACE_6);
+                let pane = pane.child(crate::ui::elastic::content("settings-body").w(layout::SETTINGS_W - layout::SETTINGS_NAV_W - theme::SPACE_6 * 2.).flex().flex_col().child(body));
+                crate::ui::elastic::y_scroller(pane, "settings-body", h)
+            });
         Dialog::bare().size(layout::SETTINGS_W, layout::SETTINGS_H).content(div().flex().size_full().child(nav).child(content)).into_any_element()
     }
 

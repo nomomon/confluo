@@ -94,21 +94,10 @@ impl GitViewer {
                 Button::new("preview-browser", "Open in browser").icon(IconName::ExternalLink).tooltip(keymap::tip::<OpenInBrowser>("Open in browser")).on_click(move |_, _, cx| cx.open_url(&url)),
                 crate::ui::atoms::HintAnchor::Corner,
             ));
-        let panel = div()
-            .id("preview")
+        let body = crate::ui::elastic::content("preview")
             .flex()
             .flex_col()
             .gap(theme::SPACE_4)
-            .w(layout::PREVIEW_W)
-            .flex_shrink_0()
-            .h_full()
-            .map(crate::ui::scroll::y_only)
-            .bg(self.surfaces().panel())
-            .border_l_1()
-            .border_color(theme::border_subtle())
-            .pt(layout::TITLEBAR_INSET)
-            .px(theme::pane_pad())
-            .pb(theme::SPACE_6)
             .child(
                 div()
                     .flex()
@@ -142,6 +131,22 @@ impl GitViewer {
                 )
             })
             .child(actions);
+        let h = crate::ui::elastic::handle("preview");
+        let panel = div()
+            .id("preview")
+            .track_scroll(&h)
+            .w(layout::PREVIEW_W)
+            .flex_shrink_0()
+            .h_full()
+            .map(crate::ui::scroll::y_only)
+            .bg(self.surfaces().panel())
+            .border_l_1()
+            .border_color(theme::border_subtle())
+            .pt(layout::TITLEBAR_INSET)
+            .px(theme::pane_pad())
+            .pb(theme::SPACE_6)
+            .child(body);
+        let panel = crate::ui::elastic::y_scroller(panel, "preview", h);
         motion::slide_in_right(panel, "preview-panel", theme::SPACE_6)
     }
 }

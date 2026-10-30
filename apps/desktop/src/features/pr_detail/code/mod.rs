@@ -75,6 +75,9 @@ impl GitViewer {
                 // (calling `viewport_bounds()` there panics, which aborted the app).
                 let view_h = c.list.viewport_bounds().size.height;
                 let rows = list(c.list.clone(), cx.processor(move |this, ix: usize, _, cx| this.render_code_row(ix, view_h, cx))).flex_1().h_full();
+                // Rubber band: a translate of the whole list, the list's own scroll state stays in range.
+                let rows = rows.relative().top(crate::ui::elastic::shift("diff-list"));
+                let band = c.list.clone();
                 div()
                     .flex()
                     .flex_1()
@@ -89,6 +92,12 @@ impl GitViewer {
                             .min_w(theme::SPACE_0)
                             .h_full()
                             .pr(theme::SPACE_0P5)
+                            .overflow_hidden()
+                            .on_scroll_wheel(move |ev, window, _| {
+                                if crate::ui::elastic::wheel("diff-list", crate::ui::scroll::Axis::Y, ev, &band) {
+                                    window.refresh();
+                                }
+                            })
                             .on_mouse_down(MouseButton::Left, cx.listener(|this, _, _, cx| {
                                 this.clear_line_selection(cx);
                             }))

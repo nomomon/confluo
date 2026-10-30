@@ -397,6 +397,7 @@ impl GitViewer {
 impl Render for GitViewer {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.fetch_avatars(cx);
+        crate::ui::elastic::begin_frame(window);
         if std::mem::take(&mut self.refocus) {
             window.focus(&self.focus);
         }

@@ -3,6 +3,7 @@
 //! Nothing in here may import `crate::features`, `crate::state` or `gv_engine`.
 
 pub mod atoms;
+pub mod elastic;
 pub mod layer;
 pub mod molecules;
 pub mod motion;

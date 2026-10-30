@@ -49,7 +49,7 @@ const DARK: Colors = Colors {
     danger: dark::RED,
     warning: dark::AMBER,
     merged: dark::PURPLE,
-    overlay: alpha(zinc::Z900, 0.97),
+    overlay: alpha(zinc::Z900, 1.0),
     scrim: alpha(BLACK, 0.45),
 };
 
@@ -68,7 +68,7 @@ const LIGHT: Colors = Colors {
     danger: light::RED,
     warning: light::AMBER,
     merged: light::PURPLE,
-    overlay: alpha(zinc::Z50, 0.98),
+    overlay: alpha(zinc::Z50, 1.0),
     scrim: alpha(BLACK, 0.25),
 };
 

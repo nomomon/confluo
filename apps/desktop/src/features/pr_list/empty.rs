@@ -10,6 +10,9 @@ use crate::ui::theme;
 
 impl GitViewer {
     pub(super) fn render_empty(&self, cx: &mut Context<Self>) -> AnyElement {
+        if self.starred_only && self.selected.is_none() {
+            return EmptyState::new("No starred pull requests", "Star one from the list to keep it here").into_any_element();
+        }
         let add = || Button::new("empty-add-project", "Add project").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.open_add_project(cx)));
         let Some(hosts) = &self.hosts else {
             return EmptyState::new("Checking connections...", "Looking for signed-in GitHub and GitLab accounts").into_any_element();

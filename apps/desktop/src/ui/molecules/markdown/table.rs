@@ -14,7 +14,7 @@ const COL_MAX: f32 = 360.;
 
 /// Width for a column whose longest cell has `chars` characters.
 pub fn col_width(chars: usize, text_px: f32) -> Pixels {
-    px((chars as f32 * text_px * 0.56 + 24.).clamp(COL_MIN, COL_MAX))
+    px((chars as f32 * text_px * 0.58 + 26.).clamp(COL_MIN, COL_MAX))
 }
 
 pub fn table(ctx: &Ctx, aligns: &[Align], head: &[Inline], rows: &[Vec<Inline>]) -> AnyElement {
@@ -23,6 +23,9 @@ pub fn table(ctx: &Ctx, aligns: &[Align], head: &[Inline], rows: &[Vec<Inline>])
     let widths: Vec<Pixels> = (0..cols)
         .map(|i| {
             let longest = std::iter::once(head).chain(rows.iter().map(Vec::as_slice)).filter_map(|r| r.get(i)).map(|c| c.text.chars().count()).max().unwrap_or(0);
+            // Header cells are semibold, so they need a little more room per character.
+            let head_chars = head.get(i).map(|c| c.text.chars().count() * 6 / 5 + 1).unwrap_or(0);
+            let longest = longest.max(head_chars);
             col_width(longest, size)
         })
         .collect();

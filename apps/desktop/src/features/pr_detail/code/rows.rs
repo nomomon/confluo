@@ -124,16 +124,23 @@ impl GitViewer {
             }))
             .child(Icon::new(if collapsed { IconName::ChevronRight } else { IconName::ChevronDown }).size(theme::ICON_SM))
             .child(Icon::new(IconName::FileCode).color(status_color(f.status)))
-            .child(
+            .child({
+                // File name first, then its directory muted; the directory gives way so the name stays readable.
+                let (dir, file) = match name.rfind('/') {
+                    Some(i) if f.status != FileStatus::Renamed => (name[..=i].to_string(), name[i + 1..].to_string()),
+                    _ => (String::new(), name.to_string()),
+                };
                 div()
                     .flex_1()
                     .min_w(theme::SPACE_0)
-                    .truncate()
+                    .flex()
+                    .gap(theme::SPACE_2)
+                    .overflow_hidden()
                     .font_family(theme::mono_font())
                     .text_size(theme::text_xs())
-                    .text_color(if f.status == FileStatus::Deleted { theme::text_muted() } else { theme::text() })
-                    .child(name),
-            )
+                    .child(div().flex_shrink_0().whitespace_nowrap().text_color(if f.status == FileStatus::Deleted { theme::text_muted() } else { theme::text() }).child(file))
+                    .child(div().min_w(theme::SPACE_0).flex_shrink().truncate().text_color(theme::text_subtle()).child(dir.trim_end_matches('/').to_string()))
+            })
             .children(comment_count(comments))
             .child(diff_counts(f.additions, f.deletions))
             .child(

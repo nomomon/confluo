@@ -3,6 +3,7 @@
 use gpui::{div, prelude::*, AnyElement, ClickEvent, Context, Entity};
 
 use crate::app::GitViewer;
+use crate::features::shared::layout;
 use crate::state::BotList;
 use crate::ui::atoms::{Icon, IconName, Switch};
 use crate::ui::molecules::text_input::TextInput;
@@ -24,7 +25,7 @@ impl GitViewer {
 
     /// Removable chips for each entry above an add input (Enter adds; commas add several).
     fn chip_editor(&self, list: BotList, values: &[String], input: &Entity<TextInput>, cx: &mut Context<Self>) -> AnyElement {
-        let chips = div().flex().flex_wrap().gap(theme::SPACE_1P5).children(values.iter().map(|v| {
+        let chips = div().w_full().flex().flex_wrap().gap(theme::SPACE_1P5).children(values.iter().map(|v| {
             let value = v.clone();
             div()
                 .id(gpui::SharedString::from(format!("chip-{v}")))
@@ -51,6 +52,8 @@ impl GitViewer {
                         .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.remove_bot_entry(list, &value, cx))),
                 )
         }));
-        div().flex().flex_col().gap(theme::SPACE_3).p(theme::SPACE_4).child(chips).child(input.clone()).into_any_element()
+        // Tag input: the field follows the chips and takes the rest of the line, wrapping when it is short.
+        let field = div().flex_1().min_w(layout::CHIP_INPUT_MIN_W).child(input.clone());
+        div().w_full().p(theme::SPACE_4).child(chips.items_center().child(field)).into_any_element()
     }
 }

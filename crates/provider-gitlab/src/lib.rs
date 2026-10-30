@@ -26,6 +26,8 @@ pub struct GitLabProvider {
     creds: CredentialSource,
     http: reqwest::Client,
     me: OnceCell<User>,
+    /// Instance has the GraphQL `mergeRequestRequestChanges` mutation (probed once).
+    request_changes: OnceCell<bool>,
 }
 
 fn enc(path: &str) -> String {
@@ -185,6 +187,7 @@ impl GitLabProvider {
             creds: CredentialSource::new(),
             http: reqwest::Client::builder().user_agent("git-viewer").build().expect("http client"),
             me: OnceCell::new(),
+            request_changes: OnceCell::new(),
         }
     }
 
@@ -215,6 +218,18 @@ impl GitLabProvider {
             };
         }
         Err(ProviderError::Unauthenticated(self.host.clone()))
+    }
+
+    async fn graphql(&self, body: &Value) -> ProviderResult<Value> {
+        Ok(self.call(reqwest::Method::POST, &format!("https://{}/api/graphql", self.host), Some(body)).await?.0)
+    }
+
+    /// Whether "Request changes" is available on this instance (one read-only schema probe, cached).
+    async fn can_request_changes(&self) -> bool {
+        *self
+            .request_changes
+            .get_or_init(|| async { self.graphql(&json!({ "query": review::REQUEST_CHANGES_PROBE })).await.map(|v| review::supports_request_changes(&v)).unwrap_or(false) })
+            .await
     }
 
     async fn get(&self, path: &str) -> ProviderResult<Value> {
@@ -409,6 +424,8 @@ impl Provider for GitLabProvider {
             Ok(a) => review::review_info(&summary, &me, &a),
             Err(_) => ReviewInfo { caps: gitlab_capabilities(&summary, &me, false, !summary.author.username.eq_ignore_ascii_case(&me)), my_state: my_review_state(&summary, &me), approvals: None },
         };
+        let mut review = review;
+        review.caps.request_changes = summary.state.is_active() && !summary.author.username.eq_ignore_ascii_case(&me) && self.can_request_changes().await;
         let mut events = vec![TimelineEvent { kind: TimelineKind::Opened, actor: summary.author.clone(), at: summary.created_at }];
         events.extend(discussions.iter().flat_map(|d| d["notes"].as_array().into_iter().flatten()).filter(|n| n["system"] == true).filter_map(review::system_event));
         events.sort_by_key(|e| e.at);
@@ -501,6 +518,19 @@ impl Provider for GitLabProvider {
     }
 
     async fn submit_review(&self, id: &ChangeRequestId, action: ReviewAction, body: Option<&str>) -> ProviderResult<()> {
+        if action == ReviewAction::RequestChanges {
+            if !self.can_request_changes().await {
+                return Err(ProviderError::Unsupported("Request changes on this GitLab version".into()));
+            }
+            let resp = self.graphql(&review::request_changes_payload(&id.repo.path, id.number)).await?;
+            if let Some(e) = review::graphql_error(&resp, "mergeRequestRequestChanges") {
+                return Err(ProviderError::Http { status: 422, body: e });
+            }
+            if let Some(b) = body {
+                self.call(reqwest::Method::POST, &format!("{}/notes", Self::mr_path(id)), Some(&json!({"body": b}))).await?;
+            }
+            return Ok(());
+        }
         let (method, suffix) = review::review_request(action).ok_or_else(|| ProviderError::Unsupported(format!("{} on GitLab", action.label())))?;
         let base = Self::mr_path(id);
         if action == ReviewAction::Comment {

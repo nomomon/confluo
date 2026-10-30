@@ -33,6 +33,14 @@ re-resolves group repo lists every 6h, and fetches GitLab reviewer states and pi
 MRs whose `updated_at` moved (or whose checks were running), never for hidden bot MRs.
 The app refreshes every 5 min, on focus only after 2 min, and debounces manual refreshes (5s).
 
+## GitLab request changes
+
+GitLab has no REST endpoint for "Request changes"; it is the GraphQL mutation
+`mergeRequestRequestChanges(input: {projectPath, iid})` (on gitlab.com, sets the caller's reviewer state to
+`REQUESTED_CHANGES`; `mergeRequestDestroyRequestedChanges` undoes it). The provider probes the instance once with a
+read-only `__type(name: "MergeRequestRequestChangesInput")` query and offers the action only when it exists
+(older self-managed instances keep it hidden). Reviewer states come from `GET .../reviewers`.
+
 ## Bot PRs
 
 `BotFilter` (core) hides PRs by author type (GitHub `Bot`, `[bot]` logins), author patterns

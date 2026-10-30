@@ -5,6 +5,7 @@
 //! `CommandPalette::new(input).items(items).selected(i).footer(hint).on_move(..).on_hover(..).on_run(..).on_alt_run(..).on_close(..)`
 
 mod fuzzy;
+mod reveal;
 
 pub use fuzzy::score;
 
@@ -120,39 +121,50 @@ impl RenderOnce for CommandPalette {
         let mv = std::rc::Rc::new(self.on_move);
         let hover = std::rc::Rc::new(self.on_hover);
         let (alt, selected) = (self.on_alt_run, self.selected);
-        let mut list = crate::ui::elastic::content("palette-list")
-            .flex()
-            .flex_col();
+        // Rows are direct children of the scroller so its handle can reveal them; each is shifted by
+        // the rubber band like `elastic::content`.
+        let shift = crate::ui::elastic::shift("palette-list");
+        let mut list: Vec<gpui::AnyElement> = vec![];
+        let rows: Vec<_> = self.items.into_iter().take(MAX_ROWS).collect();
+        let groups: Vec<&str> = rows.iter().map(|r| r.group).collect();
+        let targets = reveal::targets(&groups);
+        let n = rows.len();
         let mut last_group = "";
-        if self.items.is_empty() {
-            list = list.child(
+        if rows.is_empty() {
+            list.push(
                 div()
                     .py(theme::SPACE_6)
                     .flex()
                     .justify_center()
                     .text_color(theme::text_subtle())
-                    .child("No results"),
+                    .child("No results")
+                    .into_any_element(),
             );
         }
-        for (i, it) in self.items.into_iter().take(MAX_ROWS).enumerate() {
+        for (i, it) in rows.into_iter().enumerate() {
             if it.group != last_group {
                 last_group = it.group;
-                list = list.child(
+                list.push(
                     div()
+                        .relative()
+                        .top(shift)
                         .px(theme::SPACE_2)
                         .pt(theme::SPACE_2)
                         .pb(theme::SPACE_1)
                         .text_size(theme::text_xs())
                         .text_color(theme::text_subtle())
-                        .child(it.group),
+                        .child(it.group)
+                        .into_any_element(),
                 );
             }
             let active = i == self.selected;
             let run = run.clone();
             let hover = hover.clone();
-            list = list.child(
+            list.push(
                 div()
                     .id(("palette-row", i))
+                    .relative()
+                    .top(shift)
                     .flex()
                     .items_center()
                     .gap(theme::SPACE_2P5)
@@ -190,18 +202,30 @@ impl RenderOnce for CommandPalette {
                         if let Some(f) = run.as_ref() {
                             f(&i, w, cx)
                         }
-                    }),
+                    })
+                    .into_any_element(),
             );
         }
+        let h = crate::ui::elastic::handle("palette-list");
+        // Keyboard moves reveal the new row (minimal scroll); the caller wraps the same way.
+        let rh = h.clone();
+        let reveal = std::rc::Rc::new(move |d: isize| {
+            if let Some(&t) = targets.get(reveal::step(selected, d, n)) {
+                rh.scroll_to_item(t);
+            }
+        });
+        let (rv_up, rv_down) = (reveal.clone(), reveal);
         let (up, down) = (mv.clone(), mv);
         let panel = div()
             .key_context("CommandPalette")
             .on_action(move |_: &Up, w, cx| {
+                rv_up(-1);
                 if let Some(f) = up.as_ref() {
                     f(&-1, w, cx)
                 }
             })
             .on_action(move |_: &Down, w, cx| {
+                rv_down(1);
                 if let Some(f) = down.as_ref() {
                     f(&1, w, cx)
                 }
@@ -228,14 +252,15 @@ impl RenderOnce for CommandPalette {
                     .child(self.input),
             )
             .child({
-                let h = crate::ui::elastic::handle("palette-list");
                 let pane = div()
                     .id("palette-list")
                     .track_scroll(&h)
                     .max_h(LIST_MAX_H)
                     .map(crate::ui::scroll::y_only)
                     .p(theme::SPACE_1P5)
-                    .child(list);
+                    .flex()
+                    .flex_col()
+                    .children(list);
                 crate::ui::elastic::y_scroller(pane, "palette-list", h)
             })
             .children(self.footer.map(|f| {

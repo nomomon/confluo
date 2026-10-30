@@ -11,6 +11,7 @@ mod needs_you;
 mod provider;
 mod reactions;
 mod review;
+mod row_ref;
 mod stale;
 mod suggestion;
 
@@ -25,5 +26,6 @@ pub use needs_you::compute_needs_you;
 pub use provider::{Provider, ProviderError, ProviderResult};
 pub use reactions::*;
 pub use review::*;
+pub use row_ref::{row_ref, RowRef};
 pub use stale::*;
 pub use suggestion::*;

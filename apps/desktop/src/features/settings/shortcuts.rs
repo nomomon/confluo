@@ -11,7 +11,7 @@ use crate::ui::theme;
 impl GitViewer {
     pub(super) fn render_shortcuts(&self) -> impl IntoElement {
         let groups = Group::ALL.into_iter().map(|g| {
-            let fields = group_rows(g)
+            let fields = group_rows(g, None)
                 .into_iter()
                 .map(|(label, keys)| {
                     let row = div()

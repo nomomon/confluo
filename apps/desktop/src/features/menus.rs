@@ -17,7 +17,8 @@ use super::keymap::*;
 use crate::ui::molecules::text_input as ti;
 
 /// Install the menus; `projects` are the sidebar project names in order.
-pub fn set_menus(cx: &mut App, projects: &[String], theme: ThemeMode) {
+/// `draft`: state of the open PR, for the draft item's label.
+pub fn set_menus(cx: &mut App, projects: &[String], theme: ThemeMode, draft: Option<bool>) {
     let mut go = vec![
         MenuItem::action("Inbox", GoInbox),
         MenuItem::action("Starred", GoStarred),
@@ -117,7 +118,7 @@ pub fn set_menus(cx: &mut App, projects: &[String], theme: ThemeMode) {
                 MenuItem::action("Approve", Approve),
                 MenuItem::action("Request Changes...", RequestChanges),
                 MenuItem::action("Merge...", MergePr),
-                MenuItem::action("Toggle Draft", ToggleDraft),
+                MenuItem::action(crate::state::cmd_ctx::draft_label(draft), ToggleDraft),
                 MenuItem::action("Close or Reopen...", ClosePr),
                 MenuItem::separator(),
                 MenuItem::action("Copy Link", CopyLink),

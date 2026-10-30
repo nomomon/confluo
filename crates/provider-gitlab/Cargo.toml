@@ -13,3 +13,4 @@ reqwest.workspace = true
 gv-http.workspace = true
 tokio.workspace = true
 futures-util.workspace = true
+sha1 = "0.10"

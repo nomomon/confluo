@@ -300,6 +300,10 @@ pub struct DiffPosition {
     pub head_sha: Option<String>,
     pub base_sha: Option<String>,
     pub start_sha: Option<String>,
+    /// First and last rows of a multi-line range with both counters (GitLab `line_range`);
+    /// filled by the engine from the cached diff.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub range_rows: Option<(crate::RowRef, crate::RowRef)>,
 }
 
 impl DiffPosition {

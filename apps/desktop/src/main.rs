@@ -43,7 +43,7 @@ fn main() {
             cx.on_action(|_: &Quit, cx| cx.quit());
             cx.bind_keys([KeyBinding::new(&crate::platform::key("cmd-q"), Quit, None)]);
             cx.on_window_closed(|cx| cx.quit()).detach();
-            features::menus::set_menus(cx, &[], settings.theme);
+            features::menus::set_menus(cx, &[], settings.theme, None);
 
             let bounds = Bounds::centered(
                 None,

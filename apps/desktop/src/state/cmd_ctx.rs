@@ -21,6 +21,29 @@ pub struct CmdCtx {
     pub gate: Option<Gate>,
     /// The whole-file viewer is open (Ctrl+G).
     pub file_view: bool,
+    /// Draft state of the open PR (`None` without one).
+    pub draft: Option<bool>,
+}
+
+/// Label of the draft action for the current state; the neutral one when no PR is open.
+pub fn draft_label(draft: Option<bool>) -> &'static str {
+    match draft {
+        Some(true) => "Ready for review",
+        Some(false) => "Mark as draft",
+        None => DRAFT_LABEL,
+    }
+}
+
+/// Keymap label of the draft action (no PR in context).
+pub const DRAFT_LABEL: &str = "Mark as draft or ready for review";
+
+/// `label` of keymap `action`, specialised to the current state.
+pub fn live_label(action: &str, label: &'static str, draft: Option<bool>) -> &'static str {
+    if action == "ToggleDraft" {
+        draft_label(draft)
+    } else {
+        label
+    }
 }
 
 /// PR actions gated by the provider's capabilities.
@@ -101,6 +124,14 @@ mod tests {
             ..Default::default()
         };
         assert!(!loading.allows(PrAct::Merge));
+    }
+
+    #[test]
+    fn draft_label_follows_state() {
+        assert_eq!(draft_label(Some(true)), "Ready for review");
+        assert_eq!(draft_label(Some(false)), "Mark as draft");
+        assert_eq!(live_label("ToggleDraft", DRAFT_LABEL, None), DRAFT_LABEL);
+        assert_eq!(live_label("Approve", "Approve", Some(true)), "Approve");
     }
 
     #[test]

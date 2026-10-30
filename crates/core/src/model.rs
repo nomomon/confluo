@@ -127,6 +127,9 @@ pub struct User {
     /// The provider marks this account as a bot (GitHub `Bot`, GitLab `bot: true`).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub bot: bool,
+    /// Provider user id when known (GitLab needs ids to set reviewers and assignees).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
 }
 
 impl User {
@@ -289,6 +292,12 @@ pub struct ChangeRequestDetail {
     /// Opened, reviews, merged: the non-comment items of the timeline.
     #[serde(default)]
     pub events: Vec<crate::TimelineEvent>,
+    /// Edit actions I can take, assignees and merge options.
+    #[serde(default)]
+    pub edit: crate::EditInfo,
+    /// Every check of the head commit with timing and links.
+    #[serde(default)]
+    pub checks: crate::ChecksInfo,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]

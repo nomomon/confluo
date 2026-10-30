@@ -4,6 +4,8 @@ use clap::{Args, Parser, Subcommand};
 use gv_engine::*;
 use std::path::PathBuf;
 
+mod edit;
+
 #[derive(Parser)]
 #[command(name = "gv", about = "Your PRs and MRs from GitHub, GitLab and Azure DevOps in one place")]
 struct Cli {
@@ -71,6 +73,8 @@ enum Cmd {
         #[arg(short = 'm', long = "message")]
         body: Option<String>,
     },
+    #[command(flatten)]
+    Edit(edit::EditCmd),
     /// Show the authenticated user for each known host.
     Whoami,
     /// Star or unstar a PR/MR.
@@ -420,6 +424,7 @@ async fn main() -> Result<()> {
             engine.submit_review(&id, act, body.as_deref()).await?;
             println!("{} submitted on {}", act.label(), d.summary.id);
         }
+        Cmd::Edit(c) => edit::run(&engine, c).await?,
         Cmd::Whoami => {
             for (k, h) in engine.known_hosts() {
                 match engine.whoami(k, &h).await {

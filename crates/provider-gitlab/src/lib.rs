@@ -8,6 +8,8 @@ use gv_core::*;
 use serde_json::{json, Value};
 use tokio::sync::{OnceCell, RwLock};
 
+mod checks;
+mod edit;
 mod inline;
 mod review;
 
@@ -43,6 +45,7 @@ fn user(v: &Value) -> User {
         name: v["name"].as_str().map(str::to_string),
         avatar_url: v["avatar_url"].as_str().map(str::to_string),
         bot: v["bot"] == true,
+        id: v["id"].as_u64().map(|i| i.to_string()),
     }
 }
 
@@ -243,7 +246,14 @@ impl GitLabProvider {
 
     /// Fill in reviewer states, check summary and change count with extra calls (up to three).
     /// `full` is the single-MR payload when the caller already has it.
-    async fn enrich_one(&self, mut cr: ChangeRequest, me: &str, full: Option<&Value>) -> ProviderResult<ChangeRequest> {
+    async fn enrich_one(&self, cr: ChangeRequest, me: &str, full: Option<&Value>) -> ProviderResult<ChangeRequest> {
+        Ok(self.enrich_jobs(cr, me, full).await?.0)
+    }
+
+    /// [`Self::enrich_one`] that also returns the head pipeline's jobs and `project/pipeline` id.
+    async fn enrich_jobs(&self, mut cr: ChangeRequest, me: &str, full: Option<&Value>) -> ProviderResult<(ChangeRequest, Vec<Value>, Option<String>)> {
+        let mut jobs = vec![];
+        let mut pipeline = None;
         let base = Self::mr_path(&cr.id);
         let rs = self.get(&format!("{base}/reviewers")).await?;
         cr.reviewers = rs
@@ -260,11 +270,13 @@ impl GitLabProvider {
             cr.changed_files = full["changes_count"].as_str().and_then(|c| c.trim_end_matches('+').parse().ok());
             if let Some(pid) = full["head_pipeline"]["id"].as_u64() {
                 let proj = full["head_pipeline"]["project_id"].as_u64().map(|p| p.to_string()).unwrap_or_else(|| enc(&cr.id.repo.path));
-                cr.checks = summarize_jobs(&self.get_all(&format!("/projects/{proj}/pipelines/{pid}/jobs")).await?);
+                jobs = self.get_all(&format!("/projects/{proj}/pipelines/{pid}/jobs")).await?;
+                cr.checks = summarize_jobs(&jobs);
+                pipeline = Some(format!("{proj}/{pid}"));
             }
         }
         cr.needs_you = compute_needs_you(&cr, me);
-        Ok(cr)
+        Ok((cr, jobs, pipeline))
     }
 
     /// Raw MR diff entries. Falls back to the older `changes` endpoint on GitLab before 15.7.
@@ -380,7 +392,9 @@ impl Provider for GitLabProvider {
         let me = self.me().await?.username.clone();
         let base = Self::mr_path(id);
         let v = self.get(&base).await?;
-        let mut summary = self.enrich_one(parse_mr(&self.host, &v), &me, Some(&v)).await?;
+        let (mut summary, jobs, pipeline) = self.enrich_jobs(parse_mr(&self.host, &v), &me, Some(&v)).await?;
+        let edit = edit::edit_info(&v, &summary, &me);
+        let checks = checks::checks_info(&jobs, pipeline, v["user"]["can_merge"] == true);
         if let Some((a, d)) = self.diff_stats(&base).await {
             summary.additions = Some(a);
             summary.deletions = Some(d);
@@ -413,6 +427,8 @@ impl Provider for GitLabProvider {
         Ok(ChangeRequestDetail {
             review,
             events,
+            edit,
+            checks,
             summary,
             description: s(&v["description"]),
             threads,
@@ -484,6 +500,38 @@ impl Provider for GitLabProvider {
             self.call(reqwest::Method::POST, &format!("{base}/notes"), Some(&json!({"body": b}))).await?;
         }
         Ok(())
+    }
+
+    async fn update_change_request(&self, id: &ChangeRequestId, title: Option<&str>, body: Option<&str>) -> ProviderResult<()> {
+        self.do_update(id, title, body).await
+    }
+
+    async fn set_people(&self, id: &ChangeRequestId, role: PeopleRole, _current: &[User], desired: &[User]) -> ProviderResult<()> {
+        self.do_set_people(id, role, desired).await
+    }
+
+    async fn search_users(&self, id: &ChangeRequestId, query: &str) -> ProviderResult<Vec<User>> {
+        self.do_search_users(id, query).await
+    }
+
+    async fn set_draft(&self, id: &ChangeRequestId, draft: bool, title: &str, _node_id: Option<&str>) -> ProviderResult<()> {
+        self.do_set_draft(id, draft, title).await
+    }
+
+    async fn set_open(&self, id: &ChangeRequestId, open: bool) -> ProviderResult<()> {
+        self.do_set_open(id, open).await
+    }
+
+    async fn merge(&self, id: &ChangeRequestId, opts: &MergeOptions) -> ProviderResult<()> {
+        self.do_merge(id, opts).await
+    }
+
+    async fn check_log(&self, id: &ChangeRequestId, run: &CheckRun) -> ProviderResult<Vec<String>> {
+        self.do_check_log(id, run).await
+    }
+
+    async fn rerun_failed(&self, _id: &ChangeRequestId, target: &str) -> ProviderResult<()> {
+        self.do_rerun(target).await
     }
 
     async fn edit_comment(&self, id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment> {

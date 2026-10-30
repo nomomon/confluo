@@ -13,6 +13,7 @@ use std::time::{Duration, Instant};
 
 mod avatars;
 mod bot_settings;
+mod edit;
 mod quiet;
 mod review;
 

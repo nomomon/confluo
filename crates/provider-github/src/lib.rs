@@ -6,6 +6,8 @@ use gv_core::*;
 use serde_json::{json, Value};
 use tokio::sync::OnceCell;
 
+mod checks;
+mod edit;
 mod inline;
 mod review;
 
@@ -49,6 +51,7 @@ impl GitHubProvider {
         let resp = gv_http::send(req.bearer_auth(&self.token).header("Accept", "application/vnd.github+json")).await?;
         let (status, body) = (resp.status, resp.text());
         match status {
+            200..=299 if body.trim().is_empty() => Ok(Value::Null),
             200..=299 => serde_json::from_str(&body).map_err(|e| ProviderError::Decode(e.to_string())),
             401 => Err(ProviderError::Unauthenticated(self.host.clone())),
             404 => Err(ProviderError::NotFound(body)),
@@ -227,6 +230,7 @@ fn user(v: &Value) -> User {
     let username = v["login"].as_str().unwrap_or("ghost").to_string();
     User {
         bot: v["__typename"] == "Bot" || username.ends_with("[bot]"),
+        id: None,
         username,
         name: v["name"].as_str().filter(|x| !x.is_empty()).map(str::to_string),
         avatar_url: v["avatarUrl"].as_str().map(str::to_string),
@@ -280,6 +284,7 @@ fn rest_comment(v: &Value) -> Comment {
             name: None,
             avatar_url: v["user"]["avatar_url"].as_str().map(str::to_string),
             bot: v["user"]["type"] == "Bot",
+            id: None,
         },
         body: s(&v["body"]),
         created_at: time(&v["created_at"]),
@@ -389,11 +394,13 @@ impl Provider for GitHubProvider {
         let me = self.me().await?;
         let query = format!(
             "query($o: String!, $n: String!, $num: Int!) {{ repository(owner: $o, name: $n) {{ pullRequest(number: $num) {{
-               {PR_FIELDS} body mergedAt closedAt mergedBy {{ login avatarUrl }}
+               {PR_FIELDS} {} {} body mergedAt closedAt mergedBy {{ login avatarUrl }}
                comments(first: 100) {{ nodes {{ id body createdAt author {{ login avatarUrl ... on User {{ name }} }} }} }}
                reviews(first: 50) {{ nodes {{ id state body createdAt author {{ login avatarUrl ... on User {{ name }} }} }} }}
                reviewThreads(first: 100) {{ nodes {{ {} }} }}
              }} }} }}",
+            edit::EDIT_FIELDS,
+            checks::CHECK_FIELDS,
             inline::THREAD_FIELDS
         );
         let d = self.gql(&query, json!({"o": owner, "n": name, "num": id.number})).await?;
@@ -418,9 +425,13 @@ impl Provider for GitHubProvider {
         threads.sort_by_key(|t| t.comments.first().map(|c| c.created_at));
         let events = review::timeline(pr, &summary);
         let review = ReviewInfo { caps: github_capabilities(&summary, &me), my_state: my_review_state(&summary, &me), approvals: None };
+        let edit = edit::edit_info(pr, &summary, &me);
+        let checks = checks::checks_info(pr, edit::access(pr).0);
         Ok(ChangeRequestDetail {
             review,
             events,
+            edit,
+            checks,
             summary,
             description: s(&pr["body"]),
             threads,
@@ -513,6 +524,38 @@ impl Provider for GitHubProvider {
         let url = format!("{}/repos/{o}/{n}/pulls/{}/reviews", self.api, id.number);
         self.send(self.http.post(url).json(&payload)).await?;
         Ok(())
+    }
+
+    async fn update_change_request(&self, id: &ChangeRequestId, title: Option<&str>, body: Option<&str>) -> ProviderResult<()> {
+        self.do_update(id, title, body).await
+    }
+
+    async fn set_people(&self, id: &ChangeRequestId, role: PeopleRole, current: &[User], desired: &[User]) -> ProviderResult<()> {
+        self.do_set_people(id, role, current, desired).await
+    }
+
+    async fn search_users(&self, id: &ChangeRequestId, query: &str) -> ProviderResult<Vec<User>> {
+        self.do_search_users(id, query).await
+    }
+
+    async fn set_draft(&self, id: &ChangeRequestId, draft: bool, _title: &str, node_id: Option<&str>) -> ProviderResult<()> {
+        self.do_set_draft(id, draft, node_id).await
+    }
+
+    async fn set_open(&self, id: &ChangeRequestId, open: bool) -> ProviderResult<()> {
+        self.do_set_open(id, open).await
+    }
+
+    async fn merge(&self, id: &ChangeRequestId, opts: &MergeOptions) -> ProviderResult<()> {
+        self.do_merge(id, opts).await
+    }
+
+    async fn check_log(&self, id: &ChangeRequestId, run: &CheckRun) -> ProviderResult<Vec<String>> {
+        self.do_check_log(id, run).await
+    }
+
+    async fn rerun_failed(&self, id: &ChangeRequestId, target: &str) -> ProviderResult<()> {
+        self.do_rerun(id, target).await
     }
 
     async fn edit_comment(&self, _id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment> {

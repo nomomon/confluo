@@ -51,14 +51,47 @@ pub(super) fn rows_for(layout: &LineLayout, breaks: &[usize], base: usize) -> Ve
         .collect()
 }
 
+/// Text runs for the markdown highlighting spans; gaps use the base font and color.
+fn md_runs(text: &str, font: &gpui::Font, color: Hsla) -> Vec<TextRun> {
+    use super::md_highlight::{spans, Mark};
+    let run = |len: usize, font: gpui::Font, color: Hsla| TextRun { len, font, color, background_color: None, underline: None, strikethrough: None };
+    let mut out = vec![];
+    let mut at = 0;
+    for (r, m) in spans(text) {
+        if r.start > at {
+            out.push(run(r.start - at, font.clone(), color));
+        }
+        let mut f = font.clone();
+        let c = match m {
+            Mark::Heading | Mark::Bold => {
+                f.weight = gpui::FontWeight::BOLD;
+                color
+            }
+            Mark::Italic => {
+                f.style = gpui::FontStyle::Italic;
+                color
+            }
+            Mark::Syntax => theme::text_subtle(),
+            Mark::Code => theme::syntax_string(),
+            Mark::Link => theme::accent(),
+        };
+        out.push(run(r.end - r.start, f, c));
+        at = r.end;
+    }
+    if at < text.len() || out.is_empty() {
+        out.push(run(text.len() - at, font.clone(), color));
+    }
+    out
+}
+
 fn shape(input: &TextInput, width: Option<Pixels>, window: &mut Window) -> (Vec<(Pixels, WrappedLine)>, Rows) {
     let style = window.text_style();
     let placeholder = input.content.is_empty();
     let (text, color): (SharedString, Hsla) = if placeholder { (input.placeholder.clone(), theme::text_muted()) } else { (input.content.clone(), style.color) };
-    let run = TextRun { len: text.len(), font: style.font(), color, background_color: None, underline: None, strikethrough: None };
+    let runs = if input.markdown && !placeholder { md_runs(&text, &style.font(), color) } else { vec![TextRun { len: text.len(), font: style.font(), color, background_color: None, underline: None, strikethrough: None }] };
     let font_size = style.font_size.to_pixels(window.rem_size());
     let lh = window.line_height();
-    let lines = window.text_system().shape_text(text, font_size, &[run], width, None).unwrap_or_default();
+    let lines = window.text_system().shape_text(text, font_size, &runs, width, None).unwrap_or_default();
     let (mut start, mut top, mut out, mut rows) = (0, px(0.), vec![], vec![]);
     for line in lines {
         let n = line.wrap_boundaries().len() + 1;

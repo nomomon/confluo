@@ -255,7 +255,12 @@ Molecules:
 - `Slider`: `Slider::new("opacity", v).range(0., 1.).step(0.05).on_change(..)`, click or drag
 - `Tabs`: `Tabs::new(id).variant(TabsVariant::Underline).tab("Code", true).on_select(..)` (Pill, Underline, Floating)
 - `Textarea`: `Textarea::new(composer).rows(3).max_rows(12)` around a multiline `TextInput`: grows from `rows` to `max_rows`,
-  then scrolls inside (wheel, caret kept in view); the input draws the single border and the focus ring
+  then scrolls inside (wheel, caret kept in view); the input draws the single border and the focus ring.
+  `TextInput::markdown()` (comment composers, description): Enter continues lists (`-`, `*`, `1.` counting up,
+  `- [ ]`) and ends them on an empty item, Tab / Shift+Tab indent and outdent list items, Cmd+B / Cmd+I / Cmd+K
+  wrap the selection in `**`, `_`, `[](url)` (bound in the `markdown` key context, so the app's Cmd+B / Cmd+K
+  do not fire while it has focus), and light highlighting (`md_highlight`: headings bold, markers muted, code,
+  bold, italic, links accent; one font size). `.document()` drops border, fill and inset for in-place editing
 - `Toaster`: `Toaster::new().toast(Toast::new("Copied").description("..").variant(ToastVariant::Success))`, bottom-right stack
 - `ToggleGroup`: `ToggleGroup::new("theme").item("Dark", None, true).on_change(..)`
 - `code::{CodeText, DiffRow, Lang}`: mono line with a line-based tokenizer; `DiffRow` adds gutters and tints
@@ -351,7 +356,8 @@ Rules:
   zero).
 
 Editing (Summary): click the title to edit (Enter saves, Esc cancels); the description card shows Edit on
-hover (Write / Preview, Cmd+Enter saves). A properties card lists Reviewers, Assignees and Labels; editable
+hover; the editor keeps the rendered column, font size and line height (`MARKDOWN_LINE_HEIGHT`) and at least the
+rendered height (`DESC_EDITOR_MIN_H` minimum), with Write / Preview, Cancel and Save in a footer (Cmd+Enter saves). A properties card lists Reviewers, Assignees and Labels; editable
 rows open a `Combobox` of candidate users (GitHub `assignableUsers`, GitLab project members, 250ms debounce).
 The More menu holds Mark as draft / Ready for review, Edit title, Copy branch name, Close / Reopen (Close
 confirms) and a disabled Merge with the blocking reason; Merge sits beside Review only when the provider

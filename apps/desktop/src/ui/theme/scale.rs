@@ -73,6 +73,8 @@ pub fn text_2xl() -> Pixels {
 
 /// Body line height multiplier.
 pub const LINE_HEIGHT: f32 = 1.4;
+/// Rendered markdown paragraphs and lists, and the markdown editor that replaces them.
+pub const MARKDOWN_LINE_HEIGHT: f32 = 1.55;
 
 pub const WEIGHT_NORMAL: FontWeight = FontWeight::NORMAL;
 pub const WEIGHT_MEDIUM: FontWeight = FontWeight::MEDIUM;

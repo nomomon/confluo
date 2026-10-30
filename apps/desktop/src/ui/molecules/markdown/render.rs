@@ -72,7 +72,7 @@ fn block(ctx: &Ctx, b: &Block, depth: usize) -> AnyElement {
             let el = MdText::new(ctx.id(), t, theme::WEIGHT_SEMIBOLD, ctx.images.clone()).color(if *level >= 5 { theme::text_muted() } else { theme::text() });
             div().text_size(size).line_height(relative(1.3)).when(*level <= 2, |d| d.pb(theme::SPACE_1P5).border_b_1().border_color(theme::border_subtle())).child(el).into_any_element()
         }
-        Block::Paragraph(t) => div().text_size(theme::text_sm()).line_height(relative(1.55)).child(text(ctx, t)).into_any_element(),
+        Block::Paragraph(t) => div().text_size(theme::text_sm()).line_height(relative(theme::MARKDOWN_LINE_HEIGHT)).child(text(ctx, t)).into_any_element(),
         Block::Code { lang, code } => CodeBlock::new(ctx.id(), lang, code).into_any_element(),
         Block::List { start, items } => div().flex().flex_col().gap(theme::SPACE_1).children(items.iter().enumerate().map(|(i, item)| list_item(ctx, *start, i, item, depth))).into_any_element(),
         Block::Quote { alert: None, blocks } => div().pl(theme::SPACE_3).border_l_2().border_color(theme::border()).text_color(theme::text_muted()).flex().flex_col().children(stack(ctx, blocks, depth, false)).into_any_element(),
@@ -121,7 +121,7 @@ fn list_item(ctx: &Ctx, start: Option<u64>, i: usize, item: &Item, depth: usize)
         .flex()
         .gap(theme::SPACE_2)
         .text_size(theme::text_sm())
-        .line_height(relative(1.55))
+        .line_height(relative(theme::MARKDOWN_LINE_HEIGHT))
         .child(div().flex().justify_end().w(theme::SPACE_5).flex_shrink_0().child(marker))
         .child(div().flex().flex_col().flex_1().min_w(theme::SPACE_0).children(stack(ctx, &item.blocks, depth + 1, true)))
         .into_any_element()

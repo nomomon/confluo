@@ -9,6 +9,8 @@ mod actions;
 mod area;
 mod element;
 mod ime;
+pub(crate) mod md_edit;
+pub(crate) mod md_highlight;
 pub(crate) mod model;
 
 use gpui::{
@@ -56,7 +58,11 @@ actions!(
         Cut,
         Copy,
         Submit,
-        Newline
+        Newline,
+        Outdent,
+        Bold,
+        Italic,
+        Link
     ]
 );
 
@@ -104,6 +110,11 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new("shift-down", SelectDown, multi),
         KeyBinding::new("tab", Tab, Some("TextInput && tabs")),
         KeyBinding::new("cmd-enter", Submit, ctx),
+        // Markdown editors: these win over the app's Cmd+B / Cmd+I / Cmd+K while the editor has focus.
+        KeyBinding::new("shift-tab", Outdent, Some("TextInput && markdown")),
+        KeyBinding::new("cmd-b", Bold, Some("TextInput && markdown")),
+        KeyBinding::new("cmd-i", Italic, Some("TextInput && markdown")),
+        KeyBinding::new("cmd-k", Link, Some("TextInput && markdown")),
     ]);
 }
 
@@ -132,6 +143,12 @@ pub struct TextInput {
     max_rows: usize,
     /// Tab inserts two spaces (markdown editors).
     tabs: bool,
+    /// Markdown assistance (list continuation, indent, Cmd+B/I/K) and highlighting.
+    markdown: bool,
+    /// Borderless, transparent, no inset, markdown body line height: edits in place of rendered text.
+    document: bool,
+    /// Minimum height of the whole field (document editors match the rendered text they replace).
+    min_h: Pixels,
     scroll_y: Pixels,
     /// Scroll the caret into view on the next frame.
     reveal: bool,
@@ -160,6 +177,9 @@ impl TextInput {
             min_rows: 1,
             max_rows: 12,
             tabs: false,
+            markdown: false,
+            document: false,
+            min_h: px(0.),
             scroll_y: px(0.),
             reveal: false,
             inset: (theme::SPACE_3, theme::SPACE_3),
@@ -199,10 +219,22 @@ impl TextInput {
         self
     }
 
-    /// Tab inserts two spaces instead of moving focus (markdown editors).
-    pub fn tabs(mut self) -> Self {
+    /// Markdown editor: Tab indents, list continuation, Cmd+B / Cmd+I / Cmd+K, light highlighting.
+    pub fn markdown(mut self) -> Self {
         self.tabs = true;
+        self.markdown = true;
         self
+    }
+
+    /// Edit in place of rendered markdown: no border, fill or inset, and the markdown body's line height.
+    pub fn document(mut self) -> Self {
+        self.document = true;
+        self.inset = (px(0.), px(0.));
+        self
+    }
+
+    pub fn set_min_h(&mut self, h: Pixels) {
+        self.min_h = h;
     }
 
     /// Visible rows of a multi-line input: grows from `min` to `max`, then scrolls.
@@ -235,6 +267,9 @@ impl Render for TextInput {
         }
         if self.tabs {
             ctx.add("tabs");
+        }
+        if self.markdown {
+            ctx.add("markdown");
         }
         div()
             .flex()
@@ -276,6 +311,10 @@ impl Render for TextInput {
             .on_action(cx.listener(Self::copy))
             .on_action(cx.listener(Self::submit))
             .on_action(cx.listener(Self::newline))
+            .on_action(cx.listener(Self::outdent))
+            .on_action(cx.listener(Self::bold))
+            .on_action(cx.listener(Self::italic))
+            .on_action(cx.listener(Self::link))
             .on_mouse_down(MouseButton::Left, cx.listener(Self::on_mouse_down))
             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
@@ -283,13 +322,14 @@ impl Render for TextInput {
             .when(self.multiline, |d| d.on_scroll_wheel(cx.listener(Self::on_scroll)))
             .w_full()
             .when(!self.multiline, |d| d.h(theme::control_h()))
-            .when(self.multiline, |d| d.items_start().min_h(theme::control_h()).py(theme::SPACE_2))
+            .when(self.multiline && !self.document, |d| d.items_start().min_h(theme::control_h()).py(theme::SPACE_2))
+            .when(self.document, |d| d.items_start().line_height(gpui::relative(theme::MARKDOWN_LINE_HEIGHT)))
+            .min_h(self.min_h)
             .pl(self.inset.0)
             .pr(self.inset.1)
-            .rounded(theme::RADIUS_LG)
-            .border_1()
-            .border_color(if focused { theme::focus_ring() } else { theme::border() })
-            .bg(theme::surface())
+            .when(!self.document, |d| {
+                d.rounded(theme::RADIUS_LG).border_1().border_color(if focused { theme::focus_ring() } else { theme::border() }).bg(theme::surface())
+            })
             .text_size(theme::text_sm())
             .text_color(theme::text())
             .overflow_hidden()

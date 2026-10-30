@@ -176,12 +176,48 @@ impl TextInput {
         }
     }
     pub(super) fn tab(&mut self, _: &Tab, window: &mut Window, cx: &mut Context<Self>) {
+        if self.markdown {
+            if let Some(e) = super::md_edit::indent(&self.content, &self.selected_range, false) {
+                return self.apply_edit(e, cx);
+            }
+        }
         self.replace_text_in_range(None, "  ", window, cx)
+    }
+    pub(super) fn outdent(&mut self, _: &Outdent, _: &mut Window, cx: &mut Context<Self>) {
+        if let Some(e) = super::md_edit::indent(&self.content, &self.selected_range, true) {
+            self.apply_edit(e, cx)
+        }
+    }
+    pub(super) fn bold(&mut self, _: &Bold, _: &mut Window, cx: &mut Context<Self>) {
+        self.apply_edit(super::md_edit::wrap(&self.content, &self.selected_range, "**", "**"), cx)
+    }
+    pub(super) fn italic(&mut self, _: &Italic, _: &mut Window, cx: &mut Context<Self>) {
+        self.apply_edit(super::md_edit::wrap(&self.content, &self.selected_range, "_", "_"), cx)
+    }
+    pub(super) fn link(&mut self, _: &Link, _: &mut Window, cx: &mut Context<Self>) {
+        self.apply_edit(super::md_edit::link(&self.content, &self.selected_range), cx)
+    }
+    /// One undoable markdown edit: replace a range and set the selection.
+    fn apply_edit(&mut self, e: super::md_edit::Edit, cx: &mut Context<Self>) {
+        let range = self.clamp_range(e.range);
+        self.record_edit(&e.text, &range);
+        self.history.seal();
+        self.content = (self.content[..range.start].to_owned() + &e.text + &self.content[range.end..]).into();
+        self.selected_range = self.clamp_range(e.sel);
+        self.selection_reversed = false;
+        self.marked_range = None;
+        cx.emit(InputEvent::Changed);
+        cx.notify();
     }
     pub(super) fn submit(&mut self, _: &Submit, _: &mut Window, cx: &mut Context<Self>) {
         cx.emit(InputEvent::Submit);
     }
     pub(super) fn newline(&mut self, _: &Newline, window: &mut Window, cx: &mut Context<Self>) {
+        if self.markdown && self.marked_range.is_none() {
+            if let Some(e) = super::md_edit::enter(&self.content, &self.selected_range) {
+                return self.apply_edit(e, cx);
+            }
+        }
         self.replace_text_in_range(None, "\n", window, cx)
     }
     pub(super) fn on_mouse_down(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {

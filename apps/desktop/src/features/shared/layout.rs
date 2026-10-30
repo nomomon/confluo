@@ -15,6 +15,8 @@ pub const PREVIEW_W: Pixels = px(360.);
 pub const PREVIEW_EXCERPT_H: Pixels = px(132.);
 /// Below this window width an open preview collapses the sidebar to the rail.
 pub const PREVIEW_COMPACT_BELOW: Pixels = px(1100.);
+/// The description editor is at least this tall, or as tall as the rendered description it replaces.
+pub const DESC_EDITOR_MIN_H: Pixels = px(240.);
 /// Review mode side panes: file tree and right panel bounds.
 pub const TREE_MIN_W: Pixels = px(180.);
 pub const TREE_MAX_W: Pixels = px(480.);

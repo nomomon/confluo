@@ -130,6 +130,8 @@ pub struct GitViewer {
     /// Right-click menu on a repository name (rename / hide).
     pub(crate) repo_menu: Option<crate::state::RepoMenu>,
     pub(crate) refocus_alias: bool,
+    /// Height of the rendered description, so its editor opens at the same size.
+    pub(crate) desc_h: std::rc::Rc<std::cell::Cell<gpui::Pixels>>,
     /// Search field of Settings > Repositories.
     pub(crate) repo_search: Entity<TextInput>,
     /// Hold-Cmd shortcut hints (`state::hint_hold`).
@@ -153,8 +155,8 @@ impl GitViewer {
         let (saved_tree_w, saved_right_ratio) = (settings.review_tree_w, settings.review_right_ratio);
         let input = |cx: &mut Context<Self>, ph: &'static str| cx.new(|cx| TextInput::new(ph, cx));
         let search = cx.new(|cx| TextInput::new("Search title, repo, author or branch  /", cx).inset(crate::ui::molecules::INPUT_INSET, crate::ui::molecules::INPUT_INSET));
-        let composer = cx.new(|cx| TextInput::new("Leave a comment", cx).multiline().tabs());
-        let inline_input = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post, Esc to cancel", cx).multiline().tabs());
+        let composer = cx.new(|cx| TextInput::new("Leave a comment", cx).multiline().markdown());
+        let inline_input = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post, Esc to cancel", cx).multiline().markdown());
         let add_name = input(cx, "Project name");
         let add_value = input(cx, "Paste a repo or group URL, or a folder path");
         let alias_input = input(cx, "Alias (empty to clear)");
@@ -181,7 +183,7 @@ impl GitViewer {
         })
         .detach();
         let title_input = input(cx, "Title");
-        let body_input = cx.new(|cx| TextInput::new("Describe the change (markdown), \u{2318}Enter to save", cx).multiline().tabs());
+        let body_input = cx.new(|cx| TextInput::new("Describe the change (markdown), \u{2318}Enter to save", cx).multiline().markdown().document());
         let people_input = input(cx, "Search people");
         on_submit(cx, &title_input, |this, _, cx| this.save_title(cx));
         on_submit(cx, &body_input, |this, _, cx| this.save_body(cx));
@@ -326,6 +328,7 @@ impl GitViewer {
             refocus_quick: false,
             repo_menu: None,
             refocus_alias: false,
+            desc_h: Default::default(),
             repo_search,
             hints: crate::state::hint_hold::HintHold::new(crate::dev::hints()),
             hint_ctx: None,

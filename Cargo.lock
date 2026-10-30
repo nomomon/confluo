@@ -2492,7 +2492,7 @@ checksum = "12101ecc8225ea6d675bc70263074eab6169079621c2186fe0c66590b2df9681"
 
 [[package]]
 name = "gv-auth"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "gv-core",
  "thiserror 2.0.21",
@@ -2501,7 +2501,7 @@ dependencies = [
 
 [[package]]
 name = "gv-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2513,7 +2513,7 @@ dependencies = [
 
 [[package]]
 name = "gv-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2523,7 +2523,7 @@ dependencies = [
 
 [[package]]
 name = "gv-demo"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2533,7 +2533,7 @@ dependencies = [
 
 [[package]]
 name = "gv-desktop"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2553,14 +2553,14 @@ dependencies = [
 
 [[package]]
 name = "gv-discovery"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "gv-core",
 ]
 
 [[package]]
 name = "gv-engine"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2581,7 +2581,7 @@ dependencies = [
 
 [[package]]
 name = "gv-http"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "gv-core",
@@ -2591,7 +2591,7 @@ dependencies = [
 
 [[package]]
 name = "gv-provider-azure"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2609,7 +2609,7 @@ dependencies = [
 
 [[package]]
 name = "gv-provider-github"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2622,7 +2622,7 @@ dependencies = [
 
 [[package]]
 name = "gv-provider-gitlab"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2638,7 +2638,7 @@ dependencies = [
 
 [[package]]
 name = "gv-store"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "gv-core",
@@ -2650,7 +2650,7 @@ dependencies = [
 
 [[package]]
 name = "gv-update"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "gv-http",

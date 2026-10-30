@@ -7,7 +7,6 @@ use crate::app::GitViewer;
 use crate::features::shared::relative_time;
 use crate::state::DetailState;
 use crate::ui::atoms::{Button, ButtonVariant};
-use crate::ui::molecules::markdown::markdown;
 use crate::ui::theme;
 
 impl GitViewer {
@@ -94,6 +93,6 @@ impl GitViewer {
                 },
             )));
         }
-        div().flex().flex_col().gap(theme::SPACE_1).child(head).child(div().flex().flex_col().gap(theme::SPACE_1).children(markdown(format!("c-{}", c.id), &c.body)))
+        div().flex().flex_col().gap(theme::SPACE_1).child(head).child(self.markdown(format!("c-{}", c.id), &c.body))
     }
 }

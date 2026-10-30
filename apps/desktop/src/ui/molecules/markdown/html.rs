@@ -1,7 +1,13 @@
-//! Raw HTML cleanup before parsing: drop comments, collapse `<details>`.
+//! Raw HTML cleanup before parsing: drop comments, turn `<details>` into fence markers the parser
+//! folds into `Block::Details`, and strip a few inline tags.
+
+/// Paragraph that opens a details block; the rest of the line is the summary.
+pub const DETAILS_OPEN: &str = "\u{2063}details:";
+/// Paragraph that closes it.
+pub const DETAILS_CLOSE: &str = "\u{2063}/details";
 
 pub fn preprocess(src: &str) -> String {
-    collapse_details(&strip_comments(src))
+    mark_details(&strip_comments(src))
 }
 
 fn strip_comments(src: &str) -> String {
@@ -18,21 +24,41 @@ fn strip_comments(src: &str) -> String {
     out
 }
 
-/// Replace each `<details>` block with its summary as one muted line.
-fn collapse_details(src: &str) -> String {
+/// `<details><summary>S</summary>` becomes an open marker paragraph, `</details>` a close one.
+fn mark_details(src: &str) -> String {
     let mut out = String::with_capacity(src.len());
     let mut rest = src;
-    while let Some(start) = rest.find("<details") {
-        out.push_str(&rest[..start]);
-        let block_end = rest[start..].find("</details>").map(|e| start + e + "</details>".len()).unwrap_or(rest.len());
-        let block = &rest[start..block_end];
-        let summary = block
-            .find("<summary>")
-            .and_then(|s| block[s + 9..].find("</summary>").map(|e| strip_tags(&block[s + 9..s + 9 + e])))
-            .filter(|s| !s.trim().is_empty())
-            .unwrap_or_else(|| "Details".into());
-        out.push_str(&format!("\n\n*{} (collapsed)*\n\n", summary.trim()));
-        rest = &rest[block_end..];
+    loop {
+        let open = rest.find("<details");
+        let close = rest.find("</details>");
+        match (open, close) {
+            (Some(o), c) if c.is_none_or(|c| o < c) => {
+                out.push_str(&rest[..o]);
+                let after = &rest[o..];
+                let tag_end = after.find('>').map(|e| e + 1).unwrap_or(after.len());
+                let mut body = &after[tag_end..];
+                let mut summary = "Details".to_string();
+                let trimmed = body.trim_start();
+                if trimmed.starts_with("<summary") {
+                    if let Some(e) = trimmed.find("</summary>") {
+                        let inner = &trimmed[trimmed.find('>').map(|i| i + 1).unwrap_or(0)..e];
+                        let s = strip_tags(inner).trim().to_string();
+                        if !s.is_empty() {
+                            summary = s;
+                        }
+                        body = &trimmed[e + "</summary>".len()..];
+                    }
+                }
+                out.push_str(&format!("\n\n{DETAILS_OPEN}{summary}\n\n"));
+                rest = body;
+            }
+            (_, Some(c)) => {
+                out.push_str(&rest[..c]);
+                out.push_str(&format!("\n\n{DETAILS_CLOSE}\n\n"));
+                rest = &rest[c + "</details>".len()..];
+            }
+            _ => break,
+        }
     }
     out.push_str(rest);
     out
@@ -54,15 +80,24 @@ fn strip_tags(s: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::preprocess;
+    use super::*;
 
     #[test]
-    fn drops_comments_and_collapses_details() {
-        let src = "a<!-- hidden -->b\n<details><summary><b>Log</b></summary>\nlots\n</details>\nc";
+    fn drops_comments_and_marks_details() {
+        let src = "a<!-- hidden -->b\n<details><summary><b>Log</b></summary>\n\nlots\n</details>\nc";
         let out = preprocess(src);
         assert!(out.starts_with("ab\n"));
-        assert!(out.contains("*Log (collapsed)*"));
-        assert!(!out.contains("lots"));
+        assert!(out.contains(&format!("{DETAILS_OPEN}Log")));
+        assert!(out.contains("lots"));
+        assert!(out.contains(DETAILS_CLOSE));
         assert!(out.ends_with("\nc"));
+    }
+
+    #[test]
+    fn nested_details_and_missing_summary() {
+        let out = preprocess("<details>\n<details><summary>In</summary>x</details></details>");
+        assert_eq!(out.matches(DETAILS_OPEN).count(), 2);
+        assert_eq!(out.matches(DETAILS_CLOSE).count(), 2);
+        assert!(out.contains(&format!("{DETAILS_OPEN}Details")));
     }
 }

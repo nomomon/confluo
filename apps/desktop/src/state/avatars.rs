@@ -1,4 +1,4 @@
-//! Author avatars: read from the engine's disk cache or fetched (small, through the host governor)
+//! Author avatars and markdown images: read from the engine's disk cache or fetched (small, through the host governor)
 //! on tokio, then kept decoded in a small in-memory cache.
 
 use gpui::{Context, Image, ImageFormat};
@@ -26,8 +26,13 @@ impl GitViewer {
             .map(|c| &c.author)
             .chain(threads.iter().flat_map(|t| &t.comments).map(|c| &c.author))
             .filter_map(|a| a.avatar_url.clone())
+            .chain(self.hosts.iter().flatten().filter_map(|h| super::connection::host_avatar_url(h.kind, &h.host, h.user.as_deref()?)))
             .filter(|u| !self.avatars.contains_key(u))
             .collect();
+        if let Some(d) = self.detail.as_ref().and_then(|d| d.detail.as_ref()) {
+            let bodies = std::iter::once(d.description.as_str()).chain(d.threads.iter().flat_map(|t| &t.comments).map(|c| c.body.as_str()));
+            wanted.extend(bodies.flat_map(crate::ui::molecules::markdown::image_urls).filter(|u| !self.avatars.contains_key(u)));
+        }
         wanted.sort();
         wanted.dedup();
         if wanted.is_empty() {
@@ -64,6 +69,7 @@ fn sniff(b: &[u8]) -> Option<ImageFormat> {
         [0xFF, 0xD8, ..] => Some(ImageFormat::Jpeg),
         [b'G', b'I', b'F', ..] => Some(ImageFormat::Gif),
         [b'R', b'I', b'F', b'F', _, _, _, _, b'W', b'E', b'B', b'P', ..] => Some(ImageFormat::Webp),
+        _ if b.starts_with(b"<svg") || (b.starts_with(b"<?xml") && b.windows(4).take(512).any(|w| w == b"<svg")) => Some(ImageFormat::Svg),
         _ => None,
     }
 }

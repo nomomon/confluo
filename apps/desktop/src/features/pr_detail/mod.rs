@@ -16,9 +16,16 @@ use crate::app::GitViewer;
 use crate::features::shared::layout;
 use crate::state::{DetailState, DetailTab};
 use crate::ui::atoms::ErrorText;
+use crate::ui::molecules::markdown::{image_urls, Markdown};
 use crate::ui::{motion, theme};
 
 impl GitViewer {
+    /// Markdown with whichever of its remote images have loaded.
+    pub(super) fn markdown(&self, id: impl Into<gpui::SharedString>, src: &str) -> Markdown {
+        let images: std::collections::HashMap<_, _> = image_urls(src).into_iter().filter_map(|u| self.avatar(Some(&u)).map(|i| (u, i))).collect();
+        Markdown::new(id, src).images(std::rc::Rc::new(images))
+    }
+
     /// Root listeners while the resize handle is dragged.
     pub(crate) fn resize_handlers(&self, root: Stateful<Div>, cx: &mut Context<Self>) -> Stateful<Div> {
         root.on_mouse_move(cx.listener(|this, ev: &MouseMoveEvent, window, cx| {

@@ -7,7 +7,6 @@ use crate::app::GitViewer;
 use crate::features::shared::relative_time;
 use crate::state::DetailState;
 use crate::ui::atoms::{Avatar, Button, ButtonVariant, Icon, IconName, Size};
-use crate::ui::molecules::markdown::markdown;
 use crate::ui::theme;
 
 fn author(c: &Comment) -> String {
@@ -123,7 +122,7 @@ impl GitViewer {
         let body = if editing {
             self.inline_field("Save", cx).into_any_element()
         } else {
-            div().flex().flex_col().gap(theme::SPACE_1).text_size(theme::text_sm()).children(markdown(format!("ic-{}", c.id), &c.body)).into_any_element()
+            self.markdown(format!("ic-{}", c.id), &c.body).into_any_element()
         };
         div().flex().flex_col().gap(theme::SPACE_1P5).px(theme::SPACE_3).py(theme::SPACE_2P5).child(head).child(body)
     }

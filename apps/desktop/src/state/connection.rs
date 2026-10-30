@@ -23,6 +23,11 @@ pub fn auth_command(kind: ProviderKind) -> &'static str {
     }
 }
 
+/// Avatar URL for a signed-in GitHub user; other hosts show the initial.
+pub fn host_avatar_url(kind: ProviderKind, host: &str, user: &str) -> Option<String> {
+    (kind == ProviderKind::GitHub && host == "github.com").then(|| format!("https://github.com/{user}.png?size=64"))
+}
+
 impl GitViewer {
     /// Ask every known host who we are, in the background.
     pub(crate) fn check_hosts(&mut self, cx: &mut Context<Self>) {

@@ -99,10 +99,7 @@ impl GitViewer {
                 let detail = format!("Version {}\nPRs and MRs across GitHub, GitLab and Azure DevOps.", env!("CARGO_PKG_VERSION"));
                 drop(window.prompt(gpui::PromptLevel::Info, "Confluo", Some(&detail), &["OK"], cx));
             }))
-            .on_action(cx.listener(|this, _: &OpenSettings, _, cx| {
-                this.overlay = Overlay::Settings;
-                cx.notify()
-            }))
+            .on_action(cx.listener(|this, _: &OpenSettings, _, cx| this.toggle_settings(cx)))
     }
 
     /// Code tab shortcuts (n/p, ]/[, x) act only while the diff is showing.

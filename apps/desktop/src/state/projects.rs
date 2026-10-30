@@ -99,13 +99,21 @@ impl GitViewer {
     }
 
     pub(crate) fn save_rename(&mut self, cx: &mut Context<Self>) {
-        let Overlay::Rename(id) = self.overlay else { return };
+        let from_dialog = matches!(self.overlay, Overlay::Rename(_));
+        let id = match self.overlay {
+            Overlay::Rename(id) => id,
+            _ => match self.renaming {
+                Some(id) => id,
+                None => return,
+            },
+        };
         let name = self.rename_input.read(cx).text().trim().to_string();
         if name.is_empty() {
             return;
         }
         match self.engine.rename_project(id, &name) {
-            Ok(()) => self.overlay = Overlay::None,
+            Ok(()) if from_dialog => self.overlay = Overlay::None,
+            Ok(()) => self.renaming = None,
             Err(e) => self.add_error = Some(err_str(e)),
         }
         self.reload_projects();
@@ -115,13 +123,14 @@ impl GitViewer {
     /// Ask before deleting; the dialog calls `delete_project`.
     pub(crate) fn confirm_delete(&mut self, id: i64, cx: &mut Context<Self>) {
         self.menu = None;
+        self.confirm_from_settings = self.overlay == Overlay::Settings;
         self.overlay = Overlay::ConfirmDelete(id);
         cx.notify();
     }
 
     pub(crate) fn delete_project(&mut self, id: i64, cx: &mut Context<Self>) {
         self.menu = None;
-        self.overlay = Overlay::None;
+        self.close_confirm();
         if let Err(e) = self.engine.delete_project(id) {
             self.error = Some(err_str(e));
         }
@@ -129,6 +138,37 @@ impl GitViewer {
         if self.selected.is_none() {
             self.select_project(None, cx);
         }
+        cx.notify();
+    }
+
+    /// Leave the delete confirmation, back to Settings when it was opened from there.
+    pub(crate) fn close_confirm(&mut self) {
+        self.overlay = if self.confirm_from_settings { Overlay::Settings } else { Overlay::None };
+        self.confirm_from_settings = false;
+    }
+
+    /// Start renaming a project inline in Settings.
+    pub(crate) fn start_rename(&mut self, id: i64, cx: &mut Context<Self>) {
+        let name = self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default();
+        self.rename_input.update(cx, |i, cx| i.set_text(name, cx));
+        self.renaming = Some(id);
+        cx.notify();
+    }
+
+    pub(crate) fn remove_source(&mut self, id: i64, source: &Source, cx: &mut Context<Self>) {
+        if let Err(e) = self.engine.remove_source(id, source) {
+            self.error = Some(err_str(e));
+        }
+        self.reload_projects();
+        cx.notify();
+    }
+
+    /// Add a source to an existing project: the add dialog with its name filled in.
+    pub(crate) fn add_source_to(&mut self, id: i64, cx: &mut Context<Self>) {
+        let name = self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default();
+        self.overlay = Overlay::AddProject;
+        self.add_error = None;
+        self.add_name.update(cx, |i, cx| i.set_text(name, cx));
         cx.notify();
     }
 
@@ -144,17 +184,6 @@ impl GitViewer {
         cx.notify();
     }
 
-    pub(crate) fn alias_candidates(&self) -> Vec<RepoRef> {
-        let mut v: Vec<RepoRef> = match self.selected {
-            Some(id) => self.engine.store().project_repos(id).unwrap_or_default(),
-            None => vec![],
-        };
-        v.extend(self.items.iter().map(|c| c.id.repo.clone()));
-        v.sort();
-        v.dedup();
-        v
-    }
-
     pub(crate) fn save_alias(&mut self, cx: &mut Context<Self>) {
         let Some(repo) = self.alias_repo.clone() else { return };
         let alias = self.alias_input.read(cx).text().trim().to_string();
@@ -162,6 +191,11 @@ impl GitViewer {
         o.alias = (!alias.is_empty()).then_some(alias);
         if let Err(e) = self.engine.set_repo_override(&repo, o) {
             self.error = Some(err_str(e));
+        }
+        match self.overlay {
+            Overlay::Settings => self.alias_repo = None,
+            Overlay::Alias => self.overlay = Overlay::None,
+            _ => {}
         }
         self.reload();
         cx.notify();

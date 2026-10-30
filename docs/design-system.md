@@ -61,15 +61,14 @@ Semantic tokens (`ui::theme::*`), dark / light:
 Code tokens: `diff_add_bg()`, `diff_del_bg()`, `diff_hunk_bg()`, `line_selected_bg()` (accent 16% dark /
 14% light, layered over the add/del fill of selected lines) and `syntax_keyword()`,
 `syntax_string()`, `syntax_number()`, `syntax_type()`, `syntax_comment()` (hues in
-`palette::syntax`, one shade per theme). `tint_preview(c)` lifts a near-black window tint
-to a visible swatch color.
+`palette::syntax`, one shade per theme).
 
 `tint_bg(color)` gives the 14% (12% light) fill used behind pills, badges and
 notices.
 
 ### Theme
 
-Settings > Theme: System / Light / Dark (`settings::ThemeMode`, default
+Settings > Appearance > Theme: System / Light / Dark (`settings::ThemeMode`, default
 System). System follows `window.appearance()`; the root view observes
 `observe_window_appearance` and re-renders, calling `theme::set_light(..)`
 each frame before children render.
@@ -77,14 +76,20 @@ each frame before children render.
 ### Translucency
 
 `Translucency::new(panel_opacity, tint, base_alpha)` derives fills from the
-appearance settings (`GitViewer::surfaces()` builds it):
+appearance settings (`GitViewer::surfaces()` builds it). The tint is one of the
+saturated presets in `settings::TINTS` (None, Slate, Blue, Violet, Rose, Amber,
+Emerald, Teal), mixed in sRGB (`theme::mix`) into the neutral fills: 16% into the
+window background, 7% into panels and cards (60% of that in light mode).
 
-- `window_bg()`: the user tint at the appearance's base alpha
-  (opaque 1.0, blurred 0.35, transparent 0.55); in light mode the tint keeps
-  its hue but is lifted to the page grey
-- `panel()`: zinc 900 (light: `light::PANEL`) at panel opacity (sidebar, detail)
-- `card()`: zinc 800 (light: `light::CARD`, slightly darker than the page) at
-  60% of panel opacity (cards, list rows)
+- `window_bg()`: zinc 950 (light: page grey) plus tint, alpha
+  `max(base_alpha, floor)`; base is 1.0 opaque, 0.35 blurred, 0.55 transparent
+- `panel()`: zinc 900 (light: `light::PANEL`) plus tint; panel opacity maps
+  0..1 onto `floor..1`
+- `card()`: zinc 800 (light: `light::CARD`) at 35-70% alpha
+
+Readability floors guarantee text contrast >= 4.5:1 whatever is behind the
+window (tested in `translucency.rs` against pure white): dark window 0.9, dark
+panels 0.82, light window 0.86, light panels 0.8.
 
 ## Spacing, radius, type
 
@@ -169,24 +174,58 @@ without a restart.
 
 ## Components
 
-Atoms: `Avatar` (`.image(..)` from the in-memory avatar cache, else a subtle initial), `Badge`, `Button` (`.icon(IconName::Refresh)`, `.tooltip("Refresh  ⌘R")`),
-`Chip`, `Icon` (`Icon::new(IconName::ChevronDown).size(ICON_SM).color(..)`, embedded
-Tabler outline SVGs in `apps/desktop/assets/icons`, MIT license), `NavItem` (`.icon(..)`, `.trailing_on_hover(..)`,
-`.on_right_click(..)`), `Pill`, `Swatch`, `tooltip(text)` for any stateful element.
+shadcn/ui names and behavior where GPUI allows. All are `RenderOnce` with builders; value
+callbacks take `&T` (`ui::ChangeHandler<T>`). Components needing internal state (open
+select, slider bounds, hovered link) keep it with `window.use_keyed_state`.
 
-Molecules: `Banner` (one-line dismissible error with an action such as Retry),
-`Card` (`.rows()` for flush divided rows), `CopyField`, `Dialog`, `DropdownMenu` (`.on_dismiss` on outside press),
-`EmptyState` (children for extra lines and actions), `Field`,
-`FloatingToolbar` (small pill of ghost buttons for a selection; `.animate(false)` for keyboard-driven
-appearances; occludes and swallows mouse downs; the caller positions it, usually absolute inside
-`deferred(..)` so it paints above later list rows), `KeyValueRow`,
-`ListSection` (collapsible header and count above a rounded card of divided rows),
-`SegmentedTabs` (`.floating()` pill for bottom tab bars),
-`code::{CodeText, DiffRow, Lang}` (mono line with a line-based keyword/string/comment/number/type
-tokenizer for rs, ts/js, py, go, yaml, json, toml, md, sh, Dockerfile; `DiffRow` adds old/new gutters,
-a +/- marker, `diff_add_bg()` / `diff_del_bg()` tints and a 2px accent), `markdown(id, src)`
-(pulldown-cmark; tables as a grid, clickable links, images as muted alt text), `TextInput`
-(`.multiline()`: Enter inserts a newline, Cmd+Enter submits), `Toast`.
+Atoms:
+
+- `Avatar`: `Avatar::new("ada").image(cache.get(url))`, initial while loading
+- `Badge`: `Badge::new("Draft").variant(BadgeVariant::Outline)`, or `.tint(theme::success())`
+- `Button`: `Button::new(id, "Save").variant(ButtonVariant::Primary)` (Outline, Ghost, Link, Primary, Destructive), `.icon(..)`, `.tooltip("Refresh  ⌘R")`
+- `Checkbox`: `Checkbox::new(id, done).label("Ship").on_change(|v, w, cx| ..)`
+- `Chip`, `Pill`, `NavItem` (`.icon(..)`, `.trailing_on_hover(..)`, `.on_right_click(..)`)
+- `Icon`: `Icon::new(IconName::BrandGithub).size(ICON_MD)`; Tabler outline SVGs in `assets/icons` (MIT)
+- `Kbd`: `Kbd::new("⌘ R")`, one box per space separated key
+- `Separator`: `Separator::new()` or `Separator::vertical()`
+- `Skeleton`: `Skeleton::new().w(px(120.)).h(px(12.))`, pulses unless reduced motion
+- `Swatch`: `Swatch::new(id, color).active(true)`, selected ring
+- `Switch`: `Switch::new("hide-bots", on).on_change(|on, w, cx| ..)`
+- `tooltip(text)`: for any stateful element; text after a double space renders as `Kbd`
+
+Molecules:
+
+- `Banner`: one-line dismissible error with an action such as Retry
+- `Card`: `Card::new(s).title("Checkout").description("..").action(btn).footer(..)`; `.rows()` for flush divided rows
+- `ContextMenu`: `ContextMenu::new(id, event.position).on_dismiss(..).child(MenuItem::new(..))`
+- `CopyField`, `EmptyState`, `KeyValueRow`, `FloatingToolbar` (selection pill; `.animate(false)` for keyboard moves)
+- `Dialog`: `Dialog::new("Delete").description("..").content(..).footer(buttons)`; `Dialog::bare().size(w, h)` for custom chrome
+- `DropdownMenu`: `DropdownMenu::new(id).top(..).right(..).on_dismiss(..)` with `MenuItem::new(id, "Delete").icon(..).shortcut("⌘ D").destructive()`, `MenuSeparator`, `MenuLabel::new("Project")`
+- `Field`: `Field::new("Source", input)`; settings row `Field::new("Refresh", select).description("..").horizontal()`
+- `Input`: `Input::new("search", entity, has_text).leading(IconName::Search).on_clear(..)` (create the entity with `TextInput::new(..).inset(INPUT_INSET, INPUT_INSET)`)
+- `ListSection`: collapsible header and count above a rounded card of divided rows
+- `RadioGroup`: `RadioGroup::new("launch").option("Inbox").option("Last view").selected(0).on_change(..)`
+- `Select`: `Select::new("font").font_option("Geist", "Geist").selected(i).on_change(..)`; Up/Down/Enter/Esc on the focused trigger
+- `Sheet`: `Sheet::new("Add project").description("..").on_close(|w, cx| ..).child(..)`, slides from the right (`PANEL`)
+- `Slider`: `Slider::new("opacity", v).range(0., 1.).step(0.05).on_change(..)`, click or drag
+- `Tabs`: `Tabs::new(id).variant(TabsVariant::Underline).tab("Code", true).on_select(..)` (Pill, Underline, Floating)
+- `Textarea`: `Textarea::new(composer).rows(3)` around a multiline `TextInput`
+- `Toaster`: `Toaster::new().toast(Toast::new("Copied").description("..").variant(ToastVariant::Success))`, bottom-right stack
+- `ToggleGroup`: `ToggleGroup::new("theme").item("Dark", None, true).on_change(..)`
+- `code::{CodeText, DiffRow, Lang}`: mono line with a line-based tokenizer; `DiffRow` adds gutters and tints
+- `markdown::Markdown`: `Markdown::new(id, src).images(loaded)`: rhythm, h1-h6, nested lists, task checkboxes,
+  code fences with syntax colors and copy, alerts as tinted callouts, tables (header, borders, alignment,
+  horizontal scroll), collapsible `<details>`, hover-underlined links, autolinks, footnotes; remote images
+  come from the avatar cache (`markdown::image_urls` lists them), else alt text
+- `TextInput`: `.multiline()`: Enter inserts a newline, Cmd+Enter submits
+
+Settings (`features/settings/`) is a large `Dialog::bare()` (780x560): left nav of pages
+(General, Appearance, Accounts, Projects, Filters, Shortcuts), right side made of
+`settings_group` cards of horizontal `Field` rows. Cmd+, toggles it. Dev: `CONFLUO_SETTINGS=appearance`
+opens a page at launch; `CONFLUO_REDUCE_MOTION=1` forces reduced motion (screenshots).
+
+List sections (Needs you, Awaiting review, Yours, Drafts, Waiting on others) apply in every
+view; collapse state is saved per view (`inbox`, `starred`, `project:<id>`) in settings.json.
 
 Show on hover with `.group(..)` plus `.group_hover(..)`; GPUI has no visibility
 toggle, so hidden content uses `opacity(0.)`.

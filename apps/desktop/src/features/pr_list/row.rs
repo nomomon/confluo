@@ -5,7 +5,7 @@ use gv_engine::ChangeRequest;
 
 use crate::app::GitViewer;
 use crate::state;
-use crate::features::shared::{checks_text, layout, number_label, provider_badge, relative_time, row_hint, state_icon};
+use crate::features::shared::{checks_text, layout, number_label, provider_icon, relative_time, row_hint, state_icon};
 use crate::ui::atoms::{tooltip, Avatar, Icon, IconName, Pill};
 use crate::ui::theme;
 
@@ -25,7 +25,7 @@ impl GitViewer {
             .min_w(theme::SPACE_0)
             .text_size(theme::text_sm())
             .text_color(theme::text_muted())
-            .when(show_provider, |d| d.child(provider_badge(c.id.repo.kind)))
+            .when(show_provider, |d| d.child(provider_icon(c.id.repo.kind)))
             .child(
                 div()
                     .id(SharedString::from(format!("repo-{}", c.id.key())))
@@ -94,7 +94,11 @@ impl GitViewer {
             .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
                 this.set_cursor(cr.id.clone(), cx);
                 window.focus(&this.focus);
-                this.open_detail(cr.clone(), cx)
+                if this.settings.open_in == crate::settings::OpenIn::Browser {
+                    cx.open_url(&cr.web_url)
+                } else {
+                    this.open_detail(cr.clone(), cx)
+                }
             }))
             .child(
                 div()

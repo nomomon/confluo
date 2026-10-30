@@ -14,10 +14,10 @@ use std::time::Instant;
 
 use crate::settings::Settings;
 pub use crate::state::{Menu, Overlay};
-use crate::state::{Copied, DetailState, HostStatus, Section, SourceKind};
+use crate::state::{BotList, Copied, DetailState, HostStatus, SettingsPage, SourceKind};
 use crate::ui::molecules::text_input::{InputEvent, TextInput};
 use crate::features::layout;
-use crate::ui::molecules::Toast;
+use crate::ui::molecules::{Toast, ToastVariant, Toaster};
 use crate::ui::theme::{self, Translucency};
 
 pub struct GitViewer {
@@ -53,8 +53,6 @@ pub struct GitViewer {
     pub(crate) hosts: Option<Vec<HostStatus>>,
     /// One-line error for the banner; cleared on the next successful refresh.
     pub(crate) error: Option<String>,
-    /// Inbox sections the user collapsed.
-    pub(crate) collapsed: HashSet<Section>,
     /// Keyboard selection in the list.
     pub(crate) cursor: Option<ChangeRequestId>,
     pub(crate) detail: Option<DetailState>,
@@ -88,6 +86,11 @@ pub struct GitViewer {
     pub(crate) alias_repo: Option<RepoRef>,
     pub(crate) alias_input: Entity<TextInput>,
     pub(crate) rename_input: Entity<TextInput>,
+    pub(crate) settings_page: SettingsPage,
+    /// Project being renamed inline in Settings.
+    pub(crate) renaming: Option<i64>,
+    /// The delete confirmation returns to Settings.
+    pub(crate) confirm_from_settings: bool,
 }
 
 /// Subscribe `f` to the input's Enter key.
@@ -103,19 +106,17 @@ fn on_submit(cx: &mut Context<GitViewer>, input: &Entity<TextInput>, f: impl Fn(
 impl GitViewer {
     pub fn new(engine: Arc<Engine>, settings: Settings, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let input = |cx: &mut Context<Self>, ph: &'static str| cx.new(|cx| TextInput::new(ph, cx));
-        let search = input(cx, "Search title, repo, author or branch  /");
+        let search = cx.new(|cx| TextInput::new("Search title, repo, author or branch  /", cx).inset(crate::ui::molecules::INPUT_INSET, crate::ui::molecules::INPUT_INSET));
         let composer = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post", cx).multiline());
         let inline_input = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post, Esc to cancel", cx).multiline());
         let add_name = input(cx, "Project name");
         let add_value = input(cx, "Paste a repo or group URL, or a folder path");
         let alias_input = input(cx, "Alias (empty to clear)");
         let rename_input = input(cx, "Project name");
-        let bot_authors_input = input(cx, "renovate, *-bot, project_*_bot*");
-        let bot_branches_input = input(cx, "renovate/, dependabot/");
-        bot_authors_input.update(cx, |i, cx| i.set_text(settings.hidden_authors.join(", "), cx));
-        bot_branches_input.update(cx, |i, cx| i.set_text(settings.hidden_branch_prefixes.join(", "), cx));
-        on_submit(cx, &bot_authors_input, |this, _, cx| this.save_bot_lists(cx));
-        on_submit(cx, &bot_branches_input, |this, _, cx| this.save_bot_lists(cx));
+        let bot_authors_input = input(cx, "Add an author, e.g. *-bot, then Enter");
+        let bot_branches_input = input(cx, "Add a branch prefix, e.g. deps/, then Enter");
+        on_submit(cx, &bot_authors_input, |this, _, cx| this.add_bot_entry(BotList::Authors, cx));
+        on_submit(cx, &bot_branches_input, |this, _, cx| this.add_bot_entry(BotList::Branches, cx));
 
         cx.subscribe(&search, |_, _, ev: &InputEvent, cx| {
             if matches!(ev, InputEvent::Changed) {
@@ -160,7 +161,6 @@ impl GitViewer {
             bot_branches_input,
             hosts: None,
             error: None,
-            collapsed: Section::ALL.into_iter().filter(|s| s.collapsed_by_default()).collect(),
             cursor: None,
             detail: None,
             code_tree: false,
@@ -187,6 +187,9 @@ impl GitViewer {
             alias_repo: None,
             alias_input,
             rename_input,
+            settings_page: SettingsPage::default(),
+            renaming: None,
+            confirm_from_settings: false,
         };
         cx.observe_window_appearance(window, |_, _, cx| cx.notify()).detach();
         cx.observe_window_activation(window, |this, window, cx| {
@@ -196,6 +199,9 @@ impl GitViewer {
         })
         .detach();
         this.reload_projects();
+        if this.settings.launch == crate::settings::Launch::LastView {
+            this.selected = this.settings.last_project.filter(|id| this.projects.iter().any(|p| p.id == *id));
+        }
         this.cursor = this.restored_cursor();
         this.refreshed_at = this.engine.last_refreshed(&gv_engine::RefreshTarget::InvolvingMe);
         this.reload();
@@ -203,6 +209,9 @@ impl GitViewer {
         this.refresh(cx);
         this.start_clock(cx);
         this.open_from_env(cx);
+        if let Some(p) = SettingsPage::from_env() {
+            this.open_settings(Some(p), cx);
+        }
         this
     }
 
@@ -242,7 +251,7 @@ impl Render for GitViewer {
             })
             .when(self.resizing, |root| self.resize_handlers(root, cx))
             .child(main)
-            .children(self.toast.clone().map(Toast::new))
+            .children(self.toast.clone().map(|t| Toaster::new().toast(Toast::new(t).variant(ToastVariant::Success))))
             .children(self.render_overlay(cx))
     }
 }

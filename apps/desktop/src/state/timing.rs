@@ -2,9 +2,7 @@
 
 use std::time::Duration;
 
-/// Background refresh cadence.
-pub const AUTO_REFRESH: Duration = Duration::from_secs(5 * 60);
-/// How often the clock ticks to re-render relative times and check `AUTO_REFRESH`.
+/// How often the clock ticks to re-render relative times and check the refresh interval setting.
 pub const TICK: Duration = Duration::from_secs(30);
 /// Minimum gap between refreshes triggered by the window becoming active.
 pub const ACTIVATE_MIN_GAP: Duration = Duration::from_secs(2 * 60);

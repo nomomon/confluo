@@ -26,7 +26,7 @@ mod selection;
 mod sources;
 pub mod timing;
 
-pub use connection::{auth_command, HostStatus};
+pub use connection::{auth_command, host_avatar_url, HostStatus};
 pub use code::CodeState;
 pub use detail::{DetailState, DetailTab};
 pub use file_view::FileView;
@@ -35,7 +35,7 @@ pub use inbox::Section;
 pub use inline::LineDraft;
 pub use selection::reveal;
 pub use sources::SourceKind;
-pub use overlay::{Menu, Overlay};
+pub use overlay::{BotList, Menu, Overlay, SettingsPage};
 
 /// Format an error with its full context chain.
 pub fn err_str(e: anyhow::Error) -> String {

@@ -115,12 +115,13 @@ impl GitViewer {
         cx.notify();
     }
 
-    /// Re-render relative times and refresh when the data is older than `AUTO_REFRESH`.
+    /// Re-render relative times and refresh when the data is older than the refresh interval setting.
     pub(crate) fn start_clock(&mut self, cx: &mut Context<Self>) {
         cx.spawn(async move |this, cx| loop {
             cx.background_executor().timer(timing::TICK).await;
             let alive = this.update(cx, |v, cx| {
-                if v.last_attempt.is_none_or(|t| t.elapsed() >= timing::AUTO_REFRESH) {
+                let every = std::time::Duration::from_secs(u64::from(v.settings.refresh_minutes) * 60);
+                if v.settings.refresh_minutes > 0 && v.last_attempt.is_none_or(|t| t.elapsed() >= every) {
                     v.refresh(cx);
                 }
                 cx.notify();
@@ -149,6 +150,10 @@ impl GitViewer {
     pub(crate) fn select_project(&mut self, id: Option<i64>, cx: &mut Context<Self>) {
         self.selected = id;
         self.detail = None;
+        if self.settings.last_project != id {
+            self.settings.last_project = id;
+            self.settings.save().ok();
+        }
         self.refreshed_at = self.engine.last_refreshed(&self.refresh_target());
         self.reload();
         let fresh = self.refreshed_at.is_some_and(|t| (chrono::Utc::now() - t).to_std().is_ok_and(|age| age < timing::SELECT_FRESH));
@@ -165,14 +170,6 @@ impl GitViewer {
     }
 
     /// Save the hidden author and branch prefix lists from their inputs.
-    pub(crate) fn save_bot_lists(&mut self, cx: &mut Context<Self>) {
-        let split = |s: &str| s.split([',', '\n']).map(str::trim).filter(|x| !x.is_empty()).map(str::to_string).collect::<Vec<_>>();
-        self.settings.hidden_authors = split(&self.bot_authors_input.read(cx).text());
-        self.settings.hidden_branch_prefixes = split(&self.bot_branches_input.read(cx).text());
-        self.save_settings(cx);
-        self.reload();
-    }
-
     pub(crate) fn toggle_star(&mut self, id: ChangeRequestId, cx: &mut Context<Self>) {
         let on = !self.starred.contains(&id);
         if let Err(e) = self.engine.set_starred(&id, on) {

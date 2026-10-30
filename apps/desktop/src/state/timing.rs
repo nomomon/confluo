@@ -23,3 +23,6 @@ pub const HINT_HOLD: Duration = Duration::from_millis(250);
 pub const SEARCH_DEBOUNCE: Duration = Duration::from_millis(250);
 /// How long Accounts waits for a host to answer "who am I" before keeping the cached user.
 pub const HOST_CHECK_TIMEOUT: Duration = Duration::from_secs(8);
+/// Clicking the previewed row again hides the preview only after this, so a double click opens the
+/// review without hiding the preview first.
+pub const DOUBLE_CLICK: Duration = Duration::from_millis(350);

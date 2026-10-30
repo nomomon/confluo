@@ -114,14 +114,8 @@ impl GitViewer {
                 if this.settings.open_in == crate::settings::OpenIn::Browser {
                     cx.open_url(&cr.web_url)
                 } else {
-                    // Click previews; a double click (or Enter) opens the review.
-                    if this.detail.as_ref().map(|d| &d.summary.id) != Some(&cr.id) {
-                        this.preview_hidden = false;
-                        this.open_detail(cr.clone(), cx)
-                    }
-                    if ev.click_count() >= 2 {
-                        this.enter_review(cx)
-                    }
+                    // Click previews (again: hides it); a double click (or Enter) opens the review.
+                    this.click_row(cr.clone(), ev.click_count(), cx)
                 }
             }))
             .child(

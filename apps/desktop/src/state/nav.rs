@@ -57,6 +57,42 @@ impl GitViewer {
         cx.notify();
     }
 
+    /// A click on a list row (`count` from the click event).
+    pub(crate) fn click_row(&mut self, c: gv_engine::ChangeRequest, count: usize, cx: &mut Context<Self>) {
+        let this_open = self.detail.as_ref().is_some_and(|d| d.summary.id == c.id);
+        self.row_click_gen += 1;
+        match row_click(this_open, !self.preview_hidden, count) {
+            RowClick::Show => {
+                self.preview_hidden = false;
+                if !this_open {
+                    self.open_detail(c, cx)
+                }
+            }
+            RowClick::HideLater => {
+                let gen = self.row_click_gen;
+                cx.spawn(async move |this, cx| {
+                    cx.background_executor().timer(super::timing::DOUBLE_CLICK).await;
+                    this.update(cx, |v, cx| {
+                        if v.row_click_gen == gen && !v.reviewing {
+                            v.preview_hidden = true;
+                            cx.notify()
+                        }
+                    })
+                    .ok();
+                })
+                .detach();
+            }
+            RowClick::Review => {
+                self.preview_hidden = false;
+                if !this_open {
+                    self.open_detail(c, cx)
+                }
+                self.enter_review(cx)
+            }
+        }
+        cx.notify();
+    }
+
     /// Cmd+\ (triage): hide or show the preview pane.
     pub(crate) fn toggle_detail(&mut self, cx: &mut Context<Self>) {
         if self.reviewing {
@@ -137,8 +173,43 @@ impl GitViewer {
     }
 }
 
+/// What a click on a list row does.
+#[derive(Debug, PartialEq)]
+pub enum RowClick {
+    /// Select the row and show its preview.
+    Show,
+    /// The row's preview is showing: hide it, unless a second click turns this into a double click.
+    HideLater,
+    /// Double click: open the review.
+    Review,
+}
+
+pub fn row_click(this_open: bool, preview_visible: bool, count: usize) -> RowClick {
+    if count >= 2 {
+        RowClick::Review
+    } else if this_open && preview_visible {
+        RowClick::HideLater
+    } else {
+        RowClick::Show
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn row_clicks_toggle_the_preview_and_double_click_reviews() {
+        use super::{row_click, RowClick};
+        // Another row (or nothing open): select and preview it.
+        assert_eq!(row_click(false, true, 1), RowClick::Show);
+        assert_eq!(row_click(false, false, 1), RowClick::Show);
+        // The previewed row again: hide (deferred, a double click cancels it).
+        assert_eq!(row_click(true, true, 1), RowClick::HideLater);
+        // The selected row with its preview hidden: show it again.
+        assert_eq!(row_click(true, false, 1), RowClick::Show);
+        // Double click always reviews, never toggles.
+        assert_eq!(row_click(true, true, 2), RowClick::Review);
+        assert_eq!(row_click(false, true, 2), RowClick::Review);
+    }
     use super::*;
     use gv_engine::{ProviderKind, RepoRef};
 

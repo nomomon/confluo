@@ -67,6 +67,8 @@ pub struct GitViewer {
     pub(crate) copied_gen: u64,
     pub(crate) toast: Option<String>,
     pub(crate) toast_gen: u64,
+    /// Bumped per row click; a deferred preview hide only runs for its own click.
+    pub(crate) row_click_gen: u64,
     /// Window width at the last render, for layout decisions made while rendering children.
     pub(crate) viewport_w: Pixels,
     /// Detail pane open in a narrow window: sidebar collapses to a rail, rows drop secondary meta.
@@ -288,6 +290,7 @@ impl GitViewer {
             copied_gen: 0,
             toast: None,
             toast_gen: 0,
+            row_click_gen: 0,
             viewport_w: layout::PREVIEW_COMPACT_BELOW,
             compact: false,
             search,

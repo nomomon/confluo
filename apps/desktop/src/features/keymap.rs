@@ -30,10 +30,12 @@ enum Ctx {
 }
 
 /// Bare printable keys (`/`, `j`) must never fire inside a text input, whatever the entry says.
+/// Cmd+Left / Cmd+Right move the caret in text inputs, so they also skip inputs.
 fn predicate(ctx: Ctx, key: &str) -> Option<&'static str> {
     let bare = key.chars().count() == 1;
+    let caret = matches!(key, "cmd-left" | "cmd-right");
     match ctx {
-        Ctx::Any if !bare => Some("GitViewer"),
+        Ctx::Any if !bare && !caret => Some("GitViewer"),
         _ => Some("GitViewer && !TextInput"),
     }
 }
@@ -138,8 +140,8 @@ keymap! {
         GoProject5 ["cmd-7"] Any "Project 5" No Folder |c| c.projects > 4;
         GoProject6 ["cmd-8"] Any "Project 6" No Folder |c| c.projects > 5;
         GoProject7 ["cmd-9"] Any "Project 7" No Folder |c| c.projects > 6;
-        HistoryBack ["cmd-["] Any "Back" Action ArrowLeft always;
-        HistoryForward ["cmd-]"] Any "Forward" Action ArrowRight always;
+        HistoryBack ["cmd-[", "cmd-left"] Any "Back" Action ArrowLeft always;
+        HistoryForward ["cmd-]", "cmd-right"] Any "Forward" Action ArrowRight always;
         CloseDetail ["cmd-w"] Any "Close (overlay, review, preview, window)" No X always;
         Dismiss ["escape"] Any "Close or clear" No X always;
         Minimize ["cmd-m"] Any "Minimize" No X always;
@@ -220,6 +222,8 @@ pub fn display(keys: &str) -> String {
             "enter" => "\u{21a9}".to_string(),
             "up" => "\u{2191}".to_string(),
             "down" => "\u{2193}".to_string(),
+            "left" => "\u{2190}".to_string(),
+            "right" => "\u{2192}".to_string(),
             "escape" => "esc".to_string(),
             "" => "-".to_string(),
             k => k.to_uppercase(),
@@ -284,6 +288,11 @@ mod tests {
         assert_eq!(predicate(Ctx::Any, "/"), Some("GitViewer && !TextInput"));
         assert_eq!(predicate(Ctx::Any, "cmd-f"), Some("GitViewer"));
         assert_eq!(predicate(Ctx::List, "cmd-down"), Some("GitViewer && !TextInput"));
+        // Cmd+Left / Cmd+Right go back / forward only outside inputs (inside they move the caret).
+        assert_eq!(predicate(Ctx::Any, "cmd-left"), Some("GitViewer && !TextInput"));
+        assert_eq!(predicate(Ctx::Any, "cmd-["), Some("GitViewer"));
+        assert!(entry("HistoryBack").is_some_and(|e| e.keys.contains(&"cmd-left")));
+        assert!(entry("HistoryForward").is_some_and(|e| e.keys.contains(&"cmd-right")));
     }
 
     fn avail(c: &CmdCtx) -> Vec<&'static str> {

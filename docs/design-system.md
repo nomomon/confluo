@@ -379,8 +379,8 @@ title line with ellipsis, a muted line under it with repo #n, branch, stats, CI 
 that reconciles the provider's approval rule with reviewer states, approvers on hover; file tree,
 diff, right panel with Overview / Conversation). The file tree keeps its own width (resizable, collapsible); the diff and
 the right panel share the rest proportionally, 2/3 and 1/3 by default (`layout::right_pane_w`, panel min `RIGHT_MIN_W`,
-diff min `DIFF_MIN_W`), so they adapt to the window; dragging stores the tree width and the panel share in settings. Esc, Cmd+[ or the back chevron return to the list with selection
-and scroll kept; Cmd+[ / Cmd+] walk the visited places (the list and reviewed PRs). Files use one order everywhere (`file_tree::tree_cmp`: folders before files at each level, case-insensitive, so root
+diff min `DIFF_MIN_W`), so they adapt to the window; dragging stores the tree width and the panel share in settings. Esc, Cmd+[, Cmd+Left or the back chevron return to the list with selection
+and scroll kept; Cmd+[ / Cmd+] (and Cmd+Left / Cmd+Right outside text inputs, where they move the caret) walk the visited places (the list and reviewed PRs). Files use one order everywhere (`file_tree::tree_cmp`: folders before files at each level, case-insensitive, so root
 files come last): the tree, the diff list, n/p and "File i of N". File tree: viewed checkboxes
 (GitHub `markFileAsViewed`, local fingerprint elsewhere), filter, Hide viewed, foldable folders; n/p, v, Cmd+P,
 Cmd+Shift+E, Cmd+Shift+I, Cmd+Shift+S (unified / side by side, saved as `diff_split`). CI is one icon

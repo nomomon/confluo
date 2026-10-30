@@ -11,7 +11,9 @@ use crate::ui::atoms::{HintAnchor, ShortcutHint};
 /// Display keys of an entry when it is a Cmd shortcut available in `ctx`.
 fn cmd_keys(e: &Entry, ctx: &crate::state::cmd_ctx::CmdCtx) -> Option<String> {
     let first = e.keys.first()?;
-    (first.split('-').any(|k| k == "cmd") && (e.available)(ctx)).then(|| e.shortcut())
+    let is_cmd = |k: &str| k.split('-').any(|m| m == "cmd");
+    // Every Cmd binding of the entry (Back shows both Cmd+[ and Cmd+Left).
+    (is_cmd(first) && (e.available)(ctx)).then(|| e.keys.iter().filter(|k| is_cmd(k)).map(|k| keymap::display(k)).collect::<Vec<_>>().join("  "))
 }
 
 fn short_name<A: Action>() -> &'static str {

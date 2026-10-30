@@ -20,6 +20,7 @@
 | --- | --- |
 | <img src="assets/screenshots/inbox-dark.png" alt="Inbox with preview"> | <img src="assets/screenshots/conversation-light.png" alt="Conversation with threads"> |
 | <img src="assets/screenshots/review-light.png" alt="Review mode, light"> | <img src="assets/screenshots/palette-dark.png" alt="Command palette"> |
+| <img src="assets/screenshots/find-dark.png" alt="Find in diff with a suggested change"> | <img src="assets/screenshots/inbox-light.png" alt="Inbox, light"> |
 
 ## Install
 

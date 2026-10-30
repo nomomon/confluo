@@ -16,6 +16,10 @@ pub enum ButtonVariant {
     Ghost,
     /// Accent-colored inline text link.
     Link,
+    /// Filled high-contrast button for the main action of a dialog.
+    Primary,
+    /// Red tinted button for destructive confirmations.
+    Destructive,
 }
 
 /// Control size shared by buttons and other compact controls.
@@ -92,11 +96,41 @@ impl RenderOnce for Button {
                 base.px(theme::SPACE_1P5).rounded(theme::RADIUS_MD).text_color(theme::text_muted()).hover(|s| s.bg(theme::surface_hover()).text_color(theme::text()))
                 .active(|s| s.bg(theme::surface_active()))
             }
+            ButtonVariant::Primary => base
+                .flex_shrink_0()
+                .px(theme::SPACE_3)
+                .py(theme::SPACE_1)
+                .rounded(theme::RADIUS_MD)
+                .bg(theme::text())
+                .text_color(theme::bg())
+                .text_size(theme::text_xs())
+                .font_weight(theme::WEIGHT_MEDIUM)
+                .hover(|s| s.opacity(0.9))
+                .active(|s| s.opacity(0.8)),
+            ButtonVariant::Destructive => base
+                .flex_shrink_0()
+                .px(theme::SPACE_3)
+                .py(theme::SPACE_1)
+                .rounded(theme::RADIUS_MD)
+                .bg(theme::tint_bg(theme::danger()))
+                .text_color(theme::danger())
+                .text_size(theme::text_xs())
+                .font_weight(theme::WEIGHT_MEDIUM)
+                .hover(|s| s.bg(theme::danger().opacity(0.22)))
+                .active(|s| s.bg(theme::danger().opacity(0.3))),
             ButtonVariant::Link => base.text_size(theme::text_xs()).text_color(theme::accent()).hover(|s| s.text_color(theme::text())),
         };
         styled
             .when(self.size == Size::Md, |el| el.px(theme::SPACE_3).py(theme::SPACE_1P5).text_size(theme::text_sm()))
-            .children(self.icon.map(|n| Icon::new(n).color(if self.variant == ButtonVariant::Outline { theme::text() } else { theme::text_muted() })))
+            .children(self.icon.map(|n| {
+                let color = match self.variant {
+                    ButtonVariant::Outline => theme::text(),
+                    ButtonVariant::Primary => theme::bg(),
+                    ButtonVariant::Destructive => theme::danger(),
+                    _ => theme::text_muted(),
+                };
+                Icon::new(n).color(color)
+            }))
             .when(self.icon.is_some() && self.label.is_empty(), |el| el.py(theme::SPACE_1P5))
             .when(!self.label.is_empty(), |el| el.child(self.label))
             .when_some(self.tooltip, |el, t| el.tooltip(super::tooltip(t)))

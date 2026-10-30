@@ -1,12 +1,11 @@
 //! Involvement tabs and client-side search.
 
-use gpui::{div, prelude::*, App, ClickEvent, Context};
+use gpui::{prelude::*, App, ClickEvent, Context};
 use gv_engine::{ChangeRequest, Involvement};
 
 use crate::app::GitViewer;
-use crate::ui::atoms::{Button, ButtonVariant, IconName};
-use crate::ui::molecules::SegmentedTabs;
-use crate::ui::theme;
+use crate::ui::atoms::IconName;
+use crate::ui::molecules::{Input, Tabs};
 
 const INVOLVEMENTS: [(&str, Involvement); 3] =
     [("Authored", Involvement::Authored), ("Reviewing", Involvement::Reviewing), ("All", Involvement::All)];
@@ -33,26 +32,18 @@ impl GitViewer {
     /// Search input with a clear button while it has text.
     pub(super) fn render_search(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let has_text = !self.search.read(cx).text().is_empty();
-        div().relative().flex_1().child(self.search.clone()).when(has_text, |d| {
-            d.child(
-                div().absolute().top_0().bottom_0().right(theme::SPACE_1).flex().items_center().child(
-                    Button::new("search-clear", "")
-                        .icon(IconName::X)
-                        .variant(ButtonVariant::Ghost)
-                        .tooltip("Clear  esc")
-                        .on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
-                            this.search.update(cx, |i, cx| i.set_text("", cx));
-                            window.focus(&this.focus);
-                        })),
-                ),
-            )
-        })
+        Input::new("search", self.search.clone(), has_text).leading(IconName::Search).clear_tooltip("Clear  esc").on_clear(cx.listener(
+            |this, _: &ClickEvent, window, cx| {
+                this.search.update(cx, |i, cx| i.set_text("", cx));
+                window.focus(&this.focus);
+            },
+        ))
     }
 
     pub(super) fn render_involvement_tabs(&self, cx: &mut Context<Self>) -> impl IntoElement {
         INVOLVEMENTS
             .iter()
-            .fold(SegmentedTabs::new("tabs"), |tabs, (label, inv)| tabs.tab(*label, self.tab == *inv))
+            .fold(Tabs::new("tabs"), |tabs, (label, inv)| tabs.tab(*label, self.tab == *inv))
             .on_select(cx.listener(|this, i: &usize, _, cx| {
                 this.tab = INVOLVEMENTS[*i].1;
                 this.reload();

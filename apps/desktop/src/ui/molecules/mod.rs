@@ -1,18 +1,27 @@
 //! Molecules: small compositions of atoms (inputs, tabs, cards, dialogs).
 
 mod card;
+mod context_menu;
 pub mod code;
 mod copy_field;
 mod dialog;
 mod dropdown_menu;
 mod empty_state;
 mod field;
+mod input;
 mod floating_toolbar;
 mod key_value_row;
 mod list_section;
+mod menu_item;
+mod radio_group;
+mod select;
+mod sheet;
+mod slider;
+mod tabs;
+mod textarea;
+mod toggle_group;
 pub mod markdown;
 mod banner;
-mod segmented_tabs;
 pub mod text_input;
 mod toast;
 
@@ -26,5 +35,14 @@ pub use floating_toolbar::FloatingToolbar;
 pub use key_value_row::KeyValueRow;
 pub use list_section::ListSection;
 pub use banner::Banner;
-pub use segmented_tabs::SegmentedTabs;
-pub use toast::Toast;
+pub use context_menu::ContextMenu;
+pub use input::{Input, INSET as INPUT_INSET};
+pub use menu_item::{MenuItem, MenuLabel, MenuSeparator};
+pub use radio_group::RadioGroup;
+pub use select::Select;
+pub use sheet::Sheet;
+pub use slider::Slider;
+pub use tabs::{Tabs, TabsVariant};
+pub use textarea::Textarea;
+pub use toast::{Toast, Toaster, ToastVariant};
+pub use toggle_group::ToggleGroup;

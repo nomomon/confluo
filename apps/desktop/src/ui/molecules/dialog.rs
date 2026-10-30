@@ -1,6 +1,9 @@
-//! Modal dialog: dimmed full-window scrim with a titled panel and close button.
+//! Modal dialog like shadcn `Dialog`: dimmed scrim, a panel with header (title, description,
+//! close), content and an optional right-aligned footer.
+//!
+//! `Dialog::new("Delete project").description("..").content(..).footer(buttons).on_close(..)`
 
-use gpui::{div, prelude::*, px, AnyElement, Pixels, App, ClickEvent, SharedString, Window};
+use gpui::{div, prelude::*, px, AnyElement, App, ClickEvent, Pixels, SharedString, Window};
 
 use crate::ui::atoms::{Button, ButtonVariant, IconName, Size};
 use crate::ui::{motion, theme, ClickHandler};
@@ -10,18 +13,42 @@ const DIALOG_MAX_H: Pixels = px(620.);
 
 #[derive(IntoElement)]
 pub struct Dialog {
-    title: SharedString,
+    title: Option<SharedString>,
+    description: Option<SharedString>,
     content: Option<AnyElement>,
+    footer: Option<AnyElement>,
+    size: Option<(Pixels, Pixels)>,
     on_close: Option<ClickHandler>,
 }
 
 impl Dialog {
     pub fn new(title: impl Into<SharedString>) -> Self {
-        Self { title: title.into(), content: None, on_close: None }
+        Self { title: Some(title.into()), description: None, content: None, footer: None, size: None, on_close: None }
+    }
+
+    /// A dialog without the title row; the content draws its own chrome (Settings).
+    pub fn bare() -> Self {
+        Self { title: None, description: None, content: None, footer: None, size: None, on_close: None }
+    }
+
+    pub fn description(mut self, text: impl Into<SharedString>) -> Self {
+        self.description = Some(text.into());
+        self
     }
 
     pub fn content(mut self, content: impl IntoElement) -> Self {
         self.content = Some(content.into_any_element());
+        self
+    }
+
+    pub fn footer(mut self, footer: impl IntoElement) -> Self {
+        self.footer = Some(footer.into_any_element());
+        self
+    }
+
+    /// Fixed panel size instead of the default 520 wide, content high.
+    pub fn size(mut self, w: Pixels, h: Pixels) -> Self {
+        self.size = Some((w, h));
         self
     }
 
@@ -33,30 +60,38 @@ impl Dialog {
 
 impl RenderOnce for Dialog {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let mut close = Button::new("close-overlay", "").icon(IconName::X).variant(ButtonVariant::Ghost).size(Size::Sm);
-        if let Some(f) = self.on_close {
-            close = close.on_click(f);
-        }
-        let header = div()
-            .flex()
-            .items_center()
-            .child(div().text_size(theme::text_base()).font_weight(theme::WEIGHT_SEMIBOLD).child(self.title))
-            .child(div().flex_1())
-            .child(close);
+        let bare = self.title.is_none();
+        let header = self.title.map(|title| {
+            let mut close = Button::new("close-overlay", "").icon(IconName::X).variant(ButtonVariant::Ghost).size(Size::Sm);
+            if let Some(f) = self.on_close {
+                close = close.on_click(f);
+            }
+            let text = div()
+                .flex_1()
+                .flex()
+                .flex_col()
+                .gap(theme::SPACE_1)
+                .child(div().text_size(theme::text_base()).font_weight(theme::WEIGHT_SEMIBOLD).child(title))
+                .children(self.description.map(|d| div().text_size(theme::text_sm()).text_color(theme::text_muted()).child(d)));
+            div().flex().items_start().child(text).child(close)
+        });
         let panel = div()
-            .w(DIALOG_W)
-            .max_h(DIALOG_MAX_H)
             .flex()
             .flex_col()
-            .gap(theme::SPACE_3)
-            .p(theme::SPACE_4)
             .rounded(theme::RADIUS_XL)
             .border_1()
-            .border_color(theme::border_subtle())
+            .border_color(theme::border())
             .bg(theme::overlay())
             .shadow_lg()
-            .child(header)
-            .children(self.content.map(|c| div().flex().flex_col().min_h(theme::SPACE_0).child(c)));
+            .overflow_hidden()
+            .map(|d| match self.size {
+                Some((w, h)) => d.w(w).h(h),
+                None => d.w(DIALOG_W).max_h(DIALOG_MAX_H),
+            })
+            .when(!bare, |d| d.gap(theme::SPACE_4).p(theme::SPACE_5))
+            .children(header)
+            .children(self.content.map(|c| div().flex().flex_col().flex_1().min_h(theme::SPACE_0).child(c)))
+            .children(self.footer.map(|f| div().flex().justify_end().gap(theme::SPACE_2).child(f)));
         let scrim = div()
             .absolute()
             .top_0()

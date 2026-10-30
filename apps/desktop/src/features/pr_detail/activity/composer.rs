@@ -3,6 +3,7 @@
 use gpui::{div, prelude::*, ClickEvent, Context};
 
 use crate::app::GitViewer;
+use crate::ui::molecules::Textarea;
 use crate::state::DetailState;
 use crate::ui::atoms::{Button, ButtonVariant};
 use crate::ui::theme;
@@ -47,7 +48,7 @@ impl GitViewer {
                     .flex()
                     .gap(theme::SPACE_2)
                     .items_end()
-                    .child(div().flex_1().child(self.composer.clone()))
+                    .child(div().flex_1().child(Textarea::new(self.composer.clone()).rows(2)))
                     .child(Button::new("post", label).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.post_comment(cx)))),
             )
     }

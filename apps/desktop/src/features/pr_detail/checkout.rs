@@ -1,16 +1,15 @@
 //! Checkout card with a copyable CLI command.
 
-use gpui::{div, prelude::*, ClickEvent, Context};
+use gpui::{prelude::*, ClickEvent, Context};
 use gv_engine::{ChangeRequestId, ProviderKind};
 
 use crate::app::GitViewer;
 use crate::state::{Copied, DetailState};
 use crate::ui::molecules::{Card, CopyField};
-use crate::ui::theme;
 
 impl GitViewer {
     pub(super) fn render_checkout_card(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
-        Card::new(self.surfaces()).child(div().text_size(theme::text_sm()).font_weight(theme::WEIGHT_MEDIUM).child("Checkout")).child(
+        Card::new(self.surfaces()).title("Checkout").description("Run in your clone to try the branch locally").child(
             CopyField::new("copy-cmd", checkout_command(&d.summary.id)).copied(self.copied == Some(Copied::Checkout))
                 .on_copy(cx.listener(|this, _: &ClickEvent, _, cx| this.mark_copied(Copied::Checkout, cx))),
         )

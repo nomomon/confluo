@@ -62,6 +62,8 @@ pub struct TextInput {
     multiline: bool,
     last_paras: Vec<area::Para>,
     last_line_height: Pixels,
+    /// Left and right padding; `Input` widens them for a leading icon or clear button.
+    inset: (Pixels, Pixels),
 }
 
 impl EventEmitter<InputEvent> for TextInput {}
@@ -81,6 +83,7 @@ impl TextInput {
             multiline: false,
             last_paras: vec![],
             last_line_height: px(0.),
+            inset: (theme::SPACE_3, theme::SPACE_3),
         }
     }
 
@@ -95,6 +98,12 @@ impl TextInput {
         self.marked_range = None;
         cx.emit(InputEvent::Changed);
         cx.notify();
+    }
+
+    /// Room for adornments drawn over the field (see `Input`).
+    pub fn inset(mut self, left: Pixels, right: Pixels) -> Self {
+        self.inset = (left, right);
+        self
     }
 
     /// Grow to several soft-wrapped lines; Enter inserts a newline.
@@ -134,7 +143,8 @@ impl Render for TextInput {
             .w_full()
             .when(!self.multiline, |d| d.h(theme::CONTROL_H))
             .when(self.multiline, |d| d.items_start().min_h(theme::CONTROL_H).py(theme::SPACE_2P5))
-            .px(theme::SPACE_3)
+            .pl(self.inset.0)
+            .pr(self.inset.1)
             .rounded(theme::RADIUS_LG)
             .border_1()
             .border_color(if focused { theme::focus_ring() } else { theme::border() })

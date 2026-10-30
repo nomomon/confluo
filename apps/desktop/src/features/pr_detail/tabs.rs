@@ -4,16 +4,15 @@ use gpui::{div, prelude::*, AnyElement, Context};
 
 use crate::app::GitViewer;
 use crate::state::{DetailState, DetailTab};
-use crate::ui::molecules::markdown::markdown;
-use crate::ui::molecules::{Card, SegmentedTabs};
+use crate::ui::molecules::{Card, Tabs, TabsVariant};
 use crate::ui::theme;
 
 impl GitViewer {
     pub(super) fn render_detail_tabs(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
         let threads = d.detail.as_ref().map(|x| x.threads.len()).unwrap_or(0);
         let files = d.code.files.as_ref().map(|f| f.len() as u32).or(d.summary.changed_files);
-        SegmentedTabs::new("detail-tabs")
-            .floating()
+        Tabs::new("detail-tabs")
+            .variant(TabsVariant::Floating)
             .tab("Summary", d.tab == DetailTab::Summary)
             .tab(files.map(|n| format!("Code {n}")).unwrap_or_else(|| "Code".into()), d.tab == DetailTab::Code)
             .tab(format!("Activity {threads}"), d.tab == DetailTab::Activity)
@@ -38,7 +37,7 @@ impl GitViewer {
             Some(det) if det.description.trim().is_empty() => {
                 div().text_size(theme::text_sm()).text_color(theme::text_subtle()).child("No description").into_any_element()
             }
-            Some(det) => div().flex().flex_col().gap(theme::SPACE_2).children(markdown("desc", &det.description)).into_any_element(),
+            Some(det) => self.markdown("desc", &det.description).into_any_element(),
         };
         div()
             .flex()

@@ -2,10 +2,10 @@
 
 use gpui::{div, prelude::*, ClickEvent, Context, PathPromptOptions};
 
-use crate::app::{GitViewer, Overlay};
+use crate::app::GitViewer;
 use crate::state::SourceKind;
 use crate::ui::atoms::{Button, ButtonVariant, Chip, ErrorText};
-use crate::ui::molecules::{Field, SegmentedTabs};
+use crate::ui::molecules::{Field, Tabs, TabsVariant};
 use crate::ui::theme;
 
 const KINDS: [(&str, SourceKind); 3] = [("Folder", SourceKind::Folder), ("Repo", SourceKind::Repo), ("Group", SourceKind::Group)];
@@ -14,7 +14,7 @@ impl GitViewer {
     pub(super) fn render_add_project(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let kinds = KINDS
             .iter()
-            .fold(SegmentedTabs::new("add-kind"), |t, (label, k)| t.tab(*label, self.add_kind == *k))
+            .fold(Tabs::new("add-kind").variant(TabsVariant::Underline), |t, (label, k)| t.tab(*label, self.add_kind == *k))
             .on_select(cx.listener(|this, i: &usize, _, cx| {
                 this.add_kind = KINDS[*i].1;
                 cx.notify();
@@ -68,23 +68,15 @@ impl GitViewer {
             .child(Button::new("rename-save", "Save").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.save_rename(cx))))
     }
 
-    pub(super) fn render_confirm_delete(&self, id: i64, cx: &mut Context<Self>) -> impl IntoElement {
-        let name = self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default();
+    /// Footer buttons of the delete confirmation.
+    pub(super) fn render_confirm_delete_footer(&self, id: i64, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .flex()
-            .flex_col()
-            .gap(theme::SPACE_3)
-            .child(div().text_color(theme::text_muted()).child(format!("Delete \"{name}\"? Its repos and cached pull requests are removed from Confluo. Nothing changes on the server.")))
-            .child(
-                div()
-                    .flex()
-                    .justify_end()
-                    .gap(theme::SPACE_2)
-                    .child(Button::new("delete-cancel", "Cancel").variant(ButtonVariant::Ghost).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
-                        this.overlay = Overlay::None;
-                        cx.notify()
-                    })))
-                    .child(Button::new("delete-confirm", "Delete").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.delete_project(id, cx)))),
-            )
+            .gap(theme::SPACE_2)
+            .child(Button::new("delete-cancel", "Cancel").variant(ButtonVariant::Ghost).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                this.close_confirm();
+                cx.notify()
+            })))
+            .child(Button::new("delete-confirm", "Delete").variant(ButtonVariant::Destructive).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.delete_project(id, cx))))
     }
 }

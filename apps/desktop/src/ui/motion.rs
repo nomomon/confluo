@@ -54,9 +54,10 @@ pub const LIST_INSERT: Motion = Motion { ms: 180, easing: Easing::EaseOutQuint }
 
 static REDUCED: AtomicBool = AtomicBool::new(false);
 
-/// Read the OS reduced-motion preference once at startup.
+/// Read the OS reduced-motion preference once at startup. Dev: `CONFLUO_REDUCE_MOTION=1` forces it
+/// (screenshots of a window that gets no animation frames, e.g. while the screen is locked).
 pub fn init() {
-    REDUCED.store(system_prefers_reduced_motion(), Ordering::Relaxed);
+    REDUCED.store(std::env::var_os("CONFLUO_REDUCE_MOTION").is_some() || system_prefers_reduced_motion(), Ordering::Relaxed);
 }
 
 pub fn reduced_motion() -> bool {

@@ -5,8 +5,8 @@ use gpui::{div, prelude::*, ClickEvent, Context, MouseDownEvent};
 use crate::app::{GitViewer, Menu};
 use crate::features::shared::{number_label, relative_time};
 use crate::state::{Copied, DetailState};
-use crate::ui::atoms::{tooltip, Avatar, Button, ButtonVariant, IconName, NavItem, Pill};
-use crate::ui::molecules::DropdownMenu;
+use crate::ui::atoms::{tooltip, Avatar, Button, ButtonVariant, IconName, Pill};
+use crate::ui::molecules::{DropdownMenu, MenuItem};
 use crate::ui::theme;
 
 impl GitViewer {
@@ -66,7 +66,13 @@ impl GitViewer {
                 this.menu = None;
                 cx.notify()
             }))
-            .child(NavItem::new("menu-alias", "Set alias").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+            .child(MenuItem::new("menu-open", "Open in browser").icon(IconName::ExternalLink).shortcut("O").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+                this.menu = None;
+                if let Some(d) = &this.detail {
+                    cx.open_url(&d.summary.web_url)
+                }
+            })))
+            .child(MenuItem::new("menu-alias", "Set alias").icon(IconName::Pencil).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 this.menu = None;
                 this.open_alias(Some(repo.clone()), cx)
             })))

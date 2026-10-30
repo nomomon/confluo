@@ -8,6 +8,7 @@ use tokio::sync::OnceCell;
 
 mod checks;
 mod edit;
+mod extras;
 mod inline;
 mod review;
 
@@ -272,6 +273,7 @@ fn comment(v: &Value) -> Comment {
             path: p.to_string(),
             line: v["line"].as_u64().or_else(|| v["originalLine"].as_u64()).map(|l| l as u32),
         }),
+        reactions: extras::reactions(v),
     }
 }
 
@@ -289,6 +291,7 @@ fn rest_comment(v: &Value) -> Comment {
         body: s(&v["body"]),
         created_at: time(&v["created_at"]),
         position: v["path"].as_str().map(|p| InlinePosition { path: p.into(), line: v["line"].as_u64().map(|l| l as u32) }),
+        reactions: vec![],
     }
 }
 
@@ -394,14 +397,16 @@ impl Provider for GitHubProvider {
         let me = self.me().await?;
         let query = format!(
             "query($o: String!, $n: String!, $num: Int!) {{ repository(owner: $o, name: $n) {{ pullRequest(number: $num) {{
-               {PR_FIELDS} {} {} body mergedAt closedAt mergedBy {{ login avatarUrl }}
-               comments(first: 100) {{ nodes {{ id body createdAt author {{ login avatarUrl ... on User {{ name }} }} }} }}
-               reviews(first: 50) {{ nodes {{ id state body createdAt author {{ login avatarUrl ... on User {{ name }} }} }} }}
+               {PR_FIELDS} {} {} {} {R} body mergedAt closedAt mergedBy {{ login avatarUrl }}
+               comments(first: 100) {{ nodes {{ id body createdAt author {{ login avatarUrl ... on User {{ name }} }} {R} }} }}
+               reviews(first: 50) {{ nodes {{ id state body createdAt commit {{ oid }} author {{ login avatarUrl ... on User {{ name }} }} {R} }} }}
                reviewThreads(first: 100) {{ nodes {{ {} }} }}
              }} }} }}",
             edit::EDIT_FIELDS,
             checks::CHECK_FIELDS,
-            inline::THREAD_FIELDS
+            extras::PR_EXTRA_FIELDS,
+            inline::THREAD_FIELDS,
+            R = extras::REACTION_FIELDS,
         );
         let d = self.gql(&query, json!({"o": owner, "n": name, "num": id.number})).await?;
         let pr = &d["repository"]["pullRequest"];
@@ -436,6 +441,11 @@ impl Provider for GitHubProvider {
             description: s(&pr["body"]),
             threads,
             head_sha: pr["commits"]["nodes"][0]["commit"]["oid"].as_str().map(str::to_string),
+            reactions: extras::reactions(pr),
+            commits: extras::commits(pr),
+            my_review_sha: extras::my_review_sha(pr, &me),
+            viewed: extras::viewed(pr),
+            node_id: pr["id"].as_str().map(str::to_string),
         })
     }
 
@@ -556,6 +566,15 @@ impl Provider for GitHubProvider {
 
     async fn rerun_failed(&self, id: &ChangeRequestId, target: &str) -> ProviderResult<()> {
         self.do_rerun(id, target).await
+    }
+
+    async fn react(&self, _id: &ChangeRequestId, subject: &str, kind: ReactionKind, add: bool) -> ProviderResult<()> {
+        self.do_react(subject, kind, add).await
+    }
+
+    async fn set_file_viewed(&self, _id: &ChangeRequestId, pr_node: Option<&str>, path: &str, viewed: bool) -> ProviderResult<()> {
+        let node = pr_node.ok_or_else(|| ProviderError::Unsupported("viewed files without a PR id".into()))?;
+        self.do_set_viewed(node, path, viewed).await
     }
 
     async fn edit_comment(&self, _id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment> {

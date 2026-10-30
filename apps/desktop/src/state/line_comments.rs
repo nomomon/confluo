@@ -85,7 +85,7 @@ impl GitViewer {
         inline.clear_modes();
         inline.posting = true;
         let me = User::named(d.me.clone().unwrap_or_else(|| "you".into()));
-        let pending = Comment { id: "pending".into(), author: me, body: body.clone(), created_at: Utc::now(), position: None };
+        let pending = Comment { id: "pending".into(), author: me, body: body.clone(), created_at: Utc::now(), position: None, reactions: vec![] };
         if let Some(det) = d.detail.as_mut() {
             match &mode {
                 Mode::Edit(cid) => det.threads.iter_mut().flat_map(|t| t.comments.iter_mut()).filter(|c| &c.id == cid).for_each(|c| c.body = body.clone()),

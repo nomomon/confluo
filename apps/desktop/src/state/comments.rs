@@ -16,7 +16,7 @@ impl GitViewer {
         }
         let id = d.summary.id.clone();
         let me = User::named(d.me.clone().unwrap_or_else(|| "you".into()));
-        let optimistic = Comment { id: "pending".into(), author: me, body: body.clone(), created_at: Utc::now(), position: None };
+        let optimistic = Comment { id: "pending".into(), author: me, body: body.clone(), created_at: Utc::now(), position: None, reactions: vec![] };
         let reply_to = d.reply_to.take();
         let editing = d.editing.take();
         if let Some(det) = d.detail.as_mut() {

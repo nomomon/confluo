@@ -8,6 +8,7 @@ mod inline;
 mod model;
 mod needs_you;
 mod provider;
+mod reactions;
 mod review;
 mod stale;
 
@@ -19,5 +20,6 @@ pub use inline::{index_inline_threads, InlineIndex, LineKey};
 pub use model::*;
 pub use needs_you::compute_needs_you;
 pub use provider::{Provider, ProviderError, ProviderResult};
+pub use reactions::*;
 pub use review::*;
 pub use stale::*;

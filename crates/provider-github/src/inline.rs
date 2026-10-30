@@ -6,7 +6,8 @@ use serde_json::{json, Value};
 
 /// GraphQL selection for one review thread node.
 pub(crate) const THREAD_FIELDS: &str = r#"id isResolved isOutdated path line originalLine startLine originalStartLine diffSide startDiffSide
-  comments(first: 50) { nodes { id body createdAt path line originalLine author { login avatarUrl ... on User { name } } } }"#;
+  comments(first: 50) { nodes { id body createdAt path line originalLine author { login avatarUrl ... on User { name } }
+    reactionGroups { content viewerHasReacted reactors(first: 5) { totalCount nodes { ... on User { login } ... on Bot { login } } } } } }"#;
 
 fn side(v: &Value) -> DiffSide {
     if v.as_str() == Some("LEFT") { DiffSide::Old } else { DiffSide::New }

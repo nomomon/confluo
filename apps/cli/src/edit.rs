@@ -34,6 +34,16 @@ pub enum EditCmd {
     },
     /// Mark as draft (`on`) or ready for review (`off`).
     Draft { target: String, state: String },
+    /// Add (or with --remove, remove) my reaction: +1 -1 laugh hooray confused heart rocket eyes.
+    React {
+        target: String,
+        kind: String,
+        #[arg(long)]
+        remove: bool,
+        /// Comment id; the PR itself when omitted.
+        #[arg(long)]
+        comment: Option<String>,
+    },
     /// Close a PR/MR.
     Close { target: String },
     /// Reopen a closed PR/MR.
@@ -107,6 +117,16 @@ pub async fn run(engine: &Engine, cmd: EditCmd) -> Result<()> {
             engine.detail(&id, true).await?;
             engine.set_draft(&id, draft).await?;
             println!("{id} {}", if draft { "marked as draft" } else { "ready for review" });
+        }
+        EditCmd::React { target, kind, remove, comment } => {
+            let id = engine.resolve_id(&target)?;
+            let Some(k) = ReactionKind::parse(&kind) else { bail!("unknown reaction {kind}") };
+            engine.detail(&id, false).await?;
+            engine.react(&id, comment.as_deref(), k, !remove).await?;
+            let d = engine.detail(&id, false).await?;
+            for g in &d.reactions {
+                println!("{} {} {}{}", g.kind.github_rest(), g.count, g.users.join(","), if g.me { " (me)" } else { "" });
+            }
         }
         EditCmd::Close { target } => set_open(engine, &target, false).await?,
         EditCmd::Reopen { target } => set_open(engine, &target, true).await?,

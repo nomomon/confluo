@@ -215,6 +215,8 @@ pub struct Comment {
     pub body: String,
     pub created_at: DateTime<Utc>,
     pub position: Option<InlinePosition>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reactions: Vec<crate::ReactionGroup>,
 }
 
 /// Which side of a diff a line belongs to: the base (old) or the head (new) file.
@@ -298,6 +300,21 @@ pub struct ChangeRequestDetail {
     /// Every check of the head commit with timing and links.
     #[serde(default)]
     pub checks: crate::ChecksInfo,
+    /// Reactions on the PR itself (its description).
+    #[serde(default)]
+    pub reactions: Vec<crate::ReactionGroup>,
+    /// Commits, oldest first.
+    #[serde(default)]
+    pub commits: Vec<crate::CommitInfo>,
+    /// Head sha of my latest review, for "changes since your last review".
+    #[serde(default)]
+    pub my_review_sha: Option<String>,
+    /// Provider-side viewed state per path (GitHub `viewerViewedState`); None when the provider has none.
+    #[serde(default)]
+    pub viewed: Option<std::collections::HashMap<String, bool>>,
+    /// GraphQL node id of the PR, when the provider has one.
+    #[serde(default)]
+    pub node_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]

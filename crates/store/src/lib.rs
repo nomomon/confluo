@@ -55,6 +55,8 @@ pub struct CacheQuery {
     pub include_hidden: bool,
 }
 
+mod viewed;
+
 pub struct Store {
     conn: Mutex<Connection>,
 }
@@ -74,6 +76,7 @@ CREATE TABLE IF NOT EXISTS details (key TEXT PRIMARY KEY, data TEXT NOT NULL, fe
 CREATE TABLE IF NOT EXISTS diffs (key TEXT PRIMARY KEY, sha TEXT NOT NULL, data TEXT NOT NULL, fetched_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS starred (key TEXT PRIMARY KEY);
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS viewed (pr TEXT NOT NULL, path TEXT NOT NULL, fp TEXT NOT NULL, PRIMARY KEY (pr, path));
 "#;
 
 impl Store {

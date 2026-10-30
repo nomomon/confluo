@@ -93,6 +93,14 @@ pub trait Provider: Send + Sync {
     async fn rerun_failed(&self, _id: &ChangeRequestId, _target: &str) -> ProviderResult<()> {
         Err(ProviderError::Unsupported(format!("re-running checks on {}", self.kind())))
     }
+    /// Add or remove my reaction on a comment (`subject` is its id) or, with `subject` empty, on the PR.
+    async fn react(&self, _id: &ChangeRequestId, _subject: &str, _kind: ReactionKind, _add: bool) -> ProviderResult<()> {
+        Err(ProviderError::Unsupported(format!("reactions on {}", self.kind())))
+    }
+    /// Mark a file viewed on the provider (GitHub only; others keep it locally).
+    async fn set_file_viewed(&self, _id: &ChangeRequestId, _pr_node: Option<&str>, _path: &str, _viewed: bool) -> ProviderResult<()> {
+        Err(ProviderError::Unsupported(format!("viewed files on {}", self.kind())))
+    }
     /// Files changed by the PR/MR with parsed hunks.
     async fn list_changed_files(&self, id: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>>;
     /// Whole file at `rev` (a commit sha); None when it does not exist there.

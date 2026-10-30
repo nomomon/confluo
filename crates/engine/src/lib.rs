@@ -14,10 +14,12 @@ use std::time::{Duration, Instant};
 mod avatars;
 mod bot_settings;
 mod edit;
+mod extras;
 mod quiet;
 mod review;
 
 pub use avatars::small_avatar_url;
+pub use extras::viewed_paths;
 pub use bot_settings::{bot_filter_from_settings, stale_days_from_settings};
 pub use quiet::Listing;
 pub use gv_core::*;

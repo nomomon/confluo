@@ -10,6 +10,7 @@ use tokio::sync::{OnceCell, RwLock};
 
 mod checks;
 mod edit;
+mod extras;
 mod inline;
 mod review;
 
@@ -67,6 +68,7 @@ fn note_to_comment(n: &Value) -> Comment {
             path: p.to_string(),
             line: pos["new_line"].as_u64().or(pos["old_line"].as_u64()).map(|l| l as u32),
         }),
+        reactions: vec![],
     }
 }
 
@@ -400,6 +402,9 @@ impl Provider for GitLabProvider {
             summary.deletions = Some(d);
         }
         let discussions = self.get_all(&format!("{base}/discussions")).await?;
+        // One request each; award emoji per note would be one per note, so notes carry none.
+        let awards = self.get(&format!("{base}/award_emoji")).await.ok().and_then(|v| v.as_array().cloned()).unwrap_or_default();
+        let commits = self.get(&format!("{base}/commits?per_page=100")).await.ok().and_then(|v| v.as_array().cloned()).unwrap_or_default();
         let review = match self.get(&format!("{base}/approvals")).await {
             Ok(a) => review::review_info(&summary, &me, &a),
             Err(_) => ReviewInfo { caps: gitlab_capabilities(&summary, &me, false, !summary.author.username.eq_ignore_ascii_case(&me)), my_state: my_review_state(&summary, &me), approvals: None },
@@ -433,7 +438,16 @@ impl Provider for GitLabProvider {
             description: s(&v["description"]),
             threads,
             head_sha: v["sha"].as_str().map(str::to_string),
+            reactions: extras::awards(&awards, &me),
+            commits: extras::commits(&commits),
+            my_review_sha: None,
+            viewed: None,
+            node_id: None,
         })
+    }
+
+    async fn react(&self, id: &ChangeRequestId, subject: &str, kind: ReactionKind, add: bool) -> ProviderResult<()> {
+        self.do_react(id, subject, kind, add).await
     }
 
     async fn list_repos(&self, owner: &str) -> ProviderResult<Vec<RepoRef>> {

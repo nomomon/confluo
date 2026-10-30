@@ -157,8 +157,18 @@ impl Combobox {
 }
 
 impl RenderOnce for Combobox {
-    fn render(mut self, _: &mut Window, _: &mut App) -> impl IntoElement {
+    fn render(mut self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let n = self.options.len();
+        // Kept per combobox so keyboard moves can reveal the highlighted row.
+        let scroll = window
+            .use_keyed_state(
+                ElementId::Name(format!("{}-scroll", self.id).into()),
+                cx,
+                |_, _| gpui::ScrollHandle::new(),
+            )
+            .read(cx)
+            .clone();
+        let reveal = scroll.clone();
         let (hl, on_hl) = (self.highlight, self.on_highlight.clone());
         let options = std::mem::take(&mut self.options);
         let rows: Vec<AnyElement> = options
@@ -219,6 +229,8 @@ impl RenderOnce for Combobox {
                     "up" => hl.saturating_sub(1),
                     _ => return,
                 };
+                // Rows are the list's first children, so row i is child i.
+                reveal.scroll_to_item(next);
                 if let Some(f) = &on_hl {
                     f(&next, window, cx)
                 }
@@ -228,6 +240,7 @@ impl RenderOnce for Combobox {
             .child(
                 div()
                     .id(ElementId::Name(format!("{}-list", self.id).into()))
+                    .track_scroll(&scroll)
                     .max_h(LIST_MAX_H)
                     .map(crate::ui::scroll::y_only)
                     .p(theme::SPACE_1)

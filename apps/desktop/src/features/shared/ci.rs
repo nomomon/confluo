@@ -59,7 +59,10 @@ pub struct CiCard {
 
 impl CiCard {
     pub fn tooltip(sum: CheckSummary, info: Option<ChecksInfo>) -> impl Fn(&mut Window, &mut App) -> AnyView + 'static {
-        move |_, cx| {
+        move |window, cx| {
+            if crate::ui::layer::blocks(window.mouse_position()) {
+                return cx.new(|_| crate::ui::atoms::EmptyTooltip).into();
+            }
             let now = Utc::now();
             let rows = info.as_ref().map(|c| c.sorted().into_iter().map(|r| (r.status, r.name.clone(), r.duration_secs(now).map(format_duration))).collect()).unwrap_or_default();
             let summary = ci_words(&sum);

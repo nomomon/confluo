@@ -3,7 +3,7 @@
 use gpui::{prelude::*, AnyElement, ClickEvent, Context, MouseDownEvent};
 use gv_engine::{ChangeRequest, SnoozeKind};
 
-use crate::app::GitViewer;
+use crate::app::{GitViewer, Layer};
 use crate::features::keymap::{self, CopyLink, OpenInBrowser, ToggleStar};
 use crate::state::Copied;
 use crate::ui::atoms::IconName;
@@ -24,13 +24,13 @@ impl GitViewer {
     }
 
     pub(super) fn render_row_menu(&self, c: &ChangeRequest, cx: &mut Context<Self>) -> Option<AnyElement> {
-        let (id, at) = self.quiet.row_menu.as_ref().filter(|(id, _)| *id == c.id)?;
+        let Some(Layer::Row(id, at)) = self.layer.as_ref().filter(|l| matches!(l, Layer::Row(id, _) if *id == c.id)) else { return None };
         let (url, link, sid) = (c.web_url.clone(), c.web_url.clone(), id.clone());
         let starred = self.starred.contains(id);
-        let close = |this: &mut Self| this.quiet.row_menu = None;
+        let close = |this: &mut Self| this.layer = None;
         let menu = ContextMenu::new(format!("row-ctx-{}", id.key()), *at)
             .on_dismiss(cx.listener(|this, _: &MouseDownEvent, _, cx| {
-                this.quiet.row_menu = None;
+                this.layer = None;
                 cx.notify()
             }))
             .child(MenuItem::new("row-open", "Open in browser").icon(IconName::ExternalLink).shortcut(keymap::kbd::<OpenInBrowser>()).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {

@@ -106,8 +106,7 @@ impl GitViewer {
             .py(theme::row_pad_y())
             .list_item(is_selected)
             .on_mouse_down(MouseButton::Right, cx.listener(move |this, ev: &MouseDownEvent, _, cx| {
-                this.quiet.row_menu = Some((menu_id.clone(), ev.position));
-                cx.notify()
+                this.open_layer(crate::app::Layer::Row(menu_id.clone(), ev.position), cx)
             }))
             .on_click(cx.listener(move |this, ev: &ClickEvent, window, cx| {
                 this.set_cursor(cr.id.clone(), cx);

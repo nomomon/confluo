@@ -1,12 +1,13 @@
 //! Reaction chips under a comment or the description (emoji and count, highlighted when mine,
 //! who reacted on hover) and an "add reaction" button with a picker of the eight shared reactions.
 
-use gpui::{deferred, div, prelude::*, AnyElement, ClickEvent, Context, MouseDownEvent, SharedString};
+use gpui::{div, prelude::*, AnyElement, ClickEvent, Context, MouseDownEvent, SharedString};
 use gv_engine::{ReactionGroup, ReactionKind};
 
-use crate::app::GitViewer;
+use crate::app::{GitViewer, Layer};
 use crate::ui::atoms::{tooltip, Icon, IconName};
-use crate::ui::{motion, theme};
+use crate::ui::molecules::{Placement, Popover};
+use crate::ui::theme;
 
 const EMOJI_FONT: &str = "Apple Color Emoji";
 
@@ -52,7 +53,7 @@ impl GitViewer {
                 .child(div().text_size(theme::text_xs()).text_color(if g.me { theme::accent() } else { theme::text_muted() }).child(g.count.to_string()))
                 .into_any_element()
         }).collect();
-        let open = self.review.reaction_picker.as_deref() == Some(k.as_str());
+        let open = matches!(&self.layer, Some(Layer::Reactions(x)) if *x == k);
         let add = can_add.then(|| {
             let k2 = k.clone();
             let btn = div()
@@ -67,8 +68,7 @@ impl GitViewer {
                 .when(groups.is_empty() && !open, |e| e.opacity(0.).group_hover(hover_group.clone(), |s| s.opacity(1.)))
                 .tooltip(tooltip("Add reaction"))
                 .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
-                    this.review.reaction_picker = if this.review.reaction_picker.as_deref() == Some(k2.as_str()) { None } else { Some(k2.clone()) };
-                    cx.notify()
+                    this.toggle_layer(Layer::Reactions(k2.clone()), cx)
                 }))
                 .child(Icon::new(IconName::MoodPlus).size(theme::ICON_MD).color(theme::text_subtle()));
             div().relative().child(btn).children(open.then(|| self.reaction_picker(subject, cx)))
@@ -93,7 +93,7 @@ impl GitViewer {
                 .font_family(EMOJI_FONT)
                 .text_size(theme::text_base())
                 .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
-                    this.review.reaction_picker = None;
+                    this.layer = None;
                     this.toggle_reaction(sub.clone(), kind, cx)
                 }))
                 .child(kind.emoji())
@@ -106,12 +106,10 @@ impl GitViewer {
             .border_color(theme::border())
             .bg(theme::overlay())
             .shadow_lg()
-            .occlude()
-            .on_mouse_down_out(cx.listener(|this, _: &MouseDownEvent, _, cx| {
-                this.review.reaction_picker = None;
-                cx.notify()
-            }))
             .children(items);
-        deferred(div().absolute().top(theme::SPACE_7).left_0().child(motion::pop_in(panel, SharedString::from(format!("rx-picker-{k}"))))).with_priority(2)
+        Popover::new(SharedString::from(format!("rx-picker-{k}")))
+            .placement(Placement::BottomStart)
+            .on_dismiss(cx.listener(|this, _: &MouseDownEvent, _, cx| this.dismiss_layer(cx)))
+            .child(panel)
     }
 }

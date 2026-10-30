@@ -245,7 +245,15 @@ Molecules:
 - `CopyField`, `EmptyState`, `KeyValueRow`, `FloatingToolbar` (selection pill; `.animate(false)` for keyboard moves)
 - `Dialog`: `Dialog::new("Delete").description("..").content(..).footer(buttons)`; `Dialog::bare().size(w, h)` for custom chrome
 - `MenuItem::disabled(true).tooltip("Why")` for an action that exists but is not allowed (e.g. approving your own PR)
-- `DropdownMenu`: `DropdownMenu::new(id).top(..).right(..).on_dismiss(..)` with `MenuItem::new(id, "Delete").icon(..).shortcut("⌘ D").destructive()`, `MenuSeparator`, `MenuLabel::new("Project")`
+- `Popover`: `Popover::new(id).placement(Placement::BottomEnd).offset(gap).on_dismiss(..).child(panel)`, the one primitive for
+  floating panels: rendered inside a `relative()` wrapper of the trigger, painted through `deferred(anchored())` at the window
+  root (escapes clipping and later siblings such as the right panel), flips then shifts to stay on screen, and records its
+  bounds in `ui::layer` so tooltips and hover cards outside it stay hidden. `ContextMenu`, `Select` and `Combobox` use the same
+  `deferred(anchored())` and `layer::track`.
+- Floating layers: `state::Layer` (More, Review, project menus, checks popover, reaction picker, row context menu) is the one open
+  transient layer; `open_layer` / `toggle_layer` close the others (and the repo menu and people picker), a press outside calls
+  `dismiss_layer` (the same press on the trigger does not reopen it), Esc closes it, hold-Cmd hints hide while one is open.
+- `DropdownMenu`: `DropdownMenu::new(id).placement(..).on_dismiss(..)` (a `Popover`, default `BottomEnd`) with `MenuItem::new(id, "Delete").icon(..).shortcut("⌘ D").destructive()`, `MenuSeparator`, `MenuLabel::new("Project")`
 - `Field`: `Field::new("Source", input)`; settings row `Field::new("Refresh", select).description("..").horizontal()`
 - `Input`: `Input::new("search", entity, has_text).leading(IconName::Search).on_clear(..)` (create the entity with `TextInput::new(..).inset(INPUT_INSET, INPUT_INSET)`)
 - `ListSection`: collapsible header and count above a rounded card of divided rows

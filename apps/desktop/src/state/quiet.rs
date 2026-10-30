@@ -1,6 +1,6 @@
 //! Stale PRs and local snoozes: what the list leaves out and the undo for a snooze.
 
-use gpui::{Context, Pixels, Point};
+use gpui::Context;
 use gv_engine::{ChangeRequest, ChangeRequestId, Snooze, SnoozeKind};
 
 use super::err_str;
@@ -15,8 +15,6 @@ pub struct QuietState {
     pub show_stale: bool,
     /// How many PRs a snooze or hide leaves out.
     pub snoozed: usize,
-    /// A row's context menu at the pointer.
-    pub row_menu: Option<(ChangeRequestId, Point<Pixels>)>,
     /// The last snooze, for the toast's Undo.
     pub undo: Option<(ChangeRequestId, Option<Snooze>)>,
 }
@@ -24,8 +22,7 @@ pub struct QuietState {
 impl GitViewer {
     /// Snooze or hide a PR locally; the toast offers Undo.
     pub(crate) fn snooze(&mut self, cr: &ChangeRequest, kind: SnoozeKind, cx: &mut Context<Self>) {
-        self.quiet.row_menu = None;
-        self.menu = None;
+        self.layer = None;
         match self.engine.set_snooze(cr, Some(kind)) {
             Ok(prev) => {
                 let text = match kind {

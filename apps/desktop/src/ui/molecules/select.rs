@@ -121,7 +121,7 @@ impl RenderOnce for Select {
             });
         let list = open.then(|| {
             let st_out = state.clone();
-            let panel = div()
+            let panel = crate::ui::layer::track(div())
                 .mt(theme::SPACE_1)
                 .min_w(px(160.))
                 .p(theme::SPACE_1)

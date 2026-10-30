@@ -15,7 +15,7 @@ const SHEET_H: gpui::Pixels = px(580.);
 impl GitViewer {
     /// `?`, Help > Keyboard Shortcuts, or the palette: open (or close) the cheat sheet.
     pub(crate) fn open_shortcuts(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.menu = None;
+        self.layer = None;
         self.overlay = if self.overlay == Overlay::Shortcuts { Overlay::None } else { Overlay::Shortcuts };
         window.focus(&self.focus);
         cx.notify();

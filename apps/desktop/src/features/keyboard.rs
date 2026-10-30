@@ -126,9 +126,8 @@ impl GitViewer {
 
     /// Escape closes the topmost thing: menu, dialog, detail, then the search text.
     fn dismiss(&mut self, _: &Dismiss, window: &mut Window, cx: &mut Context<Self>) {
-        if self.menu.is_some() || self.quiet.row_menu.is_some() {
-            self.menu = None;
-            self.quiet.row_menu = None;
+        if self.close_layers(cx) {
+            // Closed the open menu, popover or picker.
         } else if self.overlay != Overlay::None {
             self.overlay = Overlay::None;
         } else if self.cancel_edits(cx) {
@@ -139,8 +138,6 @@ impl GitViewer {
             // Cleared the line selection.
         } else if self.reviewing && self.review.quick_open {
             self.review.quick_open = false;
-        } else if self.reviewing && self.review.checks_open {
-            self.review.checks_open = false;
         } else if self.reviewing && self.tree_filter.focus_handle(cx).is_focused(window) {
             self.tree_filter.update(cx, |i, cx| i.set_text("", cx));
         } else if self.reviewing {

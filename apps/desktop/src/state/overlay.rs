@@ -6,9 +6,12 @@ use gv_engine::RepoRef;
 use super::err_str;
 use crate::app::GitViewer;
 
-/// Which popover menu is open.
-#[derive(Clone, Copy, PartialEq)]
-pub enum Menu {
+/// The one transient floating layer that is open. Opening any of them closes the others (and the
+/// repository menu and people picker, kept apart for their own state); hover cards and tooltips stay
+/// hidden while one is open (`ui::layer`); a press outside it or Esc closes it.
+#[derive(Clone, PartialEq, Debug)]
+pub enum Layer {
+    /// The detail's More menu.
     DetailMore,
     /// The detail header's Review dropdown.
     Review,
@@ -16,6 +19,12 @@ pub enum Menu {
     Project(i64),
     /// A sidebar project's context menu at the pointer.
     ProjectAt(i64, gpui::Point<gpui::Pixels>),
+    /// The checks popover of the CI icon.
+    Checks,
+    /// The reaction picker of the PR (`""`) or of a comment (its id).
+    Reactions(String),
+    /// A list row's context menu at the pointer.
+    Row(gv_engine::ChangeRequestId, gpui::Point<gpui::Pixels>),
 }
 
 /// Which modal dialog is open.
@@ -84,6 +93,50 @@ pub enum BotList {
 }
 
 impl GitViewer {
+    /// Open `layer`, closing whatever floating layer was open (menus, popovers, pickers).
+    pub(crate) fn open_layer(&mut self, layer: Layer, cx: &mut Context<Self>) {
+        self.close_layers(cx);
+        self.layer = Some(layer);
+        cx.notify();
+    }
+
+    /// A press outside the open layer: close it (its trigger's click then keeps it closed).
+    pub(crate) fn dismiss_layer(&mut self, cx: &mut Context<Self>) {
+        if let Some(l) = self.layer.take() {
+            self.layer_dismissed = Some((l, std::time::Instant::now()));
+            cx.notify();
+        }
+    }
+
+    /// Open `layer`, or close it when it is the one open (trigger buttons).
+    pub(crate) fn toggle_layer(&mut self, layer: Layer, cx: &mut Context<Self>) {
+        let just_closed = self.layer_dismissed.take().is_some_and(|(l, at)| l == layer && at.elapsed() < super::timing::LAYER_REOPEN_GUARD);
+        if just_closed {
+            return;
+        }
+        if self.layer.as_ref() == Some(&layer) {
+            self.layer = None;
+            cx.notify();
+        } else {
+            self.open_layer(layer, cx)
+        }
+    }
+
+    /// Close every floating layer. True when something was open.
+    pub(crate) fn close_layers(&mut self, cx: &mut Context<Self>) -> bool {
+        let people = self.detail.as_mut().is_some_and(|d| d.ui.people.take().is_some());
+        let open = self.layer.take().is_some() || self.repo_menu.take().is_some() || people;
+        if open {
+            cx.notify();
+        }
+        open
+    }
+
+    /// A menu, popover or picker is open (hover cards and shortcut hints stay hidden meanwhile).
+    pub(crate) fn layer_open(&self) -> bool {
+        self.layer.is_some() || self.repo_menu.is_some() || self.detail.as_ref().is_some_and(|d| d.ui.people.is_some())
+    }
+
     pub(crate) fn open_settings(&mut self, page: Option<SettingsPage>, cx: &mut Context<Self>) {
         self.overlay = Overlay::Settings;
         if let Some(p) = page {

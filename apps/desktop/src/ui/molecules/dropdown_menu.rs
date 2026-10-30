@@ -1,34 +1,37 @@
-//! Floating menu panel; position it with `Styled` methods such as `.top()` and `.right()`.
+//! Menu panel under (or above) its trigger, through `Popover`: render it inside a `relative()`
+//! wrapper around the trigger button.
 //!
-//! `DropdownMenu::new("detail-more").top(..).right(..).on_dismiss(..).child(NavItem::new(..))`
+//! `DropdownMenu::new("detail-more").placement(Placement::BottomEnd).on_dismiss(..).child(MenuItem::new(..))`
 
-use gpui::{div, prelude::*, AnyElement, App, Div, MouseDownEvent, SharedString, StyleRefinement, Window};
+use gpui::{div, prelude::*, AnyElement, App, MouseDownEvent, SharedString, Window};
 
-use crate::ui::{motion, theme, MouseDownHandler};
+use super::{Placement, Popover};
+use crate::ui::{theme, MouseDownHandler};
 
 #[derive(IntoElement)]
 pub struct DropdownMenu {
     id: SharedString,
-    base: Div,
+    placement: Placement,
     children: Vec<AnyElement>,
     on_dismiss: Option<MouseDownHandler>,
 }
 
+#[allow(dead_code)] // kit API
 impl DropdownMenu {
     pub fn new(id: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), base: div(), children: vec![], on_dismiss: None }
+        Self { id: id.into(), placement: Placement::BottomEnd, children: vec![], on_dismiss: None }
+    }
+
+    /// Default `BottomEnd` (right-aligned under the trigger).
+    pub fn placement(mut self, p: Placement) -> Self {
+        self.placement = p;
+        self
     }
 
     /// Called on a mouse press outside the menu.
     pub fn on_dismiss(mut self, f: impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static) -> Self {
         self.on_dismiss = Some(Box::new(f));
         self
-    }
-}
-
-impl Styled for DropdownMenu {
-    fn style(&mut self) -> &mut StyleRefinement {
-        self.base.style()
     }
 }
 
@@ -51,8 +54,11 @@ impl RenderOnce for DropdownMenu {
             .border_color(theme::border())
             .bg(theme::overlay())
             .shadow_lg()
-            .children(self.children)
-            .when_some(self.on_dismiss, |el, f| el.on_mouse_down_out(f));
-        self.base.absolute().occlude().child(motion::pop_in(panel, self.id))
+            .children(self.children);
+        let pop = Popover::new(self.id).placement(self.placement).child(panel);
+        match self.on_dismiss {
+            Some(f) => pop.on_dismiss(f),
+            None => pop,
+        }
     }
 }

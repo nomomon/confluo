@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::settings::Settings;
-pub use crate::state::{Menu, Overlay};
+pub use crate::state::{Layer, Overlay};
 use crate::state::{BotList, Copied, DetailState, HostStatus, NavState, QuietState, SettingsPage, SourceKind};
 use crate::ui::molecules::text_input::{InputEvent, TextInput};
 use crate::features::layout;
@@ -62,7 +62,10 @@ pub struct GitViewer {
     /// Set by j/k; the highlighted row scrolls itself into view on the next paint.
     pub(crate) reveal_cursor: Rc<Cell<bool>>,
     pub(crate) overlay: Overlay,
-    pub(crate) menu: Option<Menu>,
+    /// The one transient floating layer (menu, popover, picker); opening one closes the others.
+    pub(crate) layer: Option<Layer>,
+    /// The layer a press outside just closed, so the same press on its trigger does not reopen it.
+    pub(crate) layer_dismissed: Option<(Layer, Instant)>,
     pub(crate) copied: Option<Copied>,
     pub(crate) copied_gen: u64,
     pub(crate) toast: Option<String>,
@@ -285,7 +288,8 @@ impl GitViewer {
             detail_scroll: ScrollHandle::new(),
             reveal_cursor: Rc::new(Cell::new(false)),
             overlay: Overlay::None,
-            menu: None,
+            layer: None,
+            layer_dismissed: None,
             copied: None,
             copied_gen: 0,
             toast: None,
@@ -420,7 +424,9 @@ impl Render for GitViewer {
         self.viewport_w = window.viewport_size().width;
         let previewing = !self.reviewing && !self.preview_hidden && self.detail.is_some();
         self.compact = previewing && self.viewport_w < layout::PREVIEW_COMPACT_BELOW;
-        self.hint_ctx = (self.hints.visible() && self.settings.shortcut_hints).then(|| self.cmd_ctx());
+        // One floating layer at a time: hold-Cmd hints stay hidden while a menu or popover is open.
+        self.hint_ctx = (self.hints.visible() && self.settings.shortcut_hints && !self.layer_open()).then(|| self.cmd_ctx());
+        crate::ui::layer::begin_frame();
         let main = div().absolute().top_0().left_0().size_full().flex();
         let main = match self.detail.as_ref().filter(|_| self.reviewing) {
             // Review mode: the PR takes the whole content area; the sidebar and list step aside.

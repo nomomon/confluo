@@ -46,9 +46,9 @@ impl GitViewer {
             .into_any_element()
     }
 
-    /// The selection toolbar hangs under the last selected line.
+    /// The selection toolbar hangs under the last selected line; the open comment composer replaces it.
     fn line_bar(&self, fi: usize, hi: usize, lines: &[usize], d: &DetailState, cx: &mut Context<Self>) -> Option<AnyElement> {
-        d.code.sel.filter(|s| s.fi == fi && s.hi == hi && lines.contains(&s.range.hi()) && !d.code.dragging).map(|_| self.selection_bar(true, !d.code.sel_kbd, cx).into_any_element())
+        d.code.sel.filter(|s| s.fi == fi && s.hi == hi && lines.contains(&s.range.hi()) && !d.code.dragging && d.code.inline.draft.is_none()).map(|_| self.selection_bar(true, !d.code.sel_kbd, cx).into_any_element())
     }
 
     /// Horizontal wheel scrolls the file's code (shared by both sides).

@@ -36,4 +36,4 @@ pub use skeleton::Skeleton;
 pub use spinner::Spinner;
 pub use swatch::Swatch;
 pub use switch::Switch;
-pub use tooltip::tooltip;
+pub use tooltip::{tooltip, Empty as EmptyTooltip};

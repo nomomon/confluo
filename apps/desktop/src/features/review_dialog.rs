@@ -4,7 +4,7 @@ use gpui::{div, prelude::*, AnyElement, ClickEvent, Context, MouseDownEvent};
 use gv_engine::{ReviewAction, ReviewInfo, ReviewState};
 
 use super::keymap::{self, Approve, MergePr, RequestChanges, ToggleDraft};
-use crate::app::{GitViewer, Menu, Overlay};
+use crate::app::{GitViewer, Layer, Overlay};
 use crate::state::DetailState;
 use crate::ui::atoms::{Badge, Button, ButtonVariant, IconName};
 use crate::ui::molecules::{Dialog, DropdownMenu, MenuItem, MenuSeparator, Textarea};
@@ -33,21 +33,17 @@ impl GitViewer {
         if !info.caps.any() {
             return None;
         }
-        let open = self.menu == Some(Menu::Review);
+        let open = self.layer == Some(Layer::Review);
         let btn = Button::new("review-menu", if d.posting { "Submitting..." } else { "Review" }).variant(ButtonVariant::Primary).trailing_icon(IconName::ChevronDown).tooltip(review_tip()).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
-            this.menu = if this.menu == Some(Menu::Review) { None } else { Some(Menu::Review) };
-            cx.notify()
+            this.toggle_layer(Layer::Review, cx)
         }));
         let hint = self.hint_group("hint-review", vec![self.hint_keys::<Approve>(), self.hint_keys::<RequestChanges>()], crate::ui::atoms::HintAnchor::Below).filter(|_| !open);
-        Some(div().relative().child(btn).children(hint).when(open, |el| el.child(gpui::deferred(self.render_review_menu(info, cx)).with_priority(1))).into_any_element())
+        Some(div().relative().child(btn).children(hint).when(open, |el| el.child(self.render_review_menu(info, cx))).into_any_element())
     }
 
     fn render_review_menu(&self, info: &ReviewInfo, cx: &mut Context<Self>) -> impl IntoElement {
         let c = &info.caps;
-        let mut menu = DropdownMenu::new("review-dropdown").top(theme::SPACE_8).right(theme::SPACE_0).on_dismiss(cx.listener(|this, _: &MouseDownEvent, _, cx| {
-            this.menu = None;
-            cx.notify()
-        }));
+        let mut menu = DropdownMenu::new("review-dropdown").on_dismiss(cx.listener(|this, _: &MouseDownEvent, _, cx| this.dismiss_layer(cx)));
         if c.approve || c.approve_blocked.is_some() {
             let mut item = MenuItem::new("review-approve", "Approve").icon(IconName::CircleCheck).shortcut(keymap::kbd::<Approve>()).disabled(!c.approve);
             if let Some(why) = &c.approve_blocked {

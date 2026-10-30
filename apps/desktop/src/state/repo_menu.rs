@@ -16,6 +16,7 @@ pub struct RepoMenu {
 
 impl GitViewer {
     pub(crate) fn open_repo_menu(&mut self, repo: RepoRef, pos: Point<Pixels>, cx: &mut Context<Self>) {
+        self.close_layers(cx);
         self.repo_menu = Some(RepoMenu { repo, pos, renaming: false });
         cx.notify();
     }

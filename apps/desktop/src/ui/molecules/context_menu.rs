@@ -5,7 +5,7 @@
 
 use gpui::{anchored, deferred, div, prelude::*, AnyElement, App, MouseDownEvent, Pixels, Point, SharedString, Window};
 
-use crate::ui::{motion, theme, MouseDownHandler};
+use crate::ui::{layer, motion, theme, MouseDownHandler};
 
 #[derive(IntoElement)]
 pub struct ContextMenu {
@@ -34,7 +34,7 @@ impl ParentElement for ContextMenu {
 
 impl RenderOnce for ContextMenu {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let panel = div()
+        let panel = layer::track(div())
             .min_w(theme::MENU_MIN_W)
             .text_size(theme::text_sm())
             .p(theme::SPACE_1)

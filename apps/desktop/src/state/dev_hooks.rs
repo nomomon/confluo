@@ -2,7 +2,7 @@
 
 use gpui::Context;
 
-use crate::app::{GitViewer, Menu, Overlay};
+use crate::app::{GitViewer, Layer, Overlay};
 
 impl GitViewer {
     /// Dev only: `CONFLUO_VIEW` picks the list view at launch (see `dev::view`).
@@ -29,7 +29,7 @@ impl GitViewer {
             (Some("add-project"), _) => self.open_add_project(cx),
             (Some("rename"), Some(id)) => self.open_rename(id, cx),
             (Some("delete"), Some(id)) => self.confirm_delete(id, cx),
-            (Some("menu"), Some(id)) => self.menu = Some(Menu::Project(id)),
+            (Some("menu"), Some(id)) => self.layer = Some(Layer::Project(id)),
             (Some("palette"), _) => {
                 self.overlay = Overlay::Palette;
                 self.refocus_palette = true;
@@ -38,8 +38,8 @@ impl GitViewer {
                 }
             }
             (Some("shortcuts"), _) => self.overlay = Overlay::Shortcuts,
-            (Some("review"), _) => self.menu = Some(Menu::Review),
-            (Some("more"), _) => self.menu = Some(Menu::DetailMore),
+            (Some("review"), _) => self.layer = Some(Layer::Review),
+            (Some("more"), _) => self.layer = Some(Layer::DetailMore),
             (Some("merge"), _) => self.open_merge(cx),
             (Some("close"), _) => self.overlay = Overlay::ConfirmClose,
             (Some("people"), _) => {
@@ -54,7 +54,7 @@ impl GitViewer {
                     self.toggle_check(id, cx);
                 }
             }
-            (Some("checks-popover"), _) => self.review.checks_open = true,
+            (Some("checks-popover"), _) => self.layer = Some(Layer::Checks),
             (Some("quick-open"), _) => self.open_quick_file(cx),
             (Some(o @ ("repo-menu" | "repo-rename")), _) => {
                 if let Some(repo) = self.detail.as_ref().map(|d| d.summary.id.repo.clone()) {

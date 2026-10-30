@@ -91,7 +91,7 @@ impl GitViewer {
     pub(crate) fn close_detail(&mut self, cx: &mut Context<Self>) {
         self.reviewing = false;
         self.nav.last_closed = self.detail.take().map(|d| d.summary);
-        self.menu = None;
+        self.layer = None;
         cx.notify();
     }
 

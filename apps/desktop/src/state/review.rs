@@ -11,7 +11,7 @@ impl GitViewer {
     pub(crate) fn submit_review(&mut self, action: ReviewAction, cx: &mut Context<Self>) {
         let body = if matches!(self.overlay, Overlay::ReviewSummary(_)) { self.review_input.read(cx).text().trim().to_string() } else { String::new() };
         self.overlay = Overlay::None;
-        self.menu = None;
+        self.layer = None;
         let Some(d) = self.detail.as_mut() else { return };
         let Some(det) = d.detail.as_mut() else { return };
         if !det.review.caps.allows(action) || d.posting {
@@ -62,7 +62,7 @@ impl GitViewer {
 
     /// Open the summary dialog for `action` (Comment always asks; verdicts may add a note).
     pub(crate) fn open_review_summary(&mut self, action: ReviewAction, window: &mut gpui::Window, cx: &mut Context<Self>) {
-        self.menu = None;
+        self.layer = None;
         self.overlay = Overlay::ReviewSummary(action);
         window.focus(&self.review_input.read(cx).focus_handle(cx));
         cx.notify();

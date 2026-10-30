@@ -4,7 +4,7 @@
 use gpui::{div, prelude::*, ClickEvent, Context, MouseButton, MouseDownEvent, SharedString};
 use gv_engine::ReviewState;
 
-use crate::app::{GitViewer, Menu};
+use crate::app::{GitViewer, Layer};
 use crate::features::keymap::{self, CopyLink, HistoryBack, NextPr, OpenInBrowser, PrevPr, ToggleDraft};
 use crate::features::shared::{layout, number_label, state_icon};
 use crate::state::{Copied, DetailState};
@@ -144,38 +144,30 @@ impl GitViewer {
             .child(div().w(theme::SPACE_1))
             .children(self.render_review_button(d, cx))
             .children(self.render_merge_button(d, cx))
-            .child(ShortcutHint::wrap(
-                Button::new("detail-more", "").icon(IconName::Ellipsis).variant(ButtonVariant::Ghost).tooltip("More").on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
-                    this.menu = if this.menu == Some(Menu::DetailMore) { None } else { Some(Menu::DetailMore) };
-                    cx.notify()
-                })),
+            .child(div().relative().child(ShortcutHint::wrap(
+                Button::new("detail-more", "").icon(IconName::Ellipsis).variant(ButtonVariant::Ghost).tooltip("More").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_layer(Layer::DetailMore, cx))),
                 // Menu rows show their own shortcuts once open.
-                self.hint_group("hint-more", vec![self.hint_keys::<OpenInBrowser>(), self.hint_keys::<CopyLink>(), self.hint_keys::<ToggleDraft>()], HintAnchor::Below).filter(|_| self.menu != Some(Menu::DetailMore)),
+                self.hint_group("hint-more", vec![self.hint_keys::<OpenInBrowser>(), self.hint_keys::<CopyLink>(), self.hint_keys::<ToggleDraft>()], HintAnchor::Below).filter(|_| self.layer != Some(Layer::DetailMore)),
             ))
-            .when(self.menu == Some(Menu::DetailMore), |el| el.child(self.render_detail_menu(d, cx)))
+            .when(self.layer == Some(Layer::DetailMore), |el| el.child(self.render_detail_menu(d, cx))))
     }
 
     fn render_detail_menu(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
         let link = d.summary.web_url.clone();
         DropdownMenu::new("detail-more-menu")
-            .top(layout::REVIEW_BAR_H - theme::SPACE_1)
-            .right(theme::SPACE_3)
-            .on_dismiss(cx.listener(|this, _: &MouseDownEvent, _, cx| {
-                this.menu = None;
-                cx.notify()
-            }))
+            .on_dismiss(cx.listener(|this, _: &MouseDownEvent, _, cx| this.dismiss_layer(cx)))
             .child(MenuItem::new("menu-open", "Open in browser").icon(IconName::ExternalLink).shortcut(keymap::kbd::<OpenInBrowser>()).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
-                this.menu = None;
+                this.layer = None;
                 if let Some(d) = &this.detail {
                     cx.open_url(&d.summary.web_url)
                 }
             })))
             .child(MenuItem::new("menu-copy-link", "Copy link").icon(IconName::Link).shortcut(keymap::kbd::<keymap::CopyLink>()).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
-                this.menu = None;
+                this.layer = None;
                 this.copy(Copied::Link, link.clone(), cx)
             })))
             .child(MenuItem::new("menu-refresh", "Refresh").icon(IconName::Refresh).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
-                this.menu = None;
+                this.layer = None;
                 this.load_detail(cx)
             })))
             .children(self.edit_menu_items(d, cx))

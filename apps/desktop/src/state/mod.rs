@@ -57,7 +57,7 @@ pub use repo_menu::RepoMenu;
 pub use nav::NavState;
 pub use review_mode::{Pane, ReviewUi, RightTab};
 pub use pr_edit::{EditUi, LogState};
-pub use overlay::{BotList, Menu, Overlay, SettingsPage};
+pub use overlay::{BotList, Layer, Overlay, SettingsPage};
 
 /// Format an error with its full context chain.
 pub fn err_str(e: anyhow::Error) -> String {

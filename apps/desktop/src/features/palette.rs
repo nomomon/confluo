@@ -122,7 +122,7 @@ impl GitViewer {
             self.overlay = Overlay::None;
             window.focus(&self.focus);
         } else {
-            self.menu = None;
+            self.layer = None;
             self.overlay = Overlay::Palette;
             self.nav.palette_sel = 0;
             self.palette_input.update(cx, |i, cx| i.set_text("", cx));

@@ -76,7 +76,7 @@ impl GitViewer {
                     if reopen {
                         this.set_open(true, cx)
                     } else {
-                        this.menu = None;
+                        this.layer = None;
                         this.overlay = Overlay::ConfirmClose;
                         cx.notify()
                     }

@@ -129,7 +129,7 @@ impl GitViewer {
     }
 
     pub(crate) fn set_draft(&mut self, draft: bool, cx: &mut Context<Self>) {
-        self.menu = None;
+        self.layer = None;
         let Some(d) = self.detail.as_ref() else { return };
         let (engine, id) = (self.engine.clone(), d.summary.id.clone());
         let ok = if draft { "Marked as draft" } else { "Ready for review" };
@@ -139,7 +139,7 @@ impl GitViewer {
 
     /// Close (after the confirm dialog) or reopen.
     pub(crate) fn set_open(&mut self, open: bool, cx: &mut Context<Self>) {
-        self.menu = None;
+        self.layer = None;
         self.overlay = Overlay::None;
         let Some(d) = self.detail.as_ref() else { return };
         let (engine, id) = (self.engine.clone(), d.summary.id.clone());
@@ -148,7 +148,7 @@ impl GitViewer {
     }
 
     pub(crate) fn open_merge(&mut self, cx: &mut Context<Self>) {
-        self.menu = None;
+        self.layer = None;
         let Some(caps) = self.detail.as_ref().and_then(|d| d.detail.as_ref()).map(|x| x.edit.caps.clone()) else { return };
         self.merge_opts = MergeOptions {
             method: caps.merge_methods.first().copied().unwrap_or(gv_engine::MergeMethod::Merge),

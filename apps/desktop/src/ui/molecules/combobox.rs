@@ -146,7 +146,7 @@ impl RenderOnce for Combobox {
             .border_color(theme::border_subtle())
             .child(Icon::new(IconName::Search).size(theme::ICON_SM).color(theme::text_subtle()))
             .child(div().flex_1().child(self.input.clone()));
-        let panel = div()
+        let panel = crate::ui::layer::track(div())
             .id(ElementId::Name(format!("{}-panel", self.id).into()))
             .mt(theme::SPACE_1)
             .w(PANEL_W)

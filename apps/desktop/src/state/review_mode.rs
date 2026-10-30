@@ -48,10 +48,6 @@ pub struct ReviewUi {
     /// Cmd+P file picker is open, and its highlighted row.
     pub quick_open: bool,
     pub quick_sel: usize,
-    /// The checks popover under the CI icon.
-    pub checks_open: bool,
-    /// Open reaction picker: a comment id, or "pr".
-    pub reaction_picker: Option<String>,
     memory: HashMap<ChangeRequestId, Memory>,
     /// Restore the remembered position once files arrive.
     restore: Option<Memory>,
@@ -78,8 +74,6 @@ impl Default for ReviewUi {
             resizing: None,
             quick_open: false,
             quick_sel: 0,
-            checks_open: false,
-            reaction_picker: None,
             memory: HashMap::new(),
             restore: None,
         }
@@ -113,7 +107,7 @@ impl GitViewer {
         self.review.quick_open = false;
         self.review.restore = self.review.memory.get(&id).cloned();
         d.code.split = self.settings.diff_split;
-        self.menu = None;
+        self.layer = None;
         self.set_detail_tab(DetailTab::Code, cx);
         self.after_files(cx);
         cx.notify();
@@ -124,7 +118,7 @@ impl GitViewer {
         self.remember_position();
         self.reviewing = false;
         self.review.quick_open = false;
-        self.review.checks_open = false;
+        self.layer = None;
         if !self.navigating {
             self.nav.push(None);
         }

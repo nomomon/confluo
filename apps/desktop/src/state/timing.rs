@@ -26,3 +26,6 @@ pub const HOST_CHECK_TIMEOUT: Duration = Duration::from_secs(8);
 /// Clicking the previewed row again hides the preview only after this, so a double click opens the
 /// review without hiding the preview first.
 pub const DOUBLE_CLICK: Duration = Duration::from_millis(350);
+/// A press outside a floating layer closes it; a click on its own trigger within this time (the
+/// same gesture) keeps it closed instead of reopening it.
+pub const LAYER_REOPEN_GUARD: Duration = Duration::from_millis(400);

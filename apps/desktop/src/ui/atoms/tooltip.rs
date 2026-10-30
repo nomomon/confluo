@@ -36,5 +36,20 @@ impl Render for Tooltip {
 /// Builder for GPUI's `.tooltip(..)` on stateful elements.
 pub fn tooltip(text: impl Into<SharedString>) -> impl Fn(&mut Window, &mut App) -> AnyView + 'static {
     let text = text.into();
-    move |_, cx| cx.new(|_| Tooltip(text.clone())).into()
+    move |window, cx| {
+        // An open menu or popover elsewhere owns the screen: show nothing (an empty view).
+        if crate::ui::layer::blocks(window.mouse_position()) {
+            return cx.new(|_| Empty).into();
+        }
+        cx.new(|_| Tooltip(text.clone())).into()
+    }
+}
+
+/// What a suppressed tooltip or hover card shows.
+pub struct Empty;
+
+impl Render for Empty {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+    }
 }

@@ -91,7 +91,7 @@ impl GitViewer {
     }
 
     pub(crate) fn open_rename(&mut self, id: i64, cx: &mut Context<Self>) {
-        self.menu = None;
+        self.layer = None;
         let name = self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default();
         self.rename_input.update(cx, |i, cx| i.set_text(name, cx));
         self.overlay = Overlay::Rename(id);
@@ -122,14 +122,14 @@ impl GitViewer {
 
     /// Ask before deleting; the dialog calls `delete_project`.
     pub(crate) fn confirm_delete(&mut self, id: i64, cx: &mut Context<Self>) {
-        self.menu = None;
+        self.layer = None;
         self.confirm_from_settings = self.overlay == Overlay::Settings;
         self.overlay = Overlay::ConfirmDelete(id);
         cx.notify();
     }
 
     pub(crate) fn delete_project(&mut self, id: i64, cx: &mut Context<Self>) {
-        self.menu = None;
+        self.layer = None;
         self.close_confirm();
         if let Err(e) = self.engine.delete_project(id) {
             self.error = Some(err_str(e));

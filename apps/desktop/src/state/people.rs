@@ -12,11 +12,13 @@ fn same(a: &User, b: &User) -> bool {
 
 impl GitViewer {
     pub(crate) fn open_people(&mut self, role: PeopleRole, window: &mut Window, cx: &mut Context<Self>) {
-        let Some(d) = self.detail.as_mut() else { return };
-        if d.ui.people == Some(role) {
-            d.ui.people = None;
-            return cx.notify();
+        if self.detail.as_ref().is_some_and(|d| d.ui.people == Some(role)) {
+            self.close_layers(cx);
+            return;
         }
+        // One floating layer at a time: the picker replaces any open menu or popover.
+        self.close_layers(cx);
+        let Some(d) = self.detail.as_mut() else { return };
         d.ui.people = Some(role);
         d.ui.people_results.clear();
         d.ui.people_hl = 0;

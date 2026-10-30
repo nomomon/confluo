@@ -56,13 +56,13 @@ impl GitViewer {
         }
         if c.title {
             out.push(MenuItem::new("menu-edit-title", "Edit title").icon(IconName::Pencil).on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
-                this.menu = None;
+                this.layer = None;
                 this.start_title_edit(window, cx)
             })).into_any_element());
         }
         let branch = d.summary.source_branch.clone();
         out.push(MenuItem::new("menu-copy-branch", "Copy branch name").icon(IconName::Copy).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
-            this.menu = None;
+            this.layer = None;
             this.copy(Copied::Branch, branch.clone(), cx)
         })).into_any_element());
         if let Some(why) = c.merge_blocked.clone().filter(|_| !c.merge) {
@@ -76,7 +76,7 @@ impl GitViewer {
         }
         if c.close {
             out.push(MenuItem::new("menu-close", "Close").icon(IconName::GitPullRequestClosed).destructive().on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
-                this.menu = None;
+                this.layer = None;
                 this.overlay = Overlay::ConfirmClose;
                 cx.notify()
             })).into_any_element());

@@ -85,7 +85,7 @@ mod tests {
         local.insert("a.rs".to_string(), file_fingerprint(&a));
         assert!(viewed_paths(std::slice::from_ref(&a), None, &local).contains("a.rs"));
         let changed = f("a.rs", "two");
-        assert!(viewed_paths(&[changed.clone()], None, &local).is_empty());
+        assert!(viewed_paths(std::slice::from_ref(&changed), None, &local).is_empty());
         let remote = std::collections::HashMap::from([("a.rs".to_string(), true)]);
         assert!(viewed_paths(&[changed], Some(&remote), &local).contains("a.rs"));
     }

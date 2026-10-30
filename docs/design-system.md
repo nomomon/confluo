@@ -276,8 +276,8 @@ the palette, the `?` cheat sheet and Settings > Shortcuts are generated from it.
 inside text inputs. PR actions (approve, request changes, merge, draft, close) are gated by capabilities
 (`state::cmd_ctx`): not allowed means a neutral toast with the reason, never a silent no-op.
 
-Shortcut hints: holding Cmd alone for `timing::HINT_HOLD` (350ms) shows a `ShortcutHint` (inverted pill, `text_hint()` 11,
-`FADE` in, deferred so it paints on top) over controls that have a Cmd shortcut; releasing Cmd, any key press or the window
+Shortcut hints: holding Cmd alone for `timing::HINT_HOLD` (250ms) shows a `ShortcutHint` (inverted pill, `text_hint()` 11,
+`BLINK` in (60ms linear opacity, no easing or scale), hidden instantly, deferred so it paints on top) over controls that have a Cmd shortcut; releasing Cmd, any key press or the window
 losing focus hides them, so Cmd+key never flashes them. `state::hint_hold` is the state machine; `features/hints.rs` tracks
 modifiers on the root and gives `self.hinted::<Action>(el, HintAnchor::Corner | Inline | Below)` and `hint_group(..)`, which read
 keys and `available(&CmdCtx)` from the keymap (unavailable actions show nothing). Settings > General can turn it off.
@@ -310,6 +310,7 @@ Tokens in `ui::motion` (`Motion { ms, easing }`), all capped at `MAX_MS` = 300:
 | `HOVER`       | 110ms    | ease-out quint | hover feel (style swap, see below)   |
 | `PRESS`       | 70ms     | ease-out quint | pressed feel (style swap)            |
 | `FADE`        | 150ms    | ease-in-out    | notices, scrims, toasts              |
+| `BLINK`       | 60ms     | linear         | shortcut hints (feel instant)        |
 | `PANEL`       | 220ms    | ease-out quint | panel entrances                      |
 | `PANEL_EXIT`  | 154ms    | ease-out quint | exits, ~70% of entry                 |
 | `LIST_INSERT` | 180ms    | ease-out quint | newly inserted list items            |

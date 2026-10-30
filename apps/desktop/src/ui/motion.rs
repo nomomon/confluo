@@ -47,6 +47,8 @@ pub const INSTANT: Motion = Motion { ms: 0, easing: Easing::Linear };
 pub const HOVER: Motion = Motion { ms: 110, easing: Easing::EaseOutQuint };
 pub const PRESS: Motion = Motion { ms: 70, easing: Easing::EaseOutQuint };
 pub const FADE: Motion = Motion { ms: 150, easing: Easing::EaseInOut };
+/// Near-instant linear opacity for hints that should feel immediate.
+pub const BLINK: Motion = Motion { ms: 60, easing: Easing::Linear };
 pub const PANEL: Motion = Motion { ms: 220, easing: Easing::EaseOutQuint };
 /// Exits run at about 70% of the entry.
 pub const PANEL_EXIT: Motion = Motion { ms: 154, easing: Easing::EaseOutQuint };

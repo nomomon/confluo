@@ -72,7 +72,7 @@ impl RenderOnce for ShortcutHint {
             HintAnchor::Inline => div().absolute().top_0().bottom_0().right(theme::SPACE_2).flex().items_center().child(row),
             HintAnchor::Below => div().absolute().top_full().left_0().right_0().mt(theme::SPACE_1).flex().justify_center().child(row),
         };
-        // `fade_in` renders the final frame directly under reduced motion.
-        deferred(motion::fade_in(placed, self.id)).with_priority(3)
+        // A 60ms linear opacity (no easing or scale) so hints feel instant; final frame under reduced motion.
+        deferred(motion::animate(placed, self.id, motion::BLINK, |el, t| el.opacity(t))).with_priority(3)
     }
 }

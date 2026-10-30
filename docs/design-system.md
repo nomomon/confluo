@@ -269,7 +269,7 @@ Atoms:
 
 Molecules:
 
-- `Banner`: one-line dismissible error with an action such as Retry
+- `Banner`: one-line dismissible notice with an optional action: `Banner::warning` (amber tint) for non-fatal errors with Retry, `Banner::info` (hairline, muted text, optional icon) for neutral state such as "Showing commit"
 - `CommandPalette`: `CommandPalette::new(input).items(Vec<PaletteItem>).selected(i).footer(hint).on_move(..).on_hover(..).on_run(..).on_alt_run(..).on_close(..)`;
   Up/Down (Ctrl+P/N) move, hover highlights, Enter runs, Cmd+Enter alt-runs, no open animation; `command_palette::score` is the fuzzy matcher.
   The app palette is the command hub: every `keymap::ENTRIES` row is a command (its `available(&CmdCtx)` predicate decides

@@ -110,10 +110,11 @@ impl GitViewer {
                 let drawn = f32::from(c.list.scroll_px_offset_for_scrollbar().y);
                 let find = self.render_find_bar(cx);
                 let banner = c.commit.as_deref().map(|sha| {
-                    Banner::warning(
+                    Banner::info(
                         "commit-filter",
                         crate::state::commit_filter::commit_label(sha),
                     )
+                    .icon(crate::ui::atoms::IconName::GitCommit)
                     .on_dismiss(cx.listener(
                         |this, _: &gpui::ClickEvent, _, cx| {
                             this.clear_commit(cx);

@@ -127,6 +127,8 @@ impl RenderOnce for Card {
             let rows = self.children.into_iter().enumerate().map(|(i, c)| {
                 div()
                     .w_full()
+                    .flex()
+                    .flex_col()
                     .when(i > 0, |d| {
                         d.border_t_1().border_color(theme::border_subtle())
                     })

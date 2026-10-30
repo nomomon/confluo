@@ -196,6 +196,9 @@ pub const LIST_ITEM_RADIUS: Pixels = RADIUS_MD;
 /// Width of the key column in key/value rows.
 pub const KV_KEY_W: Pixels = px(88.);
 
+/// Width of a slider in a settings row.
+pub const SETTINGS_SLIDER_W: Pixels = px(220.);
+
 /// Minimum width of dropdown menus.
 pub const MENU_MIN_W: Pixels = px(180.);
 /// Content that is not on the server yet (a comment being sent).

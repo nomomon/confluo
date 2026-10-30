@@ -55,13 +55,21 @@ impl RenderOnce for Field {
                 .child(div().text_size(theme::text_sm()).child(self.label))
                 .children(desc);
             return div()
+                .w_full()
                 .flex()
                 .items_center()
                 .gap(theme::space_4())
                 .px(theme::card_pad())
                 .py(theme::row_pad_y())
                 .child(text)
-                .child(div().flex().flex_shrink_0().child(self.control));
+                .child(
+                    div()
+                        .flex_none()
+                        .flex()
+                        .justify_end()
+                        .items_center()
+                        .child(self.control),
+                );
         }
         div()
             .flex()

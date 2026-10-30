@@ -116,7 +116,10 @@ impl GitViewer {
                             .description("Blurred and Transparent show the desktop behind")
                             .horizontal()
                             .into_any_element(),
-                        Field::new("Panel opacity", opacity)
+                        Field::new(
+                            "Panel opacity",
+                            div().w(theme::SETTINGS_SLIDER_W).child(opacity),
+                        )
                             .description("Sidebar and detail panels")
                             .horizontal()
                             .into_any_element(),

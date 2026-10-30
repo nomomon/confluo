@@ -4,7 +4,7 @@
 
 use gpui::{
     div, prelude::*, px, AnyElement, Context, Div, MouseButton, MouseDownEvent, MouseMoveEvent,
-    MouseUpEvent, Stateful,
+    Stateful,
 };
 
 use crate::app::GitViewer;
@@ -124,9 +124,12 @@ impl GitViewer {
         root.on_mouse_move(cx.listener(|this, ev: &MouseMoveEvent, window, cx| {
             this.move_panel_drag(ev.position, window.viewport_size().width, cx)
         }))
-        .on_mouse_up(
-            MouseButton::Left,
-            cx.listener(|this, _: &MouseUpEvent, _, cx| this.end_panel_drag(cx)),
-        )
+        .child({
+            // Release anywhere (or a move with no button) ends it, like a normal release.
+            let this = cx.entity().downgrade();
+            crate::ui::drag::watch(move |_, cx| {
+                this.update(cx, |t, cx| t.end_panel_drag(cx)).ok();
+            })
+        })
     }
 }

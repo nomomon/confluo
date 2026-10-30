@@ -4,6 +4,7 @@
 
 pub mod arbiter;
 pub mod atoms;
+pub mod drag;
 pub mod elastic;
 pub mod layer;
 pub mod molecules;

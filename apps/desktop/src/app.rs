@@ -426,7 +426,7 @@ impl GitViewer {
         cx.observe_window_activation(window, |this, window, cx| {
             if window.is_window_active() {
                 this.on_activated(cx)
-            } else if this.hints.blur() {
+            } else if this.end_drags(crate::ui::drag::Signal::Blur, cx) | this.hints.blur() {
                 cx.notify()
             }
         })

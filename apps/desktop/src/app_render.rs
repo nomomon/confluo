@@ -146,6 +146,12 @@ impl Render for GitViewer {
             .when(self.review.split.drag.is_some(), |root| {
                 self.panel_drag_handlers(root, cx)
             })
+            .when(self.line_dragging(), |root| {
+                let this = cx.entity().downgrade();
+                root.child(crate::ui::drag::watch(move |window, cx| {
+                    this.update(cx, |t, cx| t.finish_line_drag(window, cx)).ok();
+                }))
+            })
             .child(main)
             .children(self.toast.clone().map(|t| {
                 let toast = match &self.toast_error {

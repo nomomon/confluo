@@ -106,6 +106,21 @@ impl GitViewer {
         }
     }
 
+    pub(crate) fn line_dragging(&self) -> bool {
+        self.detail.as_ref().is_some_and(|d| d.code.dragging)
+    }
+
+    /// Focus loss or Esc: end any live drag (panel divider, line selection) as a release would.
+    pub(crate) fn end_drags(&mut self, s: crate::ui::drag::Signal, cx: &mut Context<Self>) -> bool {
+        if !crate::ui::drag::ends(s) {
+            return false;
+        }
+        let live = self.review.split.drag.is_some() || self.line_dragging();
+        self.end_panel_drag(cx);
+        self.end_line_drag(cx);
+        live
+    }
+
     pub(crate) fn end_line_drag(&mut self, cx: &mut Context<Self>) {
         if let Some(c) = self.code_mut().filter(|c| c.dragging) {
             c.dragging = false;

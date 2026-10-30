@@ -35,15 +35,16 @@ impl GitViewer {
                 .into_any_element(),
             Some(det) => self.markdown("desc", &det.description).into_any_element(),
         };
-        let edit = can_edit.then(|| {
-            Button::new("desc-edit", "Edit")
-                .icon(IconName::Pencil)
-                .variant(ButtonVariant::Ghost)
-                .size(Size::Sm)
-                .on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
-                    this.start_body_edit(window, cx)
-                }))
-        });
+        let edit =
+            can_edit.then(|| {
+                Button::new("desc-edit", "Edit")
+                    .icon(IconName::Pencil)
+                    .variant(ButtonVariant::Ghost)
+                    .size(Size::Sm)
+                    .on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
+                        this.start_body_edit(window, cx)
+                    }))
+            });
         let reactions = d.detail.as_ref().and_then(|det| {
             self.reactions_bar(
                 None,

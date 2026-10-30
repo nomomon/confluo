@@ -320,6 +320,10 @@ impl TextInput {
         _: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        // A release the input never saw (outside the window) ends the selection drag.
+        if event.pressed_button != Some(gpui::MouseButton::Left) {
+            self.is_selecting = false;
+        }
         if self.is_selecting {
             self.select_to(self.index_for_mouse_position(event.position), cx);
         }

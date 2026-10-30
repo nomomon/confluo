@@ -158,7 +158,9 @@ impl GitViewer {
 
     /// Escape closes the topmost thing: menu, dialog, detail, then the search text.
     fn dismiss(&mut self, _: &Dismiss, window: &mut Window, cx: &mut Context<Self>) {
-        if self.close_layers(cx) {
+        if self.end_drags(crate::ui::drag::Signal::Escape, cx) {
+            // Ended a drag.
+        } else if self.close_layers(cx) {
             // Closed the open menu, popover or picker.
         } else if self.discard_prompt {
             self.keep_editing(cx);

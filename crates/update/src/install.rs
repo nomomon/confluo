@@ -1,13 +1,16 @@
 //! Download, verify and swap in a new app bundle, then relaunch it.
 
 use crate::release::{parse_sums, Release, SUMS_ASSET};
-use crate::verify::{check_signature, sha256_file, team_id};
+use crate::verify::sha256_file;
+#[cfg(target_os = "macos")]
+use crate::verify::{check_signature, team_id};
 use anyhow::{anyhow, bail, Context, Result};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// The `.app` bundle this process runs from (`.../Confluo.app/Contents/MacOS/confluo`).
+#[cfg(target_os = "macos")]
 pub fn running_bundle() -> Result<PathBuf> {
     let exe = std::env::current_exe()?.canonicalize()?;
     let app = exe
@@ -20,14 +23,18 @@ pub fn running_bundle() -> Result<PathBuf> {
     Ok(app.to_path_buf())
 }
 
-fn client() -> Result<reqwest::Client> {
+pub(crate) fn client() -> Result<reqwest::Client> {
     Ok(reqwest::Client::builder()
         .user_agent(concat!("Confluo/", env!("CARGO_PKG_VERSION")))
         .build()?)
 }
 
 /// Stream `url` into `dest`, reporting the fraction done (0..=1) when the size is known.
-async fn download(url: &str, dest: &Path, progress: &(dyn Fn(f32) + Send + Sync)) -> Result<()> {
+pub(crate) async fn download(
+    url: &str,
+    dest: &Path,
+    progress: &(dyn Fn(f32) + Send + Sync),
+) -> Result<()> {
     let mut resp = client()?.get(url).send().await?.error_for_status()?;
     let total = resp.content_length().unwrap_or(0);
     let mut file = std::fs::File::create(dest)?;
@@ -43,43 +50,60 @@ async fn download(url: &str, dest: &Path, progress: &(dyn Fn(f32) + Send + Sync)
     Ok(())
 }
 
+/// Download asset `name` of `release` into `work` and check it against `SHA256SUMS`.
+pub(crate) async fn fetch_verified(
+    release: &Release,
+    name: &str,
+    work: &Path,
+    progress: &(dyn Fn(f32) + Send + Sync),
+) -> Result<PathBuf> {
+    let asset = release
+        .asset(name)
+        .ok_or_else(|| anyhow!("release has no {name}"))?;
+    let sums = release
+        .asset(SUMS_ASSET)
+        .ok_or_else(|| anyhow!("release has no {SUMS_ASSET}"))?;
+    let sums_text = client()?
+        .get(&sums.browser_download_url)
+        .send()
+        .await?
+        .error_for_status()?
+        .text()
+        .await?;
+    let want =
+        parse_sums(&sums_text, name).ok_or_else(|| anyhow!("{name} missing from {SUMS_ASSET}"))?;
+    let path = work.join(name);
+    download(&asset.browser_download_url, &path, progress).await?;
+    if sha256_file(&path)? != want {
+        bail!("checksum mismatch for {name}");
+    }
+    Ok(path)
+}
+
+/// A fresh work dir next to `target`, so the final moves are atomic renames on the same volume.
+pub(crate) fn work_dir(target: &Path) -> Result<PathBuf> {
+    let parent = target
+        .parent()
+        .ok_or_else(|| anyhow!("{} has no parent folder", target.display()))?;
+    let work = parent.join(format!(".confluo-update-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&work);
+    std::fs::create_dir_all(&work)
+        .with_context(|| format!("cannot write to {}", parent.display()))?;
+    Ok(work)
+}
+
 /// Download the release zip next to `app`, verify it and replace `app` with it.
 /// Returns the path of the installed bundle (same as `app`).
+#[cfg(target_os = "macos")]
 pub async fn install(
     release: &Release,
     app: &Path,
     progress: &(dyn Fn(f32) + Send + Sync),
 ) -> Result<PathBuf> {
     let zip_name = release.zip_name();
-    let zip = release
-        .asset(&zip_name)
-        .ok_or_else(|| anyhow!("release has no {zip_name}"))?;
-    let sums = release
-        .asset(SUMS_ASSET)
-        .ok_or_else(|| anyhow!("release has no {SUMS_ASSET}"))?;
-    let parent = app
-        .parent()
-        .ok_or_else(|| anyhow!("app has no parent folder"))?;
-    // Same volume as the app, so the final moves are atomic renames.
-    let work = parent.join(format!(".confluo-update-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&work);
-    std::fs::create_dir_all(&work)
-        .with_context(|| format!("cannot write to {}", parent.display()))?;
+    let work = work_dir(app)?;
     let result = async {
-        let sums_text = client()?
-            .get(&sums.browser_download_url)
-            .send()
-            .await?
-            .error_for_status()?
-            .text()
-            .await?;
-        let want = parse_sums(&sums_text, &zip_name)
-            .ok_or_else(|| anyhow!("{zip_name} missing from {SUMS_ASSET}"))?;
-        let zip_path = work.join(&zip_name);
-        download(&zip.browser_download_url, &zip_path, progress).await?;
-        if sha256_file(&zip_path)? != want {
-            bail!("checksum mismatch for {zip_name}");
-        }
+        let zip_path = fetch_verified(release, &zip_name, &work, progress).await?;
         let unpacked = work.join("unpacked");
         let ok = Command::new("/usr/bin/ditto")
             .args(["-x", "-k"])
@@ -119,8 +143,13 @@ pub fn swap(app: &Path, new_app: &Path, work: &Path) -> Result<()> {
 
 /// Open `app` as a new instance once this process has exited. The caller quits right after.
 pub fn relaunch_after_exit(app: &Path) -> Result<()> {
+    let open = if cfg!(target_os = "macos") {
+        "/usr/bin/open -n \"$0\""
+    } else {
+        "setsid \"$0\" >/dev/null 2>&1 &"
+    };
     let script = format!(
-        "while kill -0 {} 2>/dev/null; do sleep 0.2; done; /usr/bin/open -n \"$0\"",
+        "while kill -0 {} 2>/dev/null; do sleep 0.2; done; {open}",
         std::process::id()
     );
     Command::new("/bin/sh")

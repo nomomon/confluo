@@ -2,11 +2,17 @@
 //! checksum and signature, swap the bundle and relaunch.
 
 mod install;
+#[cfg(target_os = "linux")]
+mod linux;
 mod release;
 mod verify;
 mod version;
 
-pub use install::{install, relaunch_after_exit, running_bundle};
+#[cfg(target_os = "macos")]
+pub use install::{install, running_bundle};
+pub use install::{relaunch_after_exit, swap};
+#[cfg(target_os = "linux")]
+pub use linux::{install, running_bundle};
 pub use release::{parse_sums, Asset, Release, REPO, SUMS_ASSET};
 pub use verify::{parse_team_id, sha256_file};
 pub use version::{is_newer, Version};

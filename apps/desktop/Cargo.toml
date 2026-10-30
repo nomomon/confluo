@@ -23,3 +23,20 @@ sha2 = "0.10"
 # Same version gpui uses: rasterize SVG avatars ourselves (gpui 0.2.2 hands SVG pixels over as RGBA where
 # its renderer expects BGRA, so colors came out swapped).
 resvg = { version = "0.45", default-features = false }
+
+# Linux windowing backends (off with default-features above).
+[target.'cfg(target_os = "linux")'.dependencies]
+gpui = { version = "=0.2.2", default-features = false, features = ["font-kit", "runtime_shaders", "wayland", "x11"] }
+
+[package.metadata.deb]
+name = "confluo"
+maintainer = "Mansur Nurmukhambetov"
+copyright = "Mansur Nurmukhambetov"
+license-file = ["../../LICENSE", "0"]
+extended-description = "Pull and merge requests from GitHub, GitLab and Azure DevOps in one native app."
+section = "devel"
+assets = [
+    ["target/release/confluo", "usr/bin/confluo", "755"],
+    ["../../packaging/linux/confluo.desktop", "usr/share/applications/confluo.desktop", "644"],
+    ["../../packaging/linux/confluo.png", "usr/share/icons/hicolor/512x512/apps/confluo.png", "644"],
+]

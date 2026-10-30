@@ -113,7 +113,13 @@ impl GitViewer {
         }
         let app = match gv_update::running_bundle() {
             Ok(a) => a,
-            Err(e) => return self.show_info_toast(format!("Can't update: {e:#}"), cx),
+            Err(e) => {
+                // Package manager or tarball installs: hand over to the release page.
+                if !cfg!(target_os = "macos") {
+                    cx.open_url(&release.html_url);
+                }
+                return self.show_info_toast(format!("Can't update: {e:#}"), cx);
+            }
         };
         self.update.progress = Some(0.);
         let done = Arc::new(AtomicU32::new(0f32.to_bits()));

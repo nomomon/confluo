@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Confluo
+Comment=Pull and merge requests from GitHub, GitLab and Azure DevOps
+Exec=confluo
+Icon=confluo
+Terminal=false
+Categories=Development;RevisionControl;
+StartupWMClass=confluo

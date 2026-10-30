@@ -31,9 +31,19 @@ Or build from source (Rust stable, macOS 12+):
 scripts/install-macos.sh
 ```
 
+### Linux
+
+From the same release page (x86_64 and aarch64):
+
+- AppImage: `chmod +x Confluo-X.Y.Z-x86_64.AppImage` and run it (needs `libfuse2`). Updates itself.
+- Debian/Ubuntu: `sudo apt install ./confluo_X.Y.Z-1_amd64.deb`. Update by installing the newer `.deb`.
+- Tarball: `Confluo-X.Y.Z-linux-x86_64.tar.gz` holds the `confluo` binary, a desktop entry and the icon.
+
+Shortcuts use Ctrl where macOS uses Cmd. There is no global menu bar; every command is in the palette (Ctrl+K).
+
 ## Update
 
-Confluo checks for new releases on launch and every few hours, and updates itself in place after verifying the download. Turn it off in Settings > General.
+Confluo checks for new releases on launch and every few hours, and updates itself in place after verifying the download (on Linux only the AppImage; other installs get a link to the release). Turn it off in Settings > General.
 
 ## License
 

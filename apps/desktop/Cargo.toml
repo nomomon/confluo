@@ -27,6 +27,7 @@ resvg = { version = "0.45", default-features = false }
 # Linux windowing backends (off with default-features above).
 [target.'cfg(target_os = "linux")'.dependencies]
 gpui = { version = "=0.2.2", default-features = false, features = ["font-kit", "runtime_shaders", "wayland", "x11"] }
+env_logger = { version = "0.11", default-features = false, features = ["auto-color"] }
 
 [package.metadata.deb]
 name = "confluo"

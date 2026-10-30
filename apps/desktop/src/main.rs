@@ -21,6 +21,9 @@ actions!(git_viewer, [Quit]);
 
 fn main() {
     crash::install();
+    // gpui reports renderer and windowing errors through `log`; RUST_LOG surfaces them.
+    #[cfg(target_os = "linux")]
+    env_logger::init();
     let engine = match gv_engine::Engine::open_default() {
         Ok(e) => Arc::new(e),
         Err(e) => {

@@ -23,7 +23,7 @@ Native macOS app (Rust, GPUI 0.2.2) that aggregates pull/merge requests from Git
 - Files under ~200 lines. Reuse ui kit components; no ad hoc colors, sizes or durations.
 - Machine has 8 GB RAM: one cargo build at a time, `jobs = 4`.
 - `cargo clippy --workspace --all-targets` clean and `cargo test --workspace` green before pushing.
-- Live writes to providers only on `nomomon/zeron#4`, always reverted. Work orgs (work orgs) are read-only.
+- Live writes to providers only on `nomomon/zeron#4`, always reverted. Work orgs are read-only.
 - Never put work PR titles, names or code in commits, docs or screenshots.
 - Install locally: `scripts/install-macos.sh`.
 

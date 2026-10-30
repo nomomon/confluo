@@ -25,6 +25,9 @@ pub fn apply_overrides(s: &mut Settings) {
         Some("system") => s.theme = ThemeMode::System,
         _ => {}
     }
+    if let Some(v) = var("CONFLUO_LIGHT_VARIANT") {
+        crate::ui::theme::set_light_variant(&v);
+    }
     if var("CONFLUO_SPLIT").is_some() {
         s.diff_split = true;
     }

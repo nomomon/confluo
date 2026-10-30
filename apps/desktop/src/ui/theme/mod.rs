@@ -2,6 +2,7 @@
 //!
 //! See `docs/design-system.md`.
 
+mod light;
 pub mod palette;
 mod runtime;
 mod scale;
@@ -9,6 +10,7 @@ mod syntax;
 mod tokens;
 mod translucency;
 
+pub use light::{set_light_variant, sidebar_inset};
 pub use runtime::{is_light, mono_font, set_light, set_typography, ui_font, Typography};
 pub use scale::*;
 pub use syntax::*;

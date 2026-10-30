@@ -8,6 +8,7 @@
 use gpui::Hsla;
 
 use super::palette::{dark, light, zinc, BLACK, WHITE};
+use super::light::surfaces as light_surfaces;
 use super::runtime::is_light;
 
 const fn alpha(c: Hsla, a: f32) -> Hsla {
@@ -54,22 +55,22 @@ const DARK: Colors = Colors {
 };
 
 const LIGHT: Colors = Colors {
-    bg: light::PAGE,
+    bg: WHITE,
     surface: alpha(BLACK, 0.04),
-    surface_hover: alpha(BLACK, 0.06),
-    surface_active: alpha(BLACK, 0.09),
-    border: alpha(BLACK, 0.09),
-    border_subtle: alpha(BLACK, 0.06),
-    text: zinc::Z900,
-    text_muted: zinc::Z600,
-    text_subtle: zinc::Z500,
+    surface_hover: alpha(BLACK, 0.05),
+    surface_active: alpha(BLACK, 0.08),
+    border: alpha(BLACK, 0.10),
+    border_subtle: alpha(BLACK, 0.07),
+    text: light::TEXT,
+    text_muted: light::TEXT_MUTED,
+    text_subtle: light::TEXT_SUBTLE,
     accent: light::BLUE,
     success: light::GREEN,
     danger: light::RED,
     warning: light::AMBER,
     merged: light::PURPLE,
-    overlay: alpha(zinc::Z50, 1.0),
-    scrim: alpha(BLACK, 0.25),
+    overlay: alpha(WHITE, 1.0),
+    scrim: alpha(BLACK, 0.18),
 };
 
 fn c() -> &'static Colors {
@@ -99,6 +100,14 @@ pub fn surface_active() -> Hsla {
 /// Default 1px border.
 pub fn border() -> Hsla {
     c().border
+}
+/// Card and list section outline: the hairline in dark, per light variant (none when flat).
+pub fn card_border() -> Hsla {
+    if is_light() {
+        alpha(BLACK, light_surfaces().card_border)
+    } else {
+        c().border_subtle
+    }
 }
 /// Hairline for dividers and card outlines.
 pub fn border_subtle() -> Hsla {

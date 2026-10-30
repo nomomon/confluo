@@ -62,7 +62,7 @@ impl ParentElement for Card {
 
 impl RenderOnce for Card {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let base = div().w_full().flex().flex_col().flex_shrink_0().rounded(theme::LIST_RADIUS).border_1().border_color(theme::border_subtle()).bg(self.fill);
+        let base = div().w_full().flex().flex_col().flex_shrink_0().rounded(theme::LIST_RADIUS).border_1().border_color(theme::card_border()).bg(self.fill);
         let header = (self.title.is_some() || self.action.is_some()).then(|| {
             let text = div()
                 .flex_1()

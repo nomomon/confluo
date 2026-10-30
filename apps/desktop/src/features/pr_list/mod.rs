@@ -77,6 +77,6 @@ impl GitViewer {
             .children(banner.map(|b| div().mt(theme::card_gap()).child(b)))
             .child(rows);
         // The column breathes: content is centered and capped, like a document.
-        div().flex().justify_center().flex_1().min_w(theme::SPACE_0).h_full().child(content)
+        div().flex().justify_center().flex_1().min_w(theme::SPACE_0).h_full().bg(self.surfaces().content()).child(content)
     }
 }

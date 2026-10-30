@@ -121,6 +121,6 @@ impl GitViewer {
             .flex_col()
             .gap(theme::SPACE_1)
             .child(div().text_size(theme::text_sm()).font_weight(theme::WEIGHT_MEDIUM).child(format!("Commits {}", commits.len())))
-            .child(div().flex().flex_col().p(theme::LIST_INSET).rounded(theme::LIST_RADIUS).border_1().border_color(theme::border_subtle()).bg(self.surfaces().card()).children(rows))
+            .child(div().flex().flex_col().p(theme::LIST_INSET).rounded(theme::LIST_RADIUS).border_1().border_color(theme::card_border()).bg(self.surfaces().card()).children(rows))
     }
 }

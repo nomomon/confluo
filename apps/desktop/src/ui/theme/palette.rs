@@ -35,33 +35,32 @@ pub mod dark {
     pub const BLUE: Hsla = c(213., 0.90, 0.68);
 }
 
-/// Light UI: soft grey page and darker accents for contrast on it.
+/// Light UI: Apple-like label greys and accents darkened for >= 4.5:1 on white.
 pub mod light {
     use super::{c, Hsla};
-    /// Page background, about #f3f3f5.
-    pub const PAGE: Hsla = c(240., 0.11, 0.955);
-    /// Panel fill (sidebar, detail), a touch lighter than the page.
-    pub const PANEL: Hsla = c(240., 0.12, 0.975);
-    /// Card fill, slightly darker than the page (about #e9e9ec).
-    pub const CARD: Hsla = c(240., 0.08, 0.885);
-    pub const GREEN: Hsla = c(142., 0.62, 0.32);
-    pub const PURPLE: Hsla = c(270., 0.55, 0.50);
-    pub const RED: Hsla = c(0., 0.70, 0.45);
-    pub const AMBER: Hsla = c(35., 0.92, 0.38);
-    pub const BLUE: Hsla = c(213., 0.80, 0.46);
+    /// Labels: #1D1D1F, #5E5E62, #737377.
+    pub const TEXT: Hsla = c(240., 0.033, 0.118);
+    pub const TEXT_MUTED: Hsla = c(240., 0.021, 0.376);
+    pub const TEXT_SUBTLE: Hsla = c(240., 0.017, 0.459);
+    /// #1F883D, #8250DF, #CF222E, #9A6700, #0066CC.
+    pub const GREEN: Hsla = c(137., 0.63, 0.327);
+    pub const PURPLE: Hsla = c(261., 0.69, 0.594);
+    pub const RED: Hsla = c(356., 0.72, 0.473);
+    pub const AMBER: Hsla = c(40., 1.0, 0.302);
+    pub const BLUE: Hsla = c(210., 1.0, 0.40);
 }
 pub const WHITE: Hsla = c(0., 0., 1.);
 pub const BLACK: Hsla = c(0., 0., 0.);
 
-/// Syntax highlighting hues for code views, dark and light variants.
+/// Syntax highlighting hues for code views; light follows Xcode's default light theme.
 pub mod syntax {
     use super::{c, Hsla};
     pub const KEYWORD_DARK: Hsla = c(330., 0.75, 0.72);
-    pub const KEYWORD_LIGHT: Hsla = c(330., 0.65, 0.42);
+    pub const KEYWORD_LIGHT: Hsla = c(304., 0.63, 0.373);
     pub const STRING_DARK: Hsla = c(160., 0.55, 0.62);
-    pub const STRING_LIGHT: Hsla = c(160., 0.70, 0.28);
+    pub const STRING_LIGHT: Hsla = c(1., 0.80, 0.427);
     pub const NUMBER_DARK: Hsla = c(28., 0.85, 0.66);
-    pub const NUMBER_LIGHT: Hsla = c(28., 0.85, 0.38);
+    pub const NUMBER_LIGHT: Hsla = c(248., 1.0, 0.406);
     pub const TYPE_DARK: Hsla = c(195., 0.70, 0.68);
-    pub const TYPE_LIGHT: Hsla = c(205., 0.75, 0.38);
+    pub const TYPE_LIGHT: Hsla = c(203., 0.83, 0.259);
 }

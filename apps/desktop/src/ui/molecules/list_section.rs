@@ -73,7 +73,7 @@ impl RenderOnce for ListSection {
             let divider = (i > 0).then(|| div().mx(theme::row_pad_x()).h(gpui::px(1.)).bg(theme::border_subtle()));
             div().flex().flex_col().children(divider).child(row)
         });
-        let card = div().flex().flex_col().p(theme::LIST_INSET).rounded(theme::LIST_RADIUS).border_1().border_color(theme::border_subtle()).bg(self.fill).children(rows);
+        let card = div().flex().flex_col().p(theme::LIST_INSET).rounded(theme::LIST_RADIUS).border_1().border_color(theme::card_border()).bg(self.fill).children(rows);
         div()
             .flex()
             .flex_col()

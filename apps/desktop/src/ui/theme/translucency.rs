@@ -7,13 +7,14 @@
 
 use gpui::{Hsla, Rgba};
 
-use super::palette::{light, zinc};
+use super::light::surfaces as light;
+use super::palette::zinc;
 use super::runtime::is_light;
 
 const DARK_WINDOW_MIN: f32 = 0.9;
 const DARK_PANEL_MIN: f32 = 0.82;
-const LIGHT_WINDOW_MIN: f32 = 0.86;
-const LIGHT_PANEL_MIN: f32 = 0.8;
+/// Light content panes stay nearly opaque; only the sidebar shows the desktop.
+const LIGHT_CONTENT_MIN: f32 = 0.96;
 /// How strongly the tint colors the window background, and the panels.
 const TINT_WINDOW: f32 = 0.16;
 const TINT_PANEL: f32 = 0.07;
@@ -49,26 +50,50 @@ impl Translucency {
 
     /// Tinted window background behind everything.
     pub fn window_bg(&self) -> Hsla {
-        let (base, floor) = if is_light() { (light::PAGE, LIGHT_WINDOW_MIN) } else { (zinc::Z950, DARK_WINDOW_MIN) };
+        let (base, floor) = if is_light() { (light().frame, light().frame_min) } else { (zinc::Z950, DARK_WINDOW_MIN) };
         Hsla { a: self.base_alpha.max(floor), ..self.tinted(base, TINT_WINDOW) }
     }
 
-    /// Sidebar and detail panel fill.
-    pub fn panel(&self) -> Hsla {
-        let (base, floor) = if is_light() { (light::PANEL, LIGHT_PANEL_MIN) } else { (zinc::Z900, DARK_PANEL_MIN) };
-        Hsla { a: floor + (1. - floor) * self.panel_opacity.clamp(0., 1.), ..self.tinted(base, TINT_PANEL) }
+    /// Sidebar fill: the panel in dark; in light the one surface allowed to show the desktop.
+    pub fn sidebar(&self) -> Hsla {
+        if !is_light() {
+            return self.panel();
+        }
+        let floor = light().sidebar_min;
+        Hsla { a: self.base_alpha.max(floor + (1. - floor) * self.panel_opacity.clamp(0., 1.)), ..self.tinted(light().sidebar, TINT_PANEL) }
     }
 
-    /// Card fill inside panels: a touch lighter (darker in light mode), more see-through.
+    /// List and diff column fill: none in dark (the window shows), opaque white in light.
+    pub fn content(&self) -> Hsla {
+        if !is_light() {
+            return Hsla::transparent_black();
+        }
+        Hsla { a: LIGHT_CONTENT_MIN.max(self.base_alpha), ..light().content }
+    }
+
+    /// Preview and Review side panes.
+    pub fn panel(&self) -> Hsla {
+        if is_light() {
+            return Hsla { a: LIGHT_CONTENT_MIN.max(self.base_alpha), ..self.tinted(light().panel, TINT_PANEL) };
+        }
+        Hsla { a: DARK_PANEL_MIN + (1. - DARK_PANEL_MIN) * self.panel_opacity.clamp(0., 1.), ..self.tinted(zinc::Z900, TINT_PANEL) }
+    }
+
+    /// Card fill inside panels: translucent zinc in dark, an opaque light surface in light.
     pub fn card(&self) -> Hsla {
-        let base = if is_light() { light::CARD } else { zinc::Z800 };
-        Hsla { a: 0.35 + 0.35 * self.panel_opacity, ..self.tinted(base, TINT_PANEL) }
+        if is_light() {
+            return self.tinted(light().card, TINT_PANEL * 0.5);
+        }
+        Hsla { a: 0.35 + 0.35 * self.panel_opacity, ..self.tinted(zinc::Z800, TINT_PANEL) }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The theme is global: tests that flip it run one at a time.
+    static THEME: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     fn lum(c: Rgba) -> f32 {
         let f = |v: f32| if v <= 0.03928 { v / 12.92 } else { ((v + 0.055) / 1.055).powf(2.4) };
@@ -88,6 +113,7 @@ mod tests {
 
     #[test]
     fn dark_text_reads_over_white() {
+        let _g = THEME.lock().unwrap_or_else(|e| e.into_inner());
         super::super::set_light(false);
         let s = Translucency::new(0.0, None, 0.35);
         let white = Rgba { r: 1., g: 1., b: 1., a: 1. };
@@ -95,5 +121,23 @@ mod tests {
         assert!(contrast(super::super::text().into(), page) >= 4.5);
         let panel = over(s.panel(), page);
         assert!(contrast(super::super::text_muted().into(), panel) >= 4.5);
+    }
+
+    #[test]
+    fn light_text_reads_over_black() {
+        let _g = THEME.lock().unwrap_or_else(|e| e.into_inner());
+        super::super::set_light(true);
+        let black = Rgba { r: 0., g: 0., b: 0., a: 1. };
+        for v in ["a", "b", "c"] {
+            super::super::set_light_variant(v);
+            let s = Translucency::new(0.0, None, 0.35);
+            let page = over(s.window_bg(), black);
+            let content = over(s.content(), page);
+            assert!(contrast(super::super::text_subtle().into(), content) >= 4.5, "{v} content");
+            let side = over(s.sidebar(), page);
+            assert!(contrast(super::super::text_muted().into(), side) >= 4.5, "{v} sidebar");
+        }
+        super::super::set_light_variant("c");
+        super::super::set_light(false);
     }
 }

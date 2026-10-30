@@ -46,6 +46,8 @@ pub fn right_ratio(content: Pixels, right: Pixels) -> f32 {
 pub const TRAFFIC_LIGHTS_W: Pixels = px(84.);
 /// Hit area of a pane's resize handle.
 pub const RESIZE_HANDLE_W: Pixels = px(6.);
+/// Margin around the floating sidebar (light theme).
+pub const SIDEBAR_INSET: Pixels = px(8.);
 /// Top padding of the sidebar, clearing the traffic lights.
 pub const SIDEBAR_TOP: Pixels = px(52.);
 /// Top padding of the list and detail columns, under the transparent titlebar.

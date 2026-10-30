@@ -20,6 +20,7 @@ impl GitViewer {
             .flex_1()
             .min_w(theme::SPACE_0)
             .h_full()
+            .bg(self.surfaces().content())
             .px(theme::SPACE_4)
             .pt(theme::SPACE_3)
             .when_some(d.error.clone(), |c, e| c.child(ErrorText::new(e)))

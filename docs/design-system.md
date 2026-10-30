@@ -46,17 +46,42 @@ Semantic tokens (`ui::theme::*`), dark / light:
 
 | Token              | Dark                  | Light                       |
 |--------------------|-----------------------|-----------------------------|
-| `bg()`             | zinc 950              | page grey ~#f3f3f5          |
+| `bg()`             | zinc 950              | white                       |
 | `surface()`        | white 4%              | black 4%                    |
-| `surface_hover()`  | white 7%              | black 6%                    |
-| `surface_active()` | white 10%             | black 9%                    |
-| `border()`         | white 8%              | black 9%                    |
-| `border_subtle()`  | white 5% (dividers)   | black 6%                    |
-| `text()`           | zinc 100              | zinc 900                    |
-| `text_muted()`     | zinc 400              | zinc 600                    |
-| `text_subtle()`    | zinc 500              | zinc 500                    |
-| `overlay()`        | zinc 900, opaque      | zinc 50, opaque             |
-| `scrim()`          | black 45%             | black 25%                   |
+| `surface_hover()`  | white 7%              | black 5%                    |
+| `surface_active()` | white 10%             | black 8% (gray pill)        |
+| `border()`         | white 8%              | black 10%                   |
+| `border_subtle()`  | white 5% (dividers)   | black 7%                    |
+| `card_border()`    | = `border_subtle()`   | none (flat sections)        |
+| `text()`           | zinc 100              | #1D1D1F                     |
+| `text_muted()`     | zinc 400              | #5E5E62                     |
+| `text_subtle()`    | zinc 500              | #737377 (4.7:1 on white)    |
+| `overlay()`        | zinc 900, opaque      | white, opaque               |
+| `scrim()`          | black 45%             | black 18%                   |
+
+Light accents: green #1F883D, red #CF222E, amber #9A6700, purple #8250DF, blue #0066CC; syntax
+follows Xcode's light theme.
+
+### Light theme
+
+Target: macOS 26 Mail and Calendar. Research notes (Finder, Mail, Notes, Xcode, System Settings,
+Things 3, Linear, Raycast, Arc):
+
+- Content is pure white and flat; hierarchy comes from type weight and whitespace, not grey boxes.
+- Grey is reserved for the frame: the sidebar is a light (#F5F5F7) glass panel, inset and rounded on macOS 26.
+- Only the sidebar is translucent; content stays opaque so wallpapers never wash out text.
+- Light vibrancy needs far more opacity than dark: content >= 0.96, sidebar >= 0.86 over any desktop.
+- Lists split rows with hairlines (black 7%), not card outlines; no borders around sections.
+- Shadows only on floating things (popovers, menus, the sidebar's soft lift); the window has the system one.
+- Three label greys (primary near-black, secondary, tertiary), all >= 4.5:1 on white.
+- Semantic colors are darker than their dark-mode twins (GitHub Primer light levels) to keep 4.5:1.
+- Selection is a subtle grey pill (Calendar, Linear); accent is for links, focus and primary state only.
+- Diff tints stay pale (10%) so syntax colors keep their contrast; code colors follow Xcode light.
+
+Three candidates were compared (`CONFLUO_LIGHT_VARIANT=a|b|c`, dev only, `ui/theme/light.rs`):
+A gray frame with white bordered cards, B white frame with borderless grey cards, C macOS 26
+materials. C won: the calmest and most native; B's grey-on-white cards were the "mid" look,
+A boxed every section. C is the default.
 
 Code tokens: `diff_add_bg()`, `diff_del_bg()`, `diff_hunk_bg()`, `line_selected_bg()` (accent 16% dark /
 14% light, layered over the add/del fill of selected lines) and `syntax_keyword()`,
@@ -81,15 +106,16 @@ saturated presets in `settings::TINTS` (None, Slate, Blue, Violet, Rose, Amber,
 Emerald, Teal), mixed in sRGB (`theme::mix`) into the neutral fills: 16% into the
 window background, 7% into panels and cards (60% of that in light mode).
 
-- `window_bg()`: zinc 950 (light: page grey) plus tint, alpha
+- `window_bg()`: zinc 950 (light: white) plus tint, alpha
   `max(base_alpha, floor)`; base is 1.0 opaque, 0.35 blurred, 0.55 transparent
-- `panel()`: zinc 900 (light: `light::PANEL`) plus tint; panel opacity maps
-  0..1 onto `floor..1`
-- `card()`: zinc 800 (light: `light::CARD`) at 35-70% alpha
+- `sidebar()`: = `panel()` in dark; light #F5F5F7 glass, the only light surface showing the desktop
+- `content()`: none in dark; opaque white (>= 0.96) behind the list and diff column in light
+- `panel()`: zinc 900 plus tint, panel opacity maps 0..1 onto `floor..1` (light: white >= 0.96)
+- `card()`: zinc 800 at 35-70% alpha (light: opaque white, flat)
 
 Readability floors guarantee text contrast >= 4.5:1 whatever is behind the
 window (tested in `translucency.rs` against pure white): dark window 0.9, dark
-panels 0.82, light window 0.86, light panels 0.8.
+panels 0.82; light (tested over pure black) window 0.94, content 0.96, sidebar 0.86.
 
 ## Spacing, radius, type
 

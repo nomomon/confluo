@@ -35,9 +35,9 @@ impl GitViewer {
             .w(self.sidebar_w())
             .h_full()
             .flex_shrink_0()
-            .bg(self.surfaces().panel())
-            .border_r_1()
+            .bg(self.surfaces().sidebar())
             .border_color(theme::border_subtle())
+            .map(|c| if theme::sidebar_inset() { c.border_1().rounded(theme::RADIUS_XL).shadow_sm() } else { c.border_r_1() })
             .pt(layout::SIDEBAR_TOP)
             .px(theme::SPACE_3)
             .gap(theme::SPACE_1)
@@ -62,6 +62,9 @@ impl GitViewer {
             this.overlay = Overlay::Settings;
             cx.notify()
         }));
-        col.child(div().flex_1()).children(self.render_update_card(cx)).child(self.hinted::<OpenSettings>(settings, anchor).mb(theme::SPACE_4))
+        let col = col.child(div().flex_1()).children(self.render_update_card(cx)).child(self.hinted::<OpenSettings>(settings, anchor).mb(theme::SPACE_4));
+        // macOS 26 light: the sidebar floats as an inset glass panel; its width includes the margin.
+        let inset = theme::sidebar_inset();
+        div().h_full().flex_shrink_0().when(inset, |d| d.p(layout::SIDEBAR_INSET)).child(col.when(inset, |c| c.w(self.sidebar_w() - layout::SIDEBAR_INSET * 2.).pt(layout::SIDEBAR_TOP - layout::SIDEBAR_INSET)))
     }
 }

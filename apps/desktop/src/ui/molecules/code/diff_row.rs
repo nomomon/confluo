@@ -165,7 +165,8 @@ impl RenderOnce for DiffRow {
             .w_full()
             .map(|d| {
                 if wrap {
-                    d.items_start().min_h(self.height)
+                    // Grows to the row height in a split pair whose other side wraps taller.
+                    d.items_start().min_h(self.height).flex_grow()
                 } else {
                     d.items_center().h(self.height)
                 }

@@ -66,6 +66,9 @@ impl GitViewer {
             Some(li) => div()
                 .flex_1()
                 .min_w(theme::SPACE_0)
+                // Column so the cell stretches to the taller wrapped side (row height).
+                .flex()
+                .flex_col()
                 .child(self.diff_cell(ix, side, fi, hi, li, files, d, true, cx))
                 .into_any_element(),
             None => blank().into_any_element(),
@@ -268,6 +271,7 @@ impl GitViewer {
         }
         div()
             .id(("diff-cell", ix * 4 + side))
+            .when(split, |d| d.flex_grow().flex().flex_col())
             .group(group)
             .cursor_pointer()
             .on_mouse_down(

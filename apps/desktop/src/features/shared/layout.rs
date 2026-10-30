@@ -30,13 +30,17 @@ pub const SIDEBAR_TOP: Pixels = px(52.);
 pub const TITLEBAR_INSET: Pixels = px(48.);
 /// Review mode top bar: title line plus a muted meta line.
 pub const REVIEW_BAR_H: Pixels = px(54.);
+/// Scroll past end: the diff can scroll its last row up to this fraction of the viewport from the top.
+pub const SCROLL_PAST_END: f32 = 0.4;
+/// Scroll past end spacer before the diff list has been measured.
+pub const SCROLL_PAST_END_FALLBACK: Pixels = px(320.);
+/// Comfortable end padding of the PR list, the timeline and the file tree.
+pub const END_PAD: Pixels = px(96.);
 pub const TIME_COL_W: Pixels = px(72.);
-/// Settings dialog size, its left navigation and the background image thumbnail.
+/// Settings dialog size and its left navigation.
 pub const SETTINGS_W: Pixels = px(780.);
 pub const SETTINGS_H: Pixels = px(560.);
 pub const SETTINGS_NAV_W: Pixels = px(188.);
-pub const SETTINGS_THUMB_W: Pixels = px(72.);
-pub const SETTINGS_THUMB_H: Pixels = px(44.);
 /// Code tab: one diff line, the file card header, the `@@` band and line number gutters.
 pub const DIFF_LINE_H: Pixels = px(20.);
 pub const DIFF_HEADER_H: Pixels = px(40.);

@@ -5,6 +5,7 @@ use gpui::{div, prelude::*, ClickEvent, Context};
 
 use super::{comment_count, diff_counts, status_color};
 use crate::app::GitViewer;
+use crate::features::shared::layout;
 use crate::state::{tree_entries, DetailState, TreeEntry, TreeQuery};
 use crate::ui::atoms::{tooltip, Checkbox, Icon, IconName, ListItem, Switch};
 use crate::ui::molecules::command_palette::score;
@@ -40,7 +41,7 @@ impl GitViewer {
         let input = Input::new("tree-filter", self.tree_filter.clone(), !filter.is_empty()).leading(IconName::Search).on_clear(cx.listener(|this, _: &ClickEvent, _, cx| {
             this.tree_filter.update(cx, |i, cx| i.set_text("", cx));
         }));
-        let mut col = div().id("file-tree").flex().flex_col().gap(theme::SPACE_0P5).overflow_y_scroll().flex_1().min_h(theme::SPACE_0).px(theme::SPACE_2).pb(theme::SPACE_3);
+        let mut col = div().id("file-tree").flex().flex_col().gap(theme::SPACE_0P5).overflow_y_scroll().flex_1().min_h(theme::SPACE_0).px(theme::SPACE_2).pb(layout::END_PAD);
         for e in entries {
             col = col.child(match e {
                 TreeEntry::Dir(dir, n) => {

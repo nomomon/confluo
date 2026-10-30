@@ -103,12 +103,14 @@ impl CodeState {
     pub fn rebuild(&mut self) {
         let Some(files) = &self.files else { return };
         (self.rows, self.starts) = build_rows(files, &self.collapsed, &self.shown_large, self.inline_rows());
-        self.list.reset(self.rows.len());
+        // One extra trailing item: the scroll past end spacer, never a row.
+        self.list.reset(self.rows.len() + 1);
     }
 
     /// Index of the file at the top of the viewport.
     pub fn current_file(&self) -> usize {
-        self.rows.get(self.list.logical_scroll_top().item_ix).map(|r| r.file()).unwrap_or(0)
+        let ix = self.list.logical_scroll_top().item_ix.min(self.rows.len().saturating_sub(1));
+        self.rows.get(ix).map(|r| r.file()).unwrap_or(0)
     }
 
     pub fn file_count(&self) -> usize {

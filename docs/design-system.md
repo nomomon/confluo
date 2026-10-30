@@ -118,6 +118,9 @@ Comfortable), so features never hard-code breathing room:
 Targets come from Zeron measured in points (rows ~68pt with 15px titles there; we go tighter,
 Linear/Mail-like). `KV_KEY_W` 88. Layout: `CONTENT_MAX_W` 1360, `SIDEBAR_W` 240,
 `TITLEBAR_INSET` 48.
+Scroll past end: the review diff list ends with a spacer item (not a row) of
+`SCROLL_PAST_END` 40% of its viewport (320 before it is measured); the PR list,
+timeline and file tree end with `END_PAD` 96.
 
 ### List items
 

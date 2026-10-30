@@ -5,7 +5,7 @@ use gpui::{div, prelude::*, AnyElement, ClickEvent, Context};
 use gv_engine::{commits_since, CommitInfo};
 
 use crate::app::GitViewer;
-use crate::features::shared::relative_time;
+use crate::features::shared::{layout, relative_time};
 use crate::state::{DetailState, RightTab};
 use crate::ui::atoms::{tooltip, Icon, IconName, ListItem};
 use crate::ui::molecules::{Tabs, TabsVariant};
@@ -35,7 +35,7 @@ impl GitViewer {
             .flex_col()
             .size_full()
             .child(div().px(theme::SPACE_3).pt(theme::SPACE_2).child(tabs))
-            .child(div().id("right-scroll").flex_1().min_h(theme::SPACE_0).overflow_y_scroll().px(theme::SPACE_3).py(theme::SPACE_3).child(body))
+            .child(div().id("right-scroll").flex_1().min_h(theme::SPACE_0).overflow_y_scroll().px(theme::SPACE_3).pt(theme::SPACE_3).pb(layout::END_PAD).child(body))
             .when(tab == RightTab::Conversation, |p| p.child(div().px(theme::SPACE_3).pb(theme::SPACE_3).child(self.render_composer(d, cx))))
     }
 

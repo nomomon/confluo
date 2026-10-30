@@ -2,7 +2,7 @@
 //!
 //! Rows of a file share left and right borders so together they read as one rounded card.
 
-use gpui::{div, prelude::*, AnyElement, ClickEvent, Context, Div, SharedString};
+use gpui::{div, prelude::*, px, AnyElement, ClickEvent, Context, Div, SharedString};
 use gv_engine::{ChangeRequest, FileStatus, ProviderKind};
 
 use super::{comment_count, diff_counts, status_color};
@@ -54,6 +54,11 @@ impl GitViewer {
 
     pub(super) fn render_code_row(&mut self, ix: usize, cx: &mut Context<Self>) -> AnyElement {
         let Some(d) = self.detail.as_ref() else { return div().into_any_element() };
+        if ix == d.code.rows.len() {
+            let h = d.code.list.viewport_bounds().size.height;
+            let h = if h > px(0.) { h * layout::SCROLL_PAST_END } else { layout::SCROLL_PAST_END_FALLBACK };
+            return div().h(h).into_any_element();
+        }
         let (Some(files), Some(&row)) = (d.code.files.clone(), d.code.rows.get(ix)) else { return div().into_any_element() };
         let f = &files[row.file()];
         match row {

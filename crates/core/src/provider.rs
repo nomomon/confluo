@@ -248,6 +248,14 @@ pub trait Provider: Send + Sync {
             self.kind()
         )))
     }
+    /// Number of changed files from one cheap request, for providers whose lists carry no counts.
+    async fn changed_file_count(&self, _id: &ChangeRequestId) -> ProviderResult<Option<u32>> {
+        Ok(None)
+    }
+    /// Avatar bytes for an image URL that needs this host's credentials (None: fetch it plainly).
+    async fn avatar(&self, _url: &str) -> ProviderResult<Option<Vec<u8>>> {
+        Ok(None)
+    }
     /// Files changed between two commits of the PR/MR (`from` exclusive), e.g. since my last review.
     async fn range_files(
         &self,

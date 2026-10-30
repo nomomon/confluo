@@ -16,6 +16,7 @@ mod bot_settings;
 mod demo;
 mod edit;
 mod extras;
+mod line_stats;
 mod quiet;
 mod review;
 mod tokens;
@@ -835,7 +836,9 @@ impl Engine {
         }
         .await;
         match fetched {
-            Ok(d) => {
+            Ok(mut d) => {
+                let head = d.head_sha.clone();
+                self.fill_counts(&mut d.summary, head.as_deref());
                 self.store.put_detail(&d)?;
                 self.detail_fetched
                     .lock()

@@ -30,6 +30,7 @@ mod line_actions;
 mod line_comments;
 mod line_cursor;
 pub mod line_select;
+mod line_stats;
 mod list;
 mod list_tabs;
 mod nav;

@@ -15,6 +15,7 @@ mod review;
 mod row_ref;
 mod stale;
 mod suggestion;
+mod user;
 
 pub use attention::{thread_attention, threads_attention, Attention};
 pub use bots::{glob, BotFilter, DEFAULT_BOT_AUTHORS, DEFAULT_BOT_BRANCHES};
@@ -30,3 +31,4 @@ pub use review::*;
 pub use row_ref::{row_ref, RowRef};
 pub use stale::*;
 pub use suggestion::*;
+pub use user::clean_display;

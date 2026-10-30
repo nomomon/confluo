@@ -158,29 +158,8 @@ impl AzureProvider {
         &self,
         id: &ChangeRequestId,
     ) -> ProviderResult<Vec<ChangedFile>> {
-        let base = self.pr_url(id)?;
         let repo_url = self.repo_url(id)?;
-        let its = self.get(&format!("{base}/iterations?{API}")).await?;
-        let Some(last) = its["value"]
-            .as_array()
-            .and_then(|a| a.iter().filter_map(|i| i["id"].as_u64()).max())
-        else {
-            return Ok(vec![]);
-        };
-        let mut all = vec![];
-        let mut skip = 0u64;
-        for _ in 0..10 {
-            let v = self
-                .get(&format!(
-                    "{base}/iterations/{last}/changes?$top=1000&$skip={skip}&$compareTo=0&{API}"
-                ))
-                .await?;
-            all.extend(entries(&v));
-            match v["nextSkip"].as_u64() {
-                Some(n) if n > skip => skip = n,
-                _ => break,
-            }
-        }
+        let all = self.change_entries(id).await?;
         self.diff_entries(&repo_url, all, None).await
     }
 

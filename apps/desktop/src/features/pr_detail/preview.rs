@@ -3,7 +3,7 @@
 
 use gpui::{div, prelude::*, ClickEvent, Context, MouseButton, MouseDownEvent};
 
-use super::header::stats;
+use super::stats::stats;
 use crate::app::GitViewer;
 use crate::features::keymap::{self, OpenInBrowser, OpenSelected, ToggleDetail};
 use crate::features::shared::{layout, number_label, provider_mark, state_icon};
@@ -93,10 +93,10 @@ impl GitViewer {
                     .items_center()
                     .gap(theme::space_1())
                     .child(
-                        Avatar::new(s.author.username.clone())
+                        Avatar::new(s.author.label())
                             .image(self.avatar(s.author.avatar_url.as_deref())),
                     )
-                    .child(s.author.username.clone()),
+                    .child(s.author.label()),
             );
         let status = div()
             .flex()
@@ -104,7 +104,7 @@ impl GitViewer {
             .items_center()
             .gap_y(theme::space_2())
             .gap(theme::space_3())
-            .child(stats(s))
+            .child(stats(s, d.stats_loading))
             .children(self.render_ci(d, "preview", cx))
             .children(self.render_review_state(d));
         let actions = div()

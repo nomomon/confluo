@@ -4,6 +4,7 @@
 use gpui::{div, img, prelude::*, App, Image, SharedString, Window};
 use std::sync::Arc;
 
+use crate::ui::atoms::{Icon, IconName};
 use crate::ui::theme;
 
 #[derive(IntoElement)]
@@ -11,6 +12,7 @@ pub struct Avatar {
     name: SharedString,
     image: Option<Arc<Image>>,
     size: gpui::Pixels,
+    group: bool,
 }
 
 impl Avatar {
@@ -19,12 +21,19 @@ impl Avatar {
             name: name.into(),
             image: None,
             size: theme::space_4(),
+            group: false,
         }
     }
 
     /// Diameter; 16px by default, 24px in the activity timeline.
     pub fn size(mut self, size: gpui::Pixels) -> Self {
         self.size = size;
+        self
+    }
+
+    /// A team or group: the Tabler users icon instead of an initial.
+    pub fn group(mut self, group: bool) -> Self {
+        self.group = group;
         self
     }
 
@@ -49,6 +58,11 @@ impl RenderOnce for Avatar {
             .overflow_hidden();
         match self.image {
             Some(image) => base.child(img(image).size_full().rounded(theme::RADIUS_FULL)),
+            None if self.group => base.child(
+                Icon::new(IconName::Users)
+                    .size(self.size * 0.6)
+                    .color(theme::text_subtle()),
+            ),
             None => {
                 let initial: String = self
                     .name

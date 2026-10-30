@@ -32,6 +32,8 @@ pub struct GroupMember {
     pub handle: SharedString,
     pub image: Option<Arc<Image>>,
     pub status: Option<AvatarStatus>,
+    /// A team or group: a group icon instead of an initial.
+    pub group: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -155,6 +157,7 @@ impl RenderOnce for AvatarGroup {
                 })
                 .child(
                     Avatar::new(m.name.clone())
+                        .group(m.group)
                         .size(d - ring_w * 2.)
                         .image(m.image.clone()),
                 );

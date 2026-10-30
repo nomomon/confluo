@@ -42,13 +42,9 @@ impl GitViewer {
             .map(|(i, u)| {
                 let handle = u.username.strip_prefix("team:").unwrap_or(&u.username);
                 GroupMember {
-                    name: u
-                        .name
-                        .clone()
-                        .filter(|n| !n.is_empty())
-                        .unwrap_or_else(|| handle.to_string())
-                        .into(),
+                    name: u.label().into(),
                     handle: handle.to_string().into(),
+                    group: u.is_team(),
                     image: self.avatar(u.avatar_url.as_deref()),
                     status: states.and_then(|s| s.get(i)).and_then(|s| status(*s)),
                 }

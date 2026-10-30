@@ -56,22 +56,33 @@ pub(crate) fn opt_time(v: &Value) -> Option<DateTime<Utc>> {
         .filter(|t| t.timestamp() > 0)
 }
 
-/// An `IdentityRef`. Username is the unique name (usually the email); groups use their display name.
+/// A group reviewer: `isContainer`, or a `[Project]\Team` name.
+fn is_group(v: &Value, display: &str) -> bool {
+    v["isContainer"] == true || (display.starts_with('[') && display.contains("]\\"))
+}
+
+/// An `IdentityRef`. Username is the unique name (usually the email); groups are `team:[Project]\Team`
+/// named "Team". The avatar is the identity image (fetched with the token).
 pub(crate) fn user(v: &Value) -> User {
-    let display = v["displayName"].as_str().unwrap_or("unknown");
+    let display = clean_display(v["displayName"].as_str().unwrap_or("unknown"));
     let unique = v["uniqueName"]
         .as_str()
         .filter(|u| !u.is_empty() && !u.starts_with("vstfs:"));
-    let username = if v["isContainer"] == true {
-        display
+    let group = is_group(v, display);
+    let (username, name) = if group {
+        let short = display.rsplit('\\').next().unwrap_or(display);
+        (format!("team:{display}"), short)
     } else {
-        unique.unwrap_or(display)
+        (unique.unwrap_or(display).to_string(), display)
     };
     User {
-        username: username.to_string(),
-        name: Some(display.to_string()),
-        // imageUrl needs auth; the UI falls back to initials.
-        avatar_url: None,
+        username,
+        name: Some(name.to_string()),
+        avatar_url: v["imageUrl"]
+            .as_str()
+            .or(v["_links"]["avatar"]["href"].as_str())
+            .filter(|u| !group && u.starts_with("https://"))
+            .map(str::to_string),
         bot: unique.is_some_and(|u| u.starts_with("Build\\"))
             || display.ends_with("Build Service")
             || display.contains("Build Service ("),
@@ -521,7 +532,11 @@ mod tests {
                 ReviewState::ChangesRequested
             ]
         );
-        assert_eq!(cr.reviewers[2].user.username, "[Fabrikam Web]\\Web Team");
+        assert_eq!(
+            cr.reviewers[2].user.username,
+            "team:[Fabrikam Web]\\Web Team"
+        );
+        assert_eq!(cr.reviewers[2].user.label(), "Web Team");
         // I am a reviewer without a vote on an open PR.
         assert!(cr.needs_you);
         assert_eq!(my_vote(&v, &me()), 0);
@@ -612,6 +627,18 @@ mod tests {
             &json!({"displayName": "Fabrikam Build Service (contoso)", "uniqueName": "Build\\abc", "id": "b"}),
         );
         assert!(bot.bot);
+        let named = user(
+            &json!({"displayName": "Ada Lovelace <ada@example.com>", "uniqueName": "ada@example.com", "imageUrl": "https://dev.azure.com/o/_api/_common/identityImage?id=1"}),
+        );
+        assert_eq!(named.username, "ada@example.com");
+        assert_eq!(named.name.as_deref(), Some("Ada Lovelace"));
+        assert!(named.avatar_url.is_some());
+        let team = user(
+            &json!({"displayName": "[Proj]\\Core Team", "uniqueName": "vstfs:///Classification/TeamProject/x", "isContainer": true, "imageUrl": "https://dev.azure.com/o/i"}),
+        );
+        assert_eq!(team.username, "team:[Proj]\\Core Team");
+        assert_eq!(team.name.as_deref(), Some("Core Team"));
+        assert!(team.avatar_url.is_none());
         let repo = RepoRef::new(ProviderKind::Azure, "dev.azure.com", "contoso/proj/repo");
         let c = parse_commits(fixture("commits")["value"].as_array().unwrap(), &repo);
         assert_eq!(c[0].message, "Add login form");

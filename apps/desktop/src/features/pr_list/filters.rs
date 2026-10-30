@@ -25,6 +25,7 @@ impl GitViewer {
             || c.title.to_lowercase().contains(q)
             || c.id.repo.path.to_lowercase().contains(q)
             || c.author.username.to_lowercase().contains(q)
+            || c.author.label().to_lowercase().contains(q)
             || c.source_branch.to_lowercase().contains(q)
             || c.target_branch.to_lowercase().contains(q)
             || self

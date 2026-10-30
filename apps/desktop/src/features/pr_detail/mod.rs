@@ -25,6 +25,7 @@ mod quick_open;
 mod reactions;
 mod review;
 mod right_panel;
+mod stats;
 mod thread_view;
 
 pub(crate) use checkout::checkout_command;

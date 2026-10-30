@@ -13,6 +13,7 @@ use std::sync::Mutex;
 use tokio::sync::{OnceCell, RwLock};
 
 mod auth;
+mod changes;
 mod checks;
 mod commit_diff;
 mod diff;
@@ -43,6 +44,8 @@ pub struct AzureProvider {
     project_ids: Mutex<HashMap<String, String>>,
     /// PR key -> last merge source commit, seen in lists (enrichment marker).
     heads: Mutex<HashMap<String, String>>,
+    /// PR key -> (head, last iteration's change entries), so a file count and the diff share one fetch.
+    changes: Mutex<HashMap<String, (String, Vec<diff::Entry>)>>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -64,6 +67,7 @@ impl AzureProvider {
             orgs: Mutex::new(vec![]),
             project_ids: Mutex::new(HashMap::new()),
             heads: Mutex::new(HashMap::new()),
+            changes: Mutex::new(HashMap::new()),
         }
     }
 
@@ -327,7 +331,8 @@ impl Provider for AzureProvider {
             .get(&cr.id.key())
             .cloned()
             .unwrap_or_default();
-        format!("{}|{head}", cr.updated_at.to_rfc3339())
+        // The leading version re-enriches cached rows when the check mapping changes.
+        format!("2|{}|{head}", cr.updated_at.to_rfc3339())
     }
 
     async fn enrich(&self, items: Vec<ChangeRequest>) -> Vec<ProviderResult<ChangeRequest>> {
@@ -490,7 +495,8 @@ impl Provider for AzureProvider {
                 .as_array()
                 .into_iter()
                 .flatten()
-                .filter(|r| r["isContainer"] != true && r["vote"].as_i64().unwrap_or(0) >= 5)
+                // Groups count too, but only once someone voted for them (a non-zero vote).
+                .filter(|r| r["vote"].as_i64().unwrap_or(0) >= 5)
                 .count() as u32;
             review.approvals = Some(Approvals { given, required });
         }
@@ -815,6 +821,18 @@ impl Provider for AzureProvider {
 
     async fn list_changed_files(&self, id: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>> {
         self.changed_files(id).await
+    }
+
+    async fn changed_file_count(&self, id: &ChangeRequestId) -> ProviderResult<Option<u32>> {
+        Ok(Some(self.change_entries(id).await?.len() as u32))
+    }
+
+    async fn avatar(&self, url: &str) -> ProviderResult<Option<Vec<u8>>> {
+        // Never send the token to another host.
+        if !changes::own_host(&self.host, url) {
+            return Ok(None);
+        }
+        self.get_bytes(url).await
     }
 
     async fn commit_files(

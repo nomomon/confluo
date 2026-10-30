@@ -1,0 +1,35 @@
+{
+  "evaluations": [
+    {"evaluationId": "e1", "status": "queued", "context": null, "startedDate": "2026-01-01T10:00:00Z",
+     "configuration": {"isEnabled": true, "isBlocking": true, "settings": {"minimumApproverCount": 1},
+       "type": {"id": "fa4e907d-c16b-4a4c-9dfa-4906e5d171dd", "displayName": "Minimum number of reviewers"}}},
+    {"evaluationId": "e2", "status": "approved", "startedDate": "2026-01-01T10:00:00Z", "completedDate": "2026-01-01T10:06:00Z",
+     "context": {"buildId": 100, "buildDefinitionId": 4, "buildIsNotCurrent": false, "isExpired": false},
+     "configuration": {"isEnabled": true, "isBlocking": true, "settings": {"buildDefinitionId": 4, "displayName": null},
+       "type": {"id": "0609b952-1397-4640-95ec-e00a01b2c241", "displayName": "Build"}}},
+    {"evaluationId": "e3", "status": "approved",
+     "context": {"buildId": 99, "buildIsNotCurrent": false, "isExpired": true},
+     "configuration": {"isEnabled": true, "isBlocking": true, "settings": {"displayName": "expired"},
+       "type": {"id": "0609b952-1397-4640-95ec-e00a01b2c241", "displayName": "Build"}}},
+    {"evaluationId": "e4", "status": "queued", "context": null,
+     "configuration": {"isEnabled": true, "isBlocking": true, "settings": {"displayName": "manual"},
+       "type": {"id": "0609b952-1397-4640-95ec-e00a01b2c241", "displayName": "Build"}}},
+    {"evaluationId": "e5", "status": "queued", "context": {"buildId": 101},
+     "configuration": {"isEnabled": true, "isBlocking": true, "settings": {"displayName": "queued"},
+       "type": {"id": "0609b952-1397-4640-95ec-e00a01b2c241", "displayName": "Build"}}},
+    {"evaluationId": "e6", "status": "running", "context": {"buildId": 102},
+     "configuration": {"isEnabled": true, "isBlocking": true, "settings": {"displayName": "running"},
+       "type": {"id": "0609b952-1397-4640-95ec-e00a01b2c241", "displayName": "Build"}}},
+    {"evaluationId": "e7", "status": "running", "context": {"buildId": 103},
+     "configuration": {"isEnabled": true, "isBlocking": false, "settings": {"displayName": "optional"},
+       "type": {"id": "0609b952-1397-4640-95ec-e00a01b2c241", "displayName": "Build"}}},
+    {"evaluationId": "e8", "status": "broken", "context": null,
+     "configuration": {"isEnabled": true, "isBlocking": true, "settings": {"displayName": "broken"},
+       "type": {"id": "0609b952-1397-4640-95ec-e00a01b2c241", "displayName": "Build"}}}
+  ],
+  "statuses": [
+    {"id": 1, "context": {"genre": "team.tests", "name": "coverage"}, "creationDate": "2026-01-01T10:00:00Z"},
+    {"id": 2, "state": "pending", "context": {"genre": "team.tests", "name": "coverage"}, "creationDate": "2026-01-01T10:04:00Z"},
+    {"id": 3, "state": "notApplicable", "context": {"genre": "team.tests", "name": "coverage"}, "creationDate": "2026-01-01T10:04:01Z"}
+  ]
+}

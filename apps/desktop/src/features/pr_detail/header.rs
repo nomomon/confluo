@@ -15,34 +15,6 @@ use crate::ui::atoms::{tooltip, Button, ButtonVariant, HintAnchor, Icon, IconNam
 use crate::ui::molecules::{DropdownMenu, MenuItem, MenuSeparator};
 use crate::ui::theme;
 
-/// `+a -d · N files` in muted mono.
-pub(super) fn stats(s: &gv_engine::ChangeRequest) -> impl IntoElement {
-    let files = s.changed_files.map(|n| {
-        if n == 1 {
-            "1 file".to_string()
-        } else {
-            format!("{n} files")
-        }
-    });
-    div()
-        .flex()
-        .flex_shrink_0()
-        .items_center()
-        .gap(theme::space_1p5())
-        .text_size(theme::text_xs())
-        .font_family(theme::mono_font())
-        .when_some(s.additions, |e, a| {
-            e.child(div().text_color(theme::success()).child(format!("+{a}")))
-        })
-        .when_some(s.deletions, |e, d| {
-            e.child(div().text_color(theme::danger()).child(format!("-{d}")))
-        })
-        .when_some(files, |e, f| {
-            e.child(div().text_color(theme::text_subtle()).child("\u{00b7}"))
-                .child(div().text_color(theme::text_muted()).child(f))
-        })
-}
-
 /// Approvals shown once: given of needed, and whether anyone requested changes.
 #[derive(Debug, PartialEq)]
 pub(super) struct ApprovalCounts {

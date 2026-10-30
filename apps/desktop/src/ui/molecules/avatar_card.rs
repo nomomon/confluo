@@ -32,7 +32,11 @@ impl Render for AvatarCard {
                     .flex()
                     .items_center()
                     .gap(theme::space_1p5())
-                    .child(Avatar::new(m.name.clone()).image(m.image.clone()))
+                    .child(
+                        Avatar::new(m.name.clone())
+                            .group(m.group)
+                            .image(m.image.clone()),
+                    )
                     .child(
                         div()
                             .font_weight(theme::WEIGHT_MEDIUM)
@@ -43,7 +47,11 @@ impl Render for AvatarCard {
                         div()
                             .flex_1()
                             .text_color(theme::text_subtle())
-                            .child(format!("@{}", m.handle)),
+                            .child(if m.group {
+                                m.handle.to_string()
+                            } else {
+                                format!("@{}", m.handle)
+                            }),
                     )
                     .children(state)
             }))

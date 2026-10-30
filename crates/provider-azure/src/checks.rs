@@ -12,15 +12,40 @@ fn is_build(e: &Value) -> bool {
     t["id"].as_str() == Some(BUILD_POLICY) || t["displayName"].as_str() == Some("Build")
 }
 
-fn policy_status(e: &Value) -> CheckStatus {
+/// Raw gate state for merge blocking: anything not yet decided still holds the merge.
+fn gate_status(e: &Value) -> CheckStatus {
     match e["status"].as_str().unwrap_or_default() {
-        // An expired build result has to be queued again before completing.
-        "approved" if e["context"]["isExpired"] == true => CheckStatus::Pending,
         "approved" => CheckStatus::Passed,
         "rejected" | "broken" => CheckStatus::Failed,
-        "running" => CheckStatus::Running,
-        "queued" => CheckStatus::Pending,
+        "running" | "queued" => CheckStatus::Running,
         _ => CheckStatus::Skipped,
+    }
+}
+
+/// A build result Azure no longer counts (expired, or built from an older source commit).
+fn stale_build(e: &Value) -> bool {
+    e["context"]["isExpired"] == true || e["context"]["buildIsNotCurrent"] == true
+}
+
+/// Check state of one evaluation. Only a build with an actual build behind it can be running;
+/// reviewer and comment policies wait on people, not CI, and an optional policy never shows as
+/// pending (it must not dominate the required ones).
+fn policy_status(e: &Value) -> CheckStatus {
+    let raw = e["status"].as_str().unwrap_or_default();
+    let status = match raw {
+        "rejected" | "broken" => CheckStatus::Failed,
+        "approved" if is_build(e) && stale_build(e) => CheckStatus::Skipped,
+        "approved" => CheckStatus::Passed,
+        _ if !is_build(e) => CheckStatus::Skipped,
+        "running" => CheckStatus::Running,
+        "queued" if e["context"]["buildId"].is_u64() && !stale_build(e) => CheckStatus::Pending,
+        _ => CheckStatus::Skipped,
+    };
+    let optional = e["configuration"]["isBlocking"] == false;
+    if optional && matches!(status, CheckStatus::Running | CheckStatus::Pending) {
+        CheckStatus::Skipped
+    } else {
+        status
     }
 }
 
@@ -60,7 +85,9 @@ pub(crate) fn policy_runs(evals: &[Value], org: &str, project: &str) -> Vec<Chec
                 id: e["evaluationId"].as_str().unwrap_or_default().to_string(),
                 name: policy_name(e),
                 stage: Some(
-                    if e["configuration"]["isBlocking"] == false {
+                    if !is_build(e) {
+                        "Review policy"
+                    } else if e["configuration"]["isBlocking"] == false {
                         "Optional policy"
                     } else {
                         "Required policy"
@@ -112,8 +139,8 @@ pub(crate) fn status_runs(statuses: &[Value]) -> Vec<CheckRun> {
                 "succeeded" => CheckStatus::Passed,
                 "failed" | "error" => CheckStatus::Failed,
                 "pending" => CheckStatus::Running,
-                "notApplicable" => CheckStatus::Skipped,
-                _ => CheckStatus::Pending,
+                // notApplicable, or no state at all (a placeholder the service never filled).
+                _ => CheckStatus::Skipped,
             };
             let ctx = &st["context"];
             let name = match (
@@ -186,7 +213,7 @@ pub(crate) fn blocking(evals: &[Value]) -> (bool, bool) {
     });
     let (mut failed, mut running) = (false, false);
     for e in blocking {
-        match policy_status(e) {
+        match gate_status(e) {
             CheckStatus::Failed => failed = true,
             CheckStatus::Running | CheckStatus::Pending => running = true,
             _ => {}
@@ -214,9 +241,9 @@ mod tests {
             got,
             vec![
                 ("CI", CheckStatus::Failed),
-                ("e2e", CheckStatus::Running),
+                ("e2e", CheckStatus::Skipped),
                 ("Minimum number of reviewers", CheckStatus::Passed),
-                ("Comment requirements", CheckStatus::Pending),
+                ("Comment requirements", CheckStatus::Skipped),
                 ("Work item linking", CheckStatus::Skipped),
             ]
         );
@@ -229,15 +256,39 @@ mod tests {
         assert_eq!(
             summary(&runs),
             CheckSummary {
-                total: 4,
+                total: 2,
                 passed: 1,
                 failed: 1,
-                pending: 2
+                pending: 0
             }
         );
         assert_eq!(required_approvers(&evals()), 2);
         assert_eq!(failed_builds(&evals()), vec!["ev-build-1"]);
         assert_eq!(blocking(&evals()), (true, true));
+    }
+
+    /// Shapes seen live: a passed build, reviewer policies waiting on people, and a status
+    /// context whose latest post is notApplicable. Nothing here is running.
+    #[test]
+    fn waiting_on_reviewers_is_not_running() {
+        let v: Value =
+            serde_json::from_str(include_str!("../fixtures/policy_waiting.json")).unwrap();
+        let mut runs = policy_runs(v["evaluations"].as_array().unwrap(), "o", "p");
+        let got: Vec<CheckStatus> = runs.iter().map(|r| r.status).collect();
+        use CheckStatus::*;
+        assert_eq!(
+            got,
+            vec![Skipped, Passed, Skipped, Skipped, Pending, Running, Skipped, Failed]
+        );
+        assert_eq!(runs[0].stage.as_deref(), Some("Review policy"));
+        runs.extend(status_runs(v["statuses"].as_array().unwrap()));
+        assert_eq!(runs.last().map(|r| r.status), Some(Skipped));
+        let s = summary(&runs[..2]);
+        assert_eq!((s.total, s.passed, s.pending), (1, 1, 0));
+        assert_eq!(
+            failed_builds(v["evaluations"].as_array().unwrap()),
+            vec!["e3", "e8"]
+        );
     }
 
     #[test]

@@ -78,10 +78,10 @@ impl GitViewer {
                         .gap(theme::space_1p5())
                         .flex_shrink_0()
                         .child(
-                            Avatar::new(c.author.username.clone())
+                            Avatar::new(c.author.label())
                                 .image(self.avatar(c.author.avatar_url.as_deref())),
                         )
-                        .child(c.author.username.clone()),
+                        .child(c.author.label()),
                 )
             })
             .child(Pill::new(number_label(c), theme::success()).icon(IconName::GitPullRequest))

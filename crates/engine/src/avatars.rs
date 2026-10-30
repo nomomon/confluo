@@ -48,6 +48,13 @@ pub fn small_avatar_url(url: &str) -> String {
     u.to_string()
 }
 
+/// The Azure DevOps host of an avatar URL that needs auth (identity images).
+fn authed_host(url: &str) -> Option<String> {
+    let u = reqwest::Url::parse(url).ok()?;
+    let host = u.host_str()?.to_ascii_lowercase();
+    (host == "dev.azure.com" || host.ends_with(".visualstudio.com")).then_some(host)
+}
+
 fn fresh(p: &std::path::Path, ttl: Duration) -> bool {
     std::fs::metadata(p)
         .and_then(|m| m.modified())
@@ -76,16 +83,24 @@ impl crate::Engine {
             return std::fs::read(&img).ok();
         }
         let _ = std::fs::create_dir_all(&d);
-        let client = avatar_client();
-        let got = gv_http::send(client.get(small_avatar_url(url)))
-            .await
-            .ok()
-            .filter(|r| (200..300).contains(&r.status) && r.body.len() <= MAX_BYTES);
+        let got = match authed_host(url) {
+            // Azure identity images need the token: the provider fetches them through the governor.
+            Some(host) => match self.provider(gv_core::ProviderKind::Azure, &host).await {
+                Ok(p) => p.avatar(url).await.ok().flatten(),
+                Err(_) => None,
+            },
+            None => gv_http::send(avatar_client().get(small_avatar_url(url)))
+                .await
+                .ok()
+                .filter(|r| (200..300).contains(&r.status))
+                .map(|r| r.body),
+        }
+        .filter(|b| !b.is_empty() && b.len() <= MAX_BYTES);
         match got {
-            Some(r) => {
-                let _ = std::fs::write(&img, &r.body);
+            Some(body) => {
+                let _ = std::fs::write(&img, &body);
                 let _ = std::fs::remove_file(&miss);
-                Some(r.body)
+                Some(body)
             }
             None => {
                 let _ = std::fs::write(&miss, b"");
@@ -109,7 +124,19 @@ fn avatar_client() -> &'static reqwest::Client {
 
 #[cfg(test)]
 mod tests {
-    use super::small_avatar_url;
+    use super::{authed_host, small_avatar_url};
+
+    #[test]
+    fn azure_avatars_go_through_the_provider() {
+        assert_eq!(
+            authed_host("https://dev.azure.com/o/_api/_common/identityImage?id=1").as_deref(),
+            Some("dev.azure.com")
+        );
+        assert_eq!(
+            authed_host("https://avatars.githubusercontent.com/u/1"),
+            None
+        );
+    }
 
     #[test]
     fn sizes_avatar_urls() {

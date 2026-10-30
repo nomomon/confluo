@@ -28,6 +28,10 @@ pub struct DetailState {
     pub editing: Option<String>,
     pub posting: bool,
     pub code: CodeState,
+    /// File count or +/- for a PR whose list row has none are being fetched.
+    pub stats_loading: bool,
+    /// The background diff for +/- is running (started once per open).
+    pub stats_diffing: bool,
 }
 
 impl GitViewer {
@@ -46,9 +50,12 @@ impl GitViewer {
             editing: None,
             posting: false,
             code: CodeState::new(),
+            stats_loading: false,
+            stats_diffing: false,
         });
         self.detail_scroll.set_offset(gpui::Point::default());
         self.composer.update(cx, |i, cx| i.set_text("", cx));
+        self.load_file_count(cx);
         self.load_detail(cx);
     }
 
@@ -155,7 +162,11 @@ impl GitViewer {
                             d.code.files = None;
                             reload_code = true;
                         }
-                        d.summary = det.summary.clone();
+                        let prev = std::mem::replace(&mut d.summary, det.summary.clone());
+                        // Counts fetched on the side (Azure, GitLab) outlive a payload without them.
+                        if d.summary.changed_files.is_none() {
+                            d.summary.changed_files = prev.changed_files;
+                        }
                         d.detail = Some(det);
                         d.apply_awards();
                         d.loaded_at = Some(Utc::now());
@@ -167,6 +178,7 @@ impl GitViewer {
                 if reload_code {
                     v.load_code(cx);
                 }
+                v.load_line_stats(cx);
                 cx.notify();
             })
             .ok();

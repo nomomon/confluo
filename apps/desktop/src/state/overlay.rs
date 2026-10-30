@@ -33,6 +33,8 @@ pub enum Layer {
     LinesAt(gpui::Point<gpui::Pixels>),
     /// A list row's context menu at the pointer.
     Row(gv_engine::ChangeRequestId, gpui::Point<gpui::Pixels>),
+    /// An Overview commit row's context menu at the pointer (its sha).
+    CommitAt(String, gpui::Point<gpui::Pixels>),
 }
 
 /// Which modal dialog is open.

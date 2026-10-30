@@ -10,6 +10,7 @@ mod comment;
 mod comment_actions;
 mod comment_menu;
 mod comment_toolbar;
+mod commits;
 mod description;
 mod edit_dialogs;
 mod edit_menu;

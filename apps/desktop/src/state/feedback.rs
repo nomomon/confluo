@@ -18,6 +18,8 @@ pub enum Copied {
     Lines,
     /// The source branch name.
     Branch,
+    /// A commit sha.
+    Sha,
 }
 
 impl GitViewer {
@@ -49,6 +51,7 @@ impl GitViewer {
             Copied::Diff => self.show_toast("Diff copied", cx),
             Copied::Lines => self.show_toast("Copied", cx),
             Copied::Branch => self.show_toast("Branch copied", cx),
+            Copied::Sha => self.show_toast("SHA copied", cx),
             Copied::Checkout => {}
         }
     }

@@ -1,13 +1,13 @@
 //! Review mode right panel: Overview (title, properties, description, checks, commits) and
 //! Conversation (the activity timeline with the composer pinned below).
 
-use gpui::{div, prelude::*, AnyElement, ClickEvent, Context};
-use gv_engine::{commits_since, CommitInfo};
+use gpui::{div, prelude::*, AnyElement, Context};
+use gv_engine::commits_since;
 
 use crate::app::GitViewer;
-use crate::features::shared::{layout, relative_time};
+use crate::features::shared::layout;
 use crate::state::{DetailState, RightTab};
-use crate::ui::atoms::{tooltip, Icon, IconName, ListItem};
+use crate::ui::atoms::{Icon, IconName};
 use crate::ui::molecules::{Tabs, TabsVariant};
 use crate::ui::theme;
 
@@ -168,81 +168,5 @@ impl GitViewer {
                     format!("{n} new commits since your last review")
                 }),
         )
-    }
-
-    fn render_commits(
-        &self,
-        commits: &[CommitInfo],
-        reviewed: Option<&str>,
-        cx: &mut Context<Self>,
-    ) -> impl IntoElement {
-        let seen = reviewed.and_then(|r| commits.iter().position(|c| c.sha == r));
-        let rows =
-            commits.iter().enumerate().rev().map(|(i, c)| {
-                let sha = c.sha.clone();
-                let new = seen.is_some_and(|s| i > s);
-                div()
-                    .id(("commit", i))
-                    .flex()
-                    .items_center()
-                    .gap(theme::space_2())
-                    .px(theme::space_2())
-                    .py(theme::item_pad_y())
-                    .list_item_radius(false, theme::RADIUS_SM)
-                    .text_size(theme::text_xs())
-                    .cursor_pointer()
-                    .tooltip(tooltip("Show this commit's changes"))
-                    .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
-                        this.show_commit(sha.clone(), cx)
-                    }))
-                    .child(
-                        div()
-                            .flex_shrink_0()
-                            .font_family(theme::mono_font())
-                            .text_color(if new {
-                                theme::accent()
-                            } else {
-                                theme::text_subtle()
-                            })
-                            .child(c.short().to_string()),
-                    )
-                    .child(
-                        div()
-                            .flex_1()
-                            .min_w(theme::space_0())
-                            .truncate()
-                            .child(c.message.clone()),
-                    )
-                    .child(
-                        div()
-                            .flex_shrink_0()
-                            .text_color(theme::text_subtle())
-                            .child(match c.at {
-                                Some(t) => format!("{} {}", c.author, relative_time(t)),
-                                None => c.author.clone(),
-                            }),
-                    )
-            });
-        div()
-            .flex()
-            .flex_col()
-            .gap(theme::space_1())
-            .child(
-                div()
-                    .text_size(theme::text_sm())
-                    .font_weight(theme::WEIGHT_MEDIUM)
-                    .child(format!("Commits {}", commits.len())),
-            )
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .p(theme::LIST_INSET)
-                    .rounded(theme::LIST_RADIUS)
-                    .border_1()
-                    .border_color(theme::card_border())
-                    .bg(self.surfaces().card())
-                    .children(rows),
-            )
     }
 }

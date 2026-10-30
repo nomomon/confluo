@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Linux smoke test: run Confluo in demo mode on a virtual X display (Xvfb + lavapipe software Vulkan)
 # for ~15 s; fail if it exits early, crashes, or the screenshot is blank. Output goes to <out>/.
-# Usage: scripts/smoke-linux.sh <binary> <out-dir>. Needs xvfb, x11-utils, imagemagick,
+# Usage: scripts/smoke-linux.sh <binary> <out-dir>. Needs xvfb, x11-utils, x11-apps, imagemagick,
 # mesa-vulkan-drivers, vulkan-tools.
 set -uo pipefail
 bin="$1"
@@ -21,6 +21,8 @@ app=$!
 sleep 15
 xwininfo -root -tree >"$out/windows.txt" 2>&1 || true
 xwd -root -silent | convert xwd:- "$out/confluo-linux.png" || echo "screenshot failed"
+win=$(xwininfo -root -tree | awk '/"Confluo"/ {print $1; exit}')
+[ -n "$win" ] && { import -window "$win" "$out/window-import.png" || true; }
 status=0
 if kill -0 "$app" 2>/dev/null; then
     echo "Confluo still running after 15 s: ok"

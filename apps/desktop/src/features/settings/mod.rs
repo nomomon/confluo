@@ -82,13 +82,14 @@ impl GitViewer {
             .flex()
             .flex_col()
             .child(header)
-            .child(div().id("settings-body").flex_1().min_h(theme::SPACE_0).overflow_y_scroll().px(theme::SPACE_6).pb(theme::SPACE_6).child(body));
+            .child(div().id("settings-body").flex_1().min_h(theme::SPACE_0).overflow_y_scroll().flex().flex_col().px(theme::SPACE_6).pb(theme::SPACE_6).child(div().w(layout::SETTINGS_W - layout::SETTINGS_NAV_W - theme::SPACE_6 * 2.).flex().flex_col().child(body)));
         Dialog::bare().size(layout::SETTINGS_W, layout::SETTINGS_H).content(div().flex().size_full().child(nav).child(content)).into_any_element()
     }
 
     /// A titled card of divided rows; the building block of every page.
     pub(super) fn settings_group(&self, title: Option<&'static str>, rows: Vec<AnyElement>) -> impl IntoElement {
         div()
+            .w_full()
             .flex()
             .flex_col()
             .gap(theme::SPACE_2)

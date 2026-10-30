@@ -30,7 +30,7 @@ impl GitViewer {
             .gap(theme::SPACE_2)
             .pt(theme::SPACE_1)
             .child(div().text_size(theme::text_sm()).text_color(theme::text_muted()).child("Rename how a repository appears in Confluo. This doesn't change anything on GitHub or GitLab."))
-            .child(div().w_full().flex().pt(theme::SPACE_2).child(div().flex_1().child(search)));
+            .child(div().w_full().flex().pt(theme::SPACE_2).child(search));
         if repos.is_empty() {
             col = col.child(div().pt(theme::SPACE_3).text_size(theme::text_sm()).text_color(theme::text_subtle()).child(if q.is_empty() { "No repositories yet. Refresh a project first." } else { "No matching repositories" }));
         }
@@ -77,7 +77,7 @@ impl GitViewer {
             .px(theme::SPACE_4)
             .py(theme::SPACE_2)
             .child(provider_icon(r.kind))
-            .child(div().flex().flex_col().flex_1().min_w(theme::SPACE_0).gap(theme::SPACE_0P5).child(name).child(div().px(theme::SPACE_1).truncate().text_size(theme::text_xs()).text_color(theme::text_subtle()).child(r.path.clone())))
+            .child(div().flex().flex_col().flex_1().min_w(theme::SPACE_0).overflow_hidden().gap(theme::SPACE_0P5).child(name).child(div().px(theme::SPACE_1).truncate().text_size(theme::text_xs()).text_color(theme::text_subtle()).child(r.path.clone())))
             .child(div().flex_shrink_0().text_size(theme::text_xs()).text_color(theme::text_muted()).child(match prs {
                 0 => "No PRs".to_string(),
                 1 => "1 PR".to_string(),

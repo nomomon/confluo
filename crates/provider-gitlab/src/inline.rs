@@ -41,6 +41,7 @@ pub(crate) fn parse_position(p: &Value) -> Option<DiffPosition> {
         head_sha: p["head_sha"].as_str().map(str::to_string),
         base_sha: p["base_sha"].as_str().map(str::to_string),
         start_sha: p["start_sha"].as_str().map(str::to_string),
+        range_rows: None,
     })
 }
 
@@ -76,7 +77,44 @@ pub(crate) fn discussion_payload(
             }
         }
     }
+    if let Some((s, e)) = pos.range_rows {
+        position["line_range"] = json!({
+            "start": range_end(new_path, s),
+            "end": range_end(new_path, e),
+        });
+    }
     json!({ "body": body, "position": position })
+}
+
+/// GitLab's row id: `sha1(path)_old_new`.
+fn line_code(path: &str, r: RowRef) -> String {
+    use sha1::{Digest, Sha1};
+    let hex: String = Sha1::digest(path.as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    format!("{hex}_{}_{}", r.old, r.new)
+}
+
+/// One end of `position[line_range]`.
+fn range_end(path: &str, r: RowRef) -> Value {
+    let mut v = json!({ "line_code": line_code(path, r) });
+    match r.kind {
+        LineKind::Add => {
+            v["type"] = json!("new");
+            v["new_line"] = json!(r.new);
+        }
+        LineKind::Del => {
+            v["type"] = json!("old");
+            v["old_line"] = json!(r.old);
+        }
+        LineKind::Context => {
+            v["type"] = Value::Null;
+            v["old_line"] = json!(r.old);
+            v["new_line"] = json!(r.new);
+        }
+    }
+    v
 }
 
 #[cfg(test)]
@@ -103,6 +141,52 @@ mod tests {
         assert_eq!((o.side, o.line, o.old_path), (DiffSide::Old, 9, None));
         assert!(parse_position(&json!({"position_type": "image", "new_path": "x.png"})).is_none());
         assert!(parse_position(&Value::Null).is_none());
+    }
+
+    #[test]
+    fn range_payload_has_line_codes() {
+        let mut p = DiffPosition::new("a.rs", DiffSide::New, 12);
+        p.start_line = Some(11);
+        let row = |old, new, kind| RowRef { old, new, kind };
+        p.range_rows = Some((row(10, 11, LineKind::Context), row(11, 12, LineKind::Add)));
+        let r = discussion_payload(&p, ("b", "s", "h"), "x")["position"]["line_range"].clone();
+        let code = r["start"]["line_code"].as_str().unwrap().to_string();
+        assert!(code.ends_with("_10_11") && code.len() == 40 + 6, "{code}");
+        assert_eq!(
+            (
+                r["start"]["type"].clone(),
+                r["start"]["old_line"].as_u64(),
+                r["start"]["new_line"].as_u64()
+            ),
+            (Value::Null, Some(10), Some(11))
+        );
+        assert_eq!(
+            (
+                r["end"]["type"].as_str(),
+                r["end"].get("old_line"),
+                r["end"]["new_line"].as_u64()
+            ),
+            (Some("new"), None, Some(12))
+        );
+        assert!(r["end"]["line_code"].as_str().unwrap().ends_with("_11_12"));
+        p.range_rows = None;
+        assert!(discussion_payload(&p, ("b", "s", "h"), "x")["position"]
+            .get("line_range")
+            .is_none());
+    }
+
+    #[test]
+    fn line_code_is_sha1_of_path() {
+        let r = RowRef {
+            old: 1,
+            new: 2,
+            kind: LineKind::Context,
+        };
+        // printf 'README.md' | shasum
+        assert_eq!(
+            line_code("README.md", r),
+            "8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d_1_2"
+        );
     }
 
     #[test]

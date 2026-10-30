@@ -952,6 +952,11 @@ impl Engine {
                 .cached_changed_files(id)
                 .and_then(|fs| context_partner(&fs, &pos));
         }
+        if pos.range_rows.is_none() {
+            pos.range_rows = self
+                .cached_changed_files(id)
+                .and_then(|fs| range_rows(&fs, &pos));
+        }
         Ok(self
             .provider(id.repo.kind, &id.repo.host)
             .await?
@@ -994,6 +999,18 @@ impl Engine {
 }
 
 /// For a context line, the line number on the opposite side (GitLab anchors need both).
+/// First and last rows of a multi-line `pos` (None for a single line or an uncached diff).
+fn range_rows(files: &[ChangedFile], pos: &DiffPosition) -> Option<(RowRef, RowRef)> {
+    let start = pos.start_line.filter(|s| *s < pos.line)?;
+    let f = files
+        .iter()
+        .find(|f| f.new_path == pos.path || f.old_path == pos.path)?;
+    Some((
+        row_ref(&f.hunks, pos.side, start)?,
+        row_ref(&f.hunks, pos.side, pos.line)?,
+    ))
+}
+
 fn context_partner(files: &[ChangedFile], pos: &DiffPosition) -> Option<u32> {
     let f = files
         .iter()

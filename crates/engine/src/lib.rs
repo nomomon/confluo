@@ -13,9 +13,12 @@ use std::time::{Duration, Instant};
 
 mod avatars;
 mod bot_settings;
+mod quiet;
+mod review;
 
 pub use avatars::small_avatar_url;
-pub use bot_settings::bot_filter_from_settings;
+pub use bot_settings::{bot_filter_from_settings, stale_days_from_settings};
+pub use quiet::Listing;
 pub use gv_core::*;
 pub use gv_store::{Project, RepoOverride, Source};
 
@@ -56,6 +59,10 @@ pub struct ListQuery {
     pub needs_you_only: bool,
     /// Bot PRs matching this filter are left out (see [`Engine::list_counted`]).
     pub bots: BotFilter,
+    /// Inactive longer than this many days counts as stale (`None`: never). See [`Engine::listing`].
+    pub stale_days: Option<u32>,
+    /// Keep stale PRs in the sections.
+    pub include_stale: bool,
 }
 
 type ProviderKey = (ProviderKind, String);
@@ -593,6 +600,11 @@ impl Engine {
             }
             Err(e) => Err(e),
         }
+    }
+
+    /// Drop the freshness mark so the next [`Engine::detail`] refetches.
+    pub(crate) fn forget_detail(&self, id: &ChangeRequestId) {
+        self.detail_fetched.lock().unwrap_or_else(|e| e.into_inner()).remove(id);
     }
 
     pub fn cached_detail(&self, id: &ChangeRequestId) -> Result<Option<ChangeRequestDetail>> {

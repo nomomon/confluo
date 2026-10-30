@@ -62,6 +62,15 @@ enum Cmd {
     },
     /// Edit an existing comment you wrote.
     EditComment { target: String, comment_id: String, body: String },
+    /// Submit a review: approve, request-changes, comment or unapprove (GitLab).
+    Review {
+        target: String,
+        /// approve | request-changes | comment | unapprove
+        action: String,
+        /// Review summary.
+        #[arg(short = 'm', long = "message")]
+        body: Option<String>,
+    },
     /// Show the authenticated user for each known host.
     Whoami,
     /// Star or unstar a PR/MR.
@@ -120,6 +129,9 @@ struct ListArgs {
     /// Include bot PRs (Renovate, Dependabot, project bots) that are hidden by default.
     #[arg(long)]
     include_bots: bool,
+    /// Include PRs inactive longer than the stale threshold (Settings > Filters, default 60 days).
+    #[arg(long)]
+    include_stale: bool,
     #[arg(long)]
     json: bool,
 }
@@ -275,13 +287,16 @@ async fn main() -> Result<()> {
             } else {
                 Involvement::All
             };
-            let (items, hidden) = engine.list_counted(&ListQuery {
+            let l = engine.listing(&ListQuery {
                 project,
                 filter: Filter { involvement, state },
                 starred_only: a.starred,
                 needs_you_only: a.needs_you,
                 bots: if a.include_bots { BotFilter::off() } else { bot_filter_from_settings() },
+                stale_days: stale_days_from_settings(),
+                include_stale: a.include_stale,
             })?;
+            let (items, hidden) = (l.items, l.hidden_bots);
             if a.json {
                 println!("{}", serde_json::to_string_pretty(&items)?);
             } else {
@@ -289,7 +304,9 @@ async fn main() -> Result<()> {
                     print_row(cr);
                 }
                 let bots = if hidden > 0 { format!(", {hidden} bot PR(s) hidden (--include-bots)") } else { String::new() };
-                eprintln!("{} item(s){bots}; * = needs you", items.len());
+                let stale = if l.stale.is_empty() { String::new() } else { format!(", {} stale hidden (--include-stale)", l.stale.len()) };
+                let snoozed = if l.snoozed > 0 { format!(", {} snoozed", l.snoozed) } else { String::new() };
+                eprintln!("{} item(s){bots}{stale}{snoozed}; * = needs you", items.len());
             }
         }
         Cmd::Show { target, json } => {
@@ -392,6 +409,16 @@ async fn main() -> Result<()> {
             let id = engine.resolve_id(&target)?;
             let c = engine.edit_comment(&id, &comment_id, &body).await?;
             println!("edited comment {}", c.id);
+        }
+        Cmd::Review { target, action, body } => {
+            let Some(act) = ReviewAction::parse(&action) else { bail!("action must be approve, request-changes, comment or unapprove") };
+            let id = engine.resolve_id(&target)?;
+            let d = engine.detail(&id, true).await?;
+            if act == ReviewAction::Comment && body.as_deref().is_none_or(|b| b.trim().is_empty()) && id.repo.kind == ProviderKind::GitLab {
+                bail!("a comment review needs -m <body> on GitLab");
+            }
+            engine.submit_review(&id, act, body.as_deref()).await?;
+            println!("{} submitted on {}", act.label(), d.summary.id);
         }
         Cmd::Whoami => {
             for (k, h) in engine.known_hosts() {

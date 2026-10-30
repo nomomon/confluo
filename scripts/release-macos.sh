@@ -51,7 +51,7 @@ app="$dist/Confluo.app"
 notarize_file() {
   [ "$notarize" = 1 ] || return 0
   echo "==> notarytool submit $(basename "$1")"
-  xcrun notarytool submit "$1" --key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --wait --timeout 30m
+  xcrun notarytool submit "$1" --key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --wait --timeout 3h
 }
 
 if [ -n "$identity" ]; then

@@ -6,7 +6,7 @@ use std::path::PathBuf;
 mod general;
 mod options;
 pub use general::{refresh_label, Launch, OpenIn, REFRESH_MINUTES};
-pub use options::{Density, MonoFont, ThemeMode, UiFont, FONT_SIZES, TINTS};
+pub use options::{zoom_step, Density, MonoFont, ThemeMode, UiFont, FONT_SIZES, TINTS};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Appearance {
@@ -74,6 +74,10 @@ pub struct Settings {
     pub stale_days: Option<u32>,
     /// Review mode shows the diff side by side.
     pub diff_split: bool,
+    /// Diff lines wrap instead of scrolling sideways (Alt+Z).
+    pub diff_wrap: bool,
+    /// UI zoom, one of `ZOOM_STEPS` (Cmd+= / Cmd+- / Cmd+0).
+    pub zoom: f32,
     /// Keys of the palette commands run most recently, newest first (ranking boost).
     pub palette_mru: Vec<String>,
     /// Holding Cmd shows shortcut hints over the controls.
@@ -119,6 +123,8 @@ impl Default for Settings {
             collapsed_sections: Default::default(),
             stale_days: Some(gv_engine::DEFAULT_STALE_DAYS),
             diff_split: false,
+            diff_wrap: false,
+            zoom: 1.0,
             palette_mru: vec![],
             shortcut_hints: true,
             swipe_pages: true,
@@ -163,6 +169,7 @@ impl Settings {
             ui_font: self.ui_font.family(),
             mono_font: self.mono_font.family(),
             step: f32::from(size - 13),
+            zoom: zoom_step(self.zoom, 0),
             compact: self.density == Density::Compact,
         }
     }

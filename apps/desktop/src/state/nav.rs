@@ -4,7 +4,6 @@ use gpui::Context;
 use gv_engine::{ChangeRequest, ChangeRequestId};
 
 use crate::app::GitViewer;
-use crate::settings::ThemeMode;
 
 /// Navigation state kept beside the list.
 #[derive(Default)]
@@ -208,16 +207,6 @@ impl GitViewer {
             }
         }
         cx.notify();
-    }
-
-    /// Switch between light and dark from whatever is showing now.
-    pub(crate) fn toggle_theme(&mut self, cx: &mut Context<Self>) {
-        self.settings.theme = if crate::ui::theme::is_light() {
-            ThemeMode::Dark
-        } else {
-            ThemeMode::Light
-        };
-        self.save_settings(cx);
     }
 }
 

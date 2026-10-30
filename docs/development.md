@@ -20,8 +20,10 @@ Dev-only env (screenshots and walkthroughs; see `apps/desktop/src/dev.rs`):
   gestures cannot be synthesized, so this is how the swipe is screenshotted
 - `CONFLUO_DEMO=1` runs on invented fixture data (no network; settings and cache in `$TMPDIR/confluo-demo`, wiped at launch)
 - `CONFLUO_DEV_UPDATE=0.2.0` shows the update card for that version (`CONFLUO_DEV_UPDATE_PROGRESS=0.4` mid download)
-- `CONFLUO_HOVER=<comment id>` keeps that comment's hover toolbar visible
+- `CONFLUO_HOVER=<comment id>` keeps that comment's hover toolbar visible; `CONFLUO_COMMENT_MENU=<comment id>` opens its More menu
 - `CONFLUO_HINTS=1` keeps the hold-Cmd shortcut hints visible
+- `CONFLUO_FIND=<query>` opens the Review mode find bar with that query (`CONFLUO_FIND_NEXT=1` steps twice);
+  `CONFLUO_OVERLAY=discard` shows the "Discard changes?" prompt over a review summary with typed text
 - `CONFLUO_WINDOW=1100x760` window size; `CONFLUO_REDUCE_MOTION=1`; `CONFLUO_NO_REFRESH=1` stays on cached data (no network)
 
 Note: macOS stops repainting the window while the screen is locked, so only the first frames can be captured then;

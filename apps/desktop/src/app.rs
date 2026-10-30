@@ -123,8 +123,8 @@ pub struct GitViewer {
     pub(crate) toast_file: Option<std::path::PathBuf>,
     /// A keymap action chosen in the palette, dispatched from the root on the next render.
     pub(crate) pending_action: Option<Box<dyn gpui::Action>>,
-    /// Project names the app menus were last built with.
-    pub(crate) menu_projects: Option<Vec<String>>,
+    /// Project names and theme the app menus were last built with (Go lists projects, View marks the theme).
+    pub(crate) menu_projects: Option<(Vec<String>, crate::settings::ThemeMode)>,
     /// One PR takes the whole window (else triage: list plus preview).
     pub(crate) reviewing: bool,
     /// Cmd+\\ hid the triage preview.
@@ -147,6 +147,13 @@ pub struct GitViewer {
     pub(crate) hint_ctx: Option<crate::state::cmd_ctx::CmdCtx>,
     /// Self-update: newer release found, download progress.
     pub(crate) update: crate::state::UpdateState,
+    /// "Discard changes?" shows over a dialog with typed input that a close request would lose.
+    pub(crate) discard_prompt: bool,
+    /// Find in diff (Cmd+F in Review mode) and its query field.
+    pub(crate) find: crate::state::FindState,
+    pub(crate) find_input: Entity<TextInput>,
+    /// Ctrl+G line number field of the file viewer.
+    pub(crate) goto_input: Entity<TextInput>,
 }
 
 /// Subscribe `f` to the input's Enter key.
@@ -299,6 +306,19 @@ impl GitViewer {
             InputEvent::Submit => this.run_quick_file(this.review.quick_sel, cx),
         })
         .detach();
+        let find_input = cx.new(|cx| {
+            TextInput::new("Find in diff", cx).inset(
+                crate::ui::molecules::INPUT_INSET,
+                crate::ui::molecules::INPUT_INSET,
+            )
+        });
+        cx.subscribe(&find_input, |this, _, ev: &InputEvent, cx| match ev {
+            InputEvent::Changed => this.run_find(cx),
+            InputEvent::Submit => this.find_step(1, cx),
+        })
+        .detach();
+        let goto_input = input(cx, "Line number");
+        on_submit(cx, &goto_input, |this, _, cx| this.submit_goto_line(cx));
         let focus = cx.focus_handle();
         window.focus(&focus);
         let mut this = Self {
@@ -387,6 +407,10 @@ impl GitViewer {
             hints: crate::state::hint_hold::HintHold::new(crate::dev::hints()),
             hint_ctx: None,
             update: Default::default(),
+            discard_prompt: false,
+            find: Default::default(),
+            find_input,
+            goto_input,
         };
         cx.observe_window_appearance(window, |_, _, cx| cx.notify())
             .detach();
@@ -427,6 +451,7 @@ impl GitViewer {
         this.open_from_env(cx);
         this.scroll_detail_from_env(cx);
         this.overlay_from_env(cx);
+        this.find_from_env(cx);
         if let Some(p) = SettingsPage::from_env() {
             this.open_settings(Some(p), cx);
         }
@@ -510,9 +535,10 @@ impl Render for GitViewer {
             window.dispatch_action(a, cx);
         }
         let names: Vec<String> = self.projects.iter().map(|p| p.name.clone()).collect();
-        if self.menu_projects.as_ref() != Some(&names) {
-            crate::features::menus::set_menus(cx, &names);
-            self.menu_projects = Some(names);
+        let menu_key = (names, self.settings.theme);
+        if self.menu_projects.as_ref() != Some(&menu_key) {
+            crate::features::menus::set_menus(cx, &menu_key.0, menu_key.1);
+            self.menu_projects = Some(menu_key);
         }
         theme::set_typography(self.settings.typography());
         theme::set_light(self.settings.theme.is_light(window.appearance()));

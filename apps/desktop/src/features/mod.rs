@@ -21,3 +21,4 @@ mod shortcuts_sheet;
 pub(crate) use shared::layout;
 mod sidebar;
 mod swipe_nav;
+mod view_commands;

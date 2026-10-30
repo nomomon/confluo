@@ -11,7 +11,7 @@ mod tokens;
 mod translucency;
 
 pub use light::{set_light_variant, sidebar_inset};
-pub use runtime::{is_light, mono_font, set_light, set_typography, ui_font, Typography};
+pub use runtime::{is_light, mono_font, set_light, set_typography, ui_font, zoom, Typography};
 pub use scale::*;
 pub use syntax::*;
 pub use tokens::*;

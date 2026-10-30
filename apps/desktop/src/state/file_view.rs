@@ -16,6 +16,8 @@ pub struct FileView {
     pub scroll: UniformListScrollHandle,
     /// Selected lines (0-based indices).
     pub sel: Option<super::line_select::LineRange>,
+    /// Ctrl+G line number field is showing.
+    pub goto: bool,
 }
 
 impl GitViewer {
@@ -51,6 +53,7 @@ impl GitViewer {
             error: None,
             scroll: UniformListScrollHandle::new(),
             sel: None,
+            goto: false,
         });
         let engine = self.engine.clone();
         let p = path.clone();

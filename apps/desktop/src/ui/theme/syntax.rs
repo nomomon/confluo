@@ -4,7 +4,7 @@ use gpui::Hsla;
 
 use super::palette::syntax;
 use super::runtime::is_light;
-use super::tokens::{accent, danger, success, surface, text_subtle};
+use super::tokens::{accent, danger, success, surface, text_subtle, warning};
 
 fn pick(dark: Hsla, light: Hsla) -> Hsla {
     if is_light() {
@@ -44,4 +44,11 @@ pub fn syntax_type() -> Hsla {
 }
 pub fn syntax_comment() -> Hsla {
     text_subtle()
+}
+/// Find in diff: every match, and the current one (stronger).
+pub fn find_match_bg() -> Hsla {
+    warning().opacity(if is_light() { 0.22 } else { 0.24 })
+}
+pub fn find_current_bg() -> Hsla {
+    warning().opacity(if is_light() { 0.55 } else { 0.5 })
 }

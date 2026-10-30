@@ -124,7 +124,9 @@ impl GitViewer {
                 );
                 crate::ui::elastic::y_scroller(pane, "settings-body", h)
             });
+        let close = cx.listener(|this, _: &(), window, cx| this.request_close_overlay(window, cx));
         Dialog::bare()
+            .on_close(move |w, cx| close(&(), w, cx))
             .size(layout::SETTINGS_W, layout::SETTINGS_H)
             .content(div().flex().size_full().child(nav).child(content))
             .into_any_element()

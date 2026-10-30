@@ -59,7 +59,7 @@ impl GitViewer {
             div()
                 .flex_1()
                 .min_w(theme::SPACE_0)
-                .h(layout::DIFF_LINE_H)
+                .min_h(layout::diff_line_h())
                 .bg(theme::surface())
         };
         let cell = |side: usize, li: Option<usize>, cx: &mut Context<Self>| match li {
@@ -78,7 +78,7 @@ impl GitViewer {
             .child(
                 div()
                     .w(px(1.))
-                    .h(layout::DIFF_LINE_H)
+                    .min_h(layout::diff_line_h())
                     .bg(theme::border_subtle()),
             )
             .child(right)
@@ -122,7 +122,11 @@ impl GitViewer {
         row.relative()
             .on_scroll_wheel(cx.listener(move |this, ev: &ScrollWheelEvent, _, cx| {
                 use crate::ui::scroll::Axis;
-                let delta = ev.delta.pixel_delta(layout::DIFF_LINE_H);
+                if this.settings.diff_wrap {
+                    // Wrapped lines never scroll sideways; the gesture goes on to the page.
+                    return;
+                }
+                let delta = ev.delta.pixel_delta(layout::diff_line_h());
                 let key = format!("diff-x-{fi}");
                 let max_chars = files
                     .get(fi)
@@ -250,8 +254,10 @@ impl GitViewer {
         let mut row = DiffRow::new(mark, l.text.clone(), Lang::from_path(f.path()))
             .numbers(old_no, new_no)
             .gutter_w(layout::DIFF_GUTTER_W)
-            .height(layout::DIFF_LINE_H)
+            .height(layout::diff_line_h())
             .scroll_x(x)
+            .wrap(self.settings.diff_wrap)
+            .marks(self.find.marks(fi, hi, li))
             .dot(has_threads)
             .selected(selected);
         if split {

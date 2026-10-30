@@ -1,12 +1,31 @@
-//! Modal overlay host: picks the dialog for the current `Overlay`.
+//! Modal overlay host: picks the dialog for the current `Overlay`. A press on any scrim, Esc and the
+//! close button go through `request_close_overlay` (dialogs with typed input ask to discard first).
 
 use gpui::{div, prelude::*, AnyElement, ClickEvent, Context};
 
 use crate::app::{GitViewer, Overlay};
+use crate::ui::atoms::{Button, ButtonVariant};
 use crate::ui::molecules::{Dialog, Sheet};
 
 impl GitViewer {
     pub(crate) fn render_overlay(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
+        let base = self.render_overlay_base(cx)?;
+        if !self.discard_prompt {
+            return Some(base);
+        }
+        Some(
+            div()
+                .absolute()
+                .top_0()
+                .left_0()
+                .size_full()
+                .child(base)
+                .child(self.render_discard_prompt(cx))
+                .into_any_element(),
+        )
+    }
+
+    fn render_overlay_base(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
         let name = |id: i64| {
             self.projects
                 .iter()
@@ -14,6 +33,7 @@ impl GitViewer {
                 .map(|p| p.name.clone())
                 .unwrap_or_default()
         };
+        let close = cx.listener(|this, _: &(), window, cx| this.request_close_overlay(window, cx));
         let dialog = match self.overlay {
             Overlay::None => return None,
             Overlay::Settings => return Some(self.render_settings_dialog(cx)),
@@ -25,10 +45,6 @@ impl GitViewer {
             Overlay::ConfirmRerun => self.render_rerun_dialog(cx),
             Overlay::Shortcuts => self.render_shortcuts_sheet(),
             Overlay::AddProject => {
-                let close = cx.listener(|this, _: &(), _, cx| {
-                    this.overlay = Overlay::None;
-                    cx.notify()
-                });
                 let sheet = Sheet::new("Add project").description("Follow the pull requests of a folder of clones, a repo or a group").on_close(move |w, cx| close(&(), w, cx));
                 return Some(sheet.child(self.render_add_project(cx)).into_any_element());
             }
@@ -40,14 +56,33 @@ impl GitViewer {
         };
         Some(
             dialog
-                .on_close(cx.listener(|this, _: &ClickEvent, _, cx| {
-                    this.close_confirm();
-                    if this.overlay != Overlay::Settings {
-                        this.overlay = Overlay::None;
-                    }
-                    cx.notify()
-                }))
+                .on_close(move |w, cx| close(&(), w, cx))
                 .into_any_element(),
         )
+    }
+
+    /// "Discard changes?" over a dialog whose typed input a close would lose.
+    fn render_discard_prompt(&self, cx: &mut Context<Self>) -> AnyElement {
+        let keep = cx.listener(|this, _: &(), _, cx| this.keep_editing(cx));
+        let footer = div()
+            .flex()
+            .gap(crate::ui::theme::SPACE_2)
+            .child(
+                Button::new("discard-keep", "Keep editing")
+                    .variant(ButtonVariant::Ghost)
+                    .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.keep_editing(cx))),
+            )
+            .child(
+                Button::new("discard-confirm", "Discard")
+                    .variant(ButtonVariant::Destructive)
+                    .on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
+                        this.close_overlay_now(window, cx)
+                    })),
+            );
+        Dialog::new("Discard changes?")
+            .description("What you typed in this dialog will be lost.")
+            .footer(footer)
+            .on_close(move |w, cx| keep(&(), w, cx))
+            .into_any_element()
     }
 }

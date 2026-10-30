@@ -207,6 +207,13 @@ impl TextInput {
         cx.notify();
     }
 
+    /// Select the whole text (a reopened find field), so typing replaces it.
+    pub fn select_all_text(&mut self, cx: &mut Context<Self>) {
+        self.selected_range = 0..self.content.len();
+        self.selection_reversed = false;
+        cx.notify();
+    }
+
     /// Room for adornments drawn over the field (see `Input`).
     pub fn inset(mut self, left: Pixels, right: Pixels) -> Self {
         self.inset = (left, right);

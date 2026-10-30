@@ -43,9 +43,15 @@ pub struct Cand {
     pub has_shortcut: bool,
 }
 
+/// Ctrl+R opens the palette with this prefix: recent pull requests only.
+pub const RECENT_PREFIX: &str = "~ ";
+/// Recent PRs listed with an empty query (the `~` mode lists all of them).
+pub const RECENT_SHOWN: usize = 5;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Prefix {
     None,
+    Recent,
     Actions,
     Prs,
     Files,
@@ -62,6 +68,7 @@ pub fn split_prefix(q: &str) -> (Prefix, &str) {
         Some('@') => Prefix::Files,
         Some('/') => Prefix::Views,
         Some('?') => Prefix::Help,
+        Some('~') => Prefix::Recent,
         _ => return (Prefix::None, q.trim()),
     };
     (p, q[1..].trim())
@@ -80,6 +87,7 @@ fn allowed(p: Prefix, empty: bool, c: &Cand) -> bool {
         Prefix::None => g != Group::Recent,
         Prefix::Actions => matches!(g, Group::Suggested | Group::Actions),
         Prefix::Prs => g == Group::Prs,
+        Prefix::Recent => g == Group::Recent,
         Prefix::Files => g == Group::Files,
         Prefix::Views => g == Group::GoTo,
         Prefix::Help => {
@@ -148,7 +156,17 @@ pub fn rank(cands: &[Cand], query: &str, mru: &[String]) -> Vec<usize> {
             .then(b.1.cmp(&a.1))
             .then(a.2.cmp(&b.2))
     });
-    let mut out: Vec<usize> = hits.into_iter().map(|(_, _, i)| i).collect();
+    let mut recent = 0;
+    let mut out: Vec<usize> = hits
+        .into_iter()
+        .map(|(_, _, i)| i)
+        .filter(|i| {
+            // A plain empty palette shows a few recent PRs; `~` shows them all.
+            let r = cands[*i].group == Group::Recent;
+            recent += usize::from(r);
+            !(r && prefix == Prefix::None && recent > RECENT_SHOWN)
+        })
+        .collect();
     // `?` leads with the cheat sheet itself.
     if prefix == Prefix::Help {
         if let Some(p) = out.iter().position(|i| cands[*i].key == SHORTCUTS_KEY) {
@@ -186,7 +204,12 @@ mod tests {
             c("go:inbox", Group::GoTo, "Go to Inbox", None),
             c("pr:recent", Group::Recent, "Fix login", Some(7)),
             c("a:Refresh", Group::Actions, "Refresh", None),
-            c("a:ToggleTheme", Group::Actions, "Toggle light / dark", None),
+            c(
+                "a:ToggleTheme",
+                Group::Actions,
+                "Theme: Cycle light, dark, system",
+                None,
+            ),
             c("pr:5", Group::Prs, "Add search 5", Some(5)),
             c("pr:51", Group::Prs, "Refactor list", Some(51)),
             c("pr:15", Group::Prs, "Bump deps", Some(15)),
@@ -262,6 +285,45 @@ mod tests {
         let refresh = t.iter().position(|k| k == "a:Refresh");
         let theme = t.iter().position(|k| k == "a:ToggleTheme").unwrap();
         assert!(refresh.is_none_or(|r| theme < r));
+    }
+
+    #[test]
+    fn theme_query_finds_the_theme_command() {
+        // The old label "Toggle light / dark" had no "theme" in it, so searching found nothing.
+        assert_eq!(keys("theme", &[])[0], "a:ToggleTheme");
+        assert_eq!(keys("> dark", &[])[0], "a:ToggleTheme");
+    }
+
+    #[test]
+    fn recent_prefix_lists_every_recent_pr_only() {
+        let mut cands = set();
+        for i in 0..7 {
+            cands.push(c(
+                &format!("pr:r{i}"),
+                Group::Recent,
+                "Old work",
+                Some(90 + i),
+            ));
+        }
+        let shown = |q: &str| -> Vec<String> {
+            rank(&cands, q, &[])
+                .into_iter()
+                .map(|i| cands[i].key.clone())
+                .collect()
+        };
+        let plain = shown("");
+        assert_eq!(
+            plain
+                .iter()
+                .filter(|k| k.starts_with("pr:r") || *k == "pr:recent")
+                .count(),
+            RECENT_SHOWN
+        );
+        let recent = shown(RECENT_PREFIX);
+        assert_eq!(recent.len(), 8);
+        assert!(recent.iter().all(|k| k.starts_with("pr:r")));
+        assert_eq!(shown("~ old").len(), 7);
+        assert_eq!(split_prefix("~ x"), (Prefix::Recent, "x"));
     }
 
     #[test]

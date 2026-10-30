@@ -65,8 +65,11 @@ pub const TIME_COL_W: Pixels = px(72.);
 pub const SETTINGS_W: Pixels = px(780.);
 pub const SETTINGS_H: Pixels = px(560.);
 pub const SETTINGS_NAV_W: Pixels = px(188.);
-/// Code tab: one diff line, the file card header, the `@@` band and line number gutters.
-pub const DIFF_LINE_H: Pixels = px(20.);
+/// Code tab: one diff line (scaled with the UI zoom), the file card header, the `@@` band and line
+/// number gutters.
+pub fn diff_line_h() -> Pixels {
+    px(20. * crate::ui::theme::zoom())
+}
 pub const DIFF_HEADER_H: Pixels = px(40.);
 pub const DIFF_HUNK_H: Pixels = px(28.);
 pub const DIFF_GUTTER_W: Pixels = px(40.);

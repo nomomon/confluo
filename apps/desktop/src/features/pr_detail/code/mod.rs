@@ -1,6 +1,7 @@
 //! Code tab: toolbar, optional file tree and the virtualized diff of every changed file.
 
 mod context_menus;
+mod find_bar;
 mod line;
 mod line_composer;
 mod rows;
@@ -107,7 +108,9 @@ impl GitViewer {
                 let rows = rows.relative().top(crate::ui::elastic::shift("diff-list"));
                 let band = c.list.clone();
                 let drawn = f32::from(c.list.scroll_px_offset_for_scrollbar().y);
+                let find = self.render_find_bar(cx);
                 div()
+                    .relative()
                     .flex()
                     .flex_1()
                     .min_h(theme::SPACE_0)
@@ -153,6 +156,7 @@ impl GitViewer {
                             )
                             .child(rows),
                     )
+                    .children(find)
                     .into_any_element()
             }
         };

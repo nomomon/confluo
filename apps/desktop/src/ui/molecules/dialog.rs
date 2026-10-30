@@ -1,12 +1,19 @@
 //! Modal dialog like shadcn `Dialog`: dimmed scrim, a panel with header (title, description,
-//! close), content and an optional right-aligned footer.
+//! close), content and an optional right-aligned footer. A press on the scrim calls `on_close`
+//! (the panel occludes, so presses inside never reach the scrim).
 //!
 //! `Dialog::new("Delete project").description("..").content(..).footer(buttons).on_close(..)`
 
-use gpui::{div, prelude::*, px, AnyElement, App, ClickEvent, Pixels, SharedString, Window};
+use gpui::{
+    div, prelude::*, px, AnyElement, App, ClickEvent, MouseButton, MouseDownEvent, Pixels,
+    SharedString, Window,
+};
+use std::rc::Rc;
 
 use crate::ui::atoms::{Button, ButtonVariant, IconName, Size};
-use crate::ui::{motion, theme, ClickHandler};
+use crate::ui::{motion, theme};
+
+type CloseHandler = Rc<dyn Fn(&mut Window, &mut App) + 'static>;
 
 const DIALOG_W: Pixels = px(520.);
 const DIALOG_MAX_H: Pixels = px(620.);
@@ -18,7 +25,7 @@ pub struct Dialog {
     content: Option<AnyElement>,
     footer: Option<AnyElement>,
     size: Option<(Pixels, Pixels)>,
-    on_close: Option<ClickHandler>,
+    on_close: Option<CloseHandler>,
 }
 
 impl Dialog {
@@ -66,8 +73,9 @@ impl Dialog {
         self
     }
 
-    pub fn on_close(mut self, f: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
-        self.on_close = Some(Box::new(f));
+    /// Close button, a press on the scrim (and the caller's Esc) close the dialog.
+    pub fn on_close(mut self, f: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.on_close = Some(Rc::new(f));
         self
     }
 }
@@ -80,8 +88,8 @@ impl RenderOnce for Dialog {
                 .icon(IconName::X)
                 .variant(ButtonVariant::Ghost)
                 .size(Size::Sm);
-            if let Some(f) = self.on_close {
-                close = close.on_click(f);
+            if let Some(f) = self.on_close.clone() {
+                close = close.on_click(move |_: &ClickEvent, w, cx| f(w, cx));
             }
             let text = div()
                 .flex_1()
@@ -111,6 +119,8 @@ impl RenderOnce for Dialog {
             .bg(theme::overlay())
             .shadow_lg()
             .overflow_hidden()
+            .occlude()
+            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .map(|d| match self.size {
                 Some((w, h)) => d.w(w).h(h),
                 None => d.w(DIALOG_W).max_h(DIALOG_MAX_H),
@@ -139,6 +149,12 @@ impl RenderOnce for Dialog {
             .justify_center()
             .bg(theme::scrim())
             .occlude()
+            .when_some(self.on_close, |d, f| {
+                d.on_mouse_down(MouseButton::Left, move |_: &MouseDownEvent, w, cx| {
+                    cx.stop_propagation();
+                    f(w, cx)
+                })
+            })
             .child(motion::pop_in(panel, "dialog-panel"));
         motion::fade_in(scrim, "dialog-scrim")
     }

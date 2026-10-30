@@ -37,7 +37,11 @@ impl GitViewer {
                     .font_family(theme::mono_font())
                     .text_size(theme::text_xs())
                     .child(v.path.clone()),
-            );
+            )
+            .when(v.goto, |d| {
+                // Ctrl+G: line number, Enter jumps, Esc closes.
+                d.child(div().w(theme::SPACE_16 * 2.).child(self.goto_input.clone()))
+            });
         let body: AnyElement = match (&v.lines, &v.error) {
             (_, Some(e)) => ErrorText::new(e.clone()).into_any_element(),
             (None, None) => div()
@@ -66,7 +70,7 @@ impl GitViewer {
                                     .numbers(None, Some(i as u32 + 1))
                                     .single_gutter()
                                     .gutter_w(gutter)
-                                    .height(layout::DIFF_LINE_H)
+                                    .height(layout::diff_line_h())
                                     .selected(sel.is_some_and(|r| r.contains(i)));
                                 let bar = sel
                                     .filter(|r| r.hi() == i && !dragging)

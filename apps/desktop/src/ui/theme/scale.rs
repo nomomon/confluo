@@ -35,7 +35,8 @@ pub const ICON_LG: Pixels = px(16.);
 
 /// Type scale. Sizes follow the user's text step (Settings, 13/14/15 body).
 fn sized(base: f32) -> Pixels {
-    px(base + super::runtime::typography().step)
+    let t = super::runtime::typography();
+    px((base + t.step) * t.zoom)
 }
 /// Tiny labels inside avatars and badges.
 pub fn text_2xs() -> Pixels {

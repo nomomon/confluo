@@ -14,9 +14,10 @@ use crate::ui::atoms::IconName;
 use crate::ui::molecules::{CommandPalette, PaletteItem};
 
 /// Footer hint while the query is empty.
-const PREFIX_HINT: &str = "Type > for actions, # for PRs, @ for files, ? for shortcuts";
-/// Recent PRs listed with an empty query.
-const RECENT_MAX: usize = 5;
+const PREFIX_HINT: &str =
+    "Type > for actions, # for PRs, @ for files, ~ for recent, ? for shortcuts";
+/// Recent PRs collected (an empty query shows `RECENT_SHOWN` of them, `~` all).
+const RECENT_MAX: usize = 30;
 
 /// What a palette row does.
 #[derive(Clone)]
@@ -68,6 +69,15 @@ fn row(
     }
 }
 
+/// The palette action that picks `mode` (marked "Current").
+fn theme_action(mode: crate::settings::ThemeMode) -> &'static str {
+    match mode {
+        crate::settings::ThemeMode::Light => "ThemeLight",
+        crate::settings::ThemeMode::Dark => "ThemeDark",
+        crate::settings::ThemeMode::System => "ThemeSystem",
+    }
+}
+
 impl GitViewer {
     fn pr_row(&self, c: &ChangeRequest, group: Group) -> Row {
         let repo = self.repo_label(&c.id.repo);
@@ -107,13 +117,14 @@ impl GitViewer {
             } else {
                 e.label.to_string()
             };
+            let current = theme_action(self.settings.theme) == e.action;
             rows.push(row(
                 PaletteCmd::Action(e.action),
                 format!("a:{}", e.action),
                 group,
-                e.icon,
+                if current { IconName::Check } else { e.icon },
                 title.clone(),
-                None,
+                current.then(|| "Current".to_string()),
                 e.shortcut(),
                 title,
                 None,
@@ -217,13 +228,26 @@ impl GitViewer {
         if self.overlay == Overlay::Palette {
             self.overlay = Overlay::None;
             window.focus(&self.focus);
+            cx.notify();
         } else {
-            self.layer = None;
-            self.overlay = Overlay::Palette;
-            self.nav.palette_sel = 0;
-            self.palette_input.update(cx, |i, cx| i.set_text("", cx));
-            window.focus(&self.palette_input.read(cx).focus_handle(cx));
+            self.open_palette_with("", window, cx)
         }
+    }
+
+    /// Open the palette with `query` typed (Ctrl+R: `~ ` lists recent pull requests).
+    pub(crate) fn open_palette_with(
+        &mut self,
+        query: &str,
+        window: &mut gpui::Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.layer = None;
+        self.discard_prompt = false;
+        self.overlay = Overlay::Palette;
+        self.nav.palette_sel = 0;
+        let q = query.to_string();
+        self.palette_input.update(cx, |i, cx| i.set_text(q, cx));
+        window.focus(&self.palette_input.read(cx).focus_handle(cx));
         cx.notify();
     }
 

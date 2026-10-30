@@ -14,6 +14,7 @@ pub use super::keymap::*;
 pub fn bind_keys(cx: &mut App) {
     super::keymap::bind_keys(cx);
     super::code_keys::bind_keys(cx);
+    super::keymap::bind_find_keys(cx);
 }
 
 impl GitViewer {
@@ -40,7 +41,12 @@ impl GitViewer {
             }))
             .on_action(cx.listener(Self::dismiss))
             .on_action(cx.listener(|this, _: &FocusSearch, window, cx| {
-                window.focus(&this.search.focus_handle(cx))
+                // Review mode: find in the diff; triage: the list search.
+                if this.reviewing && this.detail.is_some() {
+                    this.open_find(window, cx)
+                } else {
+                    window.focus(&this.search.focus_handle(cx))
+                }
             }))
             .on_action(cx.listener(|this, _: &Refresh, _, cx| this.refresh(cx)))
             .on_action(cx.listener(|this, _: &OpenInBrowser, _, cx| {
@@ -159,8 +165,26 @@ impl GitViewer {
     fn dismiss(&mut self, _: &Dismiss, window: &mut Window, cx: &mut Context<Self>) {
         if self.close_layers(cx) {
             // Closed the open menu, popover or picker.
+        } else if self.discard_prompt {
+            self.keep_editing(cx);
+            return;
         } else if self.overlay != Overlay::None {
-            self.overlay = Overlay::None;
+            // Same as a press on the scrim: dialogs with typed input ask first.
+            self.request_close_overlay(window, cx);
+            if self.discard_prompt {
+                return;
+            }
+        } else if self.reviewing && self.find.open {
+            self.find.open = false;
+        } else if self.reviewing
+            && self
+                .detail
+                .as_ref()
+                .is_some_and(|d| d.code.viewer.as_ref().is_some_and(|v| v.goto))
+        {
+            if let Some(v) = self.detail.as_mut().and_then(|d| d.code.viewer.as_mut()) {
+                v.goto = false;
+            }
         } else if self.cancel_edits(cx) {
             // Left title or description editing, or closed the people picker.
         } else if self.code_tab_active() && self.cancel_inline(cx) {

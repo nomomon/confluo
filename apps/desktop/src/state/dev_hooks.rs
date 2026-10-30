@@ -35,6 +35,10 @@ impl GitViewer {
             Ok("needs") => self.review.thread_filter = super::ThreadFilter::NeedsMe,
             _ => {}
         }
+        // `CONFLUO_COMMENT_MENU=<comment id>` opens that comment's toolbar More menu.
+        if let Ok(id) = std::env::var("CONFLUO_COMMENT_MENU") {
+            self.layer = Some(Layer::CommentMenu(id));
+        }
         match (crate::dev::overlay().as_deref(), first) {
             (Some("add-project"), _) => self.open_add_project(cx),
             (Some("rename"), Some(id)) => self.open_rename(id, cx),
@@ -52,6 +56,13 @@ impl GitViewer {
             (Some("more"), _) => self.layer = Some(Layer::DetailMore),
             (Some("merge"), _) => self.open_merge(cx),
             (Some("close"), _) => self.overlay = Overlay::ConfirmClose,
+            (Some("discard"), _) => {
+                // A review summary with typed text, then the scrim press: "Discard changes?".
+                self.overlay = Overlay::ReviewSummary(gv_engine::ReviewAction::Comment);
+                self.review_input
+                    .update(cx, |i, cx| i.set_text("Looks good overall", cx));
+                self.discard_prompt = true;
+            }
             (Some("people"), _) => {
                 if let Some(d) = self.detail.as_mut() {
                     d.ui.people = Some(gv_engine::PeopleRole::Reviewers);
@@ -105,6 +116,29 @@ impl GitViewer {
             }
             _ => {}
         }
+    }
+
+    /// Dev only: `CONFLUO_FIND=<query>` opens the find bar over the diff with that query once it loads.
+    pub(crate) fn find_from_env(&mut self, cx: &mut Context<Self>) {
+        let Ok(q) = std::env::var("CONFLUO_FIND") else {
+            return;
+        };
+        cx.spawn(async move |this, cx| {
+            cx.background_executor()
+                .timer(std::time::Duration::from_millis(1500))
+                .await;
+            this.update(cx, |v, cx| {
+                v.find.open = true;
+                v.find_input.update(cx, |i, cx| i.set_text(q, cx));
+                v.run_find(cx);
+                if std::env::var("CONFLUO_FIND_NEXT").is_ok() {
+                    v.find_step(1, cx);
+                    v.find_step(1, cx);
+                }
+            })
+            .ok();
+        })
+        .detach();
     }
 
     /// Dev only: `CONFLUO_SCROLL=<px>` scrolls the detail pane once it has content.

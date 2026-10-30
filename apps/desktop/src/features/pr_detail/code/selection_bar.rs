@@ -61,7 +61,7 @@ impl GitViewer {
         deferred(
             div()
                 .absolute()
-                .top(layout::DIFF_LINE_H)
+                .top(layout::diff_line_h())
                 .right(theme::SPACE_3)
                 .child(bar),
         )

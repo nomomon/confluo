@@ -66,7 +66,20 @@ actions!(
         CopyBranch,
         ShowShortcuts,
         NextUnresolved,
-        PrevUnresolved
+        PrevUnresolved,
+        ThemeLight,
+        ThemeDark,
+        ThemeSystem,
+        ZoomIn,
+        ZoomOut,
+        ZoomReset,
+        ToggleWrap,
+        GoToLine,
+        ToggleFullScreen,
+        OpenRecent,
+        OpenLogs,
+        DevReload,
+        FindPrev
     ]
 );
 
@@ -183,10 +196,20 @@ keymap! {
         ShowShortcuts ["?", "shift-/"] List "Keyboard shortcuts" Action Keyboard always;
         OpenSettings ["cmd-,"] Any "Settings" Action Settings always;
         Refresh ["cmd-r"] Any "Refresh" Action Refresh always;
-        FocusSearch ["cmd-f", "/"] Any "Search the list" Action Search |c| !c.reviewing;
+        FocusSearch ["cmd-f", "/"] Any "Search the list (find in diff in Review)" Action Search always;
         ToggleSidebar ["cmd-b"] Any "Toggle sidebar" Action LayoutSidebar |c| !c.reviewing;
         ToggleDetail ["cmd-\\"] Any "Toggle preview" Action LayoutColumns |c| !c.reviewing;
-        ToggleTheme ["cmd-shift-l"] Any "Toggle light / dark" Action Moon always;
+        ToggleTheme ["cmd-shift-l"] Any "Theme: Cycle light, dark, system" Action Moon always;
+        ThemeLight [] Any "Theme: Light" Action Bulb always;
+        ThemeDark [] Any "Theme: Dark" Action Moon always;
+        ThemeSystem [] Any "Theme: System" Action AdjustmentsHorizontal always;
+        ZoomIn ["cmd-=", "cmd-+"] Any "View: Zoom in" Action Plus always;
+        ZoomOut ["cmd--"] Any "View: Zoom out" Action CircleMinus always;
+        ZoomReset ["cmd-0"] Any "View: Reset zoom" Action Search always;
+        ToggleFullScreen ["ctrl-cmd-f"] Any "View: Toggle full screen" Action LayoutColumns always;
+        OpenRecent ["ctrl-r"] Any "Open recent pull request..." Action Clock always;
+        OpenLogs [] Any "Developer: Open logs folder" Action Folder always;
+        DevReload [] Any "Developer: Reload" Action Refresh always;
         GoInbox ["cmd-1"] Any "Inbox" Go Inbox always;
         GoStarred ["cmd-2"] Any "Starred" Go Star always;
         GoProject1 ["cmd-3"] Any "Project 1" No Folder |c| c.projects > 0;
@@ -238,6 +261,8 @@ keymap! {
         PrevFile ["p", "["] List "Previous file" Suggest ChevronUp |c| c.diff;
         ToggleViewed ["v"] List "Toggle viewed (next unviewed)" Suggest Eye |c| c.diff;
         ToggleFile ["x"] List "Collapse file" Action Fold |c| c.diff;
+        ToggleWrap ["alt-z"] List "Toggle word wrap" Suggest LayoutRows |c| c.reviewing;
+        GoToLine ["ctrl-g"] Any "Go to line..." Suggest FileText |c| c.file_view;
     }
 }
 
@@ -248,6 +273,18 @@ pub const LINE_KEYS: [(&str, &str); 4] = [
     ("Comment on lines", "C"),
     ("Copy lines", "\u{2318} C"),
 ];
+
+/// Keys of the find bar over the diff (Cmd+F in Review mode).
+pub const FIND_KEYS: [(&str, &str); 3] = [
+    ("Find in diff", "\u{2318} F"),
+    ("Next / previous match", "\u{21a9}  \u{21e7} \u{21a9}"),
+    ("Close find", "esc"),
+];
+
+/// Find bar bindings, active only while its field has focus.
+pub fn bind_find_keys(cx: &mut App) {
+    cx.bind_keys([KeyBinding::new("shift-enter", FindPrev, Some("FindBar"))]);
+}
 
 /// Keys inside the command palette.
 pub const PALETTE_KEYS: [(&str, &str); 9] = [
@@ -279,7 +316,12 @@ pub fn group_rows(g: Group) -> Vec<(&'static str, Vec<String>)> {
         })
         .collect();
     match g {
-        Group::Diff => rows.extend(LINE_KEYS.iter().map(|(l, k)| (*l, vec![k.to_string()]))),
+        Group::Diff => rows.extend(
+            LINE_KEYS
+                .iter()
+                .chain(&FIND_KEYS)
+                .map(|(l, k)| (*l, vec![k.to_string()])),
+        ),
         Group::Palette => rows.extend(PALETTE_KEYS.iter().map(|(l, k)| (*l, vec![k.to_string()]))),
         _ => {}
     }
@@ -288,7 +330,14 @@ pub fn group_rows(g: Group) -> Vec<(&'static str, Vec<String>)> {
 
 /// `cmd-shift-c` as shown on keys: `⌘ ⇧ C`.
 pub fn display(keys: &str) -> String {
-    keys.split('-')
+    let mut parts: Vec<&str> = keys.split('-').collect();
+    // `cmd--` is Cmd and the minus key: the split leaves two empty parts.
+    if parts.len() >= 2 && parts[parts.len() - 2..] == ["", ""] {
+        parts.truncate(parts.len() - 2);
+        parts.push("");
+    }
+    parts
+        .into_iter()
         .map(|k| match k {
             "cmd" => "\u{2318}".to_string(),
             "shift" => "\u{21e7}".to_string(),
@@ -350,6 +399,10 @@ mod tests {
         assert_eq!(kbd::<Refresh>(), "\u{2318} R");
         assert_eq!(kbd::<ToggleDetail>(), "\u{2318} \\");
         assert_eq!(kbd::<ToggleDraft>(), "\u{2318} \u{21e7} D");
+        assert_eq!(display("cmd--"), "\u{2318} -");
+        assert_eq!(display("cmd-="), "\u{2318} =");
+        assert_eq!(kbd::<ToggleFullScreen>(), "\u{2303} \u{2318} F");
+        assert_eq!(kbd::<ToggleWrap>(), "\u{2325} Z");
         assert_eq!(project_entry(0).map(|e| e.keys[0]), Some("cmd-3"));
         assert_eq!(project_entry(6).map(|e| e.keys[0]), Some("cmd-9"));
         assert!(project_entry(7).is_none());
@@ -407,6 +460,7 @@ mod tests {
             reviewing: true,
             diff: true,
             projects: 2,
+            file_view: false,
             gate: Some(Gate {
                 review: ReviewCapabilities {
                     comment_review: true,
@@ -426,6 +480,21 @@ mod tests {
             !a.contains(&"Approve") && !a.contains(&"RequestChanges") && !a.contains(&"MergePr")
         );
         assert!(!a.contains(&"ToggleSidebar") && !a.contains(&"OpenSelected"));
+        // Theme, zoom and developer commands are always in the palette; go to line needs the file viewer.
+        assert!([
+            "ThemeLight",
+            "ThemeDark",
+            "ThemeSystem",
+            "ToggleTheme",
+            "ZoomIn",
+            "OpenLogs",
+            "DevReload",
+            "ToggleWrap"
+        ]
+        .iter()
+        .all(|x| a.contains(x)));
+        assert!(!a.contains(&"GoToLine"));
+        assert!(avail(&list).contains(&"ThemeDark"));
         assert!(
             (project_entry(1).unwrap().available)(&own)
                 && !(project_entry(2).unwrap().available)(&own)

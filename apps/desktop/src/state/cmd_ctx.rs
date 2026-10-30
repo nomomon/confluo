@@ -19,6 +19,8 @@ pub struct CmdCtx {
     pub diff: bool,
     pub projects: usize,
     pub gate: Option<Gate>,
+    /// The whole-file viewer is open (Ctrl+G).
+    pub file_view: bool,
 }
 
 /// PR actions gated by the provider's capabilities.

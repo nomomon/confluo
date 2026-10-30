@@ -34,6 +34,10 @@ pub struct DiffRow {
     selected: bool,
     /// Side-by-side cell: one number gutter (whichever side is set) and the marker.
     one_number: bool,
+    /// Find matches in the code (`CodeText::marks`).
+    marks: Vec<(std::ops::Range<usize>, bool)>,
+    /// Wrap the code; `height` becomes the minimum and the row grows.
+    wrap: bool,
 }
 
 impl DiffRow {
@@ -52,7 +56,20 @@ impl DiffRow {
             dot: false,
             selected: false,
             one_number: false,
+            marks: vec![],
+            wrap: false,
         }
+    }
+
+    pub fn marks(mut self, marks: Vec<(std::ops::Range<usize>, bool)>) -> Self {
+        self.marks = marks;
+        self
+    }
+
+    /// Wrap long code lines instead of scrolling them (the row grows).
+    pub fn wrap(mut self, on: bool) -> Self {
+        self.wrap = on;
+        self
     }
 
     /// Line numbers; pass `None` for the side a line does not exist on.
@@ -113,10 +130,14 @@ impl RenderOnce for DiffRow {
             LineMark::Del => (Some(theme::diff_del_bg()), Some(theme::danger()), "-"),
             LineMark::Context => (None, None, " "),
         };
+        let line_h = self.height;
         let num = |n: Option<u32>| {
             div()
                 .flex_shrink_0()
                 .w(self.gutter_w)
+                .h(line_h)
+                .flex()
+                .items_center()
                 .pr(theme::SPACE_2)
                 .flex()
                 .justify_end()
@@ -137,12 +158,18 @@ impl RenderOnce for DiffRow {
             .size(theme::SPACE_1P5)
             .rounded(theme::RADIUS_FULL)
             .bg(theme::accent());
+        let wrap = self.wrap;
         div()
             .relative()
             .flex()
-            .items_center()
             .w_full()
-            .h(self.height)
+            .map(|d| {
+                if wrap {
+                    d.items_start().min_h(self.height)
+                } else {
+                    d.items_center().h(self.height)
+                }
+            })
             .overflow_hidden()
             .font_family(theme::mono_font())
             .text_size(theme::text_xs())
@@ -153,9 +180,11 @@ impl RenderOnce for DiffRow {
             .when(self.dot, |d| d.child(dot))
             .child(
                 div()
-                    .flex_shrink_0()
+                    .absolute()
+                    .left_0()
+                    .top_0()
+                    .bottom_0()
                     .w(theme::SPACE_0P5)
-                    .h_full()
                     .when_some(
                         if self.selected {
                             Some(theme::accent())
@@ -165,6 +194,7 @@ impl RenderOnce for DiffRow {
                         |d, c| d.bg(c),
                     ),
             )
+            .child(div().flex_shrink_0().w(theme::SPACE_0P5))
             .when(self.show_marker && !self.one_number, |d| {
                 d.child(num(self.old_no))
             })
@@ -188,10 +218,19 @@ impl RenderOnce for DiffRow {
                     .min_w(theme::SPACE_0)
                     .overflow_hidden()
                     .pl(theme::SPACE_1)
+                    .when(wrap, |d| d.pr(theme::SPACE_2))
+                    .min_h(line_h)
+                    .flex()
+                    .items_center()
                     .child(
                         div()
-                            .ml(-self.scroll_x)
-                            .child(CodeText::new(self.text, self.lang)),
+                            .when(!wrap, |d| d.ml(-self.scroll_x))
+                            .when(wrap, |d| d.w_full())
+                            .child(
+                                CodeText::new(self.text, self.lang)
+                                    .marks(self.marks)
+                                    .wrap(wrap),
+                            ),
                     ),
             )
             .when_some(self.action, |d, a| {

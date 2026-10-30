@@ -100,6 +100,14 @@ impl ThemeMode {
             ThemeMode::Dark => "Dark",
         }
     }
+    /// Cmd+Shift+L order: Light, Dark, System, Light.
+    pub fn next(self) -> Self {
+        match self {
+            ThemeMode::Light => ThemeMode::Dark,
+            ThemeMode::Dark => ThemeMode::System,
+            ThemeMode::System => ThemeMode::Light,
+        }
+    }
     /// Whether the light palette applies given the window's current appearance.
     pub fn is_light(self, appearance: gpui::WindowAppearance) -> bool {
         match self {
@@ -113,6 +121,20 @@ impl ThemeMode {
     }
 }
 
+/// UI zoom steps (Cmd+= / Cmd+- / Cmd+0): text and diff rows scale by these.
+pub const ZOOM_STEPS: [f32; 7] = [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4];
+
+/// The zoom `delta` steps away from `cur` (snapped to the nearest step), clamped to the ends.
+pub fn zoom_step(cur: f32, delta: isize) -> f32 {
+    let near = ZOOM_STEPS
+        .iter()
+        .enumerate()
+        .min_by(|a, b| (a.1 - cur).abs().total_cmp(&(b.1 - cur).abs()))
+        .map_or(2, |(i, _)| i);
+    let i = (near as isize + delta).clamp(0, ZOOM_STEPS.len() as isize - 1) as usize;
+    ZOOM_STEPS[i]
+}
+
 /// Tint presets offered as swatches: name and `#rrggbb` (empty for none).
 pub const TINTS: [(&str, &str); 8] = [
     ("None", ""),
@@ -124,3 +146,41 @@ pub const TINTS: [(&str, &str); 8] = [
     ("Emerald", "#10b981"),
     ("Teal", "#14b8a6"),
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn theme_cycles_light_dark_system() {
+        let mut t = ThemeMode::Light;
+        let seen: Vec<_> = (0..4)
+            .map(|_| {
+                t = t.next();
+                t
+            })
+            .collect();
+        assert_eq!(
+            seen,
+            [
+                ThemeMode::Dark,
+                ThemeMode::System,
+                ThemeMode::Light,
+                ThemeMode::Dark
+            ]
+        );
+    }
+
+    #[test]
+    fn zoom_steps_clamp_and_snap() {
+        assert_eq!(zoom_step(1.0, 1), 1.1);
+        assert_eq!(zoom_step(1.0, -1), 0.9);
+        assert_eq!(zoom_step(1.4, 1), 1.4);
+        assert_eq!(zoom_step(0.8, -1), 0.8);
+        assert_eq!(zoom_step(0.8, -5), 0.8);
+        assert_eq!(zoom_step(1.04, 0), 1.0);
+        // A hand-edited out of range value snaps into range.
+        assert_eq!(zoom_step(3.0, 0), 1.4);
+        assert_eq!(zoom_step(0.1, 1), 0.9);
+    }
+}

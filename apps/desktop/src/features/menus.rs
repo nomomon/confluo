@@ -1,13 +1,23 @@
 //! App menu bar. Key equivalents come from the keymap bindings; the Go menu lists the projects
-//! (rebuilt when they change), so Cmd+3..9 show beside their names.
+//! (rebuilt when they change), so Cmd+3..9 show beside their names. View > Appearance marks the
+//! current theme with a check (GPUI menus have no checked state, so it is part of the title; the
+//! menus are rebuilt when the theme changes).
 
 use gpui::{App, Menu, MenuItem, OsAction, SystemMenuType};
+
+use crate::settings::ThemeMode;
+
+/// "✓ Dark" for the current theme, the plain label (indented to line up) otherwise.
+pub fn theme_title(mode: ThemeMode, current: ThemeMode) -> String {
+    let mark = if mode == current { "\u{2713} " } else { "    " };
+    format!("{mark}{}", mode.label())
+}
 
 use super::keymap::*;
 use crate::ui::molecules::text_input as ti;
 
 /// Install the menus; `projects` are the sidebar project names in order.
-pub fn set_menus(cx: &mut App, projects: &[String]) {
+pub fn set_menus(cx: &mut App, projects: &[String], theme: ThemeMode) {
     let mut go = vec![
         MenuItem::action("Inbox", GoInbox),
         MenuItem::action("Starred", GoStarred),
@@ -34,7 +44,20 @@ pub fn set_menus(cx: &mut App, projects: &[String]) {
         MenuItem::separator(),
         MenuItem::action("Back", HistoryBack),
         MenuItem::action("Forward", HistoryForward),
+        MenuItem::separator(),
+        MenuItem::action("Open Recent...", OpenRecent),
+        MenuItem::action("Go to Line...", GoToLine),
     ]);
+    let appearance = Menu {
+        name: "Appearance".into(),
+        items: vec![
+            MenuItem::action(theme_title(ThemeMode::Light, theme), ThemeLight),
+            MenuItem::action(theme_title(ThemeMode::Dark, theme), ThemeDark),
+            MenuItem::action(theme_title(ThemeMode::System, theme), ThemeSystem),
+            MenuItem::separator(),
+            MenuItem::action("Cycle Theme", ToggleTheme),
+        ],
+    };
     cx.set_menus(vec![
         Menu {
             name: "Confluo".into(),
@@ -67,11 +90,18 @@ pub fn set_menus(cx: &mut App, projects: &[String]) {
                 MenuItem::action("Toggle Right Panel", ToggleRightPanel),
                 MenuItem::action("Unified / Side by Side", ToggleDiffView),
                 MenuItem::separator(),
+                MenuItem::action("Toggle Word Wrap", ToggleWrap),
+                MenuItem::separator(),
                 MenuItem::action("Command Palette...", CommandPalette),
                 MenuItem::action("Find", FocusSearch),
                 MenuItem::action("Refresh", Refresh),
                 MenuItem::separator(),
-                MenuItem::action("Toggle Light / Dark Theme", ToggleTheme),
+                MenuItem::submenu(appearance),
+                MenuItem::action("Zoom In", ZoomIn),
+                MenuItem::action("Zoom Out", ZoomOut),
+                MenuItem::action("Actual Size", ZoomReset),
+                MenuItem::separator(),
+                MenuItem::action("Toggle Full Screen", ToggleFullScreen),
             ],
         },
         Menu {
@@ -112,7 +142,26 @@ pub fn set_menus(cx: &mut App, projects: &[String]) {
         },
         Menu {
             name: "Help".into(),
-            items: vec![MenuItem::action("Keyboard Shortcuts", ShowShortcuts)],
+            items: vec![
+                MenuItem::action("Keyboard Shortcuts", ShowShortcuts),
+                MenuItem::separator(),
+                MenuItem::action("Open Logs Folder", OpenLogs),
+                MenuItem::action("Reload", DevReload),
+            ],
         },
     ]);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn appearance_marks_the_current_theme() {
+        assert_eq!(
+            theme_title(ThemeMode::Dark, ThemeMode::Dark),
+            "\u{2713} Dark"
+        );
+        assert_eq!(theme_title(ThemeMode::Light, ThemeMode::Dark), "    Light");
+    }
 }

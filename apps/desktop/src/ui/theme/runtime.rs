@@ -11,6 +11,8 @@ pub struct Typography {
     pub mono_font: &'static str,
     /// Points added to every text size (0 for the 13px body default).
     pub step: f32,
+    /// UI zoom factor applied to every text size and the diff row height (1.0 is 100%).
+    pub zoom: f32,
     /// Compact density (default) tightens the rhythm tokens; false is Comfortable.
     pub compact: bool,
 }
@@ -21,6 +23,7 @@ impl Default for Typography {
             ui_font: ".SystemUIFont",
             mono_font: "JetBrains Mono",
             step: 0.,
+            zoom: 1.,
             compact: true,
         }
     }
@@ -30,6 +33,7 @@ static TYPOGRAPHY: RwLock<Typography> = RwLock::new(Typography {
     ui_font: ".SystemUIFont",
     mono_font: "JetBrains Mono",
     step: 0.,
+    zoom: 1.,
     compact: true,
 });
 
@@ -42,6 +46,11 @@ pub fn set_typography(t: Typography) {
 
 pub fn typography() -> Typography {
     TYPOGRAPHY.read().map(|g| *g).unwrap_or_default()
+}
+
+/// UI zoom factor (Cmd+= / Cmd+-).
+pub fn zoom() -> f32 {
+    typography().zoom
 }
 
 /// UI font family.

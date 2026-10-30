@@ -10,10 +10,14 @@ export DISPLAY=:99
 Xvfb :99 -screen 0 1440x900x24 >/dev/null 2>&1 &
 xvfb=$!
 sleep 2
-CONFLUO_DEMO=1 CONFLUO_NO_REFRESH=1 RUST_BACKTRACE=1 XDG_STATE_HOME="$out" "$bin" >"$out/stdout.log" 2>"$out/stderr.log" &
+CONFLUO_DEMO=1 CONFLUO_NO_REFRESH=1 RUST_BACKTRACE=1 RUST_LOG=info XDG_STATE_HOME="$out" "$bin" >"$out/stdout.log" 2>"$out/stderr.log" &
 app=$!
 sleep 10
 import -window root "$out/confluo-linux.png" || echo "screenshot failed"
+xwininfo -root -tree >"$out/windows.txt" 2>&1 || true
+colors="$(identify -format %k "$out/confluo-linux.png" 2>/dev/null || echo 0)"
+# Not fatal yet: on Xvfb + lavapipe the window may not present (known gap, see PR).
+[ "$colors" -gt 1 ] || echo "::warning::screenshot is a single color, the window did not render"
 status=0
 if kill -0 "$app" 2>/dev/null; then
     echo "Confluo still running after 10 s: ok"

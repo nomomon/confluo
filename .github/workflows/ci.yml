@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
       - name: System packages
-        run: sudo apt-get update && sudo apt-get install -y $(cat packaging/linux/build-deps.txt) xvfb imagemagick mesa-vulkan-drivers
+        run: sudo apt-get update && sudo apt-get install -y $(cat packaging/linux/build-deps.txt) xvfb x11-utils imagemagick mesa-vulkan-drivers
       - name: Toolchain
         run: rustup toolchain install stable --profile minimal --component rustfmt,clippy && rustup default stable
       - uses: Swatinem/rust-cache@v2.7.8

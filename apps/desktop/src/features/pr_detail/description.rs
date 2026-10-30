@@ -1,4 +1,4 @@
-//! Description card: markdown with a hover Edit button; editing swaps in a textarea with a
+//! Description card: a header (title, Edit when allowed) over the markdown; editing swaps in a textarea with a
 //! Write / Preview toggle, Cmd+Enter saves and Esc cancels. The editor keeps the rendered text's column,
 //! font size, line height and height, with the controls in a footer, so opening it does not move the text.
 
@@ -8,7 +8,7 @@ use crate::app::GitViewer;
 use crate::features::keymap;
 use crate::features::shared::layout;
 use crate::state::DetailState;
-use crate::ui::atoms::{Button, ButtonVariant, IconName};
+use crate::ui::atoms::{Button, ButtonVariant, IconName, Size};
 use crate::ui::molecules::{Card, Tabs, TabsVariant, Textarea};
 use crate::ui::theme;
 
@@ -36,20 +36,13 @@ impl GitViewer {
             Some(det) => self.markdown("desc", &det.description).into_any_element(),
         };
         let edit = can_edit.then(|| {
-            div()
-                .absolute()
-                .top(theme::space_2())
-                .right(theme::space_2())
-                .opacity(0.)
-                .group_hover("desc-card", |s| s.opacity(1.))
-                .child(
-                    Button::new("desc-edit", "Edit")
-                        .icon(IconName::Pencil)
-                        .variant(ButtonVariant::Ghost)
-                        .on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
-                            this.start_body_edit(window, cx)
-                        })),
-                )
+            Button::new("desc-edit", "Edit")
+                .icon(IconName::Pencil)
+                .variant(ButtonVariant::Ghost)
+                .size(Size::Sm)
+                .on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
+                    this.start_body_edit(window, cx)
+                }))
         });
         let reactions = d.detail.as_ref().and_then(|det| {
             self.reactions_bar(
@@ -72,11 +65,14 @@ impl GitViewer {
             })
             .child(body)
             .children(reactions);
+        // Header row like the other Overview cards: the Edit action never overlays the text.
+        let mut card = Card::new(self.surfaces()).title("Description");
+        if let Some(edit) = edit {
+            card = card.action(edit);
+        }
         div()
-            .relative()
             .group("desc-card")
-            .child(Card::new(self.surfaces()).child(body))
-            .children(edit)
+            .child(card.child(body))
             .into_any_element()
     }
 

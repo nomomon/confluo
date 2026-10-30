@@ -73,7 +73,7 @@ impl GitViewer {
         Some(if on_left(p) { e.left_0() } else { e.right_0() }.into_any_element())
     }
 
-    /// `content` in panel `p`'s frame: drawn width from the drag or spring, content kept at least at its
+    /// `content` in panel `p`'s frame: drawn width (and fade) from the drag or spring, content kept at least at its
     /// minimum (clipped, not squeezed). None when the panel is collapsed and still.
     pub(crate) fn panel_frame(
         &self,
@@ -88,8 +88,11 @@ impl GitViewer {
         let l = self.panel_limits(p);
         let rest = self.panel_rest_w(p);
         let w = shown.unwrap_or(rest);
-        let inner_w = w.max(l.min);
-        let anchored = if on_left(p) {
+        // A drag reflows the content down to the minimum; a toggle spring keeps it at its resting width.
+        let dragged = self.review.split.drag.is_some_and(|d| d.pane == p);
+        let inner_w = if dragged { w.max(l.min) } else { w.max(rest) };
+        // Toggles pin the content to the moving edge so it slides; drags pin it to the window edge.
+        let anchored = if on_left(p) == dragged {
             div().absolute().top_0().left_0()
         } else {
             div().absolute().top_0().right_0()
@@ -100,6 +103,7 @@ impl GitViewer {
                 .flex_shrink_0()
                 .h_full()
                 .w(px(w))
+                .opacity(self.panel_opacity(p))
                 .child(
                     div()
                         .size_full()

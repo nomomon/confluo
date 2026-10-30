@@ -18,6 +18,7 @@ Dev-only env (screenshots and walkthroughs; see `apps/desktop/src/dev.rs`):
 - `CONFLUO_THREADS=unresolved|needs` sets the Conversation filter
 - `CONFLUO_DEV_SWIPE=0.4` draws Review mode mid swipe-back (review moved 40% of the width, the list under it); trackpad
   gestures cannot be synthesized, so this is how the swipe is screenshotted
+- `CONFLUO_DEV_PANEL=preview:0.4` (or `sidebar|tree|right`) draws that panel frozen 40% through its open spring (opacity under reduced motion)
 - `CONFLUO_DEMO=1` runs on invented fixture data (no network; settings and cache in `$TMPDIR/confluo-demo`, wiped at launch)
 - `CONFLUO_DEV_UPDATE=0.2.0` shows the update card for that version (`CONFLUO_DEV_UPDATE_PROGRESS=0.4` mid download)
 - `CONFLUO_HOVER=<comment id>` keeps that comment's hover toolbar visible; `CONFLUO_COMMENT_MENU=<comment id>` opens its More menu

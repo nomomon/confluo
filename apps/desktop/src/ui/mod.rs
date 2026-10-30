@@ -8,6 +8,7 @@ pub mod elastic;
 pub mod layer;
 pub mod molecules;
 pub mod motion;
+pub mod panel_anim;
 pub mod scroll;
 pub mod split;
 

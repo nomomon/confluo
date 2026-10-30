@@ -8,25 +8,13 @@ use gpui::{div, prelude::*, Context, Pixels, Window};
 
 impl GitViewer {
     /// Sidebar, list and (when open) the preview: the window outside Review mode, also drawn under a
-    /// review that slides in or out. The sidebar slides in only right after Cmd+B shows it.
+    /// review that slides in or out. Panels open and close through `panel_frame` (width spring).
     pub(crate) fn render_triage(&self, cx: &mut Context<Self>) -> gpui::Div {
-        let fresh = self
-            .nav
-            .sidebar_shown_at
-            .is_some_and(|t| t.elapsed() < std::time::Duration::from_millis(400));
-        let sidebar = self
-            .panel_frame(
-                crate::state::Pane::Sidebar,
-                div().h_full().child(self.render_sidebar(cx)),
-                cx,
-            )
-            .map(|f| {
-                if fresh {
-                    crate::ui::motion::slide_in_left(f, "sidebar", layout::SIDEBAR_SLIDE)
-                } else {
-                    f.into_any_element()
-                }
-            });
+        let sidebar = self.panel_frame(
+            crate::state::Pane::Sidebar,
+            div().h_full().child(self.render_sidebar(cx)),
+            cx,
+        );
         let preview = self.detail.as_ref().and_then(|d| {
             self.panel_frame(crate::state::Pane::Preview, self.render_preview(d, cx), cx)
         });

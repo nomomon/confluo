@@ -9,7 +9,8 @@ use super::Pane;
 use crate::app::GitViewer;
 use crate::features::layout;
 use crate::ui::motion::reduced_motion;
-use crate::ui::split::{drag_width, release, release_collapsed, Limits, PanelAnim, Release};
+use crate::ui::panel_anim::PanelAnim;
+use crate::ui::split::{drag_width, release, release_collapsed, Limits, Release};
 
 /// A divider (or a collapsed panel's edge) being dragged.
 #[derive(Clone, Copy, Debug)]
@@ -24,9 +25,13 @@ pub struct SplitDrag {
 #[derive(Default)]
 pub struct SplitUi {
     pub drag: Option<SplitDrag>,
-    anims: Vec<(Pane, PanelAnim)>,
+    pub(super) anims: Vec<(Pane, PanelAnim)>,
     /// Widths to draw this frame where they differ from the resting layout (set by `split_frame`).
-    shown: Vec<(Pane, f32)>,
+    pub(super) shown: Vec<(Pane, f32)>,
+    /// Opacity while a reduced-motion toggle fades the panel.
+    pub(super) opacity: Vec<(Pane, f32)>,
+    /// Open state of each panel at the last frame (`panel_toggle`).
+    pub(super) seen: Vec<(Pane, bool)>,
 }
 
 impl GitViewer {
@@ -49,6 +54,7 @@ impl GitViewer {
             Pane::Sidebar => self.nav.sidebar_hidden = !open,
             Pane::Preview => self.toggle_detail(cx),
         }
+        self.note_seen(p);
     }
 
     pub(crate) fn panel_limits(&self, p: Pane) -> Limits {
@@ -89,16 +95,6 @@ impl GitViewer {
             Pane::Sidebar => self.sidebar_w_open().into(),
             Pane::Preview => layout::preview_w().into(),
         }
-    }
-
-    /// Width to draw this frame while a drag or spring moves the panel (also while collapsed).
-    pub(crate) fn panel_shown(&self, p: Pane) -> Option<f32> {
-        self.review
-            .split
-            .shown
-            .iter()
-            .find(|(q, _)| *q == p)
-            .map(|(_, w)| *w)
     }
 
     /// Pointer down on a divider or a collapsed panel's edge.
@@ -196,31 +192,31 @@ impl GitViewer {
             shown.push((d.pane, w));
         }
         if let Some((name, w)) = crate::dev::drag() {
-            let p = match name.as_str() {
-                "tree" => Pane::Tree,
-                "right" => Pane::Right,
-                "sidebar" => Pane::Sidebar,
-                _ => Pane::Preview,
-            };
+            let p = Pane::named(&name);
             let l = self.panel_limits(p);
             shown.push((p, drag_width(w, l)));
         }
+        self.detect_toggles(now);
         let mut closed = vec![];
+        let mut opacity = vec![];
         self.review.split.anims.retain_mut(|(p, a)| {
-            let (w, moving) = a.width.get(now);
-            if moving {
-                shown.push((*p, w));
+            let f = a.frame(now);
+            if f.moving {
+                shown.push((*p, f.width));
+                opacity.push((*p, f.opacity));
             } else if a.closing {
                 closed.push(*p);
             }
-            moving
+            f.moving
         });
+        self.dev_panel_progress(&mut shown, &mut opacity);
         for p in closed {
             self.set_panel_open(p, false, cx);
         }
         self.persist_panels(cx);
         let moving = !self.review.split.anims.is_empty();
         self.review.split.shown = shown;
+        self.review.split.opacity = opacity;
         if moving {
             window.request_animation_frame();
         }

@@ -16,8 +16,6 @@ pub struct NavState {
     pub pos: usize,
     /// The detail pane closed last, for Cmd+\ to bring back.
     pub last_closed: Option<ChangeRequest>,
-    /// When Cmd+B last showed the sidebar (it slides in only then).
-    pub sidebar_shown_at: Option<std::time::Instant>,
     /// Highlighted palette row.
     pub palette_sel: usize,
 }
@@ -55,7 +53,6 @@ impl NavState {
 impl GitViewer {
     pub(crate) fn toggle_sidebar(&mut self, cx: &mut Context<Self>) {
         self.nav.sidebar_hidden = !self.nav.sidebar_hidden;
-        self.nav.sidebar_shown_at = (!self.nav.sidebar_hidden).then(std::time::Instant::now);
         cx.notify();
     }
 

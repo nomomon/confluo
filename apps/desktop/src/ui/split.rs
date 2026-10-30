@@ -1,12 +1,9 @@
 //! Side panels that resize by dragging their divider and collapse when dragged past their minimum
 //! (macOS split view / VS Code). Pure model, no gpui: the pointer gives a wanted width; below the minimum
 //! the panel resists (rubber band) and past `COLLAPSE_AT` of the minimum a release collapses it; a
-//! collapsed panel keeps a thin edge whose drag brings it back to its last width. Widths animate on a
-//! spring (`motion::interactive::Animated`).
+//! collapsed panel keeps a thin edge whose drag brings it back to its last width. Widths animate through
+//! `ui::panel_anim`.
 
-use std::time::Instant;
-
-use crate::ui::motion::interactive::Animated;
 use crate::ui::motion::physics::{rubber_band, BAND};
 
 /// Dragging this share of the minimum below it collapses on release (40% under the minimum).
@@ -56,24 +53,6 @@ pub fn release_collapsed(want: f32) -> bool {
     want >= OPEN_AT
 }
 
-/// One panel's animated width: a spring toward the open width or 0. `closing` marks a collapse in flight
-/// (the caller sets its own open flag once it settles).
-#[derive(Clone, Copy, Debug)]
-pub struct PanelAnim {
-    pub width: Animated,
-    pub closing: bool,
-}
-
-impl PanelAnim {
-    /// From `from` (drawn now) to `to`, starting the spring at rest.
-    pub fn new(from: f32, to: f32, closing: bool, reduced: bool) -> Self {
-        let now = Instant::now();
-        let mut width = Animated::new(from);
-        width.set(to, now, reduced);
-        Self { width, closing }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -106,27 +85,5 @@ mod tests {
         assert_eq!(release(110., L), Release::Collapse);
         assert_eq!(release(900., L), Release::Width(400.));
         assert!(!release_collapsed(10.) && release_collapsed(30.));
-    }
-
-    #[test]
-    fn collapse_animates_to_zero() {
-        let mut p = PanelAnim::new(180., 0., true, false);
-        let t = Instant::now();
-        let mut last = 180.;
-        for i in 1..100 {
-            let (w, moving) = p.width.get(t + std::time::Duration::from_millis(i * 16));
-            assert!(w <= last + 0.01);
-            last = w;
-            if !moving {
-                break;
-            }
-        }
-        assert_eq!(last, 0.);
-        assert_eq!(
-            PanelAnim::new(180., 0., true, true)
-                .width
-                .get(Instant::now()),
-            (0., false)
-        );
     }
 }

@@ -96,6 +96,13 @@ pub fn list_tabs() -> Option<f32> {
     var("CONFLUO_DEV_TABS")?.parse().ok()
 }
 
+/// `CONFLUO_DEV_PANEL=preview:0.4` (or `tree|right|sidebar`) draws that panel frozen mid open transition.
+pub fn panel_progress() -> Option<(String, f32)> {
+    let v = var("CONFLUO_DEV_PANEL")?;
+    let (p, t) = v.split_once(':')?;
+    Some((p.to_string(), t.parse::<f32>().ok()?.clamp(0., 1.)))
+}
+
 /// `CONFLUO_SCROLL=<px>` scrolls the detail pane down that far once it has laid out.
 pub fn detail_scroll() -> Option<f32> {
     var("CONFLUO_SCROLL")?.parse().ok()

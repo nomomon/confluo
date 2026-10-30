@@ -416,13 +416,12 @@ Helpers wrap GPUI `with_animation` with `Animation::new(d).with_easing(..)`
 (easings come from `gpui::{linear, ease_in_out, ease_out_quint}`):
 
 - `fade_in(el, id)`: opacity 0 to 1 over `FADE`
-- `slide_in_right(el, id, distance)`: offset from the right plus fade, `PANEL` (elements in the flow; it makes them `relative`)
 - `slide_in_from_edge(el, id, distance)`: same for an `absolute().right_0()` element such as `Sheet`, keeping its position
 - `pop_in(el, id)`: 6px rise plus fade, `FADE` timing with quint ease
 - `animate(el, id, motion, animator)`: the generic building block
 - `Motion::duration()` / `Motion::animation()` for custom cases
 
-Where it is applied: detail pane slides in on open; dialogs fade the scrim and
+Where it is applied: side panels open and close on a spring (see Side panels below); dialogs fade the scrim and
 pop the panel; dropdown menus pop; the line selection toolbar pops (not on keyboard moves); status notices fade in. Buttons, chips, nav
 items and list rows use `.hover()` with `SURFACE_HOVER` and `.active()` with
 `SURFACE_ACTIVE`.
@@ -431,8 +430,8 @@ Rules:
 
 - Do not animate keyboard-driven repeated actions (j/k, tab switches, command
   palette), data refreshes, or text changes.
-- Animate entrances only. GPUI removes elements immediately, so exits are not
-  animated yet; `PANEL_EXIT` is the token to use once deferred removal exists.
+- Tweened helpers animate entrances only (GPUI removes elements immediately). Side panels are the exception:
+  they stay mounted while their width springs to 0, so they animate both ways.
 - GPUI has no style transitions; hover and press are instant style swaps.
   `HOVER` and `PRESS` record the intended timing for when that changes.
 - Animation ids are stable per element, so an entrance plays once per mount
@@ -544,6 +543,12 @@ Side panels (sidebar, triage preview, review file tree, review right panel) shar
 resist); under the minimum it resists like a rubber band, and released 40% under it the panel collapses on a spring to
 the same state as its toggle (Cmd+B, Cmd+\\, Cmd+Shift+E, Cmd+Shift+I). A collapsed panel leaves a 5px edge; dragging
 it out 24px reopens it at its last width. Content keeps its resting width and is clipped while the frame moves.
+Toggles (keys, buttons, a click on a row, code) open and close every side panel the same way: the frame's width springs
+0 to its width and back (`ui::panel_anim`, `SNAPPY`), the list or diff beside it follows each frame, and a toggle
+mid-flight reverses from where it is. `state::panel_toggle` compares each panel's open state with the last frame, so
+every path animates without wiring; showing another PR in the open preview is no toggle and only swaps content; the
+review sliding over or off the list changes nothing, so nothing replays. Reduced motion: full width, opacity fade over
+`FADE`. `CONFLUO_DEV_PANEL=preview:0.4` draws a panel frozen 40% open.
 The right panel pager steps by the panel's measured content width (`right_page_w`, `page_offsets`); while both tabs
 draw, each is opaque and the strip clips.
 

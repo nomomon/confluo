@@ -9,7 +9,7 @@ use crate::features::keymap::{self, OpenInBrowser, OpenSelected, ToggleDetail};
 use crate::features::shared::{layout, number_label, provider_mark, state_icon};
 use crate::state::DetailState;
 use crate::ui::atoms::{tooltip, Avatar, Button, ButtonVariant, IconName};
-use crate::ui::{motion, theme};
+use crate::ui::theme;
 
 /// The start of the description as markdown: up to `max_lines` non-blank source lines, HTML comments
 /// dropped, an open code fence closed. Also says whether anything was cut.
@@ -214,8 +214,7 @@ impl GitViewer {
             .px(theme::pane_pad())
             .pb(theme::space_6())
             .child(body);
-        let panel = crate::ui::elastic::y_scroller(panel, "preview", h);
-        motion::slide_in_right(panel, "preview-panel", theme::space_6())
+        crate::ui::elastic::y_scroller(panel, "preview", h)
     }
 }
 

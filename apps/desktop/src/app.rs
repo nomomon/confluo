@@ -14,7 +14,7 @@ use std::time::Instant;
 
 use crate::settings::Settings;
 pub use crate::state::{Menu, Overlay};
-use crate::state::{BotList, Copied, DetailState, HostStatus, QuietState, SettingsPage, SourceKind};
+use crate::state::{BotList, Copied, DetailState, HostStatus, NavState, QuietState, SettingsPage, SourceKind};
 use crate::ui::molecules::text_input::{InputEvent, TextInput};
 use crate::features::layout;
 use crate::ui::molecules::{Toast, ToastVariant, Toaster};
@@ -97,6 +97,15 @@ pub struct GitViewer {
     pub(crate) confirm_from_settings: bool,
     /// Stale and snoozed PRs left out of the sections.
     pub(crate) quiet: QuietState,
+    /// Sidebar toggle, PR history and the palette highlight.
+    pub(crate) nav: NavState,
+    /// Opening a PR from history: do not record it again.
+    pub(crate) navigating: bool,
+    /// Give focus back to the root on the next render (after an overlay closed without a window).
+    pub(crate) refocus: bool,
+    pub(crate) palette_input: Entity<TextInput>,
+    /// Summary field of the review dialog.
+    pub(crate) review_input: Entity<TextInput>,
 }
 
 /// Subscribe `f` to the input's Enter key.
@@ -121,6 +130,25 @@ impl GitViewer {
         let rename_input = input(cx, "Project name");
         let bot_authors_input = input(cx, "Add an author, e.g. *-bot, then Enter");
         let bot_branches_input = input(cx, "Add a branch prefix, e.g. deps/, then Enter");
+        let palette_input = cx.new(|cx| TextInput::new("Search pull requests and commands", cx).inset(crate::ui::molecules::INPUT_INSET, crate::ui::molecules::INPUT_INSET));
+        let review_input = cx.new(|cx| TextInput::new("Leave a summary (optional)", cx).multiline());
+        cx.subscribe(&palette_input, |this, _, ev: &InputEvent, cx| match ev {
+            InputEvent::Changed => {
+                this.nav.palette_sel = 0;
+                cx.notify()
+            }
+            InputEvent::Submit => this.run_palette(this.nav.palette_sel, cx),
+        })
+        .detach();
+        cx.subscribe(&review_input, |this, _, ev: &InputEvent, cx| match ev {
+            InputEvent::Changed => cx.notify(),
+            InputEvent::Submit => {
+                if let Overlay::ReviewSummary(a) = this.overlay {
+                    this.submit_review(a, cx)
+                }
+            }
+        })
+        .detach();
         on_submit(cx, &bot_authors_input, |this, _, cx| this.add_bot_entry(BotList::Authors, cx));
         on_submit(cx, &bot_branches_input, |this, _, cx| this.add_bot_entry(BotList::Branches, cx));
 
@@ -199,6 +227,11 @@ impl GitViewer {
             renaming: None,
             confirm_from_settings: false,
             quiet: QuietState::default(),
+            nav: NavState::default(),
+            navigating: false,
+            refocus: false,
+            palette_input,
+            review_input,
         };
         cx.observe_window_appearance(window, |_, _, cx| cx.notify()).detach();
         cx.observe_window_activation(window, |this, window, cx| {
@@ -269,7 +302,13 @@ impl GitViewer {
     }
 
     pub(crate) fn sidebar_w(&self) -> Pixels {
-        if self.compact { layout::SIDEBAR_RAIL_W } else { layout::SIDEBAR_W }
+        if self.nav.sidebar_hidden {
+            gpui::px(0.)
+        } else if self.compact {
+            layout::SIDEBAR_RAIL_W
+        } else {
+            layout::SIDEBAR_W
+        }
     }
 
     /// The dragged detail width, narrowed so the list keeps `LIST_MIN_W`.
@@ -286,6 +325,9 @@ impl GitViewer {
 impl Render for GitViewer {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.fetch_avatars(cx);
+        if std::mem::take(&mut self.refocus) {
+            window.focus(&self.focus);
+        }
         theme::set_typography(self.settings.typography());
         theme::set_light(self.settings.theme.is_light(window.appearance()));
         window.set_background_appearance(self.settings.appearance.to_gpui());
@@ -298,7 +340,7 @@ impl Render for GitViewer {
             .left_0()
             .size_full()
             .flex()
-            .child(self.render_sidebar(cx))
+            .when(!self.nav.sidebar_hidden, |m| m.child(crate::ui::motion::slide_in_left(div().h_full().child(self.render_sidebar(cx)), "sidebar", layout::SIDEBAR_SLIDE)))
             .child(self.render_list(cx))
             .children(self.detail.as_ref().map(|d| self.render_detail(d, cx)));
         let root = div().id("root");

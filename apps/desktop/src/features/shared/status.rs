@@ -26,6 +26,16 @@ pub fn state_pill(s: ChangeRequestState) -> Pill {
 }
 
 /// Leading pull request icon: green open, grey draft, purple merged, red closed.
+/// The state's icon name (open, draft, merged, closed).
+pub fn state_icon_name(s: ChangeRequestState) -> IconName {
+    match s {
+        ChangeRequestState::Open => IconName::GitPullRequest,
+        ChangeRequestState::Draft => IconName::GitPullRequestDraft,
+        ChangeRequestState::Merged => IconName::GitMerge,
+        ChangeRequestState::Closed => IconName::GitPullRequestClosed,
+    }
+}
+
 pub fn state_icon(s: ChangeRequestState) -> Icon {
     let (name, color) = match s {
         ChangeRequestState::Open => (IconName::GitPullRequest, theme::success()),

@@ -114,6 +114,11 @@ pub fn slide_in_right<E: IntoElement + Styled + 'static>(el: E, id: impl Into<El
     animate(el.relative(), id, PANEL, move |el, t| el.left(distance * (1. - t)).opacity(t))
 }
 
+/// Slide in from the left by `distance` while fading (`PANEL`), for a panel shown again (sidebar).
+pub fn slide_in_left<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId>, distance: Pixels) -> AnyElement {
+    animate(el.relative(), id, PANEL, move |el, t| el.left(-distance * (1. - t)).opacity(t))
+}
+
 /// Slide an element pinned to the right edge (`absolute().right_0()`) in from off-screen, plus fade.
 /// Keeps its absolute position, unlike `slide_in_right`, which is for elements in the flow.
 pub fn slide_in_from_edge<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId>, distance: Pixels) -> AnyElement {

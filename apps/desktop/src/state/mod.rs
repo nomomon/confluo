@@ -21,6 +21,8 @@ pub mod line_select;
 mod permalink;
 mod list;
 mod overlay;
+mod nav;
+mod review;
 mod projects;
 mod quiet;
 mod selection;
@@ -37,6 +39,7 @@ pub use inline::LineDraft;
 pub use selection::reveal;
 pub use sources::SourceKind;
 pub use quiet::QuietState;
+pub use nav::NavState;
 pub use overlay::{BotList, Menu, Overlay, SettingsPage};
 
 /// Format an error with its full context chain.

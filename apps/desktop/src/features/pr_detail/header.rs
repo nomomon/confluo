@@ -3,6 +3,7 @@
 use gpui::{div, prelude::*, ClickEvent, Context, MouseDownEvent};
 
 use crate::app::{GitViewer, Menu};
+use crate::features::keymap::{self, CloseDetail, CopyLink, OpenInBrowser};
 use crate::features::shared::{number_label, relative_time};
 use crate::state::{Copied, DetailState};
 use crate::ui::atoms::{tooltip, Avatar, Button, ButtonVariant, IconName, Pill};
@@ -19,20 +20,21 @@ impl GitViewer {
         };
         let url = s.web_url.clone();
         let link = s.web_url.clone();
-        let icon = |id: &'static str, glyph: IconName, tip: &'static str| Button::new(id, "").icon(glyph).variant(ButtonVariant::Ghost).tooltip(tip);
+        let icon = |id: &'static str, glyph: IconName, tip: gpui::SharedString| Button::new(id, "").icon(glyph).variant(ButtonVariant::Ghost).tooltip(tip);
         let actions = div()
             .flex()
             .items_center()
             .gap(theme::SPACE_1)
-            .child(icon("close-detail", IconName::X, "Close  esc").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.close_detail(cx))))
+            .child(icon("close-detail", IconName::X, keymap::tip::<CloseDetail>("Close")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.close_detail(cx))))
             .child(div().flex_1())
-            .child(icon("detail-refresh", IconName::Refresh, "Refresh").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.load_detail(cx))))
+            .child(icon("detail-refresh", IconName::Refresh, "Refresh detail".into()).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.load_detail(cx))))
             .child(
-                icon("copy-link", if self.copied == Some(Copied::Link) { IconName::Check } else { IconName::Copy }, "Copy link")
+                icon("copy-link", if self.copied == Some(Copied::Link) { IconName::Check } else { IconName::Copy }, keymap::tip::<CopyLink>("Copy link"))
                     .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.copy(Copied::Link, link.clone(), cx))),
             )
-            .child(icon("open-browser", IconName::ExternalLink, "Open in browser  o").on_click(cx.listener(move |_, _: &ClickEvent, _, cx| cx.open_url(&url))))
-            .child(icon("detail-more", IconName::Ellipsis, "More").on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+            .child(icon("open-browser", IconName::ExternalLink, keymap::tip::<OpenInBrowser>("Open in browser")).on_click(cx.listener(move |_, _: &ClickEvent, _, cx| cx.open_url(&url))))
+            .children(self.render_review_button(d, cx).map(|b| div().pl(theme::SPACE_2).child(b)))
+            .child(icon("detail-more", IconName::Ellipsis, "More".into()).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
                 this.menu = if this.menu == Some(Menu::DetailMore) { None } else { Some(Menu::DetailMore) };
                 cx.notify()
             })));
@@ -45,6 +47,7 @@ impl GitViewer {
             .child(div().flex().items_center().gap(theme::SPACE_1).child(Avatar::new(s.author.username.clone()).image(self.avatar(s.author.avatar_url.as_deref()))).child(s.author.username.clone()))
             .child(div().id("detail-repo").min_w(theme::SPACE_0).truncate().tooltip(tooltip(s.id.repo.path.clone())).child(self.repo_label(&s.id.repo)))
             .child(Pill::new(number_label(s), theme::success()).icon(IconName::GitPullRequest))
+            .children(self.render_review_state(d))
             .child(div().text_color(theme::text_subtle()).child(loaded));
         div()
             .relative()
@@ -66,7 +69,7 @@ impl GitViewer {
                 this.menu = None;
                 cx.notify()
             }))
-            .child(MenuItem::new("menu-open", "Open in browser").icon(IconName::ExternalLink).shortcut("O").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+            .child(MenuItem::new("menu-open", "Open in browser").icon(IconName::ExternalLink).shortcut(keymap::kbd::<OpenInBrowser>()).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 this.menu = None;
                 if let Some(d) = &this.detail {
                     cx.open_url(&d.summary.web_url)

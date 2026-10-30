@@ -2,48 +2,24 @@
 //!
 //! Letter keys only fire outside text inputs. Keyboard moves are never animated.
 
-use gpui::{actions, prelude::*, App, Context, Focusable, KeyBinding, Window};
+use gpui::{prelude::*, App, Context, Focusable, Window};
 use gv_engine::{ChangeRequest, Involvement};
 
 use crate::app::{GitViewer, Overlay};
 use crate::features::pr_detail::checkout_command;
 use crate::state::Copied;
 
-actions!(
-    git_viewer,
-    [SelectNext, SelectPrev, OpenSelected, Dismiss, FocusSearch, Refresh, OpenInBrowser, CopyCheckout, ToggleStar, TabAuthored, TabReviewing, TabAll, NextFile, PrevFile, ToggleFile, OpenSettings, About, Minimize, Zoom]
-);
+pub use super::keymap::*;
 
 pub fn bind_keys(cx: &mut App) {
-    let list = Some("GitViewer && !TextInput");
-    let any = Some("GitViewer");
-    cx.bind_keys([
-        KeyBinding::new("j", SelectNext, list),
-        KeyBinding::new("k", SelectPrev, list),
-        KeyBinding::new("enter", OpenSelected, list),
-        KeyBinding::new("/", FocusSearch, list),
-        KeyBinding::new("o", OpenInBrowser, list),
-        KeyBinding::new("c", CopyCheckout, list),
-        KeyBinding::new("s", ToggleStar, list),
-        KeyBinding::new("1", TabAuthored, list),
-        KeyBinding::new("2", TabReviewing, list),
-        KeyBinding::new("3", TabAll, list),
-        KeyBinding::new("n", NextFile, list),
-        KeyBinding::new("]", NextFile, list),
-        KeyBinding::new("p", PrevFile, list),
-        KeyBinding::new("[", PrevFile, list),
-        KeyBinding::new("x", ToggleFile, list),
-        KeyBinding::new("escape", Dismiss, any),
-        KeyBinding::new("cmd-r", Refresh, any),
-        KeyBinding::new("cmd-,", OpenSettings, any),
-    ]);
+    super::keymap::bind_keys(cx);
     super::code_keys::bind_keys(cx);
 }
 
 impl GitViewer {
     /// Attach the handlers to the root element.
     pub(crate) fn key_handlers<E: InteractiveElement>(&self, el: E, cx: &mut Context<Self>) -> E {
-        let el = self.code_key_handlers(el, cx);
+        let el = self.command_handlers(self.code_key_handlers(el, cx), cx);
         el.key_context("GitViewer")
             .track_focus(&self.focus)
             .on_action(cx.listener(|this, _: &SelectNext, _, cx| this.move_cursor(1, cx)))
@@ -107,13 +83,13 @@ impl GitViewer {
         self.detail.as_ref().is_some_and(|d| d.tab == crate::state::DetailTab::Code && d.code.viewer.is_none())
     }
 
-    fn cursor_item(&self, cx: &App) -> Option<ChangeRequest> {
+    pub(crate) fn cursor_item(&self, cx: &App) -> Option<ChangeRequest> {
         let id = self.cursor.as_ref()?;
         self.items.iter().find(|c| &c.id == id).cloned().filter(|_| self.nav_order(cx).contains(id))
     }
 
     /// The PR a shortcut acts on: the open detail, else the keyboard selection.
-    fn target_item(&self, cx: &App) -> Option<ChangeRequest> {
+    pub(crate) fn target_item(&self, cx: &App) -> Option<ChangeRequest> {
         self.detail.as_ref().map(|d| d.summary.clone()).or_else(|| self.cursor_item(cx))
     }
 

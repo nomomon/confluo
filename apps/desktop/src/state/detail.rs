@@ -32,6 +32,9 @@ pub struct DetailState {
 impl GitViewer {
     pub(crate) fn open_detail(&mut self, cr: ChangeRequest, cx: &mut Context<Self>) {
         let cached = self.engine.cached_detail(&cr.id).ok().flatten();
+        if !self.navigating {
+            self.nav.push(cr.id.clone());
+        }
         self.detail = Some(DetailState {
             summary: cr,
             detail: cached,
@@ -86,7 +89,7 @@ impl GitViewer {
     }
 
     pub(crate) fn close_detail(&mut self, cx: &mut Context<Self>) {
-        self.detail = None;
+        self.nav.last_closed = self.detail.take().map(|d| d.summary);
         self.menu = None;
         cx.notify();
     }

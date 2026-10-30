@@ -9,7 +9,7 @@ mod syntax;
 mod tokens;
 mod translucency;
 
-pub use runtime::{mono_font, set_light, set_typography, ui_font, Typography};
+pub use runtime::{is_light, mono_font, set_light, set_typography, ui_font, Typography};
 pub use scale::*;
 pub use syntax::*;
 pub use tokens::*;

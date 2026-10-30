@@ -4,6 +4,7 @@ use gpui::{prelude::*, AnyElement, ClickEvent, Context, MouseDownEvent};
 use gv_engine::{ChangeRequest, SnoozeKind};
 
 use crate::app::GitViewer;
+use crate::features::keymap::{self, CopyLink, OpenInBrowser, ToggleStar};
 use crate::state::Copied;
 use crate::ui::atoms::IconName;
 use crate::ui::molecules::{ContextMenu, MenuItem, MenuSeparator};
@@ -32,15 +33,15 @@ impl GitViewer {
                 this.quiet.row_menu = None;
                 cx.notify()
             }))
-            .child(MenuItem::new("row-open", "Open in browser").icon(IconName::ExternalLink).shortcut("\u{2318} O").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+            .child(MenuItem::new("row-open", "Open in browser").icon(IconName::ExternalLink).shortcut(keymap::kbd::<OpenInBrowser>()).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 close(this);
                 cx.open_url(&url)
             })))
-            .child(MenuItem::new("row-copy", "Copy link").icon(IconName::Link).shortcut("\u{2318} \u{21e7} C").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+            .child(MenuItem::new("row-copy", "Copy link").icon(IconName::Link).shortcut(keymap::kbd::<CopyLink>()).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 close(this);
                 this.copy(Copied::Link, link.clone(), cx)
             })))
-            .child(MenuItem::new("row-star", if starred { "Unstar" } else { "Star" }).icon(IconName::Star).shortcut("S").on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+            .child(MenuItem::new("row-star", if starred { "Unstar" } else { "Star" }).icon(IconName::Star).shortcut(keymap::kbd::<ToggleStar>()).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 close(this);
                 this.toggle_star(sid.clone(), cx)
             })))

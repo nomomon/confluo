@@ -4,6 +4,10 @@
 
 mod code_keys;
 pub(crate) mod keyboard;
+pub(crate) mod keymap;
+mod commands;
+mod palette;
+mod review_dialog;
 mod overlay;
 mod pr_detail;
 mod pr_list;

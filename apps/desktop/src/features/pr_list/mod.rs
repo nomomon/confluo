@@ -38,7 +38,7 @@ impl GitViewer {
                 Button::new("refresh", "")
                     .icon(IconName::Refresh)
                     .variant(ButtonVariant::Ghost)
-                    .tooltip("Refresh  \u{2318}R")
+                    .tooltip(crate::features::keymap::tip::<crate::features::keymap::Refresh>("Refresh"))
                     .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.refresh(cx))),
             )
     }

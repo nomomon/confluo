@@ -10,6 +10,8 @@ use crate::app::GitViewer;
 #[derive(Clone, Copy, PartialEq)]
 pub enum Menu {
     DetailMore,
+    /// The detail header's Review dropdown.
+    Review,
     /// The kebab menu of a sidebar project.
     Project(i64),
     /// A sidebar project's context menu at the pointer.
@@ -26,6 +28,10 @@ pub enum Overlay {
     Rename(i64),
     /// Confirm deleting a project.
     ConfirmDelete(i64),
+    /// Review summary before submitting (Comment, or a verdict with a note).
+    ReviewSummary(gv_engine::ReviewAction),
+    /// Cmd+K command palette.
+    Palette,
 }
 
 /// Left navigation of the Settings dialog.

@@ -3,6 +3,8 @@
 use gpui::{px, Pixels};
 
 pub const SIDEBAR_W: Pixels = px(240.);
+/// How far the sidebar slides in when shown again (Cmd+B).
+pub const SIDEBAR_SLIDE: Pixels = px(24.);
 /// Sidebar collapsed to an icon rail, used while the detail pane is open in a narrow window.
 pub const SIDEBAR_RAIL_W: Pixels = px(60.);
 /// Below this window width an open detail pane collapses the sidebar to the rail.

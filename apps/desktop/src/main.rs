@@ -33,6 +33,7 @@ fn main() {
         fonts::register(cx);
         ui::theme::set_typography(settings.typography());
         ui::molecules::text_input::bind_keys(cx);
+        ui::molecules::command_palette::bind_keys(cx);
         features::keyboard::bind_keys(cx);
         cx.on_action(|_: &Quit, cx| cx.quit());
         cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
@@ -58,9 +59,8 @@ fn main() {
 }
 
 fn set_menus(cx: &mut App) {
-    use features::keyboard::{About, Minimize, OpenSettings, Zoom};
+    use features::keymap::*;
     use ui::molecules::text_input as ti;
-    cx.bind_keys([KeyBinding::new("cmd-m", Minimize, None)]);
     cx.set_menus(vec![
         Menu {
             name: "Confluo".into(),
@@ -82,6 +82,42 @@ fn set_menus(cx: &mut App) {
                 MenuItem::os_action("Paste", ti::Paste, OsAction::Paste),
                 MenuItem::separator(),
                 MenuItem::os_action("Select All", ti::SelectAll, OsAction::SelectAll),
+            ],
+        },
+        Menu {
+            name: "View".into(),
+            items: vec![
+                MenuItem::action("Toggle Sidebar", ToggleSidebar),
+                MenuItem::action("Toggle Detail", ToggleDetail),
+                MenuItem::separator(),
+                MenuItem::action("Command Palette...", CommandPalette),
+                MenuItem::action("Find", FocusSearch),
+                MenuItem::action("Refresh", Refresh),
+                MenuItem::separator(),
+                MenuItem::action("Toggle Light / Dark Theme", ToggleTheme),
+            ],
+        },
+        Menu {
+            name: "Go".into(),
+            items: vec![
+                MenuItem::action("Inbox", GoInbox),
+                MenuItem::action("Starred", GoStarred),
+                MenuItem::action("First Project", GoProject),
+                MenuItem::separator(),
+                MenuItem::action("Back", HistoryBack),
+                MenuItem::action("Forward", HistoryForward),
+            ],
+        },
+        Menu {
+            name: "Pull Request".into(),
+            items: vec![
+                MenuItem::action("Open in Browser", OpenInBrowser),
+                MenuItem::action("Copy Link", CopyLink),
+                MenuItem::separator(),
+                MenuItem::action("Approve", Approve),
+                MenuItem::action("Post Comment", PostComment),
+                MenuItem::separator(),
+                MenuItem::action("Close Detail", CloseDetail),
             ],
         },
         Menu { name: "Window".into(), items: vec![MenuItem::action("Minimize", Minimize), MenuItem::action("Zoom", Zoom)] },

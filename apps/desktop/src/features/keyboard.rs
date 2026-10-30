@@ -147,8 +147,11 @@ impl GitViewer {
             self.exit_review(cx);
         } else if self.search.focus_handle(cx).is_focused(window) || self.detail.is_none() {
             self.search.update(cx, |i, cx| i.set_text("", cx));
+            self.cursor = None;
         } else {
+            // Esc clears the preview and the selection together.
             self.close_detail(cx);
+            self.cursor = None;
         }
         window.focus(&self.focus);
         cx.notify();

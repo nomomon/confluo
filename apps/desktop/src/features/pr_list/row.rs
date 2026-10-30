@@ -13,7 +13,8 @@ use crate::ui::theme;
 impl GitViewer {
     /// The row is a `ListItem`: its highlight is an inset rounded rect inside the section card.
     pub(super) fn render_row(&self, c: &ChangeRequest, cx: &mut Context<Self>) -> impl IntoElement {
-        let is_selected = self.cursor.as_ref() == Some(&c.id) || self.detail.as_ref().is_some_and(|d| d.summary.id == c.id);
+        // The keyboard cursor, or the previewed row (a hidden preview leaves no highlight).
+        let is_selected = self.cursor.as_ref() == Some(&c.id) || (!self.preview_hidden && self.detail.as_ref().is_some_and(|d| d.summary.id == c.id));
         let starred = self.starred.contains(&c.id);
         let cr = c.clone();
         let menu_id = c.id.clone();

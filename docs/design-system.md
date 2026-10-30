@@ -372,7 +372,8 @@ failed" appears when `ChecksInfo::can_rerun` and asks first.
 ## Triage and Review mode
 
 Triage: the list takes the full width; the selected row shows a slim preview (`PREVIEW_W` 360, Cmd+\\ hides it;
-clicking the previewed row again hides it too, after `timing::DOUBLE_CLICK` so a double click never flickers it).
+clicking the previewed row again hides it too, after `timing::DOUBLE_CLICK` so a double click never flickers it, and clears
+the row highlight: selected means previewed. j/k move the cursor and preview; Esc clears both. Cmd+\\ keeps the keyboard cursor highlighted).
 The preview shows the description start as rendered markdown (about six lines, `PREVIEW_EXCERPT_H`) fading into the panel.
 Enter, a double click or "Open review" enters Review mode: the PR takes the whole content area (top bar of `REVIEW_BAR_H`:
 title line with ellipsis, a muted line under it with repo #n, branch, stats, CI and one approvals indicator "1/1 approved"

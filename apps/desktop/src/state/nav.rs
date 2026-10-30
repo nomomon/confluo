@@ -74,7 +74,9 @@ impl GitViewer {
                     cx.background_executor().timer(super::timing::DOUBLE_CLICK).await;
                     this.update(cx, |v, cx| {
                         if v.row_click_gen == gen && !v.reviewing {
+                            // Selected means previewed: hiding the preview by its row clears the highlight too.
                             v.preview_hidden = true;
+                            v.cursor = None;
                             cx.notify()
                         }
                     })

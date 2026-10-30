@@ -150,6 +150,7 @@ fn on_submit(cx: &mut Context<GitViewer>, input: &Entity<TextInput>, f: impl Fn(
 
 impl GitViewer {
     pub fn new(engine: Arc<Engine>, settings: Settings, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let (saved_tree_w, saved_right_ratio) = (settings.review_tree_w, settings.review_right_ratio);
         let input = |cx: &mut Context<Self>, ph: &'static str| cx.new(|cx| TextInput::new(ph, cx));
         let search = cx.new(|cx| TextInput::new("Search title, repo, author or branch  /", cx).inset(crate::ui::molecules::INPUT_INSET, crate::ui::molecules::INPUT_INSET));
         let composer = cx.new(|cx| TextInput::new("Leave a comment", cx).multiline().tabs());
@@ -319,7 +320,7 @@ impl GitViewer {
             menu_projects: None,
             reviewing: false,
             preview_hidden: false,
-            review: Default::default(),
+            review: crate::state::ReviewUi::with_sizes(gpui::px(saved_tree_w).clamp(layout::TREE_MIN_W, layout::TREE_MAX_W), saved_right_ratio.clamp(layout::RIGHT_RATIO_MIN, layout::RIGHT_RATIO_MAX)),
             tree_filter,
             quick_input,
             refocus_quick: false,

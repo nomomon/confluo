@@ -12,6 +12,8 @@ use crate::ui::theme;
 impl GitViewer {
     pub(crate) fn render_review(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
         let r = &self.review;
+        let tree_w = r.tree_w.min((self.viewport_w - layout::DIFF_MIN_W - layout::RIGHT_MIN_W).max(layout::TREE_MIN_W));
+        let right_w = layout::right_pane_w(self.review_content_w(), r.right_ratio);
         let center = div()
             .flex()
             .flex_col()
@@ -26,9 +28,9 @@ impl GitViewer {
             .flex()
             .flex_1()
             .min_h(theme::SPACE_0)
-            .when(r.tree_open, |b| b.child(self.side_pane(r.tree_w, false).child(self.render_file_tree(d, cx)).child(self.resize_handle(Pane::Tree, cx))))
+            .when(r.tree_open, |b| b.child(self.side_pane(tree_w, false).child(self.render_file_tree(d, cx)).child(self.resize_handle(Pane::Tree, cx))))
             .child(center)
-            .when(r.right_open, |b| b.child(self.side_pane(r.right_w, true).child(self.render_right_panel(d, cx)).child(self.resize_handle(Pane::Right, cx))));
+            .when(r.right_open, |b| b.child(self.side_pane(right_w, true).child(self.render_right_panel(d, cx)).child(self.resize_handle(Pane::Right, cx))));
         div()
             .relative()
             .flex()
@@ -37,6 +39,11 @@ impl GitViewer {
             .child(self.render_review_bar(d, cx))
             .child(body)
             .children(self.render_quick_open(d, cx))
+    }
+
+    /// Window width minus the open file tree: what the diff and the right panel share.
+    fn review_content_w(&self) -> Pixels {
+        self.viewport_w - if self.review.tree_open { self.review.tree_w } else { gpui::px(0.) }
     }
 
     fn side_pane(&self, w: Pixels, right: bool) -> Div {
@@ -65,7 +72,10 @@ impl GitViewer {
         root.on_mouse_move(cx.listener(|this, ev: &MouseMoveEvent, window, cx| {
             match this.review.resizing {
                 Some(Pane::Tree) => this.review.tree_w = ev.position.x.clamp(layout::TREE_MIN_W, layout::TREE_MAX_W),
-                Some(Pane::Right) => this.review.right_w = (window.viewport_size().width - ev.position.x).clamp(layout::RIGHT_MIN_W, layout::RIGHT_MAX_W),
+                Some(Pane::Right) => {
+                    let content = this.review_content_w();
+                    this.review.right_ratio = layout::right_ratio(content, window.viewport_size().width - ev.position.x)
+                }
                 None => return,
             }
             cx.notify()
@@ -74,6 +84,9 @@ impl GitViewer {
             MouseButton::Left,
             cx.listener(|this, _: &MouseUpEvent, _, cx| {
                 this.review.resizing = None;
+                this.settings.review_tree_w = f32::from(this.review.tree_w);
+                this.settings.review_right_ratio = this.review.right_ratio;
+                this.save_settings(cx);
                 cx.notify()
             }),
         )

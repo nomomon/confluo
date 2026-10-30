@@ -36,7 +36,8 @@ pub struct ReviewUi {
     pub tree_open: bool,
     pub tree_w: Pixels,
     pub right_open: bool,
-    pub right_w: Pixels,
+    /// Right panel share of the content width (see `layout::right_pane_w`).
+    pub right_ratio: f32,
     pub right_tab: RightTab,
     pub hide_viewed: bool,
     /// Paths I marked viewed in the open PR.
@@ -56,13 +57,20 @@ pub struct ReviewUi {
     restore: Option<Memory>,
 }
 
+impl ReviewUi {
+    /// Pane sizes restored from settings.
+    pub fn with_sizes(tree_w: Pixels, right_ratio: f32) -> Self {
+        Self { tree_w, right_ratio, ..Default::default() }
+    }
+}
+
 impl Default for ReviewUi {
     fn default() -> Self {
         Self {
             tree_open: true,
             tree_w: px(260.),
             right_open: true,
-            right_w: px(380.),
+            right_ratio: 1. / 3.,
             right_tab: RightTab::Overview,
             hide_viewed: false,
             viewed: HashSet::new(),

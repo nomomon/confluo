@@ -55,35 +55,14 @@ Canvas and body follow the macOS Big Sur template.
 
 ## Concepts explored
 
-All built in `scripts/brand/generate_icon.py`; SVGs in `assets/brand/concepts/`,
-overview in `assets/brand/contact-sheet.png` (each with 32 px and 16 px previews).
-
-- **a-confluence:** three tributaries meet at a round hub, one river leaves
-  upward with an open end. Strongest silhouette from the start.
-- **b-diamond:** git's rotated square with branch lines inside. Reads as git,
-  but busy and too close to the git logo.
-- **c-prism:** three rays into a prism, one beam out. Elegant at 1024, collapses
-  to a smudge at 16 px.
-- **d-trefoil:** three interlocking rings around a node. Reads as a Venn diagram.
-- **e-delta:** three nodes draining into an apex. Clean but generic (share icon).
-- **f-merge:** classic merge glyph on the 8 u grid. Too literal, lopsided.
-- **g-confluence-diamond (final):** a-confluence with the hub as git's rotated
-  square, the streams landing on its lower vertex.
-
-Iterations on the final:
-
-1. Fixed an object-bounding-box gradient that made vertical strokes vanish.
-2. Removed the terminal dot on the trunk (the river keeps flowing; freedom),
-   widened the sources to +-3 u and made strokes 40 px for small sizes.
-3. Hub became the rotated square (git nod); enlarged to 1.5 u so it outweighs
-   the strokes.
-4. Streams land on the diamond's vertex instead of its centre (no pinches),
-   softened the squircle from n = 5 to 4.4, removed a blur filter that left
-   banding artifacts.
+Seven concepts (confluence, diamond, prism, trefoil, delta, merge glyph,
+confluence-diamond) were compared at 1024, 32 and 16 px. The final is the
+confluence with git's rotated square as the hub, streams landing on its lower
+vertex. The others failed at 16 px, read as git's logo, or were too generic.
+Sources live in git history (`git log -- assets/brand/concepts`).
 
 ## Files
 
 - `scripts/brand/generate_icon.py` - generator (`--png` needs `cairosvg`, `pillow`)
 - `assets/brand/icon.svg`, `assets/brand/icon-1024.png` - final icon
 - `assets/brand/AppIcon.icns` - built with `iconutil` from a 16 to 1024 iconset
-- `assets/brand/contact-sheet.png`, `assets/brand/concepts/*.svg` - explorations

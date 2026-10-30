@@ -16,7 +16,7 @@ actions!(
         ToggleFile, OpenSettings, About, Minimize, Zoom, ToggleSidebar, ToggleDetail, CommandPalette, CloseDetail, GoInbox, GoStarred, HistoryBack, HistoryForward,
         CopyLink, PostComment, Approve, ToggleTheme, ToggleFileTree, ToggleRightPanel, QuickOpenFile, ToggleViewed, ToggleDiffView,
         GoProject1, GoProject2, GoProject3, GoProject4, GoProject5, GoProject6, GoProject7, NextPr, PrevPr, NextSection, PrevSection,
-        RequestChanges, MergePr, ToggleDraft, ClosePr, CopyBranch, ShowShortcuts
+        RequestChanges, MergePr, ToggleDraft, ClosePr, CopyBranch, ShowShortcuts, NextUnresolved, PrevUnresolved
     ]
 );
 
@@ -174,6 +174,8 @@ keymap! {
         ToggleFileTree ["cmd-shift-e"] Any "Toggle file tree" Suggest LayoutSidebar |c| c.reviewing;
         ToggleRightPanel ["cmd-shift-i"] Any "Toggle right panel" Suggest LayoutSidebarRight |c| c.reviewing;
         ToggleDiffView ["cmd-shift-s"] Any "Unified / side by side" Suggest LayoutColumns |c| c.reviewing;
+        NextUnresolved ["u"] List "Next unresolved thread" Suggest MessageCircle |c| c.reviewing;
+        PrevUnresolved ["shift-u"] List "Previous unresolved thread" Suggest MessageCircle |c| c.reviewing;
     }
     Diff => {
         NextFile ["n", "]"] List "Next file" Suggest ChevronDown |c| c.diff;

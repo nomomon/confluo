@@ -396,3 +396,13 @@ Cmd+Shift+E, Cmd+Shift+I, Cmd+Shift+S (unified / side by side, saved as `diff_sp
 (`shared::ci`): hover lists jobs, click opens the checks popover, nothing when there are no checks.
 Reactions: chips plus a picker of eight under comments and the description (`pr_detail/reactions.rs`).
 Repository names: right-click to rename or hide; Settings > Repositories lists them by host.
+
+Thread attention (`gv_core::thread_attention`, `state::attention`): each thread is Needs me (unresolved and I am
+mentioned, or someone else spoke last on a thread of a PR I author or review, or one I wrote in), Open (unresolved,
+waiting on others), Outdated, Resolved, or Plain (not resolvable). GitHub `isResolved`, GitLab `resolvable`/`resolved`
+and Azure thread status all map to `Thread::resolved`. Unresolved threads get a 2px left bar (`warning()` for Needs me,
+`accent()` for Open) and "Needs you" / "Unresolved" pills, in the Conversation and on diff thread cards; resolved threads
+collapse to one muted line with a check (click to expand); outdated ones are muted with "Outdated". The Conversation has
+an All / Unresolved / Needs me toggle with counts and "Next unresolved" (`u`, Shift+U back; needs-me first, in the diff
+when the thread sits on a current line, and scrolled into view in the Conversation). The file tree shows an amber dot for
+files with threads that need me; the review top bar shows "3 unresolved" (amber when some need me), click jumps.

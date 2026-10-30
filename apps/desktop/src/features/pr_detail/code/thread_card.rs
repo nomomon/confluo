@@ -22,7 +22,15 @@ impl GitViewer {
         let body = match (resolved, open) {
             (true, false) => self.resolved_line(t, false, cx).into_any_element(),
             (true, true) => div().flex().flex_col().gap(theme::SPACE_1P5).child(self.resolved_line(t, true, cx)).child(self.thread_card(t, d, cx)).into_any_element(),
-            _ => self.thread_card(t, d, cx).into_any_element(),
+            _ => {
+                // Unresolved: a left accent bar, amber when the thread waits for me.
+                let bar = match crate::state::attention(d).get(ti) {
+                    Some(gv_engine::Attention::NeedsMe) => Some(theme::warning()),
+                    Some(gv_engine::Attention::Open) => Some(theme::accent()),
+                    _ => None,
+                };
+                self.thread_card(t, d, cx).when_some(bar, |c, col| c.border_l_2().border_color(col)).into_any_element()
+            }
         };
         self.card_side().px(theme::SPACE_3).py(theme::SPACE_2).font_family(theme::ui_font()).child(body).into_any_element()
     }

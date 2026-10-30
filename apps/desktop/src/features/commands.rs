@@ -99,6 +99,16 @@ impl GitViewer {
                     this.set_split(split, cx)
                 }
             }))
+            .on_action(cx.listener(|this, _: &NextUnresolved, _, cx| {
+                if this.reviewing {
+                    this.jump_unresolved(1, cx)
+                }
+            }))
+            .on_action(cx.listener(|this, _: &PrevUnresolved, _, cx| {
+                if this.reviewing {
+                    this.jump_unresolved(-1, cx)
+                }
+            }))
             .on_action(cx.listener(|this, _: &ToggleViewed, _, cx| {
                 if this.reviewing {
                     if let Some(cur) = this.detail.as_ref().map(|d| d.code.current_file()) {

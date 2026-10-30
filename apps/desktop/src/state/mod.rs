@@ -2,6 +2,7 @@
 //!
 //! Each file adds an `impl GitViewer` block for one concern; rendering lives in `features/`.
 
+mod attention;
 mod avatars;
 pub mod bridge;
 mod check_actions;
@@ -43,6 +44,7 @@ mod split;
 pub mod timing;
 
 pub use connection::{auth_command, host_avatar_url, sign_in_hint, HostStatus};
+pub use attention::{attention, ThreadFilter};
 pub use code::CodeState;
 pub use detail::{DetailState, DetailTab};
 pub use file_tree::{tree_entries, TreeEntry, TreeQuery};

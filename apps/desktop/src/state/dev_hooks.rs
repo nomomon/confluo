@@ -25,6 +25,12 @@ impl GitViewer {
     /// (rename, delete and menu act on the first project).
     pub(crate) fn overlay_from_env(&mut self, cx: &mut Context<Self>) {
         let first = self.projects.first().map(|p| p.id);
+        // `CONFLUO_THREADS=unresolved|needs` sets the Conversation filter.
+        match std::env::var("CONFLUO_THREADS").as_deref() {
+            Ok("unresolved") => self.review.thread_filter = super::ThreadFilter::Unresolved,
+            Ok("needs") => self.review.thread_filter = super::ThreadFilter::NeedsMe,
+            _ => {}
+        }
         match (crate::dev::overlay().as_deref(), first) {
             (Some("add-project"), _) => self.open_add_project(cx),
             (Some("rename"), Some(id)) => self.open_rename(id, cx),

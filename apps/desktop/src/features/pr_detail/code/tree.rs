@@ -111,7 +111,17 @@ impl GitViewer {
                     .text_color(if viewed { theme::text_subtle() } else { status_color(f.status) })
                     .child(name),
             )
+            .children(needs_me(path, d).then(|| div().flex_shrink_0().size(theme::SPACE_1P5).rounded(theme::RADIUS_FULL).bg(theme::warning())))
             .children(comment_count(d.code.inline.index.count(path)))
             .child(diff_counts(f.additions, f.deletions))
     }
+}
+
+/// A thread on this file waits for me (amber dot in the tree).
+fn needs_me(path: &str, d: &DetailState) -> bool {
+    let Some(det) = d.detail.as_ref() else { return false };
+    if !det.threads.iter().any(|t| t.position.as_ref().is_some_and(|p| p.path == path)) {
+        return false;
+    }
+    det.threads.iter().zip(crate::state::attention(d)).any(|(t, a)| a == gv_engine::Attention::NeedsMe && t.position.as_ref().is_some_and(|p| p.path == path))
 }

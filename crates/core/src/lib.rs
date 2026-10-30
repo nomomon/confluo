@@ -1,5 +1,6 @@
 //! Domain types and the provider trait. No IO here.
 
+mod attention;
 mod bots;
 mod checks;
 mod edit;
@@ -12,6 +13,7 @@ mod reactions;
 mod review;
 mod stale;
 
+pub use attention::{thread_attention, threads_attention, Attention};
 pub use bots::{glob, BotFilter, DEFAULT_BOT_AUTHORS, DEFAULT_BOT_BRANCHES};
 pub use checks::*;
 pub use diff::*;

@@ -48,6 +48,12 @@ pub struct ReviewUi {
     /// Cmd+P file picker is open, and its highlighted row.
     pub quick_open: bool,
     pub quick_sel: usize,
+    /// Conversation filter, the thread the last "next unresolved" landed on, and the Conversation scroll.
+    pub thread_filter: super::attention::ThreadFilter,
+    pub attn_at: Option<String>,
+    pub right_scroll: gpui::ScrollHandle,
+    /// A Conversation thread to scroll into view on its next paint.
+    pub reveal_conv: std::rc::Rc<std::cell::RefCell<Option<String>>>,
     memory: HashMap<ChangeRequestId, Memory>,
     /// Restore the remembered position once files arrive.
     restore: Option<Memory>,
@@ -74,6 +80,10 @@ impl Default for ReviewUi {
             resizing: None,
             quick_open: false,
             quick_sel: 0,
+            thread_filter: Default::default(),
+            attn_at: None,
+            right_scroll: Default::default(),
+            reveal_conv: Default::default(),
             memory: HashMap::new(),
             restore: None,
         }

@@ -122,7 +122,8 @@ impl GitViewer {
             .child(branch_el)
             .child(stats(s))
             .children(self.render_ci(d, "review", cx))
-            .children(self.approvals(d));
+            .children(self.approvals(d))
+            .children(self.unresolved_count(d, cx));
         let heading = div().flex().flex_col().flex_1().min_w(theme::SPACE_0).gap(theme::SPACE_0P5).child(div().flex().min_w(theme::SPACE_0).child(self.render_title(d, cx))).child(div().pl(theme::SPACE_1).child(meta));
         div()
             .relative()
@@ -150,6 +151,36 @@ impl GitViewer {
                 self.hint_group("hint-more", vec![self.hint_keys::<OpenInBrowser>(), self.hint_keys::<CopyLink>(), self.hint_keys::<ToggleDraft>()], HintAnchor::Below).filter(|_| self.layer != Some(Layer::DetailMore)),
             ))
             .when(self.layer == Some(Layer::DetailMore), |el| el.child(self.render_detail_menu(d, cx))))
+    }
+
+    /// "3 unresolved" (amber when some need me); a click jumps to the next one.
+    fn unresolved_count(&self, d: &DetailState, cx: &mut Context<Self>) -> Option<impl IntoElement> {
+        let attn = crate::state::attention(d);
+        let n = attn.iter().filter(|a| a.unresolved()).count();
+        if n == 0 {
+            return None;
+        }
+        let needs = attn.iter().filter(|a| **a == gv_engine::Attention::NeedsMe).count();
+        let color = if needs > 0 { theme::warning() } else { theme::text_muted() };
+        let tip = if needs > 0 { format!("{needs} need you. Next unresolved  u") } else { "Next unresolved  u".to_string() };
+        Some(
+            div()
+                .id("unresolved-count")
+                .flex()
+                .flex_shrink_0()
+                .items_center()
+                .gap(theme::SPACE_1)
+                .px(theme::SPACE_1)
+                .rounded(theme::RADIUS_SM)
+                .cursor_pointer()
+                .hover(|s| s.bg(theme::surface_hover()))
+                .text_size(theme::text_xs())
+                .text_color(color)
+                .tooltip(tooltip(tip))
+                .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.jump_unresolved(1, cx)))
+                .child(Icon::new(IconName::MessageCircle).size(theme::ICON_SM).color(color))
+                .child(format!("{n} unresolved")),
+        )
     }
 
     fn render_detail_menu(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {

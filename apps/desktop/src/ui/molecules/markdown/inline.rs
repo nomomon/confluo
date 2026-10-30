@@ -40,9 +40,17 @@ impl Inline {
         let mut rest = s;
         while let Some(i) = rest.find("https://").or_else(|| rest.find("http://")) {
             self.push(&rest[..i], style.clone());
-            let url_len = rest[i..].find(|c: char| c.is_whitespace() || c == '<' || c == '>' || c == '"').unwrap_or(rest.len() - i);
+            let url_len = rest[i..]
+                .find(|c: char| c.is_whitespace() || c == '<' || c == '>' || c == '"')
+                .unwrap_or(rest.len() - i);
             let url = rest[i..i + url_len].trim_end_matches(['.', ',', ')', ';', ':', '!', '?']);
-            self.push(url, Style { link: Some(url.to_string()), ..style.clone() });
+            self.push(
+                url,
+                Style {
+                    link: Some(url.to_string()),
+                    ..style.clone()
+                },
+            );
             rest = &rest[i + url.len()..];
         }
         self.push(rest, style);
@@ -55,7 +63,10 @@ impl Inline {
     /// Byte ranges and targets of links, in order.
     #[cfg(test)]
     pub fn links(&self) -> Vec<(Range<usize>, String)> {
-        self.runs.iter().filter_map(|(r, s)| s.link.clone().map(|l| (r.clone(), l))).collect()
+        self.runs
+            .iter()
+            .filter_map(|(r, s)| s.link.clone().map(|l| (r.clone(), l)))
+            .collect()
     }
 
     /// Image source URLs, in order.

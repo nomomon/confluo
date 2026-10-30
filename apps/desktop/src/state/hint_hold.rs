@@ -19,7 +19,10 @@ pub struct HintHold {
 
 impl HintHold {
     pub fn new(forced: bool) -> Self {
-        Self { forced, ..Default::default() }
+        Self {
+            forced,
+            ..Default::default()
+        }
     }
 
     pub fn visible(&self) -> bool {

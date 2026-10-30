@@ -9,9 +9,9 @@ use std::time::Instant;
 use gpui::{Context, ScrollDelta, ScrollWheelEvent, Window};
 
 use crate::app::{GitViewer, Overlay};
+use crate::ui::arbiter::{self, Owner};
 use crate::ui::motion::interactive::{Drag, Pager, SwipeGate};
 use crate::ui::motion::reduced_motion;
-use crate::ui::arbiter::{self, Owner};
 use crate::ui::scroll::Axis;
 
 use super::RightTab;
@@ -39,7 +39,16 @@ impl Default for SwipeUi {
         let mut page = Pager::new(vec![-1., 0., 1.], HERE);
         // Like Safari: a third of the way commits a slow swipe back.
         page.commit = 0.33;
-        Self { page_gate: SwipeGate::default(), page, panel_gate: SwipeGate::default(), panel: Pager::new(vec![0., -1.], 0), page_x: 0., panel_x: 0., panel_progress: 0., fade: None }
+        Self {
+            page_gate: SwipeGate::default(),
+            page,
+            panel_gate: SwipeGate::default(),
+            panel: Pager::new(vec![0., -1.], 0),
+            page_x: 0.,
+            panel_x: 0.,
+            panel_progress: 0.,
+            fade: None,
+        }
     }
 }
 
@@ -78,12 +87,20 @@ fn drive(p: &mut Pager, drag: Drag, now: Instant) -> Option<usize> {
 
 impl GitViewer {
     fn swipe_allowed(&self) -> bool {
-        self.settings.swipe_pages && matches!(self.overlay, Overlay::None) && !self.layer_open() && !self.review.quick_open
+        self.settings.swipe_pages
+            && matches!(self.overlay, Overlay::None)
+            && !self.layer_open()
+            && !self.review.quick_open
     }
 
     /// Window root: gestures nothing inside claimed (`ui::arbiter`): the review pager takes a sideways one;
     /// once it owns a gesture every event of it (both axes, momentum) is its alone.
-    pub(crate) fn page_wheel(&mut self, ev: &ScrollWheelEvent, _: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn page_wheel(
+        &mut self,
+        ev: &ScrollWheelEvent,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if !self.reviewing || !self.swipe_allowed() {
             return;
         }
@@ -91,7 +108,11 @@ impl GitViewer {
             return;
         }
         let (precise, dx, dy) = wheel_parts(ev);
-        let drag = self.review.swipe.page_gate.feed(ev.touch_phase, precise, dx, dy);
+        let drag = self
+            .review
+            .swipe
+            .page_gate
+            .feed(ev.touch_phase, precise, dx, dy);
         if drag == Drag::None {
             return;
         }
@@ -118,7 +139,12 @@ impl GitViewer {
     /// Right panel: a sideways gesture that starts in the panel belongs to its pager (unless a block inside
     /// took it): it moves between Overview and Conversation and rubber-bands at the ends, never chaining
     /// into the page swipe.
-    pub(crate) fn panel_wheel(&mut self, ev: &ScrollWheelEvent, _: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn panel_wheel(
+        &mut self,
+        ev: &ScrollWheelEvent,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if !self.swipe_allowed() {
             return;
         }
@@ -129,12 +155,20 @@ impl GitViewer {
             cx.stop_propagation();
         }
         let (precise, dx, dy) = wheel_parts(ev);
-        let drag = self.review.swipe.panel_gate.feed(ev.touch_phase, precise, dx, dy);
+        let drag = self
+            .review
+            .swipe
+            .panel_gate
+            .feed(ev.touch_phase, precise, dx, dy);
         if drag == Drag::None {
             return;
         }
         if let Some(t) = drive(&mut self.review.swipe.panel, drag, Instant::now()) {
-            self.review.right_tab = if t == 0 { RightTab::Overview } else { RightTab::Conversation };
+            self.review.right_tab = if t == 0 {
+                RightTab::Overview
+            } else {
+                RightTab::Conversation
+            };
         }
         cx.notify()
     }
@@ -147,10 +181,17 @@ impl GitViewer {
         let tab = tab_index(self.review.right_tab);
         let pw = (w * self.review.right_ratio).max(1.);
         let s = &mut self.review.swipe;
-        s.page.set_snaps(vec![-w, 0., w], if can_fwd { 0 } else { HERE }, 2);
+        s.page
+            .set_snaps(vec![-w, 0., w], if can_fwd { 0 } else { HERE }, 2);
         let done = s.page.tick(now).filter(|p| *p != HERE);
         // Nothing ahead: a leftward drag shows nothing (Safari), the review stays put.
-        s.page_x = if reduced_motion() { 0. } else if can_fwd { s.page.position() } else { s.page.position().max(0.) };
+        s.page_x = if reduced_motion() {
+            0.
+        } else if can_fwd {
+            s.page.position()
+        } else {
+            s.page.position().max(0.)
+        };
         s.panel.set_snaps(vec![0., -pw], 0, 1);
         s.panel.reduced = reduced_motion();
         // Clicks, keys and other code set the tab; the strip follows through the same spring.

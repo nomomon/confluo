@@ -38,7 +38,11 @@ pub struct Snooze {
 impl Snooze {
     pub fn new(kind: SnoozeKind, cr: &ChangeRequest, now: DateTime<Utc>) -> Self {
         let until = (kind == SnoozeKind::Week).then(|| now + Duration::weeks(1));
-        Self { kind, at_updated: cr.updated_at, until }
+        Self {
+            kind,
+            at_updated: cr.updated_at,
+            until,
+        }
     }
 
     /// Whether this snooze still hides `cr` at `now`.
@@ -60,7 +64,10 @@ mod tests {
     fn cr(age_days: i64) -> ChangeRequest {
         let t = Utc::now() - Duration::days(age_days);
         ChangeRequest {
-            id: ChangeRequestId { repo: RepoRef::new(ProviderKind::GitHub, "github.com", "a/b"), number: 1 },
+            id: ChangeRequestId {
+                repo: RepoRef::new(ProviderKind::GitHub, "github.com", "a/b"),
+                number: 1,
+            },
             title: "t".into(),
             author: User::named("a"),
             state: ChangeRequestState::Open,

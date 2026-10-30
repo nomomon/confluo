@@ -7,7 +7,13 @@ use crate::ui::molecules::{Dialog, Sheet};
 
 impl GitViewer {
     pub(crate) fn render_overlay(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
-        let name = |id: i64| self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default();
+        let name = |id: i64| {
+            self.projects
+                .iter()
+                .find(|p| p.id == id)
+                .map(|p| p.name.clone())
+                .unwrap_or_default()
+        };
         let dialog = match self.overlay {
             Overlay::None => return None,
             Overlay::Settings => return Some(self.render_settings_dialog(cx)),

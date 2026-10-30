@@ -18,7 +18,12 @@ impl GitViewer {
 
     /// Start fetching avatars of listed authors that are not cached yet.
     pub(crate) fn fetch_avatars(&mut self, cx: &mut Context<Self>) {
-        let threads = self.detail.as_ref().and_then(|d| d.detail.as_ref()).map(|d| d.threads.as_slice()).unwrap_or_default();
+        let threads = self
+            .detail
+            .as_ref()
+            .and_then(|d| d.detail.as_ref())
+            .map(|d| d.threads.as_slice())
+            .unwrap_or_default();
         let mut wanted: Vec<String> = self
             .items
             .iter()
@@ -26,17 +31,38 @@ impl GitViewer {
             .map(|c| &c.author)
             .chain(threads.iter().flat_map(|t| &t.comments).map(|c| &c.author))
             .filter_map(|a| a.avatar_url.clone())
-            .chain(self.hosts.iter().flatten().filter_map(|h| super::connection::host_avatar_url(h.kind, &h.host, h.user.as_deref()?)))
+            .chain(self.hosts.iter().flatten().filter_map(|h| {
+                super::connection::host_avatar_url(h.kind, &h.host, h.user.as_deref()?)
+            }))
             .filter(|u| !self.avatars.contains_key(u))
             .collect();
         if let Some(d) = self.detail.as_ref() {
             let det = d.detail.as_ref();
-            let people = d.summary.reviewers.iter().map(|r| &r.user).chain(det.into_iter().flat_map(|x| &x.edit.assignees)).chain(&d.ui.people_results);
-            wanted.extend(people.filter_map(|u| u.avatar_url.clone()).filter(|u| !self.avatars.contains_key(u)));
+            let people = d
+                .summary
+                .reviewers
+                .iter()
+                .map(|r| &r.user)
+                .chain(det.into_iter().flat_map(|x| &x.edit.assignees))
+                .chain(&d.ui.people_results);
+            wanted.extend(
+                people
+                    .filter_map(|u| u.avatar_url.clone())
+                    .filter(|u| !self.avatars.contains_key(u)),
+            );
         }
         if let Some(d) = self.detail.as_ref().and_then(|d| d.detail.as_ref()) {
-            let bodies = std::iter::once(d.description.as_str()).chain(d.threads.iter().flat_map(|t| &t.comments).map(|c| c.body.as_str()));
-            wanted.extend(bodies.flat_map(crate::ui::molecules::markdown::image_urls).filter(|u| !self.avatars.contains_key(u)));
+            let bodies = std::iter::once(d.description.as_str()).chain(
+                d.threads
+                    .iter()
+                    .flat_map(|t| &t.comments)
+                    .map(|c| c.body.as_str()),
+            );
+            wanted.extend(
+                bodies
+                    .flat_map(crate::ui::molecules::markdown::image_urls)
+                    .filter(|u| !self.avatars.contains_key(u)),
+            );
         }
         wanted.sort();
         wanted.dedup();
@@ -74,7 +100,11 @@ fn sniff(b: &[u8]) -> Option<ImageFormat> {
         [0xFF, 0xD8, ..] => Some(ImageFormat::Jpeg),
         [b'G', b'I', b'F', ..] => Some(ImageFormat::Gif),
         [b'R', b'I', b'F', b'F', _, _, _, _, b'W', b'E', b'B', b'P', ..] => Some(ImageFormat::Webp),
-        _ if b.starts_with(b"<svg") || (b.starts_with(b"<?xml") && b.windows(4).take(512).any(|w| w == b"<svg")) => Some(ImageFormat::Svg),
+        _ if b.starts_with(b"<svg")
+            || (b.starts_with(b"<?xml") && b.windows(4).take(512).any(|w| w == b"<svg")) =>
+        {
+            Some(ImageFormat::Svg)
+        }
         _ => None,
     }
 }

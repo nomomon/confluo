@@ -47,7 +47,16 @@ pub struct Button {
 
 impl Button {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), label: label.into(), icon: None, trailing: None, variant: ButtonVariant::default(), size: Size::default(), tooltip: None, on_click: None }
+        Self {
+            id: id.into(),
+            label: label.into(),
+            icon: None,
+            trailing: None,
+            variant: ButtonVariant::default(),
+            size: Size::default(),
+            tooltip: None,
+            on_click: None,
+        }
     }
 
     pub fn variant(mut self, variant: ButtonVariant) -> Self {
@@ -86,7 +95,12 @@ impl Button {
 
 impl RenderOnce for Button {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let base = div().id(ElementId::Name(self.id)).flex().items_center().gap(theme::SPACE_1).cursor_pointer();
+        let base = div()
+            .id(ElementId::Name(self.id))
+            .flex()
+            .items_center()
+            .gap(theme::SPACE_1)
+            .cursor_pointer();
         let styled = match self.variant {
             ButtonVariant::Outline => base
                 .flex_shrink_0()
@@ -99,10 +113,12 @@ impl RenderOnce for Button {
                 .text_size(theme::text_xs())
                 .hover(|s| s.bg(theme::surface_hover()))
                 .active(|s| s.bg(theme::surface_active())),
-            ButtonVariant::Ghost => {
-                base.px(theme::SPACE_1P5).rounded(theme::RADIUS_MD).text_color(theme::text_muted()).hover(|s| s.bg(theme::surface_hover()).text_color(theme::text()))
-                .active(|s| s.bg(theme::surface_active()))
-            }
+            ButtonVariant::Ghost => base
+                .px(theme::SPACE_1P5)
+                .rounded(theme::RADIUS_MD)
+                .text_color(theme::text_muted())
+                .hover(|s| s.bg(theme::surface_hover()).text_color(theme::text()))
+                .active(|s| s.bg(theme::surface_active())),
             ButtonVariant::Primary => base
                 .flex_shrink_0()
                 .px(theme::SPACE_3)
@@ -125,7 +141,10 @@ impl RenderOnce for Button {
                 .font_weight(theme::WEIGHT_MEDIUM)
                 .hover(|s| s.bg(theme::danger().opacity(0.22)))
                 .active(|s| s.bg(theme::danger().opacity(0.3))),
-            ButtonVariant::Link => base.text_size(theme::text_xs()).text_color(theme::accent()).hover(|s| s.text_color(theme::text())),
+            ButtonVariant::Link => base
+                .text_size(theme::text_xs())
+                .text_color(theme::accent())
+                .hover(|s| s.text_color(theme::text())),
         };
         let fg = match self.variant {
             ButtonVariant::Outline => theme::text(),
@@ -134,7 +153,11 @@ impl RenderOnce for Button {
             _ => theme::text_muted(),
         };
         styled
-            .when(self.size == Size::Md, |el| el.px(theme::SPACE_3).py(theme::SPACE_1P5).text_size(theme::text_sm()))
+            .when(self.size == Size::Md, |el| {
+                el.px(theme::SPACE_3)
+                    .py(theme::SPACE_1P5)
+                    .text_size(theme::text_sm())
+            })
             .children(self.icon.map(|n| {
                 let color = match self.variant {
                     ButtonVariant::Outline => theme::text(),
@@ -144,9 +167,14 @@ impl RenderOnce for Button {
                 };
                 Icon::new(n).color(color)
             }))
-            .when(self.icon.is_some() && self.label.is_empty(), |el| el.py(theme::SPACE_1P5))
+            .when(self.icon.is_some() && self.label.is_empty(), |el| {
+                el.py(theme::SPACE_1P5)
+            })
             .when(!self.label.is_empty(), |el| el.child(self.label))
-            .children(self.trailing.map(|n| Icon::new(n).size(theme::ICON_SM).color(fg)))
+            .children(
+                self.trailing
+                    .map(|n| Icon::new(n).size(theme::ICON_SM).color(fg)),
+            )
             .when_some(self.tooltip, |el, t| el.tooltip(super::tooltip(t)))
             .when_some(self.on_click, |el, f| el.on_click(f))
     }

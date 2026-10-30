@@ -53,9 +53,24 @@ const FEED_ITEM: &str = " import { Avatar } from \"../ui/Avatar\";
 fn rust() -> Vec<ChangedFile> {
     vec![
         ChangedFile::from_patch(RETRY_PATH, RETRY_PATH, FileStatus::Added, &added(RETRY_RS)),
-        ChangedFile::from_patch(DELIVER_PATH, DELIVER_PATH, FileStatus::Modified, &hunk(1, 1, DELIVER)),
-        ChangedFile::from_patch("src/webhooks/mod.rs", "src/webhooks/mod.rs", FileStatus::Modified, &hunk(1, 1, MOD_RS)),
-        ChangedFile::from_patch("tests/webhook_retry.rs", "tests/webhook_retry.rs", FileStatus::Added, &added(TEST_RS)),
+        ChangedFile::from_patch(
+            DELIVER_PATH,
+            DELIVER_PATH,
+            FileStatus::Modified,
+            &hunk(1, 1, DELIVER),
+        ),
+        ChangedFile::from_patch(
+            "src/webhooks/mod.rs",
+            "src/webhooks/mod.rs",
+            FileStatus::Modified,
+            &hunk(1, 1, MOD_RS),
+        ),
+        ChangedFile::from_patch(
+            "tests/webhook_retry.rs",
+            "tests/webhook_retry.rs",
+            FileStatus::Added,
+            &added(TEST_RS),
+        ),
     ]
 }
 
@@ -72,7 +87,11 @@ fn typescript() -> Vec<ChangedFile> {
 
 /// Changed files of a demo PR in `repo_path`.
 pub fn files(repo_path: &str) -> Vec<ChangedFile> {
-    if repo_path == "acme/web" { typescript() } else { rust() }
+    if repo_path == "acme/web" {
+        typescript()
+    } else {
+        rust()
+    }
 }
 
 /// Whole file at head, for added files (the others are shown as diff hunks only).

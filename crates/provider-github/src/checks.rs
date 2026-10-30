@@ -47,12 +47,19 @@ pub(crate) fn checks_info(pr: &Value, can_write: bool) -> ChecksInfo {
             let status = run_status(c);
             let wf = &c["checkSuite"]["workflowRun"];
             if status == CheckStatus::Failed {
-                if let Some(id) = wf["databaseId"].as_u64().map(|i| i.to_string()).filter(|i| !rerun.contains(i)) {
+                if let Some(id) = wf["databaseId"]
+                    .as_u64()
+                    .map(|i| i.to_string())
+                    .filter(|i| !rerun.contains(i))
+                {
                     rerun.push(id);
                 }
             }
             runs.push(CheckRun {
-                id: c["databaseId"].as_u64().map(|i| i.to_string()).unwrap_or_default(),
+                id: c["databaseId"]
+                    .as_u64()
+                    .map(|i| i.to_string())
+                    .unwrap_or_default(),
                 name: super::s(&c["name"]),
                 stage: wf["workflow"]["name"].as_str().map(str::to_string),
                 status,
@@ -77,7 +84,11 @@ pub(crate) fn checks_info(pr: &Value, can_write: bool) -> ChecksInfo {
         }
     }
     let rerun_target = (!rerun.is_empty()).then(|| rerun.join(","));
-    ChecksInfo { can_rerun: can_write && rerun_target.is_some(), rerun_target, runs }
+    ChecksInfo {
+        can_rerun: can_write && rerun_target.is_some(),
+        rerun_target,
+        runs,
+    }
 }
 
 /// Annotation lines (`path:line message`) from `GET /check-runs/{id}/annotations`.
@@ -86,8 +97,18 @@ pub(crate) fn annotation_lines(v: &Value) -> Vec<String> {
         .into_iter()
         .flatten()
         .map(|a| {
-            let msg = a["message"].as_str().unwrap_or_default().lines().next().unwrap_or_default();
-            match (a["path"].as_str().filter(|p| !p.is_empty() && *p != ".github"), a["start_line"].as_u64()) {
+            let msg = a["message"]
+                .as_str()
+                .unwrap_or_default()
+                .lines()
+                .next()
+                .unwrap_or_default();
+            match (
+                a["path"]
+                    .as_str()
+                    .filter(|p| !p.is_empty() && *p != ".github"),
+                a["start_line"].as_u64(),
+            ) {
                 (Some(p), Some(l)) => format!("{p}:{l} {msg}"),
                 _ => msg.to_string(),
             }
@@ -116,7 +137,9 @@ mod tests {
         assert_eq!(i.runs[1].status, CheckStatus::Running);
         assert_eq!(i.rerun_target.as_deref(), Some("7"));
         assert!(!checks_info(&pr, false).can_rerun);
-        let a = annotation_lines(&json!([{"path": "src/a.rs", "start_line": 3, "message": "unused\nmore"}, {"path": ".github", "message": "exit 1"}]));
+        let a = annotation_lines(
+            &json!([{"path": "src/a.rs", "start_line": 3, "message": "unused\nmore"}, {"path": ".github", "message": "exit 1"}]),
+        );
         assert_eq!(a, vec!["src/a.rs:3 unused", "exit 1"]);
     }
 }

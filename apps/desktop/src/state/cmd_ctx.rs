@@ -37,18 +37,32 @@ impl CmdCtx {
         if !self.pr_open {
             return Some("Open a pull request first".into());
         }
-        let Some(g) = &self.gate else { return Some("Still loading the pull request".into()) };
+        let Some(g) = &self.gate else {
+            return Some("Still loading the pull request".into());
+        };
         let (r, e) = (&g.review, &g.edit);
         let why = match a {
             PrAct::Approve if r.approve => return None,
             PrAct::Approve if r.unapprove => "You already approved this pull request".to_string(),
-            PrAct::Approve => r.approve_blocked.clone().unwrap_or_else(|| "Approving isn't possible here".into()),
+            PrAct::Approve => r
+                .approve_blocked
+                .clone()
+                .unwrap_or_else(|| "Approving isn't possible here".into()),
             PrAct::RequestChanges if r.request_changes => return None,
-            PrAct::RequestChanges if r.approve_blocked.as_deref().is_some_and(|w| w.contains("own")) => "You can't request changes on your own PR".into(),
+            PrAct::RequestChanges
+                if r.approve_blocked
+                    .as_deref()
+                    .is_some_and(|w| w.contains("own")) =>
+            {
+                "You can't request changes on your own PR".into()
+            }
             PrAct::RequestChanges if r.any() => "This provider has no request changes".into(),
             PrAct::RequestChanges => "This pull request isn't open".into(),
             PrAct::Merge if e.merge => return None,
-            PrAct::Merge => e.merge_blocked.clone().unwrap_or_else(|| "You can't merge this pull request".into()),
+            PrAct::Merge => e
+                .merge_blocked
+                .clone()
+                .unwrap_or_else(|| "You can't merge this pull request".into()),
             PrAct::ToggleDraft if e.draft => return None,
             PrAct::ToggleDraft => "You can't change the draft state of this pull request".into(),
             PrAct::Close if e.close || e.reopen => return None,
@@ -67,22 +81,42 @@ mod tests {
     use super::*;
 
     fn ctx(review: ReviewCapabilities, edit: EditCapabilities) -> CmdCtx {
-        CmdCtx { pr_open: true, gate: Some(Gate { review, edit }), ..Default::default() }
+        CmdCtx {
+            pr_open: true,
+            gate: Some(Gate { review, edit }),
+            ..Default::default()
+        }
     }
 
     #[test]
     fn no_pr_or_loading_denies_everything() {
-        assert_eq!(CmdCtx::default().deny(PrAct::Approve).as_deref(), Some("Open a pull request first"));
-        let loading = CmdCtx { pr_open: true, ..Default::default() };
+        assert_eq!(
+            CmdCtx::default().deny(PrAct::Approve).as_deref(),
+            Some("Open a pull request first")
+        );
+        let loading = CmdCtx {
+            pr_open: true,
+            ..Default::default()
+        };
         assert!(!loading.allows(PrAct::Merge));
     }
 
     #[test]
     fn own_pr_explains_why() {
-        let r = ReviewCapabilities { comment_review: true, approve_blocked: Some("You can't approve your own PR".into()), ..Default::default() };
+        let r = ReviewCapabilities {
+            comment_review: true,
+            approve_blocked: Some("You can't approve your own PR".into()),
+            ..Default::default()
+        };
         let c = ctx(r, EditCapabilities::editor(true));
-        assert_eq!(c.deny(PrAct::Approve).as_deref(), Some("You can't approve your own PR"));
-        assert_eq!(c.deny(PrAct::RequestChanges).as_deref(), Some("You can't request changes on your own PR"));
+        assert_eq!(
+            c.deny(PrAct::Approve).as_deref(),
+            Some("You can't approve your own PR")
+        );
+        assert_eq!(
+            c.deny(PrAct::RequestChanges).as_deref(),
+            Some("You can't request changes on your own PR")
+        );
         assert!(c.allows(PrAct::ToggleDraft));
         assert!(c.allows(PrAct::Close));
         assert!(!c.allows(PrAct::Merge));
@@ -90,12 +124,28 @@ mod tests {
 
     #[test]
     fn reviewer_can_review_but_not_edit() {
-        let r = ReviewCapabilities { approve: true, request_changes: true, comment_review: true, ..Default::default() };
-        let e = EditCapabilities { merge: true, ..Default::default() };
+        let r = ReviewCapabilities {
+            approve: true,
+            request_changes: true,
+            comment_review: true,
+            ..Default::default()
+        };
+        let e = EditCapabilities {
+            merge: true,
+            ..Default::default()
+        };
         let c = ctx(r, e);
-        assert!(c.allows(PrAct::Approve) && c.allows(PrAct::RequestChanges) && c.allows(PrAct::Merge));
+        assert!(
+            c.allows(PrAct::Approve) && c.allows(PrAct::RequestChanges) && c.allows(PrAct::Merge)
+        );
         assert!(!c.allows(PrAct::ToggleDraft));
-        let blocked = ctx(ReviewCapabilities::default(), EditCapabilities { merge_blocked: Some("Has conflicts".into()), ..Default::default() });
+        let blocked = ctx(
+            ReviewCapabilities::default(),
+            EditCapabilities {
+                merge_blocked: Some("Has conflicts".into()),
+                ..Default::default()
+            },
+        );
         assert_eq!(blocked.deny(PrAct::Merge).as_deref(), Some("Has conflicts"));
     }
 }

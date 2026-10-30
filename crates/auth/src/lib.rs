@@ -8,7 +8,11 @@ use tokio::process::Command;
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {
     #[error("no credentials for {kind} at {host}; {hint}")]
-    Missing { kind: ProviderKind, host: String, hint: String },
+    Missing {
+        kind: ProviderKind,
+        host: String,
+        hint: String,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,16 +33,32 @@ pub struct Credential {
 
 impl std::fmt::Debug for Credential {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Credential").field("origin", &self.origin).field("kind", &self.kind).finish()
+        f.debug_struct("Credential")
+            .field("origin", &self.origin)
+            .field("kind", &self.kind)
+            .finish()
     }
 }
 
 /// Env vars checked, in order. A host-specific var wins, e.g. `GV_TOKEN_GITLAB_COM`.
 pub fn env_vars(kind: ProviderKind, host: &str) -> Vec<String> {
-    let host_var: String = host.chars().map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_uppercase() } else { '_' }).collect();
+    let host_var: String = host
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() {
+                c.to_ascii_uppercase()
+            } else {
+                '_'
+            }
+        })
+        .collect();
     let mut v = vec![format!("GV_TOKEN_{host_var}")];
     match kind {
-        ProviderKind::GitHub => v.extend(["GV_GITHUB_TOKEN".into(), "GH_TOKEN".into(), "GITHUB_TOKEN".into()]),
+        ProviderKind::GitHub => v.extend([
+            "GV_GITHUB_TOKEN".into(),
+            "GH_TOKEN".into(),
+            "GITHUB_TOKEN".into(),
+        ]),
         ProviderKind::GitLab => v.extend(["GV_GITLAB_TOKEN".into(), "GITLAB_TOKEN".into()]),
         ProviderKind::Azure => v.extend(["GV_AZURE_TOKEN".into(), "AZURE_DEVOPS_EXT_PAT".into()]),
     }
@@ -59,7 +79,11 @@ impl CredentialSource {
         for var in env_vars(kind, host) {
             if let Ok(t) = std::env::var(&var) {
                 if !t.trim().is_empty() {
-                    return Ok(Credential { token: t.trim().to_string(), origin: TokenOrigin::Env, kind });
+                    return Ok(Credential {
+                        token: t.trim().to_string(),
+                        origin: TokenOrigin::Env,
+                        kind,
+                    });
                 }
             }
         }
@@ -67,23 +91,52 @@ impl CredentialSource {
             ProviderKind::GitHub => run("gh", &["auth", "token", "--hostname", host]).await,
             ProviderKind::GitLab => run("glab", &["config", "get", "token", "--host", host]).await,
             ProviderKind::Azure => {
-                run("az", &["account", "get-access-token", "--resource", AZURE_DEVOPS_RESOURCE, "--query", "accessToken", "-o", "tsv"]).await
+                run(
+                    "az",
+                    &[
+                        "account",
+                        "get-access-token",
+                        "--resource",
+                        AZURE_DEVOPS_RESOURCE,
+                        "--query",
+                        "accessToken",
+                        "-o",
+                        "tsv",
+                    ],
+                )
+                .await
             }
         };
         if let Some(t) = cli {
-            return Ok(Credential { token: t, origin: TokenOrigin::Cli, kind });
+            return Ok(Credential {
+                token: t,
+                origin: TokenOrigin::Cli,
+                kind,
+            });
         }
         if kind == ProviderKind::GitLab {
             if let Some(t) = glab_config_token(host) {
-                return Ok(Credential { token: t, origin: TokenOrigin::ConfigFile, kind });
+                return Ok(Credential {
+                    token: t,
+                    origin: TokenOrigin::ConfigFile,
+                    kind,
+                });
             }
         }
         let hint = match kind {
-            ProviderKind::GitHub => format!("run `gh auth login --hostname {host}` or set GH_TOKEN"),
-            ProviderKind::GitLab => format!("run `glab auth login --hostname {host}` or set GITLAB_TOKEN"),
+            ProviderKind::GitHub => {
+                format!("run `gh auth login --hostname {host}` or set GH_TOKEN")
+            }
+            ProviderKind::GitLab => {
+                format!("run `glab auth login --hostname {host}` or set GITLAB_TOKEN")
+            }
             ProviderKind::Azure => "run `az login` or set AZURE_DEVOPS_EXT_PAT".into(),
         };
-        Err(AuthError::Missing { kind, host: host.into(), hint })
+        Err(AuthError::Missing {
+            kind,
+            host: host.into(),
+            hint,
+        })
     }
 
     /// glab refreshes expired OAuth tokens when it makes an API call. Trigger that,
@@ -108,8 +161,13 @@ async fn run(cmd: &str, args: &[&str]) -> Option<String> {
 /// Apps launched from Finder or the Dock get a minimal PATH without Homebrew, so
 /// the common locations are added explicitly.
 fn cli_search_dirs(path: Option<&std::ffi::OsStr>, home: Option<&std::path::Path>) -> Vec<PathBuf> {
-    let mut dirs: Vec<PathBuf> = path.map(|p| std::env::split_paths(p).collect()).unwrap_or_default();
-    let mut extra = vec![PathBuf::from("/opt/homebrew/bin"), PathBuf::from("/usr/local/bin")];
+    let mut dirs: Vec<PathBuf> = path
+        .map(|p| std::env::split_paths(p).collect())
+        .unwrap_or_default();
+    let mut extra = vec![
+        PathBuf::from("/opt/homebrew/bin"),
+        PathBuf::from("/usr/local/bin"),
+    ];
     if let Some(h) = home {
         extra.push(h.join(".local/bin"));
         extra.push(h.join("bin"));
@@ -124,13 +182,20 @@ fn cli_search_dirs(path: Option<&std::ffi::OsStr>, home: Option<&std::path::Path
 
 fn find_in(cmd: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
     use std::os::unix::fs::PermissionsExt;
-    dirs.iter().map(|d| d.join(cmd)).find(|p| std::fs::metadata(p).map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0).unwrap_or(false))
+    dirs.iter().map(|d| d.join(cmd)).find(|p| {
+        std::fs::metadata(p)
+            .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false)
+    })
 }
 
 /// Absolute path of a CLI such as `gh`, `glab` or `az`, if installed.
 pub fn resolve_cli(cmd: &str) -> Option<PathBuf> {
     let home = std::env::var_os("HOME").map(PathBuf::from);
-    find_in(cmd, &cli_search_dirs(std::env::var_os("PATH").as_deref(), home.as_deref()))
+    find_in(
+        cmd,
+        &cli_search_dirs(std::env::var_os("PATH").as_deref(), home.as_deref()),
+    )
 }
 
 fn glab_config_paths() -> Vec<PathBuf> {
@@ -156,9 +221,15 @@ pub fn glab_hosts() -> Vec<String> {
 }
 
 fn glab_config_token(host: &str) -> Option<String> {
-    glab_config_paths().iter().filter_map(|p| std::fs::read_to_string(p).ok()).find_map(|s| {
-        parse_glab_config(&s).into_iter().find(|(h, _)| h.eq_ignore_ascii_case(host)).and_then(|(_, t)| t)
-    })
+    glab_config_paths()
+        .iter()
+        .filter_map(|p| std::fs::read_to_string(p).ok())
+        .find_map(|s| {
+            parse_glab_config(&s)
+                .into_iter()
+                .find(|(h, _)| h.eq_ignore_ascii_case(host))
+                .and_then(|(_, t)| t)
+        })
 }
 
 /// Minimal parser for the `hosts:` section of glab's config.yml.
@@ -208,12 +279,21 @@ mod tests {
     fn parses_glab_hosts() {
         let cfg = "host: gitlab.com\nhosts:\n    gitlab.com:\n        # c\n        token: abc\n        user: me\n    git.example.org:\n        api_host: x\n        token: \"def\"\nother: 1\n";
         let p = parse_glab_config(cfg);
-        assert_eq!(p, vec![("gitlab.com".into(), Some("abc".into())), ("git.example.org".into(), Some("def".into()))]);
+        assert_eq!(
+            p,
+            vec![
+                ("gitlab.com".into(), Some("abc".into())),
+                ("git.example.org".into(), Some("def".into()))
+            ]
+        );
     }
 
     #[test]
     fn env_var_names() {
-        assert_eq!(env_vars(ProviderKind::GitLab, "gitlab.com")[0], "GV_TOKEN_GITLAB_COM");
+        assert_eq!(
+            env_vars(ProviderKind::GitLab, "gitlab.com")[0],
+            "GV_TOKEN_GITLAB_COM"
+        );
     }
 }
 
@@ -224,13 +304,24 @@ mod resolver_tests {
 
     #[test]
     fn search_dirs_add_homebrew_without_duplicates() {
-        let dirs = cli_search_dirs(Some(std::ffi::OsStr::new("/usr/bin:/opt/homebrew/bin")), Some(std::path::Path::new("/Users/x")));
+        let dirs = cli_search_dirs(
+            Some(std::ffi::OsStr::new("/usr/bin:/opt/homebrew/bin")),
+            Some(std::path::Path::new("/Users/x")),
+        );
         assert_eq!(dirs[0], PathBuf::from("/usr/bin"));
-        assert_eq!(dirs.iter().filter(|d| d.as_path() == std::path::Path::new("/opt/homebrew/bin")).count(), 1);
+        assert_eq!(
+            dirs.iter()
+                .filter(|d| d.as_path() == std::path::Path::new("/opt/homebrew/bin"))
+                .count(),
+            1
+        );
         assert!(dirs.contains(&PathBuf::from("/usr/local/bin")));
         assert!(dirs.contains(&PathBuf::from("/Users/x/.local/bin")));
         // Finder-style minimal PATH still finds Homebrew.
-        assert!(cli_search_dirs(Some(std::ffi::OsStr::new("/usr/bin:/bin")), None).contains(&PathBuf::from("/opt/homebrew/bin")));
+        assert!(
+            cli_search_dirs(Some(std::ffi::OsStr::new("/usr/bin:/bin")), None)
+                .contains(&PathBuf::from("/opt/homebrew/bin"))
+        );
     }
 
     #[test]

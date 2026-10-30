@@ -40,12 +40,18 @@ pub fn tokenize(line: &str, lang: Lang) -> Vec<(Range<usize>, Tok)> {
     let mut i = out.last().map(|(r, _)| r.end).unwrap_or(0);
     while i < b.len() {
         let c = b[i];
-        if lang.line_comment().is_some_and(|lc| line[i..].starts_with(lc)) {
+        if lang
+            .line_comment()
+            .is_some_and(|lc| line[i..].starts_with(lc))
+        {
             out.push((i..b.len(), Tok::Comment));
             break;
         }
         if line[i..].starts_with("/*") && matches!(lang, Lang::Rust | Lang::Ts | Lang::Go) {
-            let end = line[i + 2..].find("*/").map(|e| i + e + 4).unwrap_or(b.len());
+            let end = line[i + 2..]
+                .find("*/")
+                .map(|e| i + e + 4)
+                .unwrap_or(b.len());
             out.push((i..end, Tok::Comment));
             i = end;
         } else if c == b'"' || c == b'\'' || c == b'`' {
@@ -95,7 +101,9 @@ fn is_ident(c: u8) -> bool {
 
 /// `'a` without a closing quote two chars later.
 fn is_lifetime(b: &[u8], i: usize) -> bool {
-    b.get(i + 2) != Some(&b'\'') && b.get(i + 1).is_some_and(|c| c.is_ascii_alphabetic()) && b.get(i + 3) != Some(&b'\'')
+    b.get(i + 2) != Some(&b'\'')
+        && b.get(i + 1).is_some_and(|c| c.is_ascii_alphabetic())
+        && b.get(i + 3) != Some(&b'\'')
 }
 
 /// YAML `key:` and TOML `key =` / `[section]` prefixes.
@@ -121,19 +129,38 @@ mod tests {
     use super::*;
 
     fn kinds(line: &str, lang: Lang) -> Vec<(&str, Tok)> {
-        tokenize(line, lang).into_iter().map(|(r, t)| (&line[r], t)).collect()
+        tokenize(line, lang)
+            .into_iter()
+            .map(|(r, t)| (&line[r], t))
+            .collect()
     }
 
     #[test]
     fn rust_line() {
         let k = kinds("pub fn x(a: &'a str) -> Foo { \"s\" } // c", Lang::Rust);
-        assert_eq!(k, vec![("pub", Tok::Keyword), ("fn", Tok::Keyword), ("Foo", Tok::Type), ("\"s\"", Tok::String), ("// c", Tok::Comment)]);
+        assert_eq!(
+            k,
+            vec![
+                ("pub", Tok::Keyword),
+                ("fn", Tok::Keyword),
+                ("Foo", Tok::Type),
+                ("\"s\"", Tok::String),
+                ("// c", Tok::Comment)
+            ]
+        );
     }
 
     #[test]
     fn yaml_key_and_comment() {
         let k = kinds("  args: 3 # note", Lang::Yaml);
-        assert_eq!(k, vec![("args", Tok::Keyword), ("3", Tok::Number), ("# note", Tok::Comment)]);
+        assert_eq!(
+            k,
+            vec![
+                ("args", Tok::Keyword),
+                ("3", Tok::Number),
+                ("# note", Tok::Comment)
+            ]
+        );
     }
 
     #[test]

@@ -17,7 +17,11 @@ pub enum Appearance {
 }
 
 impl Appearance {
-    pub const ALL: [Appearance; 3] = [Appearance::Blurred, Appearance::Transparent, Appearance::Opaque];
+    pub const ALL: [Appearance; 3] = [
+        Appearance::Blurred,
+        Appearance::Transparent,
+        Appearance::Opaque,
+    ];
     pub fn label(&self) -> &'static str {
         match self {
             Appearance::Blurred => "Blurred",
@@ -100,8 +104,14 @@ impl Default for Settings {
             density: Density::Compact,
             last_selected: None,
             hide_bots: true,
-            hidden_authors: gv_engine::DEFAULT_BOT_AUTHORS.iter().map(|s| s.to_string()).collect(),
-            hidden_branch_prefixes: gv_engine::DEFAULT_BOT_BRANCHES.iter().map(|s| s.to_string()).collect(),
+            hidden_authors: gv_engine::DEFAULT_BOT_AUTHORS
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+            hidden_branch_prefixes: gv_engine::DEFAULT_BOT_BRANCHES
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
             refresh_minutes: 5,
             open_in: OpenIn::App,
             launch: Launch::Inbox,
@@ -112,7 +122,11 @@ impl Default for Settings {
             palette_mru: vec![],
             shortcut_hints: true,
             swipe_pages: true,
-            reaction_mru: vec![gv_engine::ReactionKind::ThumbsUp, gv_engine::ReactionKind::Heart, gv_engine::ReactionKind::Hooray],
+            reaction_mru: vec![
+                gv_engine::ReactionKind::ThumbsUp,
+                gv_engine::ReactionKind::Heart,
+                gv_engine::ReactionKind::Hooray,
+            ],
             review_tree_w: 260.,
             review_right_ratio: 1. / 3.,
             auto_update: true,
@@ -140,17 +154,33 @@ impl Settings {
 
     /// Fonts and text step for the live theme.
     pub fn typography(&self) -> crate::ui::theme::Typography {
-        let size = FONT_SIZES.iter().copied().find(|s| *s == self.font_size).unwrap_or(13);
-        crate::ui::theme::Typography { ui_font: self.ui_font.family(), mono_font: self.mono_font.family(), step: f32::from(size - 13), compact: self.density == Density::Compact }
+        let size = FONT_SIZES
+            .iter()
+            .copied()
+            .find(|s| *s == self.font_size)
+            .unwrap_or(13);
+        crate::ui::theme::Typography {
+            ui_font: self.ui_font.family(),
+            mono_font: self.mono_font.family(),
+            step: f32::from(size - 13),
+            compact: self.density == Density::Compact,
+        }
     }
 
     /// The bot filter the list applies.
     pub fn bot_filter(&self) -> gv_engine::BotFilter {
-        gv_engine::BotFilter { enabled: self.hide_bots, authors: self.hidden_authors.clone(), branch_prefixes: self.hidden_branch_prefixes.clone() }
+        gv_engine::BotFilter {
+            enabled: self.hide_bots,
+            authors: self.hidden_authors.clone(),
+            branch_prefixes: self.hidden_branch_prefixes.clone(),
+        }
     }
 
     pub fn load() -> Self {
-        std::fs::read_to_string(path()).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default()
+        std::fs::read_to_string(path())
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default()
     }
     pub fn save(&self) -> anyhow::Result<()> {
         let p = path();

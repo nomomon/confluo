@@ -16,7 +16,11 @@ impl GitViewer {
     /// `?`, Help > Keyboard Shortcuts, or the palette: open (or close) the cheat sheet.
     pub(crate) fn open_shortcuts(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.layer = None;
-        self.overlay = if self.overlay == Overlay::Shortcuts { Overlay::None } else { Overlay::Shortcuts };
+        self.overlay = if self.overlay == Overlay::Shortcuts {
+            Overlay::None
+        } else {
+            Overlay::Shortcuts
+        };
         window.focus(&self.focus);
         cx.notify();
     }
@@ -37,7 +41,14 @@ impl GitViewer {
         if cur == Group::Review {
             first.push(Group::Diff);
         }
-        first.into_iter().chain(Group::ALL.into_iter().filter(|g| *g != cur && !(cur == Group::Review && *g == Group::Diff))).collect()
+        first
+            .into_iter()
+            .chain(
+                Group::ALL
+                    .into_iter()
+                    .filter(|g| *g != cur && !(cur == Group::Review && *g == Group::Diff)),
+            )
+            .collect()
     }
 
     pub(crate) fn render_shortcuts_sheet(&self) -> Dialog {
@@ -53,7 +64,9 @@ impl GitViewer {
                 .font_weight(theme::WEIGHT_MEDIUM)
                 .text_color(theme::text_muted())
                 .child(g.title())
-                .when(g == cur, |h| h.child(Badge::new("Current").tint(theme::accent())));
+                .when(g == cur, |h| {
+                    h.child(Badge::new("Current").tint(theme::accent()))
+                });
             let rows = group_rows(g).into_iter().map(|(label, keys)| {
                 div()
                     .flex()
@@ -64,10 +77,20 @@ impl GitViewer {
                     .border_b_1()
                     .border_color(theme::border_subtle())
                     .child(div().text_color(theme::text()).child(label))
-                    .child(div().flex().gap(theme::SPACE_1P5).children(keys.into_iter().map(Kbd::new)))
+                    .child(
+                        div()
+                            .flex()
+                            .gap(theme::SPACE_1P5)
+                            .children(keys.into_iter().map(Kbd::new)),
+                    )
                     .into_any_element()
             });
-            div().flex().flex_col().child(heading).children(rows).into_any_element()
+            div()
+                .flex()
+                .flex_col()
+                .child(heading)
+                .children(rows)
+                .into_any_element()
         });
         let body: Vec<AnyElement> = sections.collect();
         Dialog::new("Keyboard shortcuts")

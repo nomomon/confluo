@@ -17,10 +17,19 @@ pub struct ToggleGroup {
 
 impl ToggleGroup {
     pub fn new(id: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), items: vec![], on_change: None }
+        Self {
+            id: id.into(),
+            items: vec![],
+            on_change: None,
+        }
     }
 
-    pub fn item(mut self, label: impl Into<SharedString>, icon: Option<IconName>, active: bool) -> Self {
+    pub fn item(
+        mut self,
+        label: impl Into<SharedString>,
+        icon: Option<IconName>,
+        active: bool,
+    ) -> Self {
         self.items.push((label.into(), icon, active));
         self
     }
@@ -42,25 +51,42 @@ impl RenderOnce for ToggleGroup {
             .border_1()
             .border_color(theme::border())
             .bg(theme::surface())
-            .children(self.items.into_iter().enumerate().map(|(i, (label, icon, active))| {
-                let f = self.on_change.clone();
-                div()
-                    .id(ElementId::Name(format!("{}-{i}", self.id).into()))
-                    .flex()
-                    .items_center()
-                    .gap(theme::SPACE_1)
-                    .h(px(24.))
-                    .px(theme::SPACE_2P5)
-                    .rounded(theme::RADIUS_SM)
-                    .text_size(theme::text_xs())
-                    .font_weight(theme::WEIGHT_MEDIUM)
-                    .cursor_pointer()
-                    .text_color(if active { theme::text() } else { theme::text_muted() })
-                    .when(active, |d| d.bg(theme::surface_active()).shadow_sm())
-                    .when(!active, |d| d.hover(|s| s.text_color(theme::text())))
-                    .children(icon.map(|n| Icon::new(n).size(theme::ICON_SM).color(if active { theme::text() } else { theme::text_muted() })))
-                    .child(label)
-                    .when_some(f, |d, f| d.on_click(move |_: &ClickEvent, w, cx| f(&i, w, cx)))
-            }))
+            .children(
+                self.items
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, (label, icon, active))| {
+                        let f = self.on_change.clone();
+                        div()
+                            .id(ElementId::Name(format!("{}-{i}", self.id).into()))
+                            .flex()
+                            .items_center()
+                            .gap(theme::SPACE_1)
+                            .h(px(24.))
+                            .px(theme::SPACE_2P5)
+                            .rounded(theme::RADIUS_SM)
+                            .text_size(theme::text_xs())
+                            .font_weight(theme::WEIGHT_MEDIUM)
+                            .cursor_pointer()
+                            .text_color(if active {
+                                theme::text()
+                            } else {
+                                theme::text_muted()
+                            })
+                            .when(active, |d| d.bg(theme::surface_active()).shadow_sm())
+                            .when(!active, |d| d.hover(|s| s.text_color(theme::text())))
+                            .children(icon.map(|n| {
+                                Icon::new(n).size(theme::ICON_SM).color(if active {
+                                    theme::text()
+                                } else {
+                                    theme::text_muted()
+                                })
+                            }))
+                            .child(label)
+                            .when_some(f, |d, f| {
+                                d.on_click(move |_: &ClickEvent, w, cx| f(&i, w, cx))
+                            })
+                    }),
+            )
     }
 }

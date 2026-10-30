@@ -28,5 +28,11 @@ fn mark(b: Bounds<Pixels>) {
 
 /// Record the panel's painted bounds as the open layer (adds an invisible full-size child; makes it `relative`).
 pub fn track<E: ParentElement + Styled>(panel: E) -> E {
-    panel.relative().child(canvas(|b, _, _| mark(b), |_, _, _, _| {}).absolute().top_0().left_0().size_full())
+    panel.relative().child(
+        canvas(|b, _, _| mark(b), |_, _, _, _| {})
+            .absolute()
+            .top_0()
+            .left_0()
+            .size_full(),
+    )
 }

@@ -14,7 +14,9 @@ pub(crate) const EDIT_FIELDS: &str = r#"
 
 /// Whether the viewer has at least write (or triage) access from `viewerPermission`.
 pub(crate) fn access(pr: &Value) -> (bool, bool) {
-    let p = pr["repository"]["viewerPermission"].as_str().unwrap_or_default();
+    let p = pr["repository"]["viewerPermission"]
+        .as_str()
+        .unwrap_or_default();
     let write = matches!(p, "ADMIN" | "MAINTAIN" | "WRITE");
     (write, write || p == "TRIAGE")
 }
@@ -26,7 +28,11 @@ pub(crate) fn edit_info(pr: &Value, cr: &ChangeRequest, me: &str) -> EditInfo {
     let open = cr.state.is_active();
     let repo = &pr["repository"];
     let mut methods = vec![];
-    for (flag, m) in [("mergeCommitAllowed", MergeMethod::Merge), ("squashMergeAllowed", MergeMethod::Squash), ("rebaseMergeAllowed", MergeMethod::Rebase)] {
+    for (flag, m) in [
+        ("mergeCommitAllowed", MergeMethod::Merge),
+        ("squashMergeAllowed", MergeMethod::Squash),
+        ("rebaseMergeAllowed", MergeMethod::Rebase),
+    ] {
         if repo[flag] != false {
             methods.push(m);
         }
@@ -58,8 +64,17 @@ pub(crate) fn edit_info(pr: &Value, cr: &ChangeRequest, me: &str) -> EditInfo {
         merge_blocked: blocked,
         ..Default::default()
     };
-    let assignees = pr["assignees"]["nodes"].as_array().into_iter().flatten().map(super::user).collect();
-    EditInfo { caps, assignees, node_id: pr["id"].as_str().map(str::to_string) }
+    let assignees = pr["assignees"]["nodes"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(super::user)
+        .collect();
+    EditInfo {
+        caps,
+        assignees,
+        node_id: pr["id"].as_str().map(str::to_string),
+    }
 }
 
 /// `PATCH /pulls/{n}` body for title and/or description.
@@ -76,7 +91,8 @@ pub(crate) fn update_payload(title: Option<&str>, body: Option<&str>) -> Value {
 
 /// Requested reviewers payload, splitting `team:slug` entries into team reviewers.
 pub(crate) fn reviewers_payload(names: &[String]) -> Value {
-    let (teams, users): (Vec<&String>, Vec<&String>) = names.iter().partition(|n| n.starts_with("team:"));
+    let (teams, users): (Vec<&String>, Vec<&String>) =
+        names.iter().partition(|n| n.starts_with("team:"));
     json!({"reviewers": users, "team_reviewers": teams.iter().map(|t| &t[5..]).collect::<Vec<_>>()})
 }
 
@@ -94,36 +110,70 @@ impl GitHubProvider {
         Ok(format!("{}/repos/{o}/{n}/{tail}", self.api))
     }
 
-    pub(crate) async fn do_update(&self, id: &ChangeRequestId, title: Option<&str>, body: Option<&str>) -> ProviderResult<()> {
+    pub(crate) async fn do_update(
+        &self,
+        id: &ChangeRequestId,
+        title: Option<&str>,
+        body: Option<&str>,
+    ) -> ProviderResult<()> {
         let url = self.pr_url(id, &format!("pulls/{}", id.number))?;
-        self.send(self.http.patch(url).json(&update_payload(title, body))).await.map(|_| ())
+        self.send(self.http.patch(url).json(&update_payload(title, body)))
+            .await
+            .map(|_| ())
     }
 
-    pub(crate) async fn do_set_people(&self, id: &ChangeRequestId, role: PeopleRole, current: &[User], desired: &[User]) -> ProviderResult<()> {
+    pub(crate) async fn do_set_people(
+        &self,
+        id: &ChangeRequestId,
+        role: PeopleRole,
+        current: &[User],
+        desired: &[User],
+    ) -> ProviderResult<()> {
         let (add, remove) = people_diff(&names(current), &names(desired));
         let (path, payload): (String, fn(&[String]) -> Value) = match role {
-            PeopleRole::Reviewers => (format!("pulls/{}/requested_reviewers", id.number), reviewers_payload),
-            PeopleRole::Assignees => (format!("issues/{}/assignees", id.number), |n| json!({"assignees": n})),
+            PeopleRole::Reviewers => (
+                format!("pulls/{}/requested_reviewers", id.number),
+                reviewers_payload,
+            ),
+            PeopleRole::Assignees => (
+                format!("issues/{}/assignees", id.number),
+                |n| json!({"assignees": n}),
+            ),
         };
         let url = self.pr_url(id, &path)?;
         if !add.is_empty() {
             self.send(self.http.post(&url).json(&payload(&add))).await?;
         }
         if !remove.is_empty() {
-            self.send(self.http.delete(&url).json(&payload(&remove))).await?;
+            self.send(self.http.delete(&url).json(&payload(&remove)))
+                .await?;
         }
         Ok(())
     }
 
-    pub(crate) async fn do_search_users(&self, id: &ChangeRequestId, query: &str) -> ProviderResult<Vec<User>> {
+    pub(crate) async fn do_search_users(
+        &self,
+        id: &ChangeRequestId,
+        query: &str,
+    ) -> ProviderResult<Vec<User>> {
         let (o, n) = split_repo(&id.repo)?;
         let q = "query($o: String!, $n: String!, $q: String) { repository(owner: $o, name: $n) {
                    assignableUsers(first: 20, query: $q) { nodes { login name avatarUrl } } } }";
         let d = self.gql(q, json!({"o": o, "n": n, "q": query})).await?;
-        Ok(d["repository"]["assignableUsers"]["nodes"].as_array().into_iter().flatten().map(super::user).collect())
+        Ok(d["repository"]["assignableUsers"]["nodes"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(super::user)
+            .collect())
     }
 
-    pub(crate) async fn do_set_draft(&self, id: &ChangeRequestId, draft: bool, node_id: Option<&str>) -> ProviderResult<()> {
+    pub(crate) async fn do_set_draft(
+        &self,
+        id: &ChangeRequestId,
+        draft: bool,
+        node_id: Option<&str>,
+    ) -> ProviderResult<()> {
         let node = match node_id {
             Some(n) => n.to_string(),
             None => {
@@ -132,38 +182,72 @@ impl GitHubProvider {
                 super::s(&d["repository"]["pullRequest"]["id"])
             }
         };
-        let m = if draft { "convertPullRequestToDraft" } else { "markPullRequestReadyForReview" };
+        let m = if draft {
+            "convertPullRequestToDraft"
+        } else {
+            "markPullRequestReadyForReview"
+        };
         self.gql(&format!("mutation($id: ID!) {{ {m}(input: {{pullRequestId: $id}}) {{ pullRequest {{ isDraft }} }} }}"), json!({"id": node})).await?;
         Ok(())
     }
 
     pub(crate) async fn do_set_open(&self, id: &ChangeRequestId, open: bool) -> ProviderResult<()> {
         let url = self.pr_url(id, &format!("pulls/{}", id.number))?;
-        self.send(self.http.patch(url).json(&json!({"state": if open { "open" } else { "closed" }}))).await.map(|_| ())
+        self.send(
+            self.http
+                .patch(url)
+                .json(&json!({"state": if open { "open" } else { "closed" }})),
+        )
+        .await
+        .map(|_| ())
     }
 
-    pub(crate) async fn do_merge(&self, id: &ChangeRequestId, opts: &MergeOptions) -> ProviderResult<()> {
+    pub(crate) async fn do_merge(
+        &self,
+        id: &ChangeRequestId,
+        opts: &MergeOptions,
+    ) -> ProviderResult<()> {
         let url = self.pr_url(id, &format!("pulls/{}/merge", id.number))?;
-        self.send(self.http.put(url).json(&merge_payload(opts))).await.map(|_| ())
+        self.send(self.http.put(url).json(&merge_payload(opts)))
+            .await
+            .map(|_| ())
     }
 
     /// Annotations of a failed run, else the tail of its Actions job log.
-    pub(crate) async fn do_check_log(&self, id: &ChangeRequestId, run: &CheckRun) -> ProviderResult<Vec<String>> {
+    pub(crate) async fn do_check_log(
+        &self,
+        id: &ChangeRequestId,
+        run: &CheckRun,
+    ) -> ProviderResult<Vec<String>> {
         if run.id.is_empty() {
             return Ok(vec![]);
         }
-        let notes = self.send(self.http.get(self.pr_url(id, &format!("check-runs/{}/annotations", run.id))?)).await?;
+        let notes = self
+            .send(
+                self.http
+                    .get(self.pr_url(id, &format!("check-runs/{}/annotations", run.id))?),
+            )
+            .await?;
         let lines = super::checks::annotation_lines(&notes);
-        if lines.iter().any(|l| !l.starts_with("Process completed with exit code")) {
+        if lines
+            .iter()
+            .any(|l| !l.starts_with("Process completed with exit code"))
+        {
             return Ok(lines);
         }
-        let log = self.get_raw(&self.pr_url(id, &format!("actions/jobs/{}/logs", run.id))?).await?;
+        let log = self
+            .get_raw(&self.pr_url(id, &format!("actions/jobs/{}/logs", run.id))?)
+            .await?;
         Ok(log.map(|l| log_tail(&l, 15)).unwrap_or(lines))
     }
 
     pub(crate) async fn do_rerun(&self, id: &ChangeRequestId, target: &str) -> ProviderResult<()> {
         for run in target.split(',').filter(|r| !r.is_empty()) {
-            self.send(self.http.post(self.pr_url(id, &format!("actions/runs/{run}/rerun-failed-jobs"))?)).await?;
+            self.send(
+                self.http
+                    .post(self.pr_url(id, &format!("actions/runs/{run}/rerun-failed-jobs"))?),
+            )
+            .await?;
         }
         Ok(())
     }
@@ -175,14 +259,22 @@ mod tests {
 
     fn cr(author: &str, state: &str) -> ChangeRequest {
         let n = json!({"number": 1, "state": state, "author": {"login": author}, "repository": {"nameWithOwner": "a/b"}});
-        GitHubProvider::new("github.com", "x".into()).parse_pr(&n, "me").unwrap()
+        GitHubProvider::new("github.com", "x".into())
+            .parse_pr(&n, "me")
+            .unwrap()
     }
 
     #[test]
     fn payloads() {
         assert_eq!(update_payload(Some("T"), None), json!({"title": "T"}));
-        assert_eq!(reviewers_payload(&["ada".into(), "team:core".into()]), json!({"reviewers": ["ada"], "team_reviewers": ["core"]}));
-        let o = MergeOptions { method: MergeMethod::Squash, ..Default::default() };
+        assert_eq!(
+            reviewers_payload(&["ada".into(), "team:core".into()]),
+            json!({"reviewers": ["ada"], "team_reviewers": ["core"]})
+        );
+        let o = MergeOptions {
+            method: MergeMethod::Squash,
+            ..Default::default()
+        };
         assert_eq!(merge_payload(&o), json!({"merge_method": "squash"}));
     }
 
@@ -193,10 +285,15 @@ mod tests {
             "repository": {"viewerPermission": "ADMIN", "mergeCommitAllowed": false, "squashMergeAllowed": true, "rebaseMergeAllowed": true}});
         let e = edit_info(&pr, &mine, "me");
         assert!(e.caps.title && e.caps.draft && e.caps.close && !e.caps.reopen && e.caps.merge);
-        assert_eq!(e.caps.merge_methods, vec![MergeMethod::Squash, MergeMethod::Rebase]);
+        assert_eq!(
+            e.caps.merge_methods,
+            vec![MergeMethod::Squash, MergeMethod::Rebase]
+        );
         let read = json!({"viewerCanUpdate": false, "repository": {"viewerPermission": "READ"}});
         let e = edit_info(&read, &cr("ada", "OPEN"), "me");
-        assert!(!e.caps.title && !e.caps.assignees && !e.caps.merge && e.caps.merge_blocked.is_none());
+        assert!(
+            !e.caps.title && !e.caps.assignees && !e.caps.merge && e.caps.merge_blocked.is_none()
+        );
         let conflict = json!({"viewerCanUpdate": true, "mergeable": "CONFLICTING", "repository": {"viewerPermission": "WRITE"}});
         let e = edit_info(&conflict, &mine, "me");
         assert!(!e.caps.merge && e.caps.merge_blocked.is_some());

@@ -29,7 +29,10 @@ impl GitViewer {
     /// Markdown with whichever of its remote images have loaded.
     pub(super) fn markdown(&self, id: impl Into<gpui::SharedString>, src: &str) -> Markdown {
         let src = crate::dev::markdown_override().unwrap_or(src);
-        let images: std::collections::HashMap<_, _> = image_urls(src).into_iter().filter_map(|u| self.avatar(Some(&u)).map(|i| (u, i))).collect();
+        let images: std::collections::HashMap<_, _> = image_urls(src)
+            .into_iter()
+            .filter_map(|u| self.avatar(Some(&u)).map(|i| (u, i)))
+            .collect();
         Markdown::new(id, src).images(std::rc::Rc::new(images))
     }
 }

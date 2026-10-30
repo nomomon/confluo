@@ -6,7 +6,9 @@ use std::time::Instant;
 
 use gpui::{px, TouchPhase};
 
-use crate::ui::motion::physics::{rubber_band, rubber_band_inverse, Spring, VelocityTracker, BAND, SNAPPY};
+use crate::ui::motion::physics::{
+    rubber_band, rubber_band_inverse, Spring, VelocityTracker, BAND, SNAPPY,
+};
 use crate::ui::scroll::{gesture_axis, Axis};
 
 /// Where to hold the scroller after an event the stretch took (the content must not move).
@@ -34,7 +36,19 @@ impl ElasticScroll {
     /// Feed one wheel event for `axis`. `at_start` / `at_end`: the scroller sits at that edge; `extent` its length.
     /// Returns whether anything changed and where to hold the scroller.
     #[allow(clippy::too_many_arguments)]
-    pub fn feed(&mut self, axis: Axis, phase: TouchPhase, precise: bool, reduced: bool, dx: f32, dy: f32, at_start: bool, at_end: bool, extent: f32, now: Instant) -> (bool, Option<Pin>) {
+    pub fn feed(
+        &mut self,
+        axis: Axis,
+        phase: TouchPhase,
+        precise: bool,
+        reduced: bool,
+        dx: f32,
+        dy: f32,
+        at_start: bool,
+        at_end: bool,
+        extent: f32,
+        now: Instant,
+    ) -> (bool, Option<Pin>) {
         if !precise || reduced {
             let had = self.shown != 0.;
             *self = Self::default();
@@ -82,21 +96,33 @@ impl ElasticScroll {
                     return (false, None);
                 }
                 self.shown = rubber_band(self.raw, extent, BAND);
-                (true, Some(if self.raw > 0. { Pin::Start } else { Pin::End }))
+                (
+                    true,
+                    Some(if self.raw > 0. { Pin::Start } else { Pin::End }),
+                )
             }
             // Momentum: track its speed; where it reaches an edge, hand that velocity to the spring.
             TouchPhase::Moved => {
                 self.momentum_pos += d;
-                self.momentum.push(now.saturating_duration_since(epoch).as_secs_f32(), self.momentum_pos);
+                self.momentum.push(
+                    now.saturating_duration_since(epoch).as_secs_f32(),
+                    self.momentum_pos,
+                );
                 if self.handed_off || self.spring.is_some() || !pushing {
                     return (false, None);
                 }
                 self.handed_off = true;
-                let v = self.momentum.velocity(now.saturating_duration_since(epoch).as_secs_f32());
+                let v = self
+                    .momentum
+                    .velocity(now.saturating_duration_since(epoch).as_secs_f32());
                 // Cap the overshoot near 8% of the extent: a critically damped spring peaks at v / (w e).
                 let w = (SNAPPY.stiffness / SNAPPY.mass).sqrt();
                 let cap = extent * 0.08 * w * std::f32::consts::E;
-                let v = if v * d > 0. { v.clamp(-cap, cap) } else { (d * 60.).clamp(-cap, cap) };
+                let v = if v * d > 0. {
+                    v.clamp(-cap, cap)
+                } else {
+                    (d * 60.).clamp(-cap, cap)
+                };
                 self.spring = Some((Spring::new(SNAPPY, 0., v), now));
                 (true, None)
             }
@@ -121,7 +147,10 @@ impl ElasticScroll {
 
     /// A spring is running; one not stepped for 250ms (its pane is gone) is dropped.
     pub fn animating(&mut self, now: Instant) -> bool {
-        if self.spring.is_some_and(|(_, last)| now.saturating_duration_since(last).as_millis() > 250) {
+        if self
+            .spring
+            .is_some_and(|(_, last)| now.saturating_duration_since(last).as_millis() > 250)
+        {
             self.spring = None;
             self.shown = 0.;
         }
@@ -135,8 +164,25 @@ mod tests {
     use std::time::Duration;
     use TouchPhase::*;
 
-    fn feed(s: &mut ElasticScroll, phase: TouchPhase, dy: f32, at_start: bool, at_end: bool) -> (bool, Option<Pin>) {
-        s.feed(Axis::Y, phase, true, false, 0., dy, at_start, at_end, 400., Instant::now())
+    fn feed(
+        s: &mut ElasticScroll,
+        phase: TouchPhase,
+        dy: f32,
+        at_start: bool,
+        at_end: bool,
+    ) -> (bool, Option<Pin>) {
+        s.feed(
+            Axis::Y,
+            phase,
+            true,
+            false,
+            0.,
+            dy,
+            at_start,
+            at_end,
+            400.,
+            Instant::now(),
+        )
     }
 
     #[test]
@@ -144,7 +190,10 @@ mod tests {
         let mut s = ElasticScroll::default();
         assert_eq!(feed(&mut s, Started, 0., true, false), (false, None));
         assert_eq!(feed(&mut s, Moved, 10., false, false), (false, None));
-        assert_eq!(feed(&mut s, Moved, 20., true, false), (true, Some(Pin::Start)));
+        assert_eq!(
+            feed(&mut s, Moved, 20., true, false),
+            (true, Some(Pin::Start))
+        );
         assert!(s.shown > 0. && s.shown < 20.);
         assert_eq!(feed(&mut s, Moved, -10., true, false).1, Some(Pin::Start));
         assert_eq!(feed(&mut s, Moved, -15., true, false), (true, None));
@@ -160,11 +209,64 @@ mod tests {
     #[test]
     fn mouse_wheel_reduced_motion_and_cross_axis_never_stretch() {
         let mut s = ElasticScroll::default();
-        assert_eq!(s.feed(Axis::Y, Moved, false, false, 0., 40., true, false, 400., Instant::now()), (false, None));
-        assert_eq!(s.feed(Axis::Y, Moved, true, true, 0., 40., true, false, 400., Instant::now()), (false, None));
+        assert_eq!(
+            s.feed(
+                Axis::Y,
+                Moved,
+                false,
+                false,
+                0.,
+                40.,
+                true,
+                false,
+                400.,
+                Instant::now()
+            ),
+            (false, None)
+        );
+        assert_eq!(
+            s.feed(
+                Axis::Y,
+                Moved,
+                true,
+                true,
+                0.,
+                40.,
+                true,
+                false,
+                400.,
+                Instant::now()
+            ),
+            (false, None)
+        );
         feed(&mut s, Started, 0., true, false);
-        s.feed(Axis::Y, Moved, true, false, 12., 1., true, false, 400., Instant::now());
-        assert_eq!(s.feed(Axis::Y, Moved, true, false, 1., 20., true, false, 400., Instant::now()), (false, None));
+        s.feed(
+            Axis::Y,
+            Moved,
+            true,
+            false,
+            12.,
+            1.,
+            true,
+            false,
+            400.,
+            Instant::now(),
+        );
+        assert_eq!(
+            s.feed(
+                Axis::Y,
+                Moved,
+                true,
+                false,
+                1.,
+                20.,
+                true,
+                false,
+                400.,
+                Instant::now()
+            ),
+            (false, None)
+        );
     }
 
     #[test]
@@ -175,10 +277,49 @@ mod tests {
         feed(&mut s, Ended, 0., false, false);
         let t0 = Instant::now();
         for i in 0..4 {
-            s.feed(Axis::Y, Moved, true, false, 0., -20., false, false, 400., t0 + Duration::from_millis(i * 8));
+            s.feed(
+                Axis::Y,
+                Moved,
+                true,
+                false,
+                0.,
+                -20.,
+                false,
+                false,
+                400.,
+                t0 + Duration::from_millis(i * 8),
+            );
         }
-        assert!(s.feed(Axis::Y, Moved, true, false, 0., -20., false, true, 400., t0 + Duration::from_millis(40)).0);
-        assert!(!s.feed(Axis::Y, Moved, true, false, 0., -18., false, true, 400., t0 + Duration::from_millis(48)).0);
+        assert!(
+            s.feed(
+                Axis::Y,
+                Moved,
+                true,
+                false,
+                0.,
+                -20.,
+                false,
+                true,
+                400.,
+                t0 + Duration::from_millis(40)
+            )
+            .0
+        );
+        assert!(
+            !s.feed(
+                Axis::Y,
+                Moved,
+                true,
+                false,
+                0.,
+                -18.,
+                false,
+                true,
+                400.,
+                t0 + Duration::from_millis(48)
+            )
+            .0
+        );
         // It overshoots past the end (negative), bounded, then settles.
         let mut low: f32 = 0.;
         for i in 1..120 {

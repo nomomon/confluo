@@ -16,14 +16,26 @@ impl GitViewer {
 
     /// Expand or collapse a check; the first expand of a failed one fetches its log tail.
     pub(crate) fn toggle_check(&mut self, check_id: String, cx: &mut Context<Self>) {
-        let Some(d) = self.detail.as_mut() else { return };
+        let Some(d) = self.detail.as_mut() else {
+            return;
+        };
         if !d.ui.open_checks.remove(&check_id) {
             d.ui.open_checks.insert(check_id.clone());
         }
-        let run = d.detail.as_ref().and_then(|x| x.checks.runs.iter().find(|r| r.id == check_id)).cloned();
-        let Some(run) = run.filter(|r| r.has_log && !d.ui.logs.contains_key(&check_id)) else { return cx.notify() };
+        let run = d
+            .detail
+            .as_ref()
+            .and_then(|x| x.checks.runs.iter().find(|r| r.id == check_id))
+            .cloned();
+        let Some(run) = run.filter(|r| r.has_log && !d.ui.logs.contains_key(&check_id)) else {
+            return cx.notify();
+        };
         d.ui.logs.insert(check_id.clone(), LogState::Loading);
-        let (engine, id, want) = (self.engine.clone(), d.summary.id.clone(), d.summary.id.clone());
+        let (engine, id, want) = (
+            self.engine.clone(),
+            d.summary.id.clone(),
+            d.summary.id.clone(),
+        );
         let rx = bridge::spawn(async move { engine.check_log(&id, &run).await.map_err(err_str) });
         cx.spawn(async move |this, cx| {
             let r = rx.await.unwrap_or_else(|_| Err("cancelled".into()));
@@ -50,8 +62,16 @@ impl GitViewer {
 
     pub(crate) fn rerun_failed(&mut self, cx: &mut Context<Self>) {
         self.overlay = Overlay::None;
-        let Some(d) = self.detail.as_ref() else { return };
+        let Some(d) = self.detail.as_ref() else {
+            return;
+        };
         let (engine, id) = (self.engine.clone(), d.summary.id.clone());
-        self.run_edit("Re-running failed checks", "Re-running checks", |_| {}, async move { engine.rerun_failed(&id).await }, cx);
+        self.run_edit(
+            "Re-running failed checks",
+            "Re-running checks",
+            |_| {},
+            async move { engine.rerun_failed(&id).await },
+            cx,
+        );
     }
 }

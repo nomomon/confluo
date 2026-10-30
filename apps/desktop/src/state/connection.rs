@@ -34,7 +34,8 @@ pub fn sign_in_hint(kind: ProviderKind) -> String {
 
 /// Avatar URL for a signed-in GitHub user; other hosts show the initial.
 pub fn host_avatar_url(kind: ProviderKind, host: &str, user: &str) -> Option<String> {
-    (kind == ProviderKind::GitHub && host == "github.com").then(|| format!("https://github.com/{user}.png?size=64"))
+    (kind == ProviderKind::GitHub && host == "github.com")
+        .then(|| format!("https://github.com/{user}.png?size=64"))
 }
 
 impl GitViewer {
@@ -44,14 +45,28 @@ impl GitViewer {
         // Show what we already know at once; the network check below confirms it.
         let known = engine.known_hosts();
         if self.hosts.is_none() && known.iter().all(|(k, h)| engine.me(*k, h).is_some()) {
-            self.hosts = Some(known.iter().map(|(k, h)| HostStatus { kind: *k, host: h.clone(), user: engine.me(*k, h) }).collect());
+            self.hosts = Some(
+                known
+                    .iter()
+                    .map(|(k, h)| HostStatus {
+                        kind: *k,
+                        host: h.clone(),
+                        user: engine.me(*k, h),
+                    })
+                    .collect(),
+            );
         }
         let rx = bridge::spawn(async move {
             let jobs = known.into_iter().map(|(kind, host)| {
                 let engine = engine.clone();
                 async move {
                     // A busy host (a refresh in flight, a rate limit pause) must not leave Accounts loading forever.
-                    let user = match tokio::time::timeout(timing::HOST_CHECK_TIMEOUT, engine.whoami(kind, &host)).await {
+                    let user = match tokio::time::timeout(
+                        timing::HOST_CHECK_TIMEOUT,
+                        engine.whoami(kind, &host),
+                    )
+                    .await
+                    {
                         Ok(r) => r.ok().map(|u| u.username),
                         Err(_) => engine.me(kind, &host),
                     };
@@ -80,34 +95,54 @@ impl GitViewer {
         if orgs.is_empty() {
             h.host.clone()
         } else {
-            orgs.iter().map(|o| format!("{}/{o}", h.host)).collect::<Vec<_>>().join(", ")
+            orgs.iter()
+                .map(|o| format!("{}/{o}", h.host))
+                .collect::<Vec<_>>()
+                .join(", ")
         }
     }
 
     pub(crate) fn connected_hosts(&self) -> Vec<&HostStatus> {
-        self.hosts.iter().flatten().filter(|h| h.user.is_some()).collect()
+        self.hosts
+            .iter()
+            .flatten()
+            .filter(|h| h.user.is_some())
+            .collect()
     }
 
     fn host_kind(&self, label: &str) -> ProviderKind {
         let host = label.split('/').next().unwrap_or(label);
-        self.hosts.iter().flatten().find(|h| h.host == host).map(|h| h.kind).unwrap_or(if host.contains("github") {
-            ProviderKind::GitHub
-        } else if host == "dev.azure.com" || host.ends_with(".visualstudio.com") {
-            ProviderKind::Azure
-        } else {
-            ProviderKind::GitLab
-        })
+        self.hosts
+            .iter()
+            .flatten()
+            .find(|h| h.host == host)
+            .map(|h| h.kind)
+            .unwrap_or(if host.contains("github") {
+                ProviderKind::GitHub
+            } else if host == "dev.azure.com" || host.ends_with(".visualstudio.com") {
+                ProviderKind::Azure
+            } else {
+                ProviderKind::GitLab
+            })
     }
 
     /// One line for the error banner, e.g. "gitlab.com: 401, run `glab auth login`".
     pub(crate) fn summarize_errors(&self, errors: &[(String, String)]) -> Option<String> {
         let (label, err) = errors.first()?;
         let azure = err.contains("dev.azure.com") || err.contains("for azure");
-        let kind = if azure { ProviderKind::Azure } else { self.host_kind(label) };
+        let kind = if azure {
+            ProviderKind::Azure
+        } else {
+            self.host_kind(label)
+        };
         let mut line = format!("{label}: {}", short_error(err));
         if kind == ProviderKind::Azure && is_auth_error(err) {
             // "dev.azure.com: sign in again with `az login`"
-            let host = if label.contains('.') { label.split('/').next().unwrap_or(label) } else { "dev.azure.com" };
+            let host = if label.contains('.') {
+                label.split('/').next().unwrap_or(label)
+            } else {
+                "dev.azure.com"
+            };
             line = format!("{host}: sign in again with `{}`", auth_command(kind));
         } else if is_auth_error(err) {
             line.push_str(&format!(", run `{}`", auth_command(self.host_kind(label))));
@@ -121,7 +156,18 @@ impl GitViewer {
 
 fn is_auth_error(e: &str) -> bool {
     let e = e.to_ascii_lowercase();
-    ["401", "403", "unauthorized", "forbidden", "credential", "token", "not logged", "auth"].iter().any(|k| e.contains(k))
+    [
+        "401",
+        "403",
+        "unauthorized",
+        "forbidden",
+        "credential",
+        "token",
+        "not logged",
+        "auth",
+    ]
+    .iter()
+    .any(|k| e.contains(k))
 }
 
 /// First line of an error, trimmed to a status code when one is present.
@@ -145,9 +191,15 @@ mod tests {
 
     #[test]
     fn shortens_errors() {
-        assert_eq!(short_error("HTTP status client error (401 Unauthorized) for url"), "401");
+        assert_eq!(
+            short_error("HTTP status client error (401 Unauthorized) for url"),
+            "401"
+        );
         assert_eq!(short_error("dns failed\nmore"), "dns failed");
         assert!(is_auth_error("no credentials for gitlab.com"));
-        assert_eq!(sign_in_hint(ProviderKind::Azure), "Sign in again with `az login`");
+        assert_eq!(
+            sign_in_hint(ProviderKind::Azure),
+            "Sign in again with `az login`"
+        );
     }
 }

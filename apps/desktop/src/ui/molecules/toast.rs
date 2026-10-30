@@ -27,11 +27,20 @@ pub struct Toast {
 
 impl Toast {
     pub fn new(title: impl Into<SharedString>) -> Self {
-        Self { title: title.into(), description: None, variant: ToastVariant::default(), action: None }
+        Self {
+            title: title.into(),
+            description: None,
+            variant: ToastVariant::default(),
+            action: None,
+        }
     }
 
     /// A trailing text button such as "Undo".
-    pub fn action(mut self, label: impl Into<SharedString>, f: impl Fn(&gpui::ClickEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn action(
+        mut self,
+        label: impl Into<SharedString>,
+        f: impl Fn(&gpui::ClickEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.action = Some((label.into(), Box::new(f)));
         self
     }
@@ -75,7 +84,12 @@ impl RenderOnce for Toast {
                     .flex_col()
                     .gap(theme::SPACE_0P5)
                     .child(div().font_weight(theme::WEIGHT_MEDIUM).child(self.title))
-                    .children(self.description.map(|d| div().text_size(theme::text_xs()).text_color(theme::text_muted()).child(d))),
+                    .children(self.description.map(|d| {
+                        div()
+                            .text_size(theme::text_xs())
+                            .text_color(theme::text_muted())
+                            .child(d)
+                    })),
             )
             .children(self.action.map(|(label, f)| {
                 div()
@@ -119,6 +133,12 @@ impl RenderOnce for Toaster {
             .flex_col()
             .items_end()
             .gap(theme::SPACE_2)
-            .children(self.toasts.into_iter().enumerate().map(|(i, t)| if i + 1 == n { motion::pop_in(div().child(t), ("toast", n)) } else { t.into_any_element() }))
+            .children(self.toasts.into_iter().enumerate().map(|(i, t)| {
+                if i + 1 == n {
+                    motion::pop_in(div().child(t), ("toast", n))
+                } else {
+                    t.into_any_element()
+                }
+            }))
     }
 }

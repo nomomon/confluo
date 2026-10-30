@@ -21,7 +21,10 @@ impl GitViewer {
 
     /// The highlight restored from settings; never opens the detail pane.
     pub(crate) fn restored_cursor(&self) -> Option<ChangeRequestId> {
-        self.settings.last_selected.as_deref().and_then(ChangeRequestId::parse_key)
+        self.settings
+            .last_selected
+            .as_deref()
+            .and_then(ChangeRequestId::parse_key)
     }
 }
 

@@ -30,7 +30,9 @@ fn table() -> &'static Mutex<BTreeMap<(String, String), Stat>> {
 
 pub(crate) fn record(host: &str, endpoint: &str, o: Outcome) {
     let mut t = table().lock().unwrap_or_else(|e| e.into_inner());
-    let s = t.entry((host.to_string(), endpoint.to_string())).or_default();
+    let s = t
+        .entry((host.to_string(), endpoint.to_string()))
+        .or_default();
     match o {
         Outcome::Sent => s.sent += 1,
         Outcome::NotModified => s.not_modified += 1,
@@ -56,10 +58,21 @@ pub fn stats_summary() -> String {
         hosts.entry(h).or_default().push((e, *s));
     }
     let mut out = String::from("HTTP requests\n");
-    let total: u32 = t.values().map(|s| s.sent + s.not_modified + s.limited).sum();
+    let total: u32 = t
+        .values()
+        .map(|s| s.sent + s.not_modified + s.limited)
+        .sum();
     for (h, mut eps) in hosts {
-        eps.sort_by_key(|(e, s)| (std::cmp::Reverse(s.sent + s.not_modified + s.limited), e.to_string()));
-        let n: u32 = eps.iter().map(|(_, s)| s.sent + s.not_modified + s.limited).sum();
+        eps.sort_by_key(|(e, s)| {
+            (
+                std::cmp::Reverse(s.sent + s.not_modified + s.limited),
+                e.to_string(),
+            )
+        });
+        let n: u32 = eps
+            .iter()
+            .map(|(_, s)| s.sent + s.not_modified + s.limited)
+            .sum();
         out.push_str(&format!("  {h}: {n}\n"));
         for (e, s) in eps {
             let mut extra = vec![];
@@ -72,8 +85,15 @@ pub fn stats_summary() -> String {
             if s.blocked > 0 {
                 extra.push(format!("{} held back", s.blocked));
             }
-            let extra = if extra.is_empty() { String::new() } else { format!(" ({})", extra.join(", ")) };
-            out.push_str(&format!("    {:>4}  {e}{extra}\n", s.sent + s.not_modified + s.limited));
+            let extra = if extra.is_empty() {
+                String::new()
+            } else {
+                format!(" ({})", extra.join(", "))
+            };
+            out.push_str(&format!(
+                "    {:>4}  {e}{extra}\n",
+                s.sent + s.not_modified + s.limited
+            ));
         }
     }
     out.push_str(&format!("  total: {total}\n"));
@@ -119,9 +139,21 @@ mod tests {
 
     #[test]
     fn labels_collapse_ids() {
-        assert_eq!(l("https://gitlab.com/api/v4/projects/g%2Fp/merge_requests/12/reviewers"), "/api/v4/projects/:project/merge_requests/:n/reviewers");
-        assert_eq!(l("https://api.github.com/repos/a/b/pulls/3/files?page=1"), "/repos/:owner/:repo/pulls/:n/files");
-        assert_eq!(l("https://gitlab.com/api/v4/merge_requests?scope=all"), "/api/v4/merge_requests");
-        assert_eq!(l("https://avatars.githubusercontent.com/u/123?v=4"), "/u/:n");
+        assert_eq!(
+            l("https://gitlab.com/api/v4/projects/g%2Fp/merge_requests/12/reviewers"),
+            "/api/v4/projects/:project/merge_requests/:n/reviewers"
+        );
+        assert_eq!(
+            l("https://api.github.com/repos/a/b/pulls/3/files?page=1"),
+            "/repos/:owner/:repo/pulls/:n/files"
+        );
+        assert_eq!(
+            l("https://gitlab.com/api/v4/merge_requests?scope=all"),
+            "/api/v4/merge_requests"
+        );
+        assert_eq!(
+            l("https://avatars.githubusercontent.com/u/123?v=4"),
+            "/u/:n"
+        );
     }
 }

@@ -46,7 +46,8 @@ pub fn parse_sums(text: &str, file: &str) -> Option<String> {
         let hash = parts.next()?;
         // `*name` marks binary mode in sha256sum output.
         let name = parts.next()?.trim_start_matches('*');
-        (name == file && hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit())).then(|| hash.to_ascii_lowercase())
+        (name == file && hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit()))
+            .then(|| hash.to_ascii_lowercase())
     })
 }
 
@@ -58,8 +59,14 @@ mod tests {
 
     #[test]
     fn parses_checksums() {
-        let text = format!("{} *Confluo-0.2.0.dmg\n{H}  Confluo-0.2.0-macos.zip\n", "0".repeat(64));
-        assert_eq!(parse_sums(&text, "Confluo-0.2.0-macos.zip"), Some(H.to_ascii_lowercase()));
+        let text = format!(
+            "{} *Confluo-0.2.0.dmg\n{H}  Confluo-0.2.0-macos.zip\n",
+            "0".repeat(64)
+        );
+        assert_eq!(
+            parse_sums(&text, "Confluo-0.2.0-macos.zip"),
+            Some(H.to_ascii_lowercase())
+        );
         assert_eq!(parse_sums(&text, "Confluo-0.2.0.dmg"), Some("0".repeat(64)));
         assert_eq!(parse_sums(&text, "missing.zip"), None);
         assert_eq!(parse_sums("abc  Confluo.zip", "Confluo.zip"), None);

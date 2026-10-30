@@ -7,8 +7,14 @@ use std::collections::HashMap;
 impl Store {
     pub fn set_viewed(&self, pr: &str, path: &str, fp: Option<&str>) -> StoreResult<()> {
         match fp {
-            Some(fp) => self.c().execute("INSERT OR REPLACE INTO viewed(pr, path, fp) VALUES (?1, ?2, ?3)", params![pr, path, fp])?,
-            None => self.c().execute("DELETE FROM viewed WHERE pr=?1 AND path=?2", params![pr, path])?,
+            Some(fp) => self.c().execute(
+                "INSERT OR REPLACE INTO viewed(pr, path, fp) VALUES (?1, ?2, ?3)",
+                params![pr, path, fp],
+            )?,
+            None => self.c().execute(
+                "DELETE FROM viewed WHERE pr=?1 AND path=?2",
+                params![pr, path],
+            )?,
         };
         Ok(())
     }

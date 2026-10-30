@@ -28,7 +28,13 @@ pub struct Tabs {
 
 impl Tabs {
     pub fn new(id: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), items: vec![], variant: TabsVariant::default(), on_select: None, progress: None }
+        Self {
+            id: id.into(),
+            items: vec![],
+            variant: TabsVariant::default(),
+            on_select: None,
+            progress: None,
+        }
     }
 
     /// Append a tab; `active` marks the selected one. The label can be any element.
@@ -61,32 +67,81 @@ impl RenderOnce for Tabs {
         let v = self.variant;
         let row = div().flex().flex_shrink_0().items_center();
         let row = match v {
-            TabsVariant::Pill => row.h(theme::control_h()).p(theme::SPACE_0P5).gap(theme::SPACE_0P5).rounded(theme::RADIUS_MD).bg(theme::surface()).border_1().border_color(theme::border()),
-            TabsVariant::Floating => row.p(theme::SPACE_1).gap(theme::SPACE_1).rounded(theme::RADIUS_FULL).border_1().border_color(theme::border()).bg(theme::overlay()).shadow_lg(),
-            TabsVariant::Underline => row.gap(theme::SPACE_4).border_b_1().border_color(theme::border_subtle()),
+            TabsVariant::Pill => row
+                .h(theme::control_h())
+                .p(theme::SPACE_0P5)
+                .gap(theme::SPACE_0P5)
+                .rounded(theme::RADIUS_MD)
+                .bg(theme::surface())
+                .border_1()
+                .border_color(theme::border()),
+            TabsVariant::Floating => row
+                .p(theme::SPACE_1)
+                .gap(theme::SPACE_1)
+                .rounded(theme::RADIUS_FULL)
+                .border_1()
+                .border_color(theme::border())
+                .bg(theme::overlay())
+                .shadow_lg(),
+            TabsVariant::Underline => row
+                .gap(theme::SPACE_4)
+                .border_b_1()
+                .border_color(theme::border_subtle()),
         };
         let progress = self.progress;
-        row.children(self.items.into_iter().enumerate().map(|(i, (label, active))| {
-            // How selected this tab looks: 1 when active, in between while a pager moves.
-            let on_k = progress.map_or(if active { 1. } else { 0. }, |p| (1. - (p - i as f32).abs()).clamp(0., 1.));
-            let on = self.on_select.clone();
-            let tab = div()
-                .id(ElementId::Name(format!("{}-{i}", self.id).into()))
-                .flex()
-                .items_center()
-                .gap(theme::SPACE_1P5)
-                .text_size(theme::text_sm())
-                .font_weight(theme::WEIGHT_MEDIUM)
-                .cursor_pointer()
-                .text_color(if active { theme::text() } else { theme::text_muted() })
-                .hover(|s| s.text_color(theme::text()))
-                .child(label)
-                .when_some(on, |d, f| d.on_click(move |_: &ClickEvent, w, cx| f(&i, w, cx)));
-            match v {
-                TabsVariant::Pill => tab.h_full().px(theme::SPACE_3).rounded(theme::RADIUS_SM).when(active, |d| d.bg(theme::surface_active())),
-                TabsVariant::Floating => tab.px(theme::SPACE_3).py(theme::SPACE_1).rounded(theme::RADIUS_FULL).when(active, |d| d.bg(theme::surface_active())),
-                TabsVariant::Underline => tab.py(theme::SPACE_2).border_b_2().mb(px(-1.)).border_color(theme::text().opacity(on_k)).when(progress.is_some(), |d| d.text_color(if on_k > 0.5 { theme::text() } else { theme::text_muted() })),
-            }
-        }))
+        row.children(
+            self.items
+                .into_iter()
+                .enumerate()
+                .map(|(i, (label, active))| {
+                    // How selected this tab looks: 1 when active, in between while a pager moves.
+                    let on_k = progress.map_or(if active { 1. } else { 0. }, |p| {
+                        (1. - (p - i as f32).abs()).clamp(0., 1.)
+                    });
+                    let on = self.on_select.clone();
+                    let tab = div()
+                        .id(ElementId::Name(format!("{}-{i}", self.id).into()))
+                        .flex()
+                        .items_center()
+                        .gap(theme::SPACE_1P5)
+                        .text_size(theme::text_sm())
+                        .font_weight(theme::WEIGHT_MEDIUM)
+                        .cursor_pointer()
+                        .text_color(if active {
+                            theme::text()
+                        } else {
+                            theme::text_muted()
+                        })
+                        .hover(|s| s.text_color(theme::text()))
+                        .child(label)
+                        .when_some(on, |d, f| {
+                            d.on_click(move |_: &ClickEvent, w, cx| f(&i, w, cx))
+                        });
+                    match v {
+                        TabsVariant::Pill => tab
+                            .h_full()
+                            .px(theme::SPACE_3)
+                            .rounded(theme::RADIUS_SM)
+                            .when(active, |d| d.bg(theme::surface_active())),
+                        TabsVariant::Floating => tab
+                            .px(theme::SPACE_3)
+                            .py(theme::SPACE_1)
+                            .rounded(theme::RADIUS_FULL)
+                            .when(active, |d| d.bg(theme::surface_active())),
+                        TabsVariant::Underline => tab
+                            .py(theme::SPACE_2)
+                            .border_b_2()
+                            .mb(px(-1.))
+                            .border_color(theme::text().opacity(on_k))
+                            .when(progress.is_some(), |d| {
+                                d.text_color(if on_k > 0.5 {
+                                    theme::text()
+                                } else {
+                                    theme::text_muted()
+                                })
+                            }),
+                    }
+                }),
+        )
     }
 }

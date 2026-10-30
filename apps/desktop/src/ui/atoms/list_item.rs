@@ -22,7 +22,13 @@ impl ListItem for Stateful<Div> {
         self.rounded(radius)
             .cursor_pointer()
             .when(selected, |d| d.bg(theme::surface_active()))
-            .hover(|s| s.bg(if selected { theme::surface_active() } else { theme::surface_hover() }))
+            .hover(|s| {
+                s.bg(if selected {
+                    theme::surface_active()
+                } else {
+                    theme::surface_hover()
+                })
+            })
             .active(|s| s.bg(theme::surface_active()))
     }
 }

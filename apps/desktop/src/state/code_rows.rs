@@ -89,14 +89,30 @@ pub fn line_anchor(l: &DiffLine) -> Option<(DiffSide, u32)> {
 }
 
 /// Threads shown under one diff line (both sides for context lines).
-pub fn line_threads<'a>(ix: &'a InlineIndex, path: &str, l: &DiffLine) -> impl Iterator<Item = usize> + 'a {
-    let old = l.old_no.map(|n| ix.at(path, DiffSide::Old, n)).unwrap_or(&[]);
-    let new = l.new_no.map(|n| ix.at(path, DiffSide::New, n)).unwrap_or(&[]);
+pub fn line_threads<'a>(
+    ix: &'a InlineIndex,
+    path: &str,
+    l: &DiffLine,
+) -> impl Iterator<Item = usize> + 'a {
+    let old = l
+        .old_no
+        .map(|n| ix.at(path, DiffSide::Old, n))
+        .unwrap_or(&[]);
+    let new = l
+        .new_no
+        .map(|n| ix.at(path, DiffSide::New, n))
+        .unwrap_or(&[]);
     old.iter().chain(new.iter()).copied()
 }
 
 /// Rows of one file given its collapse state.
-pub fn file_rows(fi: usize, f: &ChangedFile, collapsed: bool, show_large: bool, inline: InlineRows) -> Vec<Row> {
+pub fn file_rows(
+    fi: usize,
+    f: &ChangedFile,
+    collapsed: bool,
+    show_large: bool,
+    inline: InlineRows,
+) -> Vec<Row> {
     let mut rows = vec![Row::Header(fi)];
     if !collapsed {
         let lines = f.line_count();
@@ -116,7 +132,10 @@ pub fn file_rows(fi: usize, f: &ChangedFile, collapsed: bool, show_large: bool, 
                     if let Some(ix) = inline.index {
                         rows.extend(line_threads(ix, f.path(), l).map(|t| Row::Thread(fi, t)));
                     }
-                    if inline.draft.is_some_and(|(df, side, n)| df == fi && line_anchor(l) == Some((side, n))) {
+                    if inline
+                        .draft
+                        .is_some_and(|(df, side, n)| df == fi && line_anchor(l) == Some((side, n)))
+                    {
                         rows.push(Row::Composer(fi));
                     }
                 };
@@ -134,7 +153,11 @@ pub fn file_rows(fi: usize, f: &ChangedFile, collapsed: bool, show_large: bool, 
                     }
                 }
             }
-            if let Some(old) = inline.index.and_then(|ix| ix.outdated.get(f.path())).filter(|o| !o.is_empty()) {
+            if let Some(old) = inline
+                .index
+                .and_then(|ix| ix.outdated.get(f.path()))
+                .filter(|o| !o.is_empty())
+            {
                 rows.push(Row::Outdated(fi, old.len()));
                 rows.extend(old.iter().map(|t| Row::Thread(fi, *t)));
             }
@@ -145,12 +168,23 @@ pub fn file_rows(fi: usize, f: &ChangedFile, collapsed: bool, show_large: bool, 
 }
 
 /// All rows plus the index of each file's header row.
-pub fn build_rows(files: &[ChangedFile], collapsed: &HashSet<usize>, shown_large: &HashSet<usize>, inline: InlineRows) -> (Vec<Row>, Vec<usize>) {
+pub fn build_rows(
+    files: &[ChangedFile],
+    collapsed: &HashSet<usize>,
+    shown_large: &HashSet<usize>,
+    inline: InlineRows,
+) -> (Vec<Row>, Vec<usize>) {
     let mut rows = vec![];
     let mut starts = vec![];
     for (fi, f) in files.iter().enumerate() {
         starts.push(rows.len());
-        rows.extend(file_rows(fi, f, collapsed.contains(&fi), shown_large.contains(&fi), inline));
+        rows.extend(file_rows(
+            fi,
+            f,
+            collapsed.contains(&fi),
+            shown_large.contains(&fi),
+            inline,
+        ));
     }
     (rows, starts)
 }
@@ -184,17 +218,41 @@ mod tests {
 
     fn file(lines: usize) -> ChangedFile {
         let body: String = (0..lines).map(|i| format!("+l{i}\n")).collect();
-        ChangedFile::from_patch("a", "a", FileStatus::Added, &format!("@@ -0,0 +1,{lines} @@\n{body}"))
+        ChangedFile::from_patch(
+            "a",
+            "a",
+            FileStatus::Added,
+            &format!("@@ -0,0 +1,{lines} @@\n{body}"),
+        )
     }
 
     #[test]
     fn rows_for_files() {
         let files = vec![file(2), file(LARGE_FILE_LINES + 1)];
-        let (rows, starts) = build_rows(&files, &HashSet::new(), &HashSet::new(), InlineRows::default());
+        let (rows, starts) = build_rows(
+            &files,
+            &HashSet::new(),
+            &HashSet::new(),
+            InlineRows::default(),
+        );
         assert_eq!(starts, vec![0, 5]);
-        assert_eq!(rows[..5], [Row::Header(0), Row::Hunk(0, 0), Row::Line(0, 0, 0), Row::Line(0, 0, 1), Row::End(0)]);
+        assert_eq!(
+            rows[..5],
+            [
+                Row::Header(0),
+                Row::Hunk(0, 0),
+                Row::Line(0, 0, 0),
+                Row::Line(0, 0, 1),
+                Row::End(0)
+            ]
+        );
         assert_eq!(rows[6], Row::Notice(1, Notice::Large(LARGE_FILE_LINES + 1)));
-        let (rows, _) = build_rows(&files, &HashSet::from([0]), &HashSet::from([1]), InlineRows::default());
+        let (rows, _) = build_rows(
+            &files,
+            &HashSet::from([0]),
+            &HashSet::from([1]),
+            InlineRows::default(),
+        );
         assert_eq!(rows[..2], [Row::Header(0), Row::End(0)]);
         assert_eq!(rows.len(), 2 + 1 + 1 + LARGE_FILE_LINES + 1 + 1);
         assert!(patch_text(&files[..1]).contains("+l1\n"));
@@ -208,11 +266,25 @@ mod tests {
         gone.position = Some(gv_engine::DiffPosition::new("a", DiffSide::New, 99));
         let files = vec![file(2)];
         let ix = gv_engine::index_inline_threads(&[t, gone], &files);
-        let inline = InlineRows { index: Some(&ix), draft: Some((0, DiffSide::New, 1)), split: false };
+        let inline = InlineRows {
+            index: Some(&ix),
+            draft: Some((0, DiffSide::New, 1)),
+            split: false,
+        };
         let (rows, _) = build_rows(&files, &HashSet::new(), &HashSet::new(), inline);
         assert_eq!(
             rows,
-            [Row::Header(0), Row::Hunk(0, 0), Row::Line(0, 0, 0), Row::Composer(0), Row::Line(0, 0, 1), Row::Thread(0, 0), Row::Outdated(0, 1), Row::Thread(0, 1), Row::End(0)]
+            [
+                Row::Header(0),
+                Row::Hunk(0, 0),
+                Row::Line(0, 0, 0),
+                Row::Composer(0),
+                Row::Line(0, 0, 1),
+                Row::Thread(0, 0),
+                Row::Outdated(0, 1),
+                Row::Thread(0, 1),
+                Row::End(0)
+            ]
         );
     }
 }

@@ -26,18 +26,40 @@ impl Engine {
         std::fs::create_dir_all(&dir)?;
         let engine = Self::open_with(&dir.join("cache.db"), vec![gv_demo::GITLAB.into()])?;
         {
-            let mut map = engine.providers.try_lock().expect("new engine is not shared");
-            for (kind, host) in [(crate::ProviderKind::GitHub, gv_demo::GITHUB), (crate::ProviderKind::GitLab, gv_demo::GITLAB)] {
-                map.insert((kind, host.into()), Arc::new(gv_demo::DemoProvider::new(kind, host)));
+            let mut map = engine
+                .providers
+                .try_lock()
+                .expect("new engine is not shared");
+            for (kind, host) in [
+                (crate::ProviderKind::GitHub, gv_demo::GITHUB),
+                (crate::ProviderKind::GitLab, gv_demo::GITLAB),
+            ] {
+                map.insert(
+                    (kind, host.into()),
+                    Arc::new(gv_demo::DemoProvider::new(kind, host)),
+                );
             }
         }
         for (name, kind, host, group) in gv_demo::PROJECTS {
-            engine.add_source(name, Source::Group { provider: *kind, host: (*host).into(), path: (*group).into() })?;
+            engine.add_source(
+                name,
+                Source::Group {
+                    provider: *kind,
+                    host: (*host).into(),
+                    path: (*group).into(),
+                },
+            )?;
         }
         // Seed the cache so the first frame (and dev hooks such as `CONFLUO_OPEN`) see the PRs.
-        engine.store.upsert_change_requests(&gv_demo::change_requests())?;
+        engine
+            .store
+            .upsert_change_requests(&gv_demo::change_requests())?;
         for host in [gv_demo::GITHUB, gv_demo::GITLAB] {
-            let kind = if host == gv_demo::GITHUB { crate::ProviderKind::GitHub } else { crate::ProviderKind::GitLab };
+            let kind = if host == gv_demo::GITHUB {
+                crate::ProviderKind::GitHub
+            } else {
+                crate::ProviderKind::GitLab
+            };
             engine.remember_me(kind, host, gv_demo::ME);
         }
         Ok(engine)

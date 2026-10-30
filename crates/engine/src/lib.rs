@@ -20,12 +20,12 @@ mod quiet;
 mod review;
 
 pub use avatars::small_avatar_url;
-pub use extras::viewed_paths;
 pub use bot_settings::{bot_filter_from_settings, stale_days_from_settings};
 pub use demo::demo_mode;
-pub use quiet::Listing;
+pub use extras::viewed_paths;
 pub use gv_core::*;
 pub use gv_store::{Project, RepoOverride, Source};
+pub use quiet::Listing;
 
 /// Group repo listings are re-resolved at most this often (the group MR query covers new repos).
 const GROUP_REPOS_TTL: chrono::Duration = chrono::Duration::hours(6);
@@ -93,11 +93,17 @@ struct InFlight<'a>(&'a Mutex<BTreeSet<String>>, String);
 
 impl Drop for InFlight<'_> {
     fn drop(&mut self) {
-        self.0.lock().unwrap_or_else(|e| e.into_inner()).remove(&self.1);
+        self.0
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&self.1);
     }
 }
 
-fn later(a: Option<chrono::DateTime<Utc>>, b: chrono::DateTime<Utc>) -> Option<chrono::DateTime<Utc>> {
+fn later(
+    a: Option<chrono::DateTime<Utc>>,
+    b: chrono::DateTime<Utc>,
+) -> Option<chrono::DateTime<Utc>> {
     Some(a.map_or(b, |a| a.max(b)))
 }
 
@@ -112,7 +118,9 @@ pub fn data_dir() -> PathBuf {
     let base = if cfg!(target_os = "macos") {
         home.join("Library/Application Support")
     } else {
-        std::env::var("XDG_DATA_HOME").map(PathBuf::from).unwrap_or_else(|_| home.join(".local/share"))
+        std::env::var("XDG_DATA_HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| home.join(".local/share"))
     };
     let dir = base.join("Confluo");
     migrate_legacy_dir(&base.join("git-viewer"), &dir);
@@ -158,11 +166,17 @@ mod data_dir_tests {
         std::fs::create_dir_all(&old).unwrap();
         std::fs::write(old.join("settings.json"), "{}").unwrap();
         migrate_legacy_dir(&old, &new);
-        assert_eq!(std::fs::read_to_string(new.join("settings.json")).unwrap(), "{}");
+        assert_eq!(
+            std::fs::read_to_string(new.join("settings.json")).unwrap(),
+            "{}"
+        );
         assert!(old.join("settings.json").exists());
         std::fs::write(old.join("settings.json"), "changed").unwrap();
         migrate_legacy_dir(&old, &new);
-        assert_eq!(std::fs::read_to_string(new.join("settings.json")).unwrap(), "{}");
+        assert_eq!(
+            std::fs::read_to_string(new.join("settings.json")).unwrap(),
+            "{}"
+        );
         let _ = std::fs::remove_dir_all(&root);
     }
 }
@@ -213,7 +227,12 @@ impl Engine {
         }
         // A failed sign-in (e.g. an expired `az login`) is not retried on every call: the CLI is
         // slow and the answer will not change until the user signs in again.
-        if let Some((at, msg)) = self.auth_failed.lock().unwrap_or_else(|e| e.into_inner()).get(&key) {
+        if let Some((at, msg)) = self
+            .auth_failed
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&key)
+        {
             if at.elapsed() < AUTH_RETRY {
                 bail!("{msg}");
             }
@@ -221,13 +240,21 @@ impl Engine {
         let cred = match self.creds.get(kind, host).await {
             Ok(c) => c,
             Err(e) => {
-                self.auth_failed.lock().unwrap_or_else(|e| e.into_inner()).insert(key, (Instant::now(), e.to_string()));
+                self.auth_failed
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .insert(key, (Instant::now(), e.to_string()));
                 return Err(e.into());
             }
         };
-        self.auth_failed.lock().unwrap_or_else(|e| e.into_inner()).remove(&key);
+        self.auth_failed
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&key);
         let p: Arc<dyn Provider> = match kind {
-            ProviderKind::GitHub => Arc::new(gv_provider_github::GitHubProvider::new(host, cred.token)),
+            ProviderKind::GitHub => {
+                Arc::new(gv_provider_github::GitHubProvider::new(host, cred.token))
+            }
             ProviderKind::GitLab => Arc::new(gv_provider_gitlab::GitLabProvider::new(host, cred)),
             ProviderKind::Azure => Arc::new(gv_provider_azure::AzureProvider::new(host, cred)),
         };
@@ -243,7 +270,12 @@ impl Engine {
         let mut orgs: BTreeSet<String> = BTreeSet::new();
         for p in self.store.projects().unwrap_or_default() {
             for s in &p.sources {
-                if let Source::Group { provider: ProviderKind::Azure, path, .. } = s {
+                if let Source::Group {
+                    provider: ProviderKind::Azure,
+                    path,
+                    ..
+                } = s
+                {
                     orgs.extend(path.split('/').next().map(str::to_string));
                 }
             }
@@ -263,17 +295,28 @@ impl Engine {
     }
 
     fn remember_me(&self, kind: ProviderKind, host: &str, username: &str) {
-        self.me_cache.lock().unwrap_or_else(|e| e.into_inner()).insert((kind, host.to_ascii_lowercase()), username.to_string());
+        self.me_cache
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert((kind, host.to_ascii_lowercase()), username.to_string());
         let _ = self.store.set_meta(&format!("me:{kind}:{host}"), username);
     }
 
     /// Cached username on a host, if a previous call to the provider learned it.
     pub fn me(&self, kind: ProviderKind, host: &str) -> Option<String> {
         let key = (kind, host.to_ascii_lowercase());
-        if let Some(u) = self.me_cache.lock().unwrap_or_else(|e| e.into_inner()).get(&key) {
+        if let Some(u) = self
+            .me_cache
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&key)
+        {
             return Some(u.clone());
         }
-        self.store.get_meta(&format!("me:{kind}:{host}")).ok().flatten()
+        self.store
+            .get_meta(&format!("me:{kind}:{host}"))
+            .ok()
+            .flatten()
     }
 
     /// Hosts that are queried for "involving me": github.com, glab hosts, plus hosts seen in projects.
@@ -300,7 +343,9 @@ impl Engine {
     }
 
     pub fn project(&self, name: &str) -> Result<Project> {
-        self.store.project_by_name(name)?.ok_or_else(|| anyhow!("no project named {name:?}"))
+        self.store
+            .project_by_name(name)?
+            .ok_or_else(|| anyhow!("no project named {name:?}"))
     }
 
     /// Create a project if missing and return it.
@@ -314,8 +359,12 @@ impl Engine {
     /// Add a source to a project (creating the project if needed). Validates the source.
     pub fn add_source(&self, project: &str, source: Source) -> Result<Project> {
         match &source {
-            Source::Folder { path, .. } if !path.is_dir() => bail!("{} is not a directory", path.display()),
-            Source::Repo { url } if self.parse_repo_url(url).is_none() => bail!("cannot recognise repo URL {url}"),
+            Source::Folder { path, .. } if !path.is_dir() => {
+                bail!("{} is not a directory", path.display())
+            }
+            Source::Repo { url } if self.parse_repo_url(url).is_none() => {
+                bail!("cannot recognise repo URL {url}")
+            }
             _ => {}
         }
         let p = self.ensure_project(project)?;
@@ -359,17 +408,29 @@ impl Engine {
 
     /// Resolve a project's sources to concrete repos (scan folders, expand groups) and cache the result.
     pub async fn resolve_project_repos(&self, project_id: i64) -> Result<Vec<RepoRef>> {
-        let p = self.store.projects()?.into_iter().find(|p| p.id == project_id).ok_or_else(|| anyhow!("no project {project_id}"))?;
+        let p = self
+            .store
+            .projects()?
+            .into_iter()
+            .find(|p| p.id == project_id)
+            .ok_or_else(|| anyhow!("no project {project_id}"))?;
         let mut repos: BTreeSet<RepoRef> = BTreeSet::new();
         for s in &p.sources {
             match s {
                 Source::Folder { path, depth } => {
                     let (path, depth, hosts) = (path.clone(), *depth, self.gitlab_hosts.clone());
-                    let found = tokio::task::spawn_blocking(move || gv_discovery::discover_repos(&path, depth, &hosts)).await?;
+                    let found = tokio::task::spawn_blocking(move || {
+                        gv_discovery::discover_repos(&path, depth, &hosts)
+                    })
+                    .await?;
                     repos.extend(found.into_iter().map(|(_, r)| r));
                 }
                 Source::Repo { url } => repos.extend(self.parse_repo_url(url)),
-                Source::Group { provider, host, path } => {
+                Source::Group {
+                    provider,
+                    host,
+                    path,
+                } => {
                     let prov = self.provider(*provider, host).await?;
                     repos.extend(prov.list_repos(path).await?);
                 }
@@ -377,7 +438,9 @@ impl Engine {
         }
         let repos: Vec<RepoRef> = repos.into_iter().collect();
         self.store.set_project_repos(project_id, &repos)?;
-        let _ = self.store.set_meta(&resolved_key(project_id), &Utc::now().to_rfc3339());
+        let _ = self
+            .store
+            .set_meta(&resolved_key(project_id), &Utc::now().to_rfc3339());
         Ok(repos)
     }
 
@@ -385,7 +448,12 @@ impl Engine {
     /// Folder-only projects are always rescanned (local, no requests).
     async fn project_repos_cached(&self, p: &Project) -> Result<Vec<RepoRef>> {
         let has_group = p.sources.iter().any(|s| matches!(s, Source::Group { .. }));
-        let resolved = self.store.get_meta(&resolved_key(p.id)).ok().flatten().and_then(|v| chrono::DateTime::parse_from_rfc3339(&v).ok());
+        let resolved = self
+            .store
+            .get_meta(&resolved_key(p.id))
+            .ok()
+            .flatten()
+            .and_then(|v| chrono::DateTime::parse_from_rfc3339(&v).ok());
         if has_group {
             if let Some(t) = resolved {
                 if Utc::now() - t.with_timezone(&Utc) < GROUP_REPOS_TTL {
@@ -409,8 +477,16 @@ impl Engine {
     /// `updated_at` moved (or whose checks were still running).
     pub async fn refresh(&self, target: RefreshTarget) -> Result<RefreshReport> {
         let key = refresh_key(&target);
-        if !self.in_flight.lock().unwrap_or_else(|e| e.into_inner()).insert(key.clone()) {
-            return Ok(RefreshReport { coalesced: true, ..Default::default() });
+        if !self
+            .in_flight
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(key.clone())
+        {
+            return Ok(RefreshReport {
+                coalesced: true,
+                ..Default::default()
+            });
         }
         let _in_flight = InFlight(&self.in_flight, key);
         let started = Utc::now();
@@ -420,11 +496,18 @@ impl Engine {
         match &target {
             RefreshTarget::InvolvingMe => {
                 for (k, h) in self.known_hosts() {
-                    plan.entry((k, h.clone())).or_default().push(Scope::InvolvingMe { kind: k, host: h });
+                    plan.entry((k, h.clone()))
+                        .or_default()
+                        .push(Scope::InvolvingMe { kind: k, host: h });
                 }
             }
             RefreshTarget::Project(id) => {
-                let p = self.store.projects()?.into_iter().find(|p| p.id == *id).ok_or_else(|| anyhow!("no project {id}"))?;
+                let p = self
+                    .store
+                    .projects()?
+                    .into_iter()
+                    .find(|p| p.id == *id)
+                    .ok_or_else(|| anyhow!("no project {id}"))?;
                 let repos = match self.project_repos_cached(&p).await {
                     Ok(r) => r,
                     Err(e) => match e.downcast_ref::<ProviderError>() {
@@ -438,7 +521,9 @@ impl Engine {
                                 .sources
                                 .iter()
                                 .find_map(|s| match s {
-                                    Source::Group { host, path, .. } => Some(format!("{host}/{path}")),
+                                    Source::Group { host, path, .. } => {
+                                        Some(format!("{host}/{path}"))
+                                    }
                                     _ => None,
                                 })
                                 .unwrap_or_else(|| p.name.clone());
@@ -448,35 +533,59 @@ impl Engine {
                     },
                 };
                 // Hosts that just failed to resolve are not asked again in this refresh.
-                let failed_hosts: Vec<String> = report.errors.iter().filter_map(|(l, _)| l.split('/').next().map(str::to_string)).collect();
+                let failed_hosts: Vec<String> = report
+                    .errors
+                    .iter()
+                    .filter_map(|(l, _)| l.split('/').next().map(str::to_string))
+                    .collect();
                 let groups: Vec<(ProviderKind, String, String)> = p
                     .sources
                     .iter()
                     .filter_map(|s| match s {
-                        Source::Group { provider, host, path } => Some((*provider, host.clone(), path.clone())),
+                        Source::Group {
+                            provider,
+                            host,
+                            path,
+                        } => Some((*provider, host.clone(), path.clone())),
                         _ => None,
                     })
                     .collect();
                 for (k, h, g) in groups.iter().filter(|(_, h, _)| !failed_hosts.contains(h)) {
-                    plan.entry((*k, h.clone())).or_default().push(Scope::Group { kind: *k, host: h.clone(), owner: g.clone() });
+                    plan.entry((*k, h.clone())).or_default().push(Scope::Group {
+                        kind: *k,
+                        host: h.clone(),
+                        owner: g.clone(),
+                    });
                 }
-                for r in repos.into_iter().filter(|r| !failed_hosts.contains(&r.host)) {
-                    let covered = groups.iter().any(|(k, h, g)| *k == r.kind && *h == r.host && r.path.starts_with(&format!("{g}/")));
+                for r in repos
+                    .into_iter()
+                    .filter(|r| !failed_hosts.contains(&r.host))
+                {
+                    let covered = groups.iter().any(|(k, h, g)| {
+                        *k == r.kind && *h == r.host && r.path.starts_with(&format!("{g}/"))
+                    });
                     if !covered {
-                        plan.entry((r.kind, r.host.clone())).or_default().push(Scope::Repo(r));
+                        plan.entry((r.kind, r.host.clone()))
+                            .or_default()
+                            .push(Scope::Repo(r));
                     }
                 }
             }
         }
         // Hosts in a rate limit pause are not contacted at all.
-        plan.retain(|(_, host), _| match gv_http::governor(host).paused_until() {
-            Some(t) => {
-                report.paused_until = later(report.paused_until, t);
-                false
-            }
-            None => true,
-        });
-        let filter = Filter { involvement: Involvement::All, state: StateFilter::Active };
+        plan.retain(
+            |(_, host), _| match gv_http::governor(host).paused_until() {
+                Some(t) => {
+                    report.paused_until = later(report.paused_until, t);
+                    false
+                }
+                None => true,
+            },
+        );
+        let filter = Filter {
+            involvement: Involvement::All,
+            state: StateFilter::Active,
+        };
         let jobs = plan.into_iter().map(|((kind, host), scopes)| async move {
             let prov = match self.provider(kind, &host).await {
                 Ok(p) => p,
@@ -492,7 +601,13 @@ impl Engine {
                 .list_many(scopes, &filter)
                 .await
                 .into_iter()
-                .map(|(scope, r)| (scope_label(&scope), Some(scope), r.map_err(anyhow::Error::from)))
+                .map(|(scope, r)| {
+                    (
+                        scope_label(&scope),
+                        Some(scope),
+                        r.map_err(anyhow::Error::from),
+                    )
+                })
                 .collect::<Vec<_>>();
             (Some(prov), results)
         });
@@ -504,7 +619,9 @@ impl Engine {
                 match (scope, r) {
                     (Some(scope), Ok(items)) => ok.push((scope, items)),
                     (_, Err(e)) => match e.downcast_ref::<ProviderError>() {
-                        Some(ProviderError::RateLimited { until, .. }) => report.paused_until = later(report.paused_until, *until),
+                        Some(ProviderError::RateLimited { until, .. }) => {
+                            report.paused_until = later(report.paused_until, *until)
+                        }
                         _ => report.errors.push((label, format!("{e:#}"))),
                     },
                     (None, Ok(_)) => {}
@@ -530,14 +647,20 @@ impl Engine {
             }
         }
         if (report.errors.is_empty() && report.paused_until.is_none()) || report.fetched > 0 {
-            let _ = self.store.set_meta(&refresh_key(&target), &Utc::now().to_rfc3339());
+            let _ = self
+                .store
+                .set_meta(&refresh_key(&target), &Utc::now().to_rfc3339());
         }
         Ok(report)
     }
 
     /// Carry cached reviewer states and checks onto unchanged items; enrich the rest.
     /// Returns how many were enriched and the end of a rate limit pause, if one hit.
-    async fn enrich_changed(&self, prov: &dyn Provider, batches: &mut [(Scope, Vec<ChangeRequest>)]) -> (usize, Option<chrono::DateTime<Utc>>) {
+    async fn enrich_changed(
+        &self,
+        prov: &dyn Provider,
+        batches: &mut [(Scope, Vec<ChangeRequest>)],
+    ) -> (usize, Option<chrono::DateTime<Utc>>) {
         let me = self.me(prov.kind(), prov.host());
         // Hidden bot PRs are not worth requests; their detail view fetches what it needs.
         let bots = bot_filter_from_settings();
@@ -550,7 +673,9 @@ impl Engine {
                 let fresh = marker.as_deref() == Some(prov.enrich_marker(cr).as_str());
                 let reviewers = prov.enrich_fills_reviewers();
                 match cached {
-                    Some(c) if fresh && c.checks.pending == 0 => carry_enrichment(cr, &c, me.as_deref(), reviewers),
+                    Some(c) if fresh && c.checks.pending == 0 => {
+                        carry_enrichment(cr, &c, me.as_deref(), reviewers)
+                    }
                     cached => {
                         // Until the new data arrives, stale enrichment beats none.
                         if let Some(c) = cached {
@@ -571,7 +696,9 @@ impl Engine {
         for (orig, r) in todo.iter().zip(prov.enrich(todo.clone()).await) {
             match r {
                 Ok(e) => {
-                    let _ = self.store.set_meta(&enrich_key(&e.id), &prov.enrich_marker(orig));
+                    let _ = self
+                        .store
+                        .set_meta(&enrich_key(&e.id), &prov.enrich_marker(orig));
                     done.insert(e.id.clone(), e);
                 }
                 Err(ProviderError::RateLimited { until, .. }) => paused = later(paused, until),
@@ -601,7 +728,9 @@ impl Engine {
     /// When `target` last refreshed successfully (persisted in the cache).
     pub fn last_refreshed(&self, target: &RefreshTarget) -> Option<chrono::DateTime<Utc>> {
         let v = self.store.get_meta(&refresh_key(target)).ok().flatten()?;
-        chrono::DateTime::parse_from_rfc3339(&v).ok().map(|t| t.with_timezone(&Utc))
+        chrono::DateTime::parse_from_rfc3339(&v)
+            .ok()
+            .map(|t| t.with_timezone(&Utc))
     }
 
     // ---------- queries ----------
@@ -630,7 +759,9 @@ impl Engine {
             needs_you_only: q.needs_you_only,
             include_hidden: false,
         })?;
-        let (hidden, shown): (Vec<_>, Vec<_>) = dedupe_by_id(items).into_iter().partition(|c| q.bots.hides(c));
+        let (hidden, shown): (Vec<_>, Vec<_>) = dedupe_by_id(items)
+            .into_iter()
+            .partition(|c| q.bots.hides(c));
         Ok((shown, hidden.len()))
     }
 
@@ -649,8 +780,17 @@ impl Engine {
     /// Fetch full detail from the provider and cache it. Falls back to the cache on network errors when `allow_stale`.
     /// A detail fetched within `DETAIL_FRESH` is served from the cache; when the host is rate
     /// limited the cached detail is returned if there is one.
-    pub async fn detail(&self, id: &ChangeRequestId, allow_stale: bool) -> Result<ChangeRequestDetail> {
-        let recent = self.detail_fetched.lock().unwrap_or_else(|e| e.into_inner()).get(id).is_some_and(|t| t.elapsed() < DETAIL_FRESH);
+    pub async fn detail(
+        &self,
+        id: &ChangeRequestId,
+        allow_stale: bool,
+    ) -> Result<ChangeRequestDetail> {
+        let recent = self
+            .detail_fetched
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(id)
+            .is_some_and(|t| t.elapsed() < DETAIL_FRESH);
         if recent {
             if let Some(d) = self.store.get_detail(id)? {
                 return Ok(d);
@@ -667,10 +807,19 @@ impl Engine {
         match fetched {
             Ok(d) => {
                 self.store.put_detail(&d)?;
-                self.detail_fetched.lock().unwrap_or_else(|e| e.into_inner()).insert(id.clone(), Instant::now());
+                self.detail_fetched
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .insert(id.clone(), Instant::now());
                 Ok(d)
             }
-            Err(e) if allow_stale || matches!(e.downcast_ref::<ProviderError>(), Some(ProviderError::RateLimited { .. })) => {
+            Err(e)
+                if allow_stale
+                    || matches!(
+                        e.downcast_ref::<ProviderError>(),
+                        Some(ProviderError::RateLimited { .. })
+                    ) =>
+            {
                 self.store.get_detail(id)?.ok_or(e)
             }
             Err(e) => Err(e),
@@ -679,7 +828,10 @@ impl Engine {
 
     /// Drop the freshness mark so the next [`Engine::detail`] refetches.
     pub(crate) fn forget_detail(&self, id: &ChangeRequestId) {
-        self.detail_fetched.lock().unwrap_or_else(|e| e.into_inner()).remove(id);
+        self.detail_fetched
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(id);
     }
 
     pub fn cached_detail(&self, id: &ChangeRequestId) -> Result<Option<ChangeRequestDetail>> {
@@ -704,7 +856,11 @@ impl Engine {
                 return Ok(files);
             }
         }
-        let files = self.provider(id.repo.kind, &id.repo.host).await?.list_changed_files(id).await?;
+        let files = self
+            .provider(id.repo.kind, &id.repo.host)
+            .await?
+            .list_changed_files(id)
+            .await?;
         self.store.put_files(id, &sha, &files)?;
         self.apply_totals(id, &files);
         Ok(files)
@@ -712,7 +868,9 @@ impl Engine {
 
     /// Fill +a -d and the file count into the cached summary (GitLab lists carry none).
     fn apply_totals(&self, id: &ChangeRequestId, files: &[ChangedFile]) {
-        let Ok(Some(mut cr)) = self.store.get_change_request(id) else { return };
+        let Ok(Some(mut cr)) = self.store.get_change_request(id) else {
+            return;
+        };
         let (a, d) = gv_core::totals(files);
         cr.additions = Some(a);
         cr.deletions = Some(d);
@@ -721,47 +879,105 @@ impl Engine {
     }
 
     /// Whole file content at `rev` (usually the head sha).
-    pub async fn file_content(&self, id: &ChangeRequestId, path: &str, rev: &str) -> Result<Option<String>> {
-        Ok(self.provider(id.repo.kind, &id.repo.host).await?.get_file_content(id, path, rev).await?)
+    pub async fn file_content(
+        &self,
+        id: &ChangeRequestId,
+        path: &str,
+        rev: &str,
+    ) -> Result<Option<String>> {
+        Ok(self
+            .provider(id.repo.kind, &id.repo.host)
+            .await?
+            .get_file_content(id, path, rev)
+            .await?)
     }
 
     // ---------- comment actions ----------
 
     pub async fn add_comment(&self, id: &ChangeRequestId, body: &str) -> Result<Comment> {
-        Ok(self.provider(id.repo.kind, &id.repo.host).await?.add_comment(id, body).await?)
+        Ok(self
+            .provider(id.repo.kind, &id.repo.host)
+            .await?
+            .add_comment(id, body)
+            .await?)
     }
 
-    pub async fn reply_to_thread(&self, id: &ChangeRequestId, thread_id: &str, body: &str) -> Result<Comment> {
-        Ok(self.provider(id.repo.kind, &id.repo.host).await?.reply_to_thread(id, thread_id, body).await?)
+    pub async fn reply_to_thread(
+        &self,
+        id: &ChangeRequestId,
+        thread_id: &str,
+        body: &str,
+    ) -> Result<Comment> {
+        Ok(self
+            .provider(id.repo.kind, &id.repo.host)
+            .await?
+            .reply_to_thread(id, thread_id, body)
+            .await?)
     }
 
     pub async fn delete_comment(&self, id: &ChangeRequestId, comment_id: &str) -> Result<()> {
-        Ok(self.provider(id.repo.kind, &id.repo.host).await?.delete_comment(id, comment_id).await?)
+        Ok(self
+            .provider(id.repo.kind, &id.repo.host)
+            .await?
+            .delete_comment(id, comment_id)
+            .await?)
     }
 
-    pub async fn edit_comment(&self, id: &ChangeRequestId, comment_id: &str, body: &str) -> Result<Comment> {
-        Ok(self.provider(id.repo.kind, &id.repo.host).await?.edit_comment(id, comment_id, body).await?)
+    pub async fn edit_comment(
+        &self,
+        id: &ChangeRequestId,
+        comment_id: &str,
+        body: &str,
+    ) -> Result<Comment> {
+        Ok(self
+            .provider(id.repo.kind, &id.repo.host)
+            .await?
+            .edit_comment(id, comment_id, body)
+            .await?)
     }
 
     /// Start an inline thread at `position`. Fills the head sha from the cached detail when missing.
-    pub async fn add_line_comment(&self, id: &ChangeRequestId, position: &DiffPosition, body: &str) -> Result<Comment> {
+    pub async fn add_line_comment(
+        &self,
+        id: &ChangeRequestId,
+        position: &DiffPosition,
+        body: &str,
+    ) -> Result<Comment> {
         let mut pos = position.clone();
         if pos.head_sha.is_none() {
             pos.head_sha = self.store.get_detail(id)?.and_then(|d| d.head_sha);
         }
         if pos.other_line.is_none() {
-            pos.other_line = self.cached_changed_files(id).and_then(|fs| context_partner(&fs, &pos));
+            pos.other_line = self
+                .cached_changed_files(id)
+                .and_then(|fs| context_partner(&fs, &pos));
         }
-        Ok(self.provider(id.repo.kind, &id.repo.host).await?.add_line_comment(id, &pos, body).await?)
+        Ok(self
+            .provider(id.repo.kind, &id.repo.host)
+            .await?
+            .add_line_comment(id, &pos, body)
+            .await?)
     }
 
-    pub async fn resolve_thread(&self, id: &ChangeRequestId, thread_id: &str, resolved: bool) -> Result<()> {
-        Ok(self.provider(id.repo.kind, &id.repo.host).await?.resolve_thread(id, thread_id, resolved).await?)
+    pub async fn resolve_thread(
+        &self,
+        id: &ChangeRequestId,
+        thread_id: &str,
+        resolved: bool,
+    ) -> Result<()> {
+        Ok(self
+            .provider(id.repo.kind, &id.repo.host)
+            .await?
+            .resolve_thread(id, thread_id, resolved)
+            .await?)
     }
 
     /// Inline threads of the cached detail placed on the cached diff (per path, side and line).
     pub fn inline_index(&self, id: &ChangeRequestId) -> InlineIndex {
-        match (self.cached_detail(id).ok().flatten(), self.cached_changed_files(id)) {
+        match (
+            self.cached_detail(id).ok().flatten(),
+            self.cached_changed_files(id),
+        ) {
             (Some(d), Some(f)) => index_inline_threads(&d.threads, &f),
             _ => InlineIndex::default(),
         }
@@ -770,11 +986,17 @@ impl Engine {
 
 /// For a context line, the line number on the opposite side (GitLab anchors need both).
 fn context_partner(files: &[ChangedFile], pos: &DiffPosition) -> Option<u32> {
-    let f = files.iter().find(|f| f.new_path == pos.path || f.old_path == pos.path)?;
-    let l = f.hunks.iter().flat_map(|h| &h.lines).find(|l| match pos.side {
-        DiffSide::New => l.new_no == Some(pos.line),
-        DiffSide::Old => l.old_no == Some(pos.line),
-    })?;
+    let f = files
+        .iter()
+        .find(|f| f.new_path == pos.path || f.old_path == pos.path)?;
+    let l = f
+        .hunks
+        .iter()
+        .flat_map(|h| &h.lines)
+        .find(|l| match pos.side {
+            DiffSide::New => l.new_no == Some(pos.line),
+            DiffSide::Old => l.old_no == Some(pos.line),
+        })?;
     if l.kind != LineKind::Context {
         return None;
     }
@@ -793,7 +1015,12 @@ fn enrich_key(id: &ChangeRequestId) -> String {
 }
 
 /// Copy the enrichment (reviewer states, checks, counts) of a cached item onto a freshly listed one.
-fn carry_enrichment(cr: &mut ChangeRequest, cached: &ChangeRequest, me: Option<&str>, reviewers: bool) {
+fn carry_enrichment(
+    cr: &mut ChangeRequest,
+    cached: &ChangeRequest,
+    me: Option<&str>,
+    reviewers: bool,
+) {
     if reviewers {
         cr.reviewers = cached.reviewers.clone();
     }
@@ -825,7 +1052,10 @@ fn scope_label(scope: &Scope) -> String {
 /// Keep the first occurrence of each id (the list is sorted newest first).
 fn dedupe_by_id(items: Vec<ChangeRequest>) -> Vec<ChangeRequest> {
     let mut seen = std::collections::HashSet::new();
-    items.into_iter().filter(|c| seen.insert(c.id.clone())).collect()
+    items
+        .into_iter()
+        .filter(|c| seen.insert(c.id.clone()))
+        .collect()
 }
 
 /// Whether a cached item belongs to the scope just refreshed (used for pruning).
@@ -833,12 +1063,18 @@ fn scope_contains(scope: &Scope, cr: &ChangeRequest, me: Option<&str>) -> bool {
     let r = &cr.id.repo;
     match scope {
         Scope::Repo(x) => x == r,
-        Scope::Group { kind, host, owner } => *kind == r.kind && *host == r.host && r.path.starts_with(&format!("{owner}/")),
+        Scope::Group { kind, host, owner } => {
+            *kind == r.kind && *host == r.host && r.path.starts_with(&format!("{owner}/"))
+        }
         Scope::InvolvingMe { kind, host } => {
             let Some(me) = me else { return false };
             *kind == r.kind
                 && *host == r.host
-                && (cr.author.username.eq_ignore_ascii_case(me) || cr.reviewers.iter().any(|x| x.user.username.eq_ignore_ascii_case(me)))
+                && (cr.author.username.eq_ignore_ascii_case(me)
+                    || cr
+                        .reviewers
+                        .iter()
+                        .any(|x| x.user.username.eq_ignore_ascii_case(me)))
         }
     }
 }
@@ -851,18 +1087,42 @@ mod tests {
     async fn projects_and_sources() {
         let dir = std::env::temp_dir().join(format!("gv-engine-{}", std::process::id()));
         let e = Engine::open(&dir.join("t.db")).unwrap();
-        e.add_source("p", Source::Repo { url: "git@gitlab.com:g/sub/p.git".into() }).unwrap();
-        assert!(e.add_source("p", Source::Repo { url: "nonsense".into() }).is_err());
+        e.add_source(
+            "p",
+            Source::Repo {
+                url: "git@gitlab.com:g/sub/p.git".into(),
+            },
+        )
+        .unwrap();
+        assert!(e
+            .add_source(
+                "p",
+                Source::Repo {
+                    url: "nonsense".into()
+                }
+            )
+            .is_err());
         let p = e.project("p").unwrap();
         let repos = e.resolve_project_repos(p.id).await.unwrap();
-        assert_eq!(repos, vec![RepoRef::new(ProviderKind::GitLab, "gitlab.com", "g/sub/p")]);
-        assert_eq!(e.parse_repo_url("https://gitlab.com/g/p/-/merge_requests").unwrap().path, "g/p");
+        assert_eq!(
+            repos,
+            vec![RepoRef::new(ProviderKind::GitLab, "gitlab.com", "g/sub/p")]
+        );
+        assert_eq!(
+            e.parse_repo_url("https://gitlab.com/g/p/-/merge_requests")
+                .unwrap()
+                .path,
+            "g/p"
+        );
         std::fs::remove_dir_all(dir).unwrap();
     }
 
     fn cr(n: u64, title: &str) -> ChangeRequest {
         ChangeRequest {
-            id: ChangeRequestId { repo: RepoRef::new(ProviderKind::GitLab, "gitlab.com", "g/p"), number: n },
+            id: ChangeRequestId {
+                repo: RepoRef::new(ProviderKind::GitLab, "gitlab.com", "g/p"),
+                number: n,
+            },
             title: title.into(),
             author: User::named("a"),
             state: ChangeRequestState::Open,
@@ -885,7 +1145,10 @@ mod tests {
     #[test]
     fn dedupes_by_id_keeping_first() {
         let v = dedupe_by_id(vec![cr(1, "new"), cr(2, "other"), cr(1, "old")]);
-        assert_eq!(v.iter().map(|c| c.title.as_str()).collect::<Vec<_>>(), vec!["new", "other"]);
+        assert_eq!(
+            v.iter().map(|c| c.title.as_str()).collect::<Vec<_>>(),
+            vec!["new", "other"]
+        );
     }
 
     #[test]
@@ -895,10 +1158,17 @@ mod tests {
         let mut bot = cr(3, "Update react");
         bot.author = User::named("acme-bot");
         bot.source_branch = "renovate/react".into();
-        e.store().upsert_change_requests(&[cr(1, "x"), bot]).unwrap();
+        e.store()
+            .upsert_change_requests(&[cr(1, "x"), bot])
+            .unwrap();
         let (v, hidden) = e.list_counted(&ListQuery::default()).unwrap();
         assert_eq!((v.len(), hidden), (1, 1));
-        let (v, hidden) = e.list_counted(&ListQuery { bots: BotFilter::off(), ..Default::default() }).unwrap();
+        let (v, hidden) = e
+            .list_counted(&ListQuery {
+                bots: BotFilter::off(),
+                ..Default::default()
+            })
+            .unwrap();
         assert_eq!((v.len(), hidden), (2, 0));
         std::fs::remove_dir_all(dir).unwrap();
     }
@@ -906,8 +1176,16 @@ mod tests {
     #[test]
     fn carries_enrichment_and_recomputes_needs_you() {
         let mut cached = cr(1, "x");
-        cached.reviewers = vec![Review { user: User::named("me"), state: ReviewState::Pending }];
-        cached.checks = CheckSummary { total: 2, passed: 2, failed: 0, pending: 0 };
+        cached.reviewers = vec![Review {
+            user: User::named("me"),
+            state: ReviewState::Pending,
+        }];
+        cached.checks = CheckSummary {
+            total: 2,
+            passed: 2,
+            failed: 0,
+            pending: 0,
+        };
         let mut fresh = cr(1, "x");
         carry_enrichment(&mut fresh, &cached, Some("me"), true);
         assert_eq!(fresh.checks.total, 2);
@@ -918,7 +1196,9 @@ mod tests {
     fn list_has_unique_ids() {
         let dir = std::env::temp_dir().join(format!("gv-engine-list-{}", std::process::id()));
         let e = Engine::open(&dir.join("t.db")).unwrap();
-        e.store().upsert_change_requests(&[cr(1, "x"), cr(1, "y"), cr(2, "z")]).unwrap();
+        e.store()
+            .upsert_change_requests(&[cr(1, "x"), cr(1, "y"), cr(2, "z")])
+            .unwrap();
         let v = e.list(&ListQuery::default()).unwrap();
         let ids: std::collections::HashSet<_> = v.iter().map(|c| c.id.clone()).collect();
         assert_eq!(ids.len(), v.len());

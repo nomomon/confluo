@@ -13,21 +13,47 @@ use crate::ui::theme;
 impl GitViewer {
     /// The inline input followed by right-aligned Cancel and `submit` buttons.
     pub(super) fn inline_field(&self, submit: &'static str, cx: &mut Context<Self>) -> Div {
-        let cancel = Button::new("inline-cancel", "Cancel").variant(ButtonVariant::Ghost).size(Size::Sm).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
-            this.cancel_inline(cx);
-        }));
-        let post = Button::new("inline-submit", submit).size(Size::Sm).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.submit_inline(cx)));
+        let cancel = Button::new("inline-cancel", "Cancel")
+            .variant(ButtonVariant::Ghost)
+            .size(Size::Sm)
+            .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                this.cancel_inline(cx);
+            }));
+        let post = Button::new("inline-submit", submit)
+            .size(Size::Sm)
+            .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.submit_inline(cx)));
         div()
             .flex()
             .flex_col()
             .gap(theme::SPACE_2)
-            .child(Textarea::new(self.inline_input.clone()).rows(2).max_rows(12))
-            .child(div().flex().justify_end().gap(theme::SPACE_2).child(cancel).child(post))
+            .child(
+                Textarea::new(self.inline_input.clone())
+                    .rows(2)
+                    .max_rows(12),
+            )
+            .child(
+                div()
+                    .flex()
+                    .justify_end()
+                    .gap(theme::SPACE_2)
+                    .child(cancel)
+                    .child(post),
+            )
     }
 
-    pub(super) fn render_line_composer(&self, d: &DetailState, cx: &mut Context<Self>) -> AnyElement {
-        let Some(dr) = &d.code.inline.draft else { return div().into_any_element() };
-        let side = if dr.side == DiffSide::Old { " (old)" } else { "" };
+    pub(super) fn render_line_composer(
+        &self,
+        d: &DetailState,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let Some(dr) = &d.code.inline.draft else {
+            return div().into_any_element();
+        };
+        let side = if dr.side == DiffSide::Old {
+            " (old)"
+        } else {
+            ""
+        };
         let what = match dr.start {
             Some(s) => format!("Comment on lines {s}-{}{side}", dr.line),
             None => format!("Comment on line {}{side}", dr.line),
@@ -41,8 +67,20 @@ impl GitViewer {
             .border_1()
             .border_color(theme::border())
             .bg(theme::surface())
-            .child(div().text_size(theme::text_xs()).text_color(theme::text_muted()).child(what))
-            .child(self.inline_field(if d.code.inline.posting { "Posting..." } else { "Comment" }, cx));
+            .child(
+                div()
+                    .text_size(theme::text_xs())
+                    .text_color(theme::text_muted())
+                    .child(what),
+            )
+            .child(self.inline_field(
+                if d.code.inline.posting {
+                    "Posting..."
+                } else {
+                    "Comment"
+                },
+                cx,
+            ));
         self.card_side()
             .px(theme::SPACE_3)
             .py(theme::SPACE_2)

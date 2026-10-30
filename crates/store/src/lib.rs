@@ -26,7 +26,11 @@ pub enum Source {
     /// A single repo by remote/web URL.
     Repo { url: String },
     /// A GitHub owner or GitLab group (nested path allowed).
-    Group { provider: ProviderKind, host: String, path: String },
+    Group {
+        provider: ProviderKind,
+        host: String,
+        path: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -94,7 +98,9 @@ impl Store {
     fn init(conn: Connection) -> StoreResult<Self> {
         conn.execute_batch("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;")?;
         conn.execute_batch(SCHEMA)?;
-        Ok(Self { conn: Mutex::new(conn) })
+        Ok(Self {
+            conn: Mutex::new(conn),
+        })
     }
 
     fn c(&self) -> std::sync::MutexGuard<'_, Connection> {
@@ -106,25 +112,39 @@ impl Store {
     pub fn create_project(&self, name: &str) -> StoreResult<Project> {
         let c = self.c();
         c.execute("INSERT INTO projects(name) VALUES (?1)", [name])?;
-        Ok(Project { id: c.last_insert_rowid(), name: name.into(), sources: vec![] })
+        Ok(Project {
+            id: c.last_insert_rowid(),
+            name: name.into(),
+            sources: vec![],
+        })
     }
 
     pub fn add_source(&self, project_id: i64, source: &Source) -> StoreResult<()> {
         let data = serde_json::to_string(source)?;
         let c = self.c();
         let exists: bool = c
-            .query_row("SELECT 1 FROM project_sources WHERE project_id=?1 AND data=?2", params![project_id, data], |_| Ok(()))
+            .query_row(
+                "SELECT 1 FROM project_sources WHERE project_id=?1 AND data=?2",
+                params![project_id, data],
+                |_| Ok(()),
+            )
             .optional()?
             .is_some();
         if !exists {
-            c.execute("INSERT INTO project_sources(project_id, data) VALUES (?1, ?2)", params![project_id, data])?;
+            c.execute(
+                "INSERT INTO project_sources(project_id, data) VALUES (?1, ?2)",
+                params![project_id, data],
+            )?;
         }
         Ok(())
     }
 
     pub fn remove_source(&self, project_id: i64, source: &Source) -> StoreResult<()> {
         let data = serde_json::to_string(source)?;
-        self.c().execute("DELETE FROM project_sources WHERE project_id=?1 AND data=?2", params![project_id, data])?;
+        self.c().execute(
+            "DELETE FROM project_sources WHERE project_id=?1 AND data=?2",
+            params![project_id, data],
+        )?;
         Ok(())
     }
 
@@ -134,15 +154,19 @@ impl Store {
     }
 
     pub fn rename_project(&self, id: i64, name: &str) -> StoreResult<()> {
-        self.c().execute("UPDATE projects SET name=?2 WHERE id=?1", params![id, name])?;
+        self.c()
+            .execute("UPDATE projects SET name=?2 WHERE id=?1", params![id, name])?;
         Ok(())
     }
 
     pub fn projects(&self) -> StoreResult<Vec<Project>> {
         let c = self.c();
         let mut st = c.prepare("SELECT id, name FROM projects ORDER BY name")?;
-        let rows: Vec<(i64, String)> = st.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?.collect::<Result<_, _>>()?;
-        let mut src = c.prepare("SELECT data FROM project_sources WHERE project_id=?1 ORDER BY id")?;
+        let rows: Vec<(i64, String)> = st
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+            .collect::<Result<_, _>>()?;
+        let mut src =
+            c.prepare("SELECT data FROM project_sources WHERE project_id=?1 ORDER BY id")?;
         let mut out = vec![];
         for (id, name) in rows {
             let sources = src
@@ -155,14 +179,20 @@ impl Store {
     }
 
     pub fn project_by_name(&self, name: &str) -> StoreResult<Option<Project>> {
-        Ok(self.projects()?.into_iter().find(|p| p.name.eq_ignore_ascii_case(name)))
+        Ok(self
+            .projects()?
+            .into_iter()
+            .find(|p| p.name.eq_ignore_ascii_case(name)))
     }
 
     /// Replace the resolved repo list of a project.
     pub fn set_project_repos(&self, project_id: i64, repos: &[RepoRef]) -> StoreResult<()> {
         let mut c = self.c();
         let tx = c.transaction()?;
-        tx.execute("DELETE FROM project_repos WHERE project_id=?1", [project_id])?;
+        tx.execute(
+            "DELETE FROM project_repos WHERE project_id=?1",
+            [project_id],
+        )?;
         for r in repos {
             tx.execute(
                 "INSERT OR IGNORE INTO project_repos(project_id, repo, data) VALUES (?1, ?2, ?3)",
@@ -175,7 +205,8 @@ impl Store {
 
     pub fn project_repos(&self, project_id: i64) -> StoreResult<Vec<RepoRef>> {
         let c = self.c();
-        let mut st = c.prepare("SELECT data FROM project_repos WHERE project_id=?1 ORDER BY repo")?;
+        let mut st =
+            c.prepare("SELECT data FROM project_repos WHERE project_id=?1 ORDER BY repo")?;
         let v = st
             .query_map([project_id], |r| r.get::<_, String>(0))?
             .filter_map(|s| s.ok().and_then(|s| serde_json::from_str(&s).ok()))
@@ -197,9 +228,16 @@ impl Store {
     pub fn get_override(&self, repo: &RepoRef) -> StoreResult<RepoOverride> {
         Ok(self
             .c()
-            .query_row("SELECT alias, hidden FROM repo_overrides WHERE repo=?1", [repo.to_string()], |r| {
-                Ok(RepoOverride { alias: r.get(0)?, hidden: r.get(1)? })
-            })
+            .query_row(
+                "SELECT alias, hidden FROM repo_overrides WHERE repo=?1",
+                [repo.to_string()],
+                |r| {
+                    Ok(RepoOverride {
+                        alias: r.get(0)?,
+                        hidden: r.get(1)?,
+                    })
+                },
+            )
             .optional()?
             .unwrap_or_default())
     }
@@ -231,15 +269,25 @@ impl Store {
 
     /// Remove cached active items matching `in_scope` that were not refreshed since `fetched_before`,
     /// so PRs closed elsewhere (or no longer involving you) do not linger as open.
-    pub fn prune_stale(&self, in_scope: impl Fn(&ChangeRequest) -> bool, seen: &[ChangeRequestId], fetched_before: DateTime<Utc>) -> StoreResult<usize> {
+    pub fn prune_stale(
+        &self,
+        in_scope: impl Fn(&ChangeRequest) -> bool,
+        seen: &[ChangeRequestId],
+        fetched_before: DateTime<Utc>,
+    ) -> StoreResult<usize> {
         let keys: std::collections::HashSet<String> = seen.iter().map(|i| i.key()).collect();
         let c = self.c();
         let mut st = c.prepare("SELECT key, data FROM change_requests WHERE fetched_at < ?1")?;
         let stale: Vec<String> = st
-            .query_map([fetched_before.to_rfc3339()], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?
+            .query_map([fetched_before.to_rfc3339()], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+            })?
             .filter_map(|r| r.ok())
             .filter(|(k, d)| {
-                !keys.contains(k) && serde_json::from_str::<ChangeRequest>(d).map(|cr| cr.state.is_active() && in_scope(&cr)).unwrap_or(true)
+                !keys.contains(k)
+                    && serde_json::from_str::<ChangeRequest>(d)
+                        .map(|cr| cr.state.is_active() && in_scope(&cr))
+                        .unwrap_or(true)
             })
             .map(|(k, _)| k)
             .collect();
@@ -250,8 +298,14 @@ impl Store {
     }
 
     pub fn get_change_request(&self, id: &ChangeRequestId) -> StoreResult<Option<ChangeRequest>> {
-        let d: Option<String> =
-            self.c().query_row("SELECT data FROM change_requests WHERE key=?1", [id.key()], |r| r.get(0)).optional()?;
+        let d: Option<String> = self
+            .c()
+            .query_row(
+                "SELECT data FROM change_requests WHERE key=?1",
+                [id.key()],
+                |r| r.get(0),
+            )
+            .optional()?;
         Ok(match d {
             Some(d) => Some(serde_json::from_str(&d)?),
             None => None,
@@ -259,7 +313,11 @@ impl Store {
     }
 
     pub fn query(&self, q: &CacheQuery) -> StoreResult<Vec<ChangeRequest>> {
-        let hidden = if q.include_hidden { vec![] } else { self.hidden_repos()? };
+        let hidden = if q.include_hidden {
+            vec![]
+        } else {
+            self.hidden_repos()?
+        };
         let starred = self.starred()?;
         let c = self.c();
         let mut st = c.prepare("SELECT data FROM change_requests ORDER BY updated_at DESC")?;
@@ -268,7 +326,9 @@ impl Store {
             .filter_map(|s| s.ok().and_then(|s| serde_json::from_str(&s).ok()))
             .collect();
         let me_for = |cr: &ChangeRequest| {
-            q.me.iter().find(|(k, h, _)| *k == cr.id.repo.kind && h.eq_ignore_ascii_case(&cr.id.repo.host)).map(|(_, _, u)| u.as_str())
+            q.me.iter()
+                .find(|(k, h, _)| *k == cr.id.repo.kind && h.eq_ignore_ascii_case(&cr.id.repo.host))
+                .map(|(_, _, u)| u.as_str())
         };
         Ok(all
             .into_iter()
@@ -282,7 +342,9 @@ impl Store {
                 (_, None) => false,
                 (Involvement::Authored, Some(me)) => cr.author.username.eq_ignore_ascii_case(me),
                 (Involvement::Reviewing, Some(me)) => {
-                    cr.reviewers.iter().any(|r| r.user.username.eq_ignore_ascii_case(me))
+                    cr.reviewers
+                        .iter()
+                        .any(|r| r.user.username.eq_ignore_ascii_case(me))
                         && !cr.author.username.eq_ignore_ascii_case(me)
                 }
             })
@@ -295,13 +357,22 @@ impl Store {
         self.upsert_change_requests(std::slice::from_ref(&d.summary))?;
         self.c().execute(
             "INSERT OR REPLACE INTO details(key, data, fetched_at) VALUES (?1, ?2, ?3)",
-            params![d.summary.id.key(), serde_json::to_string(d)?, Utc::now().to_rfc3339()],
+            params![
+                d.summary.id.key(),
+                serde_json::to_string(d)?,
+                Utc::now().to_rfc3339()
+            ],
         )?;
         Ok(())
     }
 
     pub fn get_detail(&self, id: &ChangeRequestId) -> StoreResult<Option<ChangeRequestDetail>> {
-        let d: Option<String> = self.c().query_row("SELECT data FROM details WHERE key=?1", [id.key()], |r| r.get(0)).optional()?;
+        let d: Option<String> = self
+            .c()
+            .query_row("SELECT data FROM details WHERE key=?1", [id.key()], |r| {
+                r.get(0)
+            })
+            .optional()?;
         Ok(match d {
             Some(d) => Some(serde_json::from_str(&d)?),
             None => None,
@@ -310,18 +381,37 @@ impl Store {
 
     // ---- changed files ----
 
-    pub fn put_files(&self, id: &ChangeRequestId, sha: &str, files: &[ChangedFile]) -> StoreResult<()> {
+    pub fn put_files(
+        &self,
+        id: &ChangeRequestId,
+        sha: &str,
+        files: &[ChangedFile],
+    ) -> StoreResult<()> {
         self.c().execute(
             "INSERT OR REPLACE INTO diffs(key, sha, data, fetched_at) VALUES (?1, ?2, ?3, ?4)",
-            params![id.key(), sha, serde_json::to_string(files)?, Utc::now().to_rfc3339()],
+            params![
+                id.key(),
+                sha,
+                serde_json::to_string(files)?,
+                Utc::now().to_rfc3339()
+            ],
         )?;
         Ok(())
     }
 
     /// Cached files and the head sha they were fetched at.
-    pub fn get_files(&self, id: &ChangeRequestId) -> StoreResult<Option<(String, Vec<ChangedFile>)>> {
-        let row: Option<(String, String)> =
-            self.c().query_row("SELECT sha, data FROM diffs WHERE key=?1", [id.key()], |r| Ok((r.get(0)?, r.get(1)?))).optional()?;
+    pub fn get_files(
+        &self,
+        id: &ChangeRequestId,
+    ) -> StoreResult<Option<(String, Vec<ChangedFile>)>> {
+        let row: Option<(String, String)> = self
+            .c()
+            .query_row(
+                "SELECT sha, data FROM diffs WHERE key=?1",
+                [id.key()],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()?;
         Ok(match row {
             Some((sha, d)) => Some((sha, serde_json::from_str(&d)?)),
             None => None,
@@ -332,9 +422,11 @@ impl Store {
 
     pub fn set_starred(&self, id: &ChangeRequestId, starred: bool) -> StoreResult<()> {
         if starred {
-            self.c().execute("INSERT OR IGNORE INTO starred(key) VALUES (?1)", [id.key()])?;
+            self.c()
+                .execute("INSERT OR IGNORE INTO starred(key) VALUES (?1)", [id.key()])?;
         } else {
-            self.c().execute("DELETE FROM starred WHERE key=?1", [id.key()])?;
+            self.c()
+                .execute("DELETE FROM starred WHERE key=?1", [id.key()])?;
         }
         Ok(())
     }
@@ -342,19 +434,28 @@ impl Store {
     pub fn starred(&self) -> StoreResult<Vec<ChangeRequestId>> {
         let c = self.c();
         let mut st = c.prepare("SELECT key FROM starred")?;
-        let v = st.query_map([], |r| r.get::<_, String>(0))?.filter_map(|k| k.ok().and_then(|k| ChangeRequestId::parse_key(&k))).collect();
+        let v = st
+            .query_map([], |r| r.get::<_, String>(0))?
+            .filter_map(|k| k.ok().and_then(|k| ChangeRequestId::parse_key(&k)))
+            .collect();
         Ok(v)
     }
 
     // ---- meta (small key/value, e.g. cached usernames) ----
 
     pub fn set_meta(&self, k: &str, v: &str) -> StoreResult<()> {
-        self.c().execute("INSERT OR REPLACE INTO meta(k, v) VALUES (?1, ?2)", params![k, v])?;
+        self.c().execute(
+            "INSERT OR REPLACE INTO meta(k, v) VALUES (?1, ?2)",
+            params![k, v],
+        )?;
         Ok(())
     }
 
     pub fn get_meta(&self, k: &str) -> StoreResult<Option<String>> {
-        Ok(self.c().query_row("SELECT v FROM meta WHERE k=?1", [k], |r| r.get(0)).optional()?)
+        Ok(self
+            .c()
+            .query_row("SELECT v FROM meta WHERE k=?1", [k], |r| r.get(0))
+            .optional()?)
     }
 }
 
@@ -364,13 +465,19 @@ mod tests {
 
     fn cr(n: u64, author: &str, state: ChangeRequestState) -> ChangeRequest {
         ChangeRequest {
-            id: ChangeRequestId { repo: RepoRef::new(ProviderKind::GitLab, "gitlab.com", "g/p"), number: n },
+            id: ChangeRequestId {
+                repo: RepoRef::new(ProviderKind::GitLab, "gitlab.com", "g/p"),
+                number: n,
+            },
             title: format!("t{n}"),
             author: User::named(author),
             state,
             source_branch: "a".into(),
             target_branch: "b".into(),
-            reviewers: vec![Review { user: User::named("me"), state: ReviewState::Pending }],
+            reviewers: vec![Review {
+                user: User::named("me"),
+                state: ReviewState::Pending,
+            }],
             checks: CheckSummary::default(),
             labels: vec![],
             comments_count: 0,
@@ -398,10 +505,21 @@ mod tests {
     fn projects_roundtrip() {
         let s = Store::in_memory().unwrap();
         let p = s.create_project("work").unwrap();
-        let src = Source::Group { provider: ProviderKind::GitLab, host: "gitlab.com".into(), path: "a/b".into() };
+        let src = Source::Group {
+            provider: ProviderKind::GitLab,
+            host: "gitlab.com".into(),
+            path: "a/b".into(),
+        };
         s.add_source(p.id, &src).unwrap();
         s.add_source(p.id, &src).unwrap();
-        s.add_source(p.id, &Source::Folder { path: "/x".into(), depth: 2 }).unwrap();
+        s.add_source(
+            p.id,
+            &Source::Folder {
+                path: "/x".into(),
+                depth: 2,
+            },
+        )
+        .unwrap();
         let ps = s.projects().unwrap();
         assert_eq!(ps[0].sources.len(), 2);
         s.delete_project(p.id).unwrap();
@@ -411,18 +529,60 @@ mod tests {
     #[test]
     fn query_filters() {
         let s = Store::in_memory().unwrap();
-        s.upsert_change_requests(&[cr(1, "me", ChangeRequestState::Open), cr(2, "bob", ChangeRequestState::Open), cr(3, "me", ChangeRequestState::Merged)])
+        s.upsert_change_requests(&[
+            cr(1, "me", ChangeRequestState::Open),
+            cr(2, "bob", ChangeRequestState::Open),
+            cr(3, "me", ChangeRequestState::Merged),
+        ])
+        .unwrap();
+        let me = vec![(
+            ProviderKind::GitLab,
+            "gitlab.com".to_string(),
+            "me".to_string(),
+        )];
+        let q = |inv, state| CacheQuery {
+            filter: Filter {
+                involvement: inv,
+                state,
+            },
+            me: me.clone(),
+            ..Default::default()
+        };
+        assert_eq!(
+            s.query(&q(Involvement::All, StateFilter::Active))
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(
+            s.query(&q(Involvement::Authored, StateFilter::Any))
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(
+            s.query(&q(Involvement::Reviewing, StateFilter::Active))
+                .unwrap()[0]
+                .id
+                .number,
+            2
+        );
+        s.set_starred(&cr(2, "", ChangeRequestState::Open).id, true)
             .unwrap();
-        let me = vec![(ProviderKind::GitLab, "gitlab.com".to_string(), "me".to_string())];
-        let q = |inv, state| CacheQuery { filter: Filter { involvement: inv, state }, me: me.clone(), ..Default::default() };
-        assert_eq!(s.query(&q(Involvement::All, StateFilter::Active)).unwrap().len(), 2);
-        assert_eq!(s.query(&q(Involvement::Authored, StateFilter::Any)).unwrap().len(), 2);
-        assert_eq!(s.query(&q(Involvement::Reviewing, StateFilter::Active)).unwrap()[0].id.number, 2);
-        s.set_starred(&cr(2, "", ChangeRequestState::Open).id, true).unwrap();
         let mut sq = q(Involvement::All, StateFilter::Any);
         sq.starred_only = true;
         assert_eq!(s.query(&sq).unwrap().len(), 1);
-        s.set_override(&cr(1, "", ChangeRequestState::Open).id.repo, &RepoOverride { alias: None, hidden: true }).unwrap();
-        assert!(s.query(&q(Involvement::All, StateFilter::Any)).unwrap().is_empty());
+        s.set_override(
+            &cr(1, "", ChangeRequestState::Open).id.repo,
+            &RepoOverride {
+                alias: None,
+                hidden: true,
+            },
+        )
+        .unwrap();
+        assert!(s
+            .query(&q(Involvement::All, StateFilter::Any))
+            .unwrap()
+            .is_empty());
     }
 }

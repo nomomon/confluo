@@ -11,9 +11,15 @@ use crate::ui::molecules::{CommandPalette, PaletteItem};
 impl GitViewer {
     /// File indices matching the picker query, best first.
     fn quick_matches(&self, cx: &Context<Self>) -> Vec<usize> {
-        let Some(files) = self.detail.as_ref().and_then(|d| d.code.files.clone()) else { return vec![] };
+        let Some(files) = self.detail.as_ref().and_then(|d| d.code.files.clone()) else {
+            return vec![];
+        };
         let q = self.quick_input.read(cx).text();
-        let mut hits: Vec<(i32, usize)> = files.iter().enumerate().filter_map(|(i, f)| score(&q, f.path()).map(|s| (s, i))).collect();
+        let mut hits: Vec<(i32, usize)> = files
+            .iter()
+            .enumerate()
+            .filter_map(|(i, f)| score(&q, f.path()).map(|s| (s, i)))
+            .collect();
         hits.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
         hits.into_iter().map(|(_, i)| i).collect()
     }
@@ -31,7 +37,11 @@ impl GitViewer {
         cx.notify()
     }
 
-    pub(super) fn render_quick_open(&self, d: &DetailState, cx: &mut Context<Self>) -> Option<AnyElement> {
+    pub(super) fn render_quick_open(
+        &self,
+        d: &DetailState,
+        cx: &mut Context<Self>,
+    ) -> Option<AnyElement> {
         if !self.review.quick_open {
             return None;
         }
@@ -42,7 +52,13 @@ impl GitViewer {
             .map(|i| {
                 let p = files[i].path();
                 let (dir, name) = p.rsplit_once('/').unwrap_or(("", p));
-                PaletteItem { icon: IconName::FileCode, title: SharedString::from(name.to_string()), detail: Some(SharedString::from(dir.to_string())), shortcut: None, group: "Files" }
+                PaletteItem {
+                    icon: IconName::FileCode,
+                    title: SharedString::from(name.to_string()),
+                    detail: Some(SharedString::from(dir.to_string())),
+                    shortcut: None,
+                    group: "Files",
+                }
             })
             .collect();
         let sel = self.review.quick_sel.min(items.len().saturating_sub(1));
@@ -53,7 +69,9 @@ impl GitViewer {
                 .on_move(cx.listener(|this, delta: &isize, _, cx| {
                     let n = this.quick_matches(cx).len();
                     if n > 0 {
-                        this.review.quick_sel = (this.review.quick_sel as isize + delta).rem_euclid(n as isize) as usize;
+                        this.review.quick_sel = (this.review.quick_sel as isize + delta)
+                            .rem_euclid(n as isize)
+                            as usize;
                     }
                     cx.notify()
                 }))

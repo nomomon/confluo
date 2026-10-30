@@ -5,7 +5,10 @@
 
 use std::time::Instant;
 
-use crate::ui::motion::physics::{project, rubber_band, rubber_band_inverse, Spring, SpringParams, VelocityTracker, BAND, DECELERATION, SNAPPY};
+use crate::ui::motion::physics::{
+    project, rubber_band, rubber_band_inverse, Spring, SpringParams, VelocityTracker, BAND,
+    DECELERATION, SNAPPY,
+};
 
 pub struct Pager {
     snaps: Vec<f32>,
@@ -32,7 +35,23 @@ impl Pager {
         let now = Instant::now();
         let pos = snaps.get(page).copied().unwrap_or(0.);
         let hi = snaps.len().saturating_sub(1);
-        Self { snaps, lo: 0, hi, page, pos, raw: pos, from: page, dragging: false, spring: None, tracker: VelocityTracker::default(), epoch: now, last: now, params: SNAPPY, commit: 0.5, reduced: false }
+        Self {
+            snaps,
+            lo: 0,
+            hi,
+            page,
+            pos,
+            raw: pos,
+            from: page,
+            dragging: false,
+            spring: None,
+            tracker: VelocityTracker::default(),
+            epoch: now,
+            last: now,
+            params: SNAPPY,
+            commit: 0.5,
+            reduced: false,
+        }
     }
 
     /// Snap positions (sorted either way) and the pages a drag may reach (`lo..=hi`); call each frame (sizes change).
@@ -122,7 +141,11 @@ impl Pager {
     pub fn choose(&self, projected: f32) -> usize {
         let start = self.snap(self.from);
         let toward = |i: usize| (self.snap(i) - start) * (projected - start) > 0.;
-        let next = [self.from.checked_sub(1), Some(self.from + 1)].into_iter().flatten().filter(|&i| i >= self.lo && i <= self.hi && i < self.snaps.len()).find(|&i| toward(i));
+        let next = [self.from.checked_sub(1), Some(self.from + 1)]
+            .into_iter()
+            .flatten()
+            .filter(|&i| i >= self.lo && i <= self.hi && i < self.snaps.len())
+            .find(|&i| toward(i));
         match next {
             Some(n) if (projected - start).abs() >= self.commit * (self.snap(n) - start).abs() => n,
             _ => self.from,

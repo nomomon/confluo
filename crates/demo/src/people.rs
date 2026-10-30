@@ -17,15 +17,28 @@ const PEOPLE: &[(&str, &str)] = &[
 
 /// A person by username; unknown names become bots (e.g. `renovate[bot]`).
 pub fn user(username: &str) -> User {
-    let name = PEOPLE.iter().find(|(u, _)| *u == username).map(|(_, n)| n.to_string());
+    let name = PEOPLE
+        .iter()
+        .find(|(u, _)| *u == username)
+        .map(|(_, n)| n.to_string());
     let bot = name.is_none();
-    User { username: username.into(), name: name.or_else(|| Some(username.into())), avatar_url: None, bot, id: Some(username.into()) }
+    User {
+        username: username.into(),
+        name: name.or_else(|| Some(username.into())),
+        avatar_url: None,
+        bot,
+        id: Some(username.into()),
+    }
 }
 
 /// Everyone matching `query` (for the reviewer picker).
 pub fn search(query: &str) -> Vec<User> {
     let q = query.to_lowercase();
-    PEOPLE.iter().filter(|(u, n)| u.contains(&q) || n.to_lowercase().contains(&q)).map(|(u, _)| user(u)).collect()
+    PEOPLE
+        .iter()
+        .filter(|(u, n)| u.contains(&q) || n.to_lowercase().contains(&q))
+        .map(|(u, _)| user(u))
+        .collect()
 }
 
 #[cfg(test)]

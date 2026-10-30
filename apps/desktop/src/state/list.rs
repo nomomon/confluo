@@ -1,7 +1,10 @@
 //! Project and PR list state: loading from cache, refreshing from providers, stars.
 
 use gpui::Context;
-use gv_engine::{BotFilter, ChangeRequestId, Filter, Involvement, ListQuery, RefreshTarget, RepoOverride, RepoRef, StateFilter};
+use gv_engine::{
+    BotFilter, ChangeRequestId, Filter, Involvement, ListQuery, RefreshTarget, RepoOverride,
+    RepoRef, StateFilter,
+};
 use std::collections::HashSet;
 use std::time::Instant;
 
@@ -22,10 +25,17 @@ impl GitViewer {
     pub(crate) fn reload(&mut self) {
         let q = ListQuery {
             project: self.selected,
-            filter: Filter { involvement: self.tab, state: StateFilter::Active },
+            filter: Filter {
+                involvement: self.tab,
+                state: StateFilter::Active,
+            },
             starred_only: self.starred_only,
             needs_you_only: false,
-            bots: if self.show_bots { BotFilter::off() } else { self.settings.bot_filter() },
+            bots: if self.show_bots {
+                BotFilter::off()
+            } else {
+                self.settings.bot_filter()
+            },
             stale_days: self.settings.stale_days,
             include_stale: false,
         };
@@ -36,22 +46,43 @@ impl GitViewer {
                 self.quiet.stale = l.stale;
                 self.quiet.snoozed = l.snoozed;
                 // While shown, count what the setting would hide, so the footer can offer "Hide".
-                self.hidden_bots = if self.show_bots { self.items.iter().filter(|c| self.settings.bot_filter().hides(c)).count() } else { hidden };
+                self.hidden_bots = if self.show_bots {
+                    self.items
+                        .iter()
+                        .filter(|c| self.settings.bot_filter().hides(c))
+                        .count()
+                } else {
+                    hidden
+                };
             }
             Err(e) => self.error = Some(err_str(e)),
         }
         let starred_q = ListQuery {
             project: None,
-            filter: Filter { involvement: Involvement::All, state: StateFilter::Any },
+            filter: Filter {
+                involvement: Involvement::All,
+                state: StateFilter::Any,
+            },
             starred_only: true,
             needs_you_only: false,
             bots: BotFilter::off(),
             stale_days: None,
             include_stale: true,
         };
-        self.starred = self.engine.list(&starred_q).unwrap_or_default().into_iter().map(|c| c.id).collect();
+        self.starred = self
+            .engine
+            .list(&starred_q)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|c| c.id)
+            .collect();
         self.aliases.clear();
-        let repos: HashSet<RepoRef> = self.items.iter().chain(&self.quiet.stale).map(|c| c.id.repo.clone()).collect();
+        let repos: HashSet<RepoRef> = self
+            .items
+            .iter()
+            .chain(&self.quiet.stale)
+            .map(|c| c.id.repo.clone())
+            .collect();
         for r in repos {
             if let Ok(RepoOverride { alias: Some(a), .. }) = self.engine.repo_override(&r) {
                 self.aliases.insert(r, a);
@@ -75,7 +106,11 @@ impl GitViewer {
             return;
         }
         let same_view = self.last_target == Some(self.selected);
-        if same_view && self.last_attempt.is_some_and(|t| t.elapsed() < timing::MANUAL_DEBOUNCE) {
+        if same_view
+            && self
+                .last_attempt
+                .is_some_and(|t| t.elapsed() < timing::MANUAL_DEBOUNCE)
+        {
             return;
         }
         self.paused_until = self.engine.paused_until();
@@ -127,8 +162,11 @@ impl GitViewer {
         cx.spawn(async move |this, cx| loop {
             cx.background_executor().timer(timing::TICK).await;
             let alive = this.update(cx, |v, cx| {
-                let every = std::time::Duration::from_secs(u64::from(v.settings.refresh_minutes) * 60);
-                if v.settings.refresh_minutes > 0 && v.last_attempt.is_none_or(|t| t.elapsed() >= every) {
+                let every =
+                    std::time::Duration::from_secs(u64::from(v.settings.refresh_minutes) * 60);
+                if v.settings.refresh_minutes > 0
+                    && v.last_attempt.is_none_or(|t| t.elapsed() >= every)
+                {
                     v.refresh(cx);
                 }
                 cx.notify();
@@ -142,7 +180,10 @@ impl GitViewer {
 
     /// Refresh when the window becomes active, at most once per `ACTIVATE_MIN_GAP`.
     pub(crate) fn on_activated(&mut self, cx: &mut Context<Self>) {
-        if self.last_attempt.is_none_or(|t| t.elapsed() >= timing::ACTIVATE_MIN_GAP) {
+        if self
+            .last_attempt
+            .is_none_or(|t| t.elapsed() >= timing::ACTIVATE_MIN_GAP)
+        {
             self.refresh(cx);
         }
     }
@@ -163,7 +204,11 @@ impl GitViewer {
         }
         self.refreshed_at = self.engine.last_refreshed(&self.refresh_target());
         self.reload();
-        let fresh = self.refreshed_at.is_some_and(|t| (chrono::Utc::now() - t).to_std().is_ok_and(|age| age < timing::SELECT_FRESH));
+        let fresh = self.refreshed_at.is_some_and(|t| {
+            (chrono::Utc::now() - t)
+                .to_std()
+                .is_ok_and(|age| age < timing::SELECT_FRESH)
+        });
         if !fresh {
             self.refresh(cx);
         }
@@ -195,20 +240,31 @@ impl GitViewer {
 
     /// The repo alias, else the last path segment (`group/sub/base-front` -> `base-front`).
     pub(crate) fn repo_label(&self, r: &RepoRef) -> String {
-        self.aliases.get(r).cloned().unwrap_or_else(|| short_repo(&r.path).to_string())
+        self.aliases
+            .get(r)
+            .cloned()
+            .unwrap_or_else(|| short_repo(&r.path).to_string())
     }
 
     pub(crate) fn project_name(&self) -> String {
         match self.selected {
             None if self.starred_only => "Starred".into(),
             None => "Inbox".into(),
-            Some(id) => self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default(),
+            Some(id) => self
+                .projects
+                .iter()
+                .find(|p| p.id == id)
+                .map(|p| p.name.clone())
+                .unwrap_or_default(),
         }
     }
 }
 
 fn short_repo(path: &str) -> &str {
-    path.trim_end_matches('/').rsplit('/').next().unwrap_or(path)
+    path.trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .unwrap_or(path)
 }
 
 #[cfg(test)]

@@ -3,8 +3,8 @@
 mod attention;
 mod bots;
 mod checks;
-mod edit;
 mod diff;
+mod edit;
 mod inline;
 mod model;
 mod needs_you;

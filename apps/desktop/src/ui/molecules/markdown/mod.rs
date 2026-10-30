@@ -33,7 +33,11 @@ pub struct Markdown {
 
 impl Markdown {
     pub fn new(id: impl Into<SharedString>, src: &str) -> Self {
-        Self { id: id.into(), src: src.to_string(), images: Rc::default() }
+        Self {
+            id: id.into(),
+            src: src.to_string(),
+            images: Rc::default(),
+        }
     }
 
     pub fn images(mut self, images: Images) -> Self {
@@ -45,7 +49,11 @@ impl Markdown {
 impl RenderOnce for Markdown {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         let blocks = parse::parse(&html::preprocess(&self.src));
-        div().flex().flex_col().min_w(crate::ui::theme::SPACE_0).children(render::render(&self.id, &blocks, self.images))
+        div()
+            .flex()
+            .flex_col()
+            .min_w(crate::ui::theme::SPACE_0)
+            .children(render::render(&self.id, &blocks, self.images))
     }
 }
 

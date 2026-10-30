@@ -3,21 +3,21 @@
 //! Each module adds `render_*` methods to `GitViewer` for one area of the window.
 
 mod code_keys;
-pub(crate) mod keyboard;
-pub(crate) mod keymap;
 mod commands;
 mod hints;
-mod palette;
+pub(crate) mod keyboard;
+pub(crate) mod keymap;
 pub(crate) mod menus;
-mod shortcuts_sheet;
-mod review_dialog;
 mod overlay;
+mod palette;
 mod pr_detail;
 mod pr_list;
 mod projects;
 mod repo_menu;
+mod review_dialog;
 mod settings;
 mod shared;
+mod shortcuts_sheet;
 pub(crate) use shared::layout;
 mod sidebar;
 mod swipe_nav;

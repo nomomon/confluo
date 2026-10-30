@@ -14,7 +14,12 @@ pub struct Chip {
 
 impl Chip {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), label: label.into(), active: false, on_click: None }
+        Self {
+            id: id.into(),
+            label: label.into(),
+            active: false,
+            on_click: None,
+        }
     }
 
     #[allow(dead_code)]
@@ -40,9 +45,21 @@ impl RenderOnce for Chip {
             .border_1()
             .text_size(theme::text_xs())
             .cursor_pointer()
-            .border_color(if active { theme::border() } else { theme::border_subtle() })
-            .bg(if active { theme::surface_active() } else { theme::surface() })
-            .text_color(if active { theme::text() } else { theme::text_muted() })
+            .border_color(if active {
+                theme::border()
+            } else {
+                theme::border_subtle()
+            })
+            .bg(if active {
+                theme::surface_active()
+            } else {
+                theme::surface()
+            })
+            .text_color(if active {
+                theme::text()
+            } else {
+                theme::text_muted()
+            })
             .hover(|s| s.bg(theme::surface_hover()))
             .active(|s| s.bg(theme::surface_active()))
             .child(self.label)

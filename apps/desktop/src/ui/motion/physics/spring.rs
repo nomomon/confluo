@@ -16,16 +16,32 @@ impl SpringParams {
     pub fn new(response: f32, damping_fraction: f32) -> Self {
         let mass = 1.;
         let w = 2. * PI / response.max(0.01);
-        Self { stiffness: w * w * mass, damping: 2. * damping_fraction * w * mass, mass }
+        Self {
+            stiffness: w * w * mass,
+            damping: 2. * damping_fraction * w * mass,
+            mass,
+        }
     }
 }
 
 /// Quick and settled, no overshoot: gestures snapping to a page, rubber band spring-back.
-pub const SNAPPY: SpringParams = SpringParams { stiffness: 438.65, damping: 41.89, mass: 1. }; // response 0.3, fraction 1
+pub const SNAPPY: SpringParams = SpringParams {
+    stiffness: 438.65,
+    damping: 41.89,
+    mass: 1.,
+}; // response 0.3, fraction 1
 /// Slight overshoot (fraction 0.85): playful, for direct manipulation that lands on a target.
-pub const BOUNCY: SpringParams = SpringParams { stiffness: 322.27, damping: 30.52, mass: 1. }; // response 0.35, fraction 0.85
+pub const BOUNCY: SpringParams = SpringParams {
+    stiffness: 322.27,
+    damping: 30.52,
+    mass: 1.,
+}; // response 0.35, fraction 0.85
 /// Slow and smooth (response 0.5, critically damped): large panels.
-pub const GENTLE: SpringParams = SpringParams { stiffness: 157.91, damping: 25.13, mass: 1. };
+pub const GENTLE: SpringParams = SpringParams {
+    stiffness: 157.91,
+    damping: 25.13,
+    mass: 1.,
+};
 
 /// Largest integration step (s).
 const SUB_STEP: f32 = 1. / 240.;
@@ -44,12 +60,24 @@ impl Spring {
     /// Start at displacement `x` with velocity `v` (velocity handoff from a gesture).
     pub fn new(params: SpringParams, x: f32, v: f32) -> Self {
         let ok = |f: f32| if f.is_finite() { f } else { 0. };
-        Self { params, x: ok(x), v: ok(v) }
+        Self {
+            params,
+            x: ok(x),
+            v: ok(v),
+        }
     }
 
     pub fn step(&mut self, dt: f32) {
-        let mut left = if dt.is_finite() { dt.clamp(0., MAX_DT) } else { 0. };
-        let SpringParams { stiffness: k, damping: c, mass: m } = self.params;
+        let mut left = if dt.is_finite() {
+            dt.clamp(0., MAX_DT)
+        } else {
+            0.
+        };
+        let SpringParams {
+            stiffness: k,
+            damping: c,
+            mass: m,
+        } = self.params;
         while left > 0. {
             let h = left.min(SUB_STEP);
             let a = (-k * self.x - c * self.v) / m;
@@ -73,7 +101,10 @@ mod tests {
     fn presets_match_their_response() {
         for (p, r, f) in [(SNAPPY, 0.3, 1.), (BOUNCY, 0.35, 0.85), (GENTLE, 0.5, 1.)] {
             let q = SpringParams::new(r, f);
-            assert!((p.stiffness - q.stiffness).abs() < 0.1 && (p.damping - q.damping).abs() < 0.1, "{p:?} vs {q:?}");
+            assert!(
+                (p.stiffness - q.stiffness).abs() < 0.1 && (p.damping - q.damping).abs() < 0.1,
+                "{p:?} vs {q:?}"
+            );
         }
     }
 
@@ -87,7 +118,10 @@ mod tests {
             t += 1. / 60.;
             assert!(t < 2.);
         }
-        assert!((0.2..0.6).contains(&t), "settles in about 300-400ms, took {t}");
+        assert!(
+            (0.2..0.6).contains(&t),
+            "settles in about 300-400ms, took {t}"
+        );
     }
 
     #[test]

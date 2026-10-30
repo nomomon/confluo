@@ -39,7 +39,12 @@ pub struct CommentFacts {
 pub const MENU: [&[CommentAction]; 4] = [
     &[CommentAction::Reply, CommentAction::QuoteReply],
     &[CommentAction::Resolve, CommentAction::Unresolve],
-    &[CommentAction::CopyText, CommentAction::CopyLink, CommentAction::OpenInBrowser, CommentAction::ShowInCode],
+    &[
+        CommentAction::CopyText,
+        CommentAction::CopyLink,
+        CommentAction::OpenInBrowser,
+        CommentAction::ShowInCode,
+    ],
     &[CommentAction::Edit, CommentAction::Delete],
 ];
 
@@ -94,13 +99,30 @@ impl CommentAction {
 
     /// Available actions in menu groups (empty groups dropped).
     pub fn menu(f: &CommentFacts) -> Vec<Vec<CommentAction>> {
-        MENU.iter().map(|g| g.iter().copied().filter(|a| a.available(f)).collect::<Vec<_>>()).filter(|g| !g.is_empty()).collect()
+        MENU.iter()
+            .map(|g| {
+                g.iter()
+                    .copied()
+                    .filter(|a| a.available(f))
+                    .collect::<Vec<_>>()
+            })
+            .filter(|g| !g.is_empty())
+            .collect()
     }
 }
 
 /// `> ` quoted body plus a blank line, for Quote reply.
 pub fn quote(body: &str) -> String {
-    let q: Vec<String> = body.lines().map(|l| if l.is_empty() { ">".into() } else { format!("> {l}") }).collect();
+    let q: Vec<String> = body
+        .lines()
+        .map(|l| {
+            if l.is_empty() {
+                ">".into()
+            } else {
+                format!("> {l}")
+            }
+        })
+        .collect();
     format!("{}\n\n", q.join("\n"))
 }
 
@@ -108,7 +130,9 @@ pub fn quote(body: &str) -> String {
 /// node id), GitLab `#note_{id}`, Azure `?discussionId={thread}`; else the PR.
 pub fn comment_link(web_url: &str, kind: ProviderKind, id: &str) -> String {
     match kind {
-        ProviderKind::GitLab if id.chars().all(|c| c.is_ascii_digit()) => format!("{web_url}#note_{id}"),
+        ProviderKind::GitLab if id.chars().all(|c| c.is_ascii_digit()) => {
+            format!("{web_url}#note_{id}")
+        }
         ProviderKind::GitHub => match (id.split_once('_'), github_database_id(id)) {
             (Some(("IC", _)), Some(n)) => format!("{web_url}#issuecomment-{n}"),
             (Some(("PRRC", _)), Some(n)) => format!("{web_url}#discussion_r{n}"),
@@ -173,24 +197,67 @@ mod tests {
 
     #[test]
     fn availability_follows_ownership_and_thread_state() {
-        let mine = CommentFacts { mine: true, can_reply: true, resolved: Some(false), ..Default::default() };
+        let mine = CommentFacts {
+            mine: true,
+            can_reply: true,
+            resolved: Some(false),
+            ..Default::default()
+        };
         let menu = CommentAction::menu(&mine);
-        assert_eq!(menu.first().unwrap(), &vec![CommentAction::Reply, CommentAction::QuoteReply]);
-        assert_eq!(menu.last().unwrap(), &vec![CommentAction::Edit, CommentAction::Delete]);
-        assert!(CommentAction::Resolve.available(&mine) && !CommentAction::Unresolve.available(&mine));
-        let theirs = CommentFacts { mine: false, ..Default::default() };
-        assert!(!CommentAction::Delete.available(&theirs) && !CommentAction::Reply.available(&theirs));
-        assert!(CommentAction::menu(&CommentFacts { pending: true, ..mine }).is_empty());
-        assert!(CommentAction::ShowInCode.available(&CommentFacts { inline: true, in_conversation: true, ..Default::default() }));
+        assert_eq!(
+            menu.first().unwrap(),
+            &vec![CommentAction::Reply, CommentAction::QuoteReply]
+        );
+        assert_eq!(
+            menu.last().unwrap(),
+            &vec![CommentAction::Edit, CommentAction::Delete]
+        );
+        assert!(
+            CommentAction::Resolve.available(&mine) && !CommentAction::Unresolve.available(&mine)
+        );
+        let theirs = CommentFacts {
+            mine: false,
+            ..Default::default()
+        };
+        assert!(
+            !CommentAction::Delete.available(&theirs) && !CommentAction::Reply.available(&theirs)
+        );
+        assert!(CommentAction::menu(&CommentFacts {
+            pending: true,
+            ..mine
+        })
+        .is_empty());
+        assert!(CommentAction::ShowInCode.available(&CommentFacts {
+            inline: true,
+            in_conversation: true,
+            ..Default::default()
+        }));
     }
 
     #[test]
     fn comment_links_per_provider() {
         let gh = "https://github.com/a/b/pull/4";
-        assert_eq!(comment_link(gh, ProviderKind::GitHub, "IC_kwDOVCkx488AAAABhJw4UA"), format!("{gh}#issuecomment-6519797840"));
+        assert_eq!(
+            comment_link(gh, ProviderKind::GitHub, "IC_kwDOVCkx488AAAABhJw4UA"),
+            format!("{gh}#issuecomment-6519797840")
+        );
         assert_eq!(comment_link(gh, ProviderKind::GitHub, "nonsense"), gh);
-        assert_eq!(comment_link("https://gl/x/-/merge_requests/1", ProviderKind::GitLab, "42"), "https://gl/x/-/merge_requests/1#note_42");
-        assert_eq!(comment_link("https://dev.azure.com/o/p/_git/r/pullrequest/5", ProviderKind::Azure, "12/3"), "https://dev.azure.com/o/p/_git/r/pullrequest/5?discussionId=12");
+        assert_eq!(
+            comment_link(
+                "https://gl/x/-/merge_requests/1",
+                ProviderKind::GitLab,
+                "42"
+            ),
+            "https://gl/x/-/merge_requests/1#note_42"
+        );
+        assert_eq!(
+            comment_link(
+                "https://dev.azure.com/o/p/_git/r/pullrequest/5",
+                ProviderKind::Azure,
+                "12/3"
+            ),
+            "https://dev.azure.com/o/p/_git/r/pullrequest/5?discussionId=12"
+        );
         assert_eq!(quote("a\n\nb"), "> a\n>\n> b\n\n");
     }
 }

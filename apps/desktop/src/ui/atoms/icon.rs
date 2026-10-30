@@ -105,7 +105,11 @@ pub struct Icon {
 
 impl Icon {
     pub fn new(name: IconName) -> Self {
-        Self { name, size: theme::ICON_MD, color: theme::text_muted() }
+        Self {
+            name,
+            size: theme::ICON_MD,
+            color: theme::text_muted(),
+        }
     }
 
     pub fn size(mut self, size: Pixels) -> Self {
@@ -121,6 +125,10 @@ impl Icon {
 
 impl RenderOnce for Icon {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        svg().path(self.name.path()).flex_shrink_0().size(self.size).text_color(self.color)
+        svg()
+            .path(self.name.path())
+            .flex_shrink_0()
+            .size(self.size)
+            .text_color(self.color)
     }
 }

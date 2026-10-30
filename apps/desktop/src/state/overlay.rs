@@ -74,7 +74,15 @@ pub enum SettingsPage {
 }
 
 impl SettingsPage {
-    pub const ALL: [SettingsPage; 7] = [Self::General, Self::Appearance, Self::Accounts, Self::Projects, Self::Repositories, Self::Filters, Self::Shortcuts];
+    pub const ALL: [SettingsPage; 7] = [
+        Self::General,
+        Self::Appearance,
+        Self::Accounts,
+        Self::Projects,
+        Self::Repositories,
+        Self::Filters,
+        Self::Shortcuts,
+    ];
 
     pub fn label(self) -> &'static str {
         match self {
@@ -91,7 +99,9 @@ impl SettingsPage {
     /// Dev only: `CONFLUO_SETTINGS=appearance` opens Settings on that page at launch.
     pub fn from_env() -> Option<Self> {
         let v = std::env::var("CONFLUO_SETTINGS").ok()?.to_lowercase();
-        Self::ALL.into_iter().find(|p| p.label().to_lowercase() == v)
+        Self::ALL
+            .into_iter()
+            .find(|p| p.label().to_lowercase() == v)
     }
 }
 
@@ -120,7 +130,10 @@ impl GitViewer {
 
     /// Open `layer`, or close it when it is the one open (trigger buttons).
     pub(crate) fn toggle_layer(&mut self, layer: Layer, cx: &mut Context<Self>) {
-        let just_closed = self.layer_dismissed.take().is_some_and(|(l, at)| l == layer && at.elapsed() < super::timing::LAYER_REOPEN_GUARD);
+        let just_closed = self
+            .layer_dismissed
+            .take()
+            .is_some_and(|(l, at)| l == layer && at.elapsed() < super::timing::LAYER_REOPEN_GUARD);
         if just_closed {
             return;
         }
@@ -134,7 +147,10 @@ impl GitViewer {
 
     /// Close every floating layer. True when something was open.
     pub(crate) fn close_layers(&mut self, cx: &mut Context<Self>) -> bool {
-        let people = self.detail.as_mut().is_some_and(|d| d.ui.people.take().is_some());
+        let people = self
+            .detail
+            .as_mut()
+            .is_some_and(|d| d.ui.people.take().is_some());
         let open = self.layer.take().is_some() || self.repo_menu.take().is_some() || people;
         if open {
             cx.notify();
@@ -144,7 +160,9 @@ impl GitViewer {
 
     /// A menu, popover or picker is open (hover cards and shortcut hints stay hidden meanwhile).
     pub(crate) fn layer_open(&self) -> bool {
-        self.layer.is_some() || self.repo_menu.is_some() || self.detail.as_ref().is_some_and(|d| d.ui.people.is_some())
+        self.layer.is_some()
+            || self.repo_menu.is_some()
+            || self.detail.as_ref().is_some_and(|d| d.ui.people.is_some())
     }
 
     pub(crate) fn open_settings(&mut self, page: Option<SettingsPage>, cx: &mut Context<Self>) {
@@ -208,7 +226,11 @@ impl GitViewer {
 
     /// Every repo of every project plus those in view, for Settings > Repositories.
     pub(crate) fn all_repos(&self) -> Vec<RepoRef> {
-        let mut v: Vec<RepoRef> = self.projects.iter().flat_map(|p| self.engine.store().project_repos(p.id).unwrap_or_default()).collect();
+        let mut v: Vec<RepoRef> = self
+            .projects
+            .iter()
+            .flat_map(|p| self.engine.store().project_repos(p.id).unwrap_or_default())
+            .collect();
         v.extend(self.items.iter().map(|c| c.id.repo.clone()));
         v.sort();
         v.dedup();

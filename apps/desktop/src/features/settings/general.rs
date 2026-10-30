@@ -5,26 +5,38 @@ use gpui::{div, prelude::*, ClickEvent, Context};
 use crate::app::GitViewer;
 use crate::settings::{refresh_label, Launch, OpenIn, REFRESH_MINUTES};
 use crate::ui::atoms::{Button, Switch};
-use crate::ui::theme;
 use crate::ui::molecules::{Field, RadioGroup, Select, ToggleGroup};
+use crate::ui::theme;
 
 impl GitViewer {
     pub(super) fn render_general(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let s = &self.settings;
         let refresh = REFRESH_MINUTES
             .iter()
-            .fold(Select::new("refresh-interval"), |sel, m| sel.option(refresh_label(*m)))
-            .selected(REFRESH_MINUTES.iter().position(|m| *m == s.refresh_minutes).unwrap_or(2))
+            .fold(Select::new("refresh-interval"), |sel, m| {
+                sel.option(refresh_label(*m))
+            })
+            .selected(
+                REFRESH_MINUTES
+                    .iter()
+                    .position(|m| *m == s.refresh_minutes)
+                    .unwrap_or(2),
+            )
             .on_change(cx.listener(|this, i: &usize, _, cx| {
                 this.settings.refresh_minutes = REFRESH_MINUTES[*i];
                 this.save_settings(cx)
             }));
-        let open_in = ToggleGroup::new("open-in").item("Confluo", None, s.open_in == OpenIn::App).item("Browser", None, s.open_in == OpenIn::Browser).on_change(cx.listener(
-            |this, i: &usize, _, cx| {
-                this.settings.open_in = if *i == 0 { OpenIn::App } else { OpenIn::Browser };
+        let open_in = ToggleGroup::new("open-in")
+            .item("Confluo", None, s.open_in == OpenIn::App)
+            .item("Browser", None, s.open_in == OpenIn::Browser)
+            .on_change(cx.listener(|this, i: &usize, _, cx| {
+                this.settings.open_in = if *i == 0 {
+                    OpenIn::App
+                } else {
+                    OpenIn::Browser
+                };
                 this.save_settings(cx)
-            },
-        ));
+            }));
         let launch = Launch::ALL
             .iter()
             .fold(RadioGroup::new("launch"), |r, l| r.option(l.label()))
@@ -33,20 +45,31 @@ impl GitViewer {
                 this.settings.launch = Launch::ALL[*i];
                 this.save_settings(cx)
             }));
-        let hints = Switch::new("shortcut-hints", s.shortcut_hints).on_change(cx.listener(|this, on: &bool, _, cx| {
-            this.settings.shortcut_hints = *on;
-            this.save_settings(cx)
-        }));
-        let swipe = Switch::new("swipe-pages", s.swipe_pages).on_change(cx.listener(|this, on: &bool, _, cx| {
-            this.settings.swipe_pages = *on;
-            this.save_settings(cx)
-        }));
-        let auto_update = Switch::new("auto-update", s.auto_update).on_change(cx.listener(|this, on: &bool, _, cx| {
-            this.settings.auto_update = *on;
-            this.save_settings(cx)
-        }));
-        let check_label = if self.update.checking { "Checking..." } else { "Check now" };
-        let check = Button::new("check-updates", check_label).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.check_for_updates(true, cx)));
+        let hints = Switch::new("shortcut-hints", s.shortcut_hints).on_change(cx.listener(
+            |this, on: &bool, _, cx| {
+                this.settings.shortcut_hints = *on;
+                this.save_settings(cx)
+            },
+        ));
+        let swipe = Switch::new("swipe-pages", s.swipe_pages).on_change(cx.listener(
+            |this, on: &bool, _, cx| {
+                this.settings.swipe_pages = *on;
+                this.save_settings(cx)
+            },
+        ));
+        let auto_update = Switch::new("auto-update", s.auto_update).on_change(cx.listener(
+            |this, on: &bool, _, cx| {
+                this.settings.auto_update = *on;
+                this.save_settings(cx)
+            },
+        ));
+        let check_label = if self.update.checking {
+            "Checking..."
+        } else {
+            "Check now"
+        };
+        let check = Button::new("check-updates", check_label)
+            .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.check_for_updates(true, cx)));
         div().flex().flex_col().gap(theme::SPACE_6).child(self.settings_group(
             None,
             vec![

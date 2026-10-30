@@ -81,11 +81,14 @@ pub const WEIGHT_MEDIUM: FontWeight = FontWeight::MEDIUM;
 pub const WEIGHT_SEMIBOLD: FontWeight = FontWeight::SEMIBOLD;
 pub const WEIGHT_BOLD: FontWeight = FontWeight::BOLD;
 
-
 /// Density-driven rhythm. Settings > Appearance > Density picks Compact (default, first value)
 /// or Comfortable (second value); everything that sets the app's breathing room reads these.
 fn dense(compact: f32, comfortable: f32) -> Pixels {
-    px(if super::runtime::typography().compact { compact } else { comfortable })
+    px(if super::runtime::typography().compact {
+        compact
+    } else {
+        comfortable
+    })
 }
 /// Height of primary controls (tabs, search, inputs).
 pub fn control_h() -> Pixels {

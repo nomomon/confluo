@@ -5,23 +5,44 @@ use crate::people::user;
 use chrono::{Duration, Utc};
 use gv_core::*;
 
-fn c(id: &str, who: &str, mins: i64, body: &str, pos: Option<(&str, u32)>, reactions: Vec<ReactionGroup>) -> Comment {
+fn c(
+    id: &str,
+    who: &str,
+    mins: i64,
+    body: &str,
+    pos: Option<(&str, u32)>,
+    reactions: Vec<ReactionGroup>,
+) -> Comment {
     Comment {
         id: id.into(),
         author: user(who),
         body: body.into(),
         created_at: Utc::now() - Duration::minutes(mins),
-        position: pos.map(|(p, l)| InlinePosition { path: p.into(), line: Some(l) }),
+        position: pos.map(|(p, l)| InlinePosition {
+            path: p.into(),
+            line: Some(l),
+        }),
         reactions,
     }
 }
 
 fn r(kind: ReactionKind, users: &[&str]) -> ReactionGroup {
-    ReactionGroup { kind, count: users.len() as u32, me: users.contains(&crate::people::ME), users: users.iter().map(|u| u.to_string()).collect() }
+    ReactionGroup {
+        kind,
+        count: users.len() as u32,
+        me: users.contains(&crate::people::ME),
+        users: users.iter().map(|u| u.to_string()).collect(),
+    }
 }
 
 fn inline(id: &str, path: &str, line: u32, resolved: bool, comments: Vec<Comment>) -> Thread {
-    Thread { id: id.into(), resolved: Some(resolved), comments, position: Some(DiffPosition::new(path, DiffSide::New, line)), outdated: false }
+    Thread {
+        id: id.into(),
+        resolved: Some(resolved),
+        comments,
+        position: Some(DiffPosition::new(path, DiffSide::New, line)),
+        outdated: false,
+    }
 }
 
 /// Threads of the showcase PR (webhook retries).
@@ -48,5 +69,15 @@ pub fn showcase() -> Vec<Thread> {
 /// Threads of any other PR: one friendly comment.
 pub fn generic(author: &str, reviewer: Option<&str>) -> Vec<Thread> {
     let who = reviewer.unwrap_or(author);
-    vec![Thread::conversation("g1", vec![c("g1", who, 45, "Thanks, this reads well. Left one question inline in the next round.", None, vec![r(ReactionKind::ThumbsUp, &[author])])])]
+    vec![Thread::conversation(
+        "g1",
+        vec![c(
+            "g1",
+            who,
+            45,
+            "Thanks, this reads well. Left one question inline in the next round.",
+            None,
+            vec![r(ReactionKind::ThumbsUp, &[author])],
+        )],
+    )]
 }

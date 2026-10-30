@@ -2,7 +2,10 @@
 //! emoji buttons on top, then Reply / Quote reply, Resolve, copy and links, Show in code, Edit / Delete last.
 //! The same items open from the hover toolbar's More button (anchored) and from a right-click (at the pointer).
 
-use gpui::{div, prelude::*, AnyElement, ClickEvent, Context, Focusable, MouseDownEvent, SharedString, Window};
+use gpui::{
+    div, prelude::*, AnyElement, ClickEvent, Context, Focusable, MouseDownEvent, SharedString,
+    Window,
+};
 use gv_engine::ReactionKind;
 
 use super::comment::Place;
@@ -27,12 +30,22 @@ pub(super) struct CommentTarget {
 }
 
 impl GitViewer {
-    pub(super) fn run_comment_action(&mut self, a: CommentAction, t: &CommentTarget, window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn run_comment_action(
+        &mut self,
+        a: CommentAction,
+        t: &CommentTarget,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.layer = None;
         match a {
             CommentAction::Reply | CommentAction::QuoteReply => {
                 let Some(tid) = t.thread.clone() else { return };
-                let text = if a == CommentAction::QuoteReply { quote(&t.body) } else { String::new() };
+                let text = if a == CommentAction::QuoteReply {
+                    quote(&t.body)
+                } else {
+                    String::new()
+                };
                 match t.place {
                     Place::Activity => {
                         if let Some(d) = self.detail.as_mut() {
@@ -67,7 +80,9 @@ impl GitViewer {
                     self.composer.update(cx, |i, cx| i.set_text(body, cx));
                     window.focus(&self.composer.focus_handle(cx));
                 }
-                Place::Code => self.open_inline_field(None, Some((t.id.clone(), t.body.clone())), window, cx),
+                Place::Code => {
+                    self.open_inline_field(None, Some((t.id.clone(), t.body.clone())), window, cx)
+                }
             },
             CommentAction::Delete => self.confirm_delete_comment(t.id.clone(), cx),
             CommentAction::CopyText => {
@@ -89,7 +104,11 @@ impl GitViewer {
     fn comment_menu_items(&self, t: &CommentTarget, cx: &mut Context<Self>) -> Vec<AnyElement> {
         let mut out: Vec<AnyElement> = vec![];
         if t.can_react {
-            let kind = self.detail.as_ref().map(|d| d.summary.id.repo.kind).unwrap_or(gv_engine::ProviderKind::GitHub);
+            let kind = self
+                .detail
+                .as_ref()
+                .map(|d| d.summary.id.repo.kind)
+                .unwrap_or(gv_engine::ProviderKind::GitHub);
             let emoji = ReactionKind::for_provider(kind).iter().copied().map(|k| {
                 let id = t.id.clone();
                 div()
@@ -109,7 +128,13 @@ impl GitViewer {
                     }))
                     .child(k.emoji())
             });
-            out.push(div().flex().px(theme::SPACE_1).children(emoji).into_any_element());
+            out.push(
+                div()
+                    .flex()
+                    .px(theme::SPACE_1)
+                    .children(emoji)
+                    .into_any_element(),
+            );
             out.push(MenuSeparator.into_any_element());
         }
         for (gi, group) in CommentAction::menu(&t.facts).into_iter().enumerate() {
@@ -118,27 +143,48 @@ impl GitViewer {
             }
             for a in group {
                 let t2 = t.clone();
-                let mut item = MenuItem::new(SharedString::from(format!("cm-{a:?}-{}", t.id)), a.label()).icon(a.icon());
+                let mut item =
+                    MenuItem::new(SharedString::from(format!("cm-{a:?}-{}", t.id)), a.label())
+                        .icon(a.icon());
                 if a.destructive() {
                     item = item.destructive();
                 }
-                out.push(item.on_click(cx.listener(move |this, _: &ClickEvent, window, cx| this.run_comment_action(a, &t2, window, cx))).into_any_element());
+                out.push(
+                    item.on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
+                        this.run_comment_action(a, &t2, window, cx)
+                    }))
+                    .into_any_element(),
+                );
             }
         }
         out
     }
 
     /// The open menu of comment `t`, if any: anchored under More, or at the right-click point.
-    pub(super) fn comment_menu(&self, t: &CommentTarget, cx: &mut Context<Self>) -> Option<AnyElement> {
+    pub(super) fn comment_menu(
+        &self,
+        t: &CommentTarget,
+        cx: &mut Context<Self>,
+    ) -> Option<AnyElement> {
         let dismiss = cx.listener(|this, _: &MouseDownEvent, _, cx| this.dismiss_layer(cx));
         match &self.layer {
             Some(Layer::CommentMenu(id)) if *id == t.id => {
                 let items = self.comment_menu_items(t, cx);
-                Some(DropdownMenu::new(SharedString::from(format!("comment-menu-{}", t.id))).on_dismiss(dismiss).children(items).into_any_element())
+                Some(
+                    DropdownMenu::new(SharedString::from(format!("comment-menu-{}", t.id)))
+                        .on_dismiss(dismiss)
+                        .children(items)
+                        .into_any_element(),
+                )
             }
             Some(Layer::CommentMenuAt(id, at)) if *id == t.id => {
                 let items = self.comment_menu_items(t, cx);
-                Some(ContextMenu::new(SharedString::from(format!("comment-ctx-{}", t.id)), *at).on_dismiss(dismiss).children(items).into_any_element())
+                Some(
+                    ContextMenu::new(SharedString::from(format!("comment-ctx-{}", t.id)), *at)
+                        .on_dismiss(dismiss)
+                        .children(items)
+                        .into_any_element(),
+                )
             }
             _ => None,
         }

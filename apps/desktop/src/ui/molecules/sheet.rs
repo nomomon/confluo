@@ -2,7 +2,10 @@
 //!
 //! `Sheet::new("Filters").description("..").on_close(..).child(..)`
 
-use gpui::{div, prelude::*, px, AnyElement, App, ClickEvent, MouseButton, MouseDownEvent, Pixels, SharedString, Window};
+use gpui::{
+    div, prelude::*, px, AnyElement, App, ClickEvent, MouseButton, MouseDownEvent, Pixels,
+    SharedString, Window,
+};
 use std::rc::Rc;
 
 use crate::ui::atoms::{Button, ButtonVariant, IconName};
@@ -23,7 +26,13 @@ pub struct Sheet {
 
 impl Sheet {
     pub fn new(title: impl Into<SharedString>) -> Self {
-        Self { title: title.into(), description: None, width: SHEET_W, on_close: None, children: vec![] }
+        Self {
+            title: title.into(),
+            description: None,
+            width: SHEET_W,
+            on_close: None,
+            children: vec![],
+        }
     }
 
     pub fn description(mut self, text: impl Into<SharedString>) -> Self {
@@ -53,11 +62,14 @@ impl ParentElement for Sheet {
 impl RenderOnce for Sheet {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         let (c1, c2) = (self.on_close.clone(), self.on_close);
-        let close = Button::new("sheet-close", "").icon(IconName::X).variant(ButtonVariant::Ghost).on_click(move |_: &ClickEvent, w, cx| {
-            if let Some(f) = &c1 {
-                f(w, cx)
-            }
-        });
+        let close = Button::new("sheet-close", "")
+            .icon(IconName::X)
+            .variant(ButtonVariant::Ghost)
+            .on_click(move |_: &ClickEvent, w, cx| {
+                if let Some(f) = &c1 {
+                    f(w, cx)
+                }
+            });
         let header = div()
             .flex()
             .items_start()
@@ -67,8 +79,18 @@ impl RenderOnce for Sheet {
                     .flex()
                     .flex_col()
                     .gap(theme::SPACE_1)
-                    .child(div().text_size(theme::text_base()).font_weight(theme::WEIGHT_SEMIBOLD).child(self.title))
-                    .children(self.description.map(|d| div().text_size(theme::text_sm()).text_color(theme::text_muted()).child(d))),
+                    .child(
+                        div()
+                            .text_size(theme::text_base())
+                            .font_weight(theme::WEIGHT_SEMIBOLD)
+                            .child(self.title),
+                    )
+                    .children(self.description.map(|d| {
+                        div()
+                            .text_size(theme::text_sm())
+                            .text_color(theme::text_muted())
+                            .child(d)
+                    })),
             )
             .child(close);
         let panel = div()
@@ -90,11 +112,24 @@ impl RenderOnce for Sheet {
             .map(crate::ui::scroll::y_only)
             .child(header)
             .children(self.children);
-        let scrim = div().absolute().top_0().left_0().size_full().bg(theme::scrim()).occlude().on_mouse_down(MouseButton::Left, move |_: &MouseDownEvent, w, cx| {
-            if let Some(f) = &c2 {
-                f(w, cx)
-            }
-        });
-        div().absolute().top_0().left_0().size_full().child(motion::fade_in(scrim, "sheet-scrim")).child(motion::slide_in_from_edge(panel, "sheet-slide", self.width))
+        let scrim = div()
+            .absolute()
+            .top_0()
+            .left_0()
+            .size_full()
+            .bg(theme::scrim())
+            .occlude()
+            .on_mouse_down(MouseButton::Left, move |_: &MouseDownEvent, w, cx| {
+                if let Some(f) = &c2 {
+                    f(w, cx)
+                }
+            });
+        div()
+            .absolute()
+            .top_0()
+            .left_0()
+            .size_full()
+            .child(motion::fade_in(scrim, "sheet-scrim"))
+            .child(motion::slide_in_from_edge(panel, "sheet-slide", self.width))
     }
 }

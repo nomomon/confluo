@@ -54,7 +54,9 @@ impl GitViewer {
 
     /// Switch the detail tab; the Code tab loads its files lazily on first open.
     pub(crate) fn set_detail_tab(&mut self, tab: DetailTab, cx: &mut Context<Self>) {
-        let Some(d) = self.detail.as_mut() else { return };
+        let Some(d) = self.detail.as_mut() else {
+            return;
+        };
         d.tab = tab;
         if tab == DetailTab::Code && d.code.files.is_none() {
             self.load_code(cx);
@@ -66,9 +68,25 @@ impl GitViewer {
     /// `CONFLUO_REVEAL=<thread id>` scrolls the Code tab to that inline thread,
     /// `CONFLUO_SELECT=path:start-end` selects those new-side diff lines.
     pub(crate) fn open_from_env(&mut self, cx: &mut Context<Self>) {
-        let Ok(url) = std::env::var("CONFLUO_OPEN") else { return };
-        let Ok(id) = self.engine.resolve_id(&url) else { return };
-        let cr = self.engine.store().get_change_request(&id).ok().flatten().or_else(|| self.engine.cached_detail(&id).ok().flatten().map(|d| d.summary));
+        let Ok(url) = std::env::var("CONFLUO_OPEN") else {
+            return;
+        };
+        let Ok(id) = self.engine.resolve_id(&url) else {
+            return;
+        };
+        let cr = self
+            .engine
+            .store()
+            .get_change_request(&id)
+            .ok()
+            .flatten()
+            .or_else(|| {
+                self.engine
+                    .cached_detail(&id)
+                    .ok()
+                    .flatten()
+                    .map(|d| d.summary)
+            });
         let Some(cr) = cr else { return };
         self.open_detail(cr, cx);
         // `CONFLUO_MODE=review` (or `CONFLUO_TAB=code|activity`) enters Review mode; activity opens Conversation.
@@ -83,7 +101,9 @@ impl GitViewer {
             d.code.inline.reveal = Some(t);
         }
         if let Some(d) = self.detail.as_mut() {
-            d.code.pending_select = std::env::var("CONFLUO_SELECT").ok().and_then(|s| super::line_select::PendingSelect::parse(&s));
+            d.code.pending_select = std::env::var("CONFLUO_SELECT")
+                .ok()
+                .and_then(|s| super::line_select::PendingSelect::parse(&s));
             d.code.apply_pending_select();
         }
     }
@@ -96,7 +116,9 @@ impl GitViewer {
     }
 
     pub(crate) fn load_detail(&mut self, cx: &mut Context<Self>) {
-        let Some(d) = self.detail.as_mut() else { return };
+        let Some(d) = self.detail.as_mut() else {
+            return;
+        };
         d.loading = true;
         let id = d.summary.id.clone();
         let engine = self.engine.clone();
@@ -105,7 +127,11 @@ impl GitViewer {
             // The cached username is enough; asking the host first would queue behind a running refresh.
             let me = match cached_me {
                 Some(u) => Some(u),
-                None => engine.whoami(id.repo.kind, &id.repo.host).await.ok().map(|u| u.username),
+                None => engine
+                    .whoami(id.repo.kind, &id.repo.host)
+                    .await
+                    .ok()
+                    .map(|u| u.username),
             };
             (engine.detail(&id, true).await.map_err(err_str), me)
         });
@@ -114,7 +140,9 @@ impl GitViewer {
             let Ok((r, me)) = rx.await else { return };
             this.update(cx, |v, cx| {
                 let mut reload_code = false;
-                let Some(d) = v.detail.as_mut().filter(|d| d.summary.id == want) else { return };
+                let Some(d) = v.detail.as_mut().filter(|d| d.summary.id == want) else {
+                    return;
+                };
                 d.loading = false;
                 if me.is_some() {
                     d.me = me;

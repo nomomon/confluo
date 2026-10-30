@@ -17,11 +17,21 @@ pub struct Typography {
 
 impl Default for Typography {
     fn default() -> Self {
-        Self { ui_font: ".SystemUIFont", mono_font: "JetBrains Mono", step: 0., compact: true }
+        Self {
+            ui_font: ".SystemUIFont",
+            mono_font: "JetBrains Mono",
+            step: 0.,
+            compact: true,
+        }
     }
 }
 
-static TYPOGRAPHY: RwLock<Typography> = RwLock::new(Typography { ui_font: ".SystemUIFont", mono_font: "JetBrains Mono", step: 0., compact: true });
+static TYPOGRAPHY: RwLock<Typography> = RwLock::new(Typography {
+    ui_font: ".SystemUIFont",
+    mono_font: "JetBrains Mono",
+    step: 0.,
+    compact: true,
+});
 
 /// Replace the live typography; the next render picks it up.
 pub fn set_typography(t: Typography) {

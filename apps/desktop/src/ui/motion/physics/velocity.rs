@@ -28,11 +28,17 @@ impl VelocityTracker {
     /// Units per second at `now`: segment speeds in the last 100ms, newer segments weighing more.
     /// Fingers that rested before lifting give 0.
     pub fn velocity(&self, now: f32) -> f32 {
-        let Some(&(last_t, _)) = self.samples.last() else { return 0. };
+        let Some(&(last_t, _)) = self.samples.last() else {
+            return 0.;
+        };
         if now - last_t > WINDOW * 0.8 {
             return 0.;
         }
-        let recent: Vec<_> = self.samples.iter().filter(|(t, _)| last_t - t <= WINDOW).collect();
+        let recent: Vec<_> = self
+            .samples
+            .iter()
+            .filter(|(t, _)| last_t - t <= WINDOW)
+            .collect();
         let (mut sum, mut weight) = (0., 0.);
         for (i, w) in recent.windows(2).enumerate() {
             let dt = w[1].0 - w[0].0;

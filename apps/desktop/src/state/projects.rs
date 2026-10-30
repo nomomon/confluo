@@ -8,7 +8,6 @@ use super::sources::{group_from_url, infer_source, parse_group, SourceKind};
 use super::{bridge, err_str};
 use crate::app::{GitViewer, Overlay};
 
-
 impl GitViewer {
     pub(crate) fn submit_add_project(&mut self, cx: &mut Context<Self>) {
         let name = self.add_name.read(cx).text().trim().to_string();
@@ -31,7 +30,8 @@ impl GitViewer {
             SourceKind::Group => match parse_group(&value).or_else(|| group_from_url(&value)) {
                 Some(s) => s,
                 None => {
-                    self.add_error = Some("Expected provider:host/path, e.g. gitlab:gitlab.com/my-group".into());
+                    self.add_error =
+                        Some("Expected provider:host/path, e.g. gitlab:gitlab.com/my-group".into());
                     cx.notify();
                     return;
                 }
@@ -57,7 +57,10 @@ impl GitViewer {
     pub(crate) fn open_add_project(&mut self, cx: &mut Context<Self>) {
         self.overlay = Overlay::AddProject;
         self.add_error = None;
-        let n = self.selected.map(|_| self.project_name()).unwrap_or_default();
+        let n = self
+            .selected
+            .map(|_| self.project_name())
+            .unwrap_or_default();
         self.add_name.update(cx, |i, cx| i.set_text(n, cx));
         cx.notify();
     }
@@ -65,11 +68,20 @@ impl GitViewer {
     /// Resolve the project's repos in the background and toast how many were found.
     fn announce_repo_count(&mut self, project_id: i64, cx: &mut Context<Self>) {
         let engine = self.engine.clone();
-        let rx = bridge::spawn(async move { engine.resolve_project_repos(project_id).await.map(|r| r.len()).map_err(err_str) });
+        let rx = bridge::spawn(async move {
+            engine
+                .resolve_project_repos(project_id)
+                .await
+                .map(|r| r.len())
+                .map_err(err_str)
+        });
         cx.spawn(async move |this, cx| {
             let Ok(r) = rx.await else { return };
             this.update(cx, |v, cx| match r {
-                Ok(n) => v.show_toast(format!("Found {n} repo{}", if n == 1 { "" } else { "s" }), cx),
+                Ok(n) => v.show_toast(
+                    format!("Found {n} repo{}", if n == 1 { "" } else { "s" }),
+                    cx,
+                ),
                 Err(e) => v.error = Some(e),
             })
             .ok();
@@ -80,7 +92,9 @@ impl GitViewer {
     /// Infer the source kind and a project name while the user types or pastes.
     pub(crate) fn on_add_value_changed(&mut self, cx: &mut Context<Self>) {
         let value = self.add_value.read(cx).text();
-        let Some((kind, name)) = infer_source(&value) else { return };
+        let Some((kind, name)) = infer_source(&value) else {
+            return;
+        };
         self.add_kind = kind;
         let current = self.add_name.read(cx).text();
         if current.trim().is_empty() || Some(&current) == self.auto_name.as_ref() {
@@ -92,7 +106,12 @@ impl GitViewer {
 
     pub(crate) fn open_rename(&mut self, id: i64, cx: &mut Context<Self>) {
         self.layer = None;
-        let name = self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default();
+        let name = self
+            .projects
+            .iter()
+            .find(|p| p.id == id)
+            .map(|p| p.name.clone())
+            .unwrap_or_default();
         self.rename_input.update(cx, |i, cx| i.set_text(name, cx));
         self.overlay = Overlay::Rename(id);
         cx.notify();
@@ -143,13 +162,22 @@ impl GitViewer {
 
     /// Leave the delete confirmation, back to Settings when it was opened from there.
     pub(crate) fn close_confirm(&mut self) {
-        self.overlay = if self.confirm_from_settings { Overlay::Settings } else { Overlay::None };
+        self.overlay = if self.confirm_from_settings {
+            Overlay::Settings
+        } else {
+            Overlay::None
+        };
         self.confirm_from_settings = false;
     }
 
     /// Start renaming a project inline in Settings.
     pub(crate) fn start_rename(&mut self, id: i64, cx: &mut Context<Self>) {
-        let name = self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default();
+        let name = self
+            .projects
+            .iter()
+            .find(|p| p.id == id)
+            .map(|p| p.name.clone())
+            .unwrap_or_default();
         self.rename_input.update(cx, |i, cx| i.set_text(name, cx));
         self.renaming = Some(id);
         cx.notify();
@@ -165,7 +193,12 @@ impl GitViewer {
 
     /// Add a source to an existing project: the add dialog with its name filled in.
     pub(crate) fn add_source_to(&mut self, id: i64, cx: &mut Context<Self>) {
-        let name = self.projects.iter().find(|p| p.id == id).map(|p| p.name.clone()).unwrap_or_default();
+        let name = self
+            .projects
+            .iter()
+            .find(|p| p.id == id)
+            .map(|p| p.name.clone())
+            .unwrap_or_default();
         self.overlay = Overlay::AddProject;
         self.add_error = None;
         self.add_name.update(cx, |i, cx| i.set_text(name, cx));
@@ -173,7 +206,10 @@ impl GitViewer {
     }
 
     pub(crate) fn set_alias_repo(&mut self, repo: Option<RepoRef>, cx: &mut Context<Self>) {
-        let cur = repo.as_ref().map(|r| self.repo_label(r)).unwrap_or_default();
+        let cur = repo
+            .as_ref()
+            .map(|r| self.repo_label(r))
+            .unwrap_or_default();
         let path = repo.as_ref().map(|r| r.path.clone()).unwrap_or_default();
         self.alias_input.update(cx, |i, cx| {
             i.set_placeholder(path, cx);
@@ -185,9 +221,20 @@ impl GitViewer {
 
     /// Enter in the inline name field of Settings > Repositories.
     pub(crate) fn save_alias(&mut self, cx: &mut Context<Self>) {
-        let Some(repo) = self.alias_repo.take() else { return };
+        let Some(repo) = self.alias_repo.take() else {
+            return;
+        };
         let text = self.alias_input.read(cx).text().trim().to_string();
-        let default = repo.path.rsplit('/').next().unwrap_or(&repo.path).to_string();
-        self.set_alias(&repo, (!text.is_empty() && text != default).then_some(text), cx);
+        let default = repo
+            .path
+            .rsplit('/')
+            .next()
+            .unwrap_or(&repo.path)
+            .to_string();
+        self.set_alias(
+            &repo,
+            (!text.is_empty() && text != default).then_some(text),
+            cx,
+        );
     }
 }

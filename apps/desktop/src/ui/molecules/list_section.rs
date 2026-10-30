@@ -20,7 +20,14 @@ pub struct ListSection {
 
 impl ListSection {
     pub fn new(id: impl Into<SharedString>, fill: Hsla) -> Self {
-        Self { id: id.into(), fill, header: None, open: true, on_toggle: None, children: vec![] }
+        Self {
+            id: id.into(),
+            fill,
+            header: None,
+            open: true,
+            on_toggle: None,
+            children: vec![],
+        }
     }
 
     pub fn header(mut self, title: impl Into<SharedString>, count: usize) -> Self {
@@ -62,18 +69,43 @@ impl RenderOnce for ListSection {
                 .text_size(theme::text_sm())
                 .text_color(theme::text_muted())
                 .hover(|s| s.text_color(theme::text()))
-                .child(Icon::new(if open { IconName::ChevronDown } else { IconName::ChevronRight }).size(theme::ICON_SM).color(theme::text_subtle()))
+                .child(
+                    Icon::new(if open {
+                        IconName::ChevronDown
+                    } else {
+                        IconName::ChevronRight
+                    })
+                    .size(theme::ICON_SM)
+                    .color(theme::text_subtle()),
+                )
                 .child(div().font_weight(theme::WEIGHT_MEDIUM).child(title))
-                .child(div().text_color(theme::text_subtle()).child(count.to_string()))
+                .child(
+                    div()
+                        .text_color(theme::text_subtle())
+                        .child(count.to_string()),
+                )
                 .when_some(self.on_toggle, |el, f| el.on_click(f))
         });
         // Rows sit inset in one rounded card (`LIST_INSET`), so a row's rounded highlight never
         // touches the card edge; hairline dividers are inset to the row text.
         let rows = self.children.into_iter().enumerate().map(|(i, row)| {
-            let divider = (i > 0).then(|| div().mx(theme::row_pad_x()).h(gpui::px(1.)).bg(theme::border_subtle()));
+            let divider = (i > 0).then(|| {
+                div()
+                    .mx(theme::row_pad_x())
+                    .h(gpui::px(1.))
+                    .bg(theme::border_subtle())
+            });
             div().flex().flex_col().children(divider).child(row)
         });
-        let card = div().flex().flex_col().p(theme::LIST_INSET).rounded(theme::LIST_RADIUS).border_1().border_color(theme::card_border()).bg(self.fill).children(rows);
+        let card = div()
+            .flex()
+            .flex_col()
+            .p(theme::LIST_INSET)
+            .rounded(theme::LIST_RADIUS)
+            .border_1()
+            .border_color(theme::card_border())
+            .bg(self.fill)
+            .children(rows);
         div()
             .flex()
             .flex_col()

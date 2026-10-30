@@ -64,7 +64,11 @@ pub struct ReviewUi {
 impl ReviewUi {
     /// Pane sizes restored from settings.
     pub fn with_sizes(tree_w: Pixels, right_ratio: f32) -> Self {
-        Self { tree_w, right_ratio, ..Default::default() }
+        Self {
+            tree_w,
+            right_ratio,
+            ..Default::default()
+        }
     }
 }
 
@@ -103,13 +107,17 @@ impl ReviewUi {
 /// Next file at or after `from` (wrapping) that is not viewed.
 pub fn next_unviewed(paths: &[&str], viewed: &HashSet<String>, from: usize) -> Option<usize> {
     let n = paths.len();
-    (0..n).map(|k| (from + k) % n).find(|i| !viewed.contains(paths[*i]))
+    (0..n)
+        .map(|k| (from + k) % n)
+        .find(|i| !viewed.contains(paths[*i]))
 }
 
 impl GitViewer {
     /// Enter Review mode on the open (previewed) PR.
     pub(crate) fn enter_review(&mut self, cx: &mut Context<Self>) {
-        let Some(d) = self.detail.as_mut() else { return };
+        let Some(d) = self.detail.as_mut() else {
+            return;
+        };
         let id = d.summary.id.clone();
         if !self.navigating {
             self.nav.push(Some(id.clone()));
@@ -145,8 +153,13 @@ impl GitViewer {
     }
 
     pub(crate) fn remember_position(&mut self) {
-        let Some(d) = self.detail.as_ref().filter(|_| self.reviewing) else { return };
-        let m = Memory { offset: d.code.list.logical_scroll_top(), collapsed: d.code.collapsed.clone() };
+        let Some(d) = self.detail.as_ref().filter(|_| self.reviewing) else {
+            return;
+        };
+        let m = Memory {
+            offset: d.code.list.logical_scroll_top(),
+            collapsed: d.code.collapsed.clone(),
+        };
         self.review.memory.insert(d.summary.id.clone(), m);
     }
 
@@ -155,8 +168,12 @@ impl GitViewer {
         if !self.reviewing {
             return;
         }
-        let Some(d) = self.detail.as_mut() else { return };
-        let Some(files) = d.code.files.clone() else { return };
+        let Some(d) = self.detail.as_mut() else {
+            return;
+        };
+        let Some(files) = d.code.files.clone() else {
+            return;
+        };
         self.review.viewed = self.engine.viewed_files(&d.summary.id, &files);
         match self.review.restore.take() {
             Some(m) => {
@@ -165,7 +182,12 @@ impl GitViewer {
                 d.code.list.scroll_to(m.offset);
             }
             None => {
-                d.code.collapsed = files.iter().enumerate().filter(|(_, f)| self.review.viewed.contains(f.path())).map(|(i, _)| i).collect();
+                d.code.collapsed = files
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, f)| self.review.viewed.contains(f.path()))
+                    .map(|(i, _)| i)
+                    .collect();
                 d.code.rebuild();
             }
         }
@@ -174,9 +196,15 @@ impl GitViewer {
 
     /// Mark the file viewed (collapse it and jump to the next unviewed) or unviewed (expand it).
     pub(crate) fn toggle_viewed(&mut self, fi: usize, cx: &mut Context<Self>) {
-        let Some(d) = self.detail.as_mut() else { return };
-        let Some(files) = d.code.files.clone() else { return };
-        let Some(f) = files.get(fi).cloned() else { return };
+        let Some(d) = self.detail.as_mut() else {
+            return;
+        };
+        let Some(files) = d.code.files.clone() else {
+            return;
+        };
+        let Some(f) = files.get(fi).cloned() else {
+            return;
+        };
         let path = f.path().to_string();
         let viewed = !self.review.viewed.contains(&path);
         if viewed {
@@ -193,7 +221,12 @@ impl GitViewer {
             d.code.goto(fi);
         }
         let (engine, id) = (self.engine.clone(), d.summary.id.clone());
-        let rx = bridge::spawn(async move { engine.set_file_viewed(&id, &f, viewed).await.map_err(err_str) });
+        let rx = bridge::spawn(async move {
+            engine
+                .set_file_viewed(&id, &f, viewed)
+                .await
+                .map_err(err_str)
+        });
         cx.spawn(async move |this, cx| {
             if let Ok(Err(e)) = rx.await {
                 this.update(cx, |v, cx| {

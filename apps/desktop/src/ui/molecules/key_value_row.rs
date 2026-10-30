@@ -14,7 +14,10 @@ pub struct KeyValueRow {
 #[allow(dead_code)] // kit API
 impl KeyValueRow {
     pub fn new(key: impl Into<SharedString>, value: impl IntoElement) -> Self {
-        Self { key: key.into(), value: value.into_any_element() }
+        Self {
+            key: key.into(),
+            value: value.into_any_element(),
+        }
     }
 }
 
@@ -27,7 +30,13 @@ impl RenderOnce for KeyValueRow {
             .min_h(theme::kv_row_h())
             .px(theme::card_pad())
             .text_size(theme::text_sm())
-            .child(div().w(theme::KV_KEY_W).flex_shrink_0().text_color(theme::text_muted()).child(self.key))
+            .child(
+                div()
+                    .w(theme::KV_KEY_W)
+                    .flex_shrink_0()
+                    .text_color(theme::text_muted())
+                    .child(self.key),
+            )
             .child(self.value)
     }
 }

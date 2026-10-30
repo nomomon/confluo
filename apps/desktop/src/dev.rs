@@ -88,5 +88,6 @@ pub fn overlay() -> Option<String> {
 /// (wide tables and code blocks in their real containers). Read once.
 pub fn markdown_override() -> Option<&'static str> {
     static SRC: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
-    SRC.get_or_init(|| var("CONFLUO_DEV_MARKDOWN").and_then(|p| std::fs::read_to_string(p).ok())).as_deref()
+    SRC.get_or_init(|| var("CONFLUO_DEV_MARKDOWN").and_then(|p| std::fs::read_to_string(p).ok()))
+        .as_deref()
 }

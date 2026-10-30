@@ -44,15 +44,26 @@ impl GitViewer {
                 .bg(theme::surface())
                 .border_r_1()
                 .border_color(theme::border_subtle())
-                .child(div().px(theme::SPACE_3).pt(theme::SPACE_2).pb(theme::SPACE_3).text_size(theme::text_sm()).font_weight(theme::WEIGHT_SEMIBOLD).child("Settings")),
+                .child(
+                    div()
+                        .px(theme::SPACE_3)
+                        .pt(theme::SPACE_2)
+                        .pb(theme::SPACE_3)
+                        .text_size(theme::text_sm())
+                        .font_weight(theme::WEIGHT_SEMIBOLD)
+                        .child("Settings"),
+                ),
             |nav, p| {
                 let p = *p;
-                nav.child(NavItem::new(format!("settings-nav-{}", p.label()), p.label()).icon(page_icon(p)).active(self.settings_page == p).on_click(cx.listener(
-                    move |this, _: &ClickEvent, _, cx| {
-                        this.settings_page = p;
-                        cx.notify()
-                    },
-                )))
+                nav.child(
+                    NavItem::new(format!("settings-nav-{}", p.label()), p.label())
+                        .icon(page_icon(p))
+                        .active(self.settings_page == p)
+                        .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+                            this.settings_page = p;
+                            cx.notify()
+                        })),
+                )
             },
         );
         let body: AnyElement = match self.settings_page {
@@ -64,17 +75,27 @@ impl GitViewer {
             SettingsPage::Filters => self.render_filters(cx).into_any_element(),
             SettingsPage::Shortcuts => self.render_shortcuts().into_any_element(),
         };
-        let close = Button::new("settings-close", "").icon(IconName::X).variant(ButtonVariant::Ghost).tooltip("Close  esc").on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
-            this.overlay = Overlay::None;
-            cx.notify()
-        }));
+        let close = Button::new("settings-close", "")
+            .icon(IconName::X)
+            .variant(ButtonVariant::Ghost)
+            .tooltip("Close  esc")
+            .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                this.overlay = Overlay::None;
+                cx.notify()
+            }));
         let header = div()
             .flex()
             .items_center()
             .px(theme::SPACE_6)
             .pt(theme::SPACE_5)
             .pb(theme::SPACE_3)
-            .child(div().flex_1().text_size(theme::text_base()).font_weight(theme::WEIGHT_SEMIBOLD).child(self.settings_page.label()))
+            .child(
+                div()
+                    .flex_1()
+                    .text_size(theme::text_base())
+                    .font_weight(theme::WEIGHT_SEMIBOLD)
+                    .child(self.settings_page.label()),
+            )
             .child(close);
         let content = div()
             .flex_1()
@@ -84,22 +105,51 @@ impl GitViewer {
             .child(header)
             .child({
                 let h = crate::ui::elastic::handle("settings-body");
-                let pane = div().id("settings-body").track_scroll(&h).flex_1().min_h(theme::SPACE_0).map(crate::ui::scroll::y_only).flex().flex_col().px(theme::SPACE_6).pb(theme::SPACE_6);
-                let pane = pane.child(crate::ui::elastic::content("settings-body").w(layout::SETTINGS_W - layout::SETTINGS_NAV_W - theme::SPACE_6 * 2.).flex().flex_col().child(body));
+                let pane = div()
+                    .id("settings-body")
+                    .track_scroll(&h)
+                    .flex_1()
+                    .min_h(theme::SPACE_0)
+                    .map(crate::ui::scroll::y_only)
+                    .flex()
+                    .flex_col()
+                    .px(theme::SPACE_6)
+                    .pb(theme::SPACE_6);
+                let pane = pane.child(
+                    crate::ui::elastic::content("settings-body")
+                        .w(layout::SETTINGS_W - layout::SETTINGS_NAV_W - theme::SPACE_6 * 2.)
+                        .flex()
+                        .flex_col()
+                        .child(body),
+                );
                 crate::ui::elastic::y_scroller(pane, "settings-body", h)
             });
-        Dialog::bare().size(layout::SETTINGS_W, layout::SETTINGS_H).content(div().flex().size_full().child(nav).child(content)).into_any_element()
+        Dialog::bare()
+            .size(layout::SETTINGS_W, layout::SETTINGS_H)
+            .content(div().flex().size_full().child(nav).child(content))
+            .into_any_element()
     }
 
     /// A titled card of divided rows; the building block of every page.
-    pub(super) fn settings_group(&self, title: Option<&'static str>, rows: Vec<AnyElement>) -> impl IntoElement {
+    pub(super) fn settings_group(
+        &self,
+        title: Option<&'static str>,
+        rows: Vec<AnyElement>,
+    ) -> impl IntoElement {
         div()
             .w_full()
             .flex()
             .flex_col()
             .gap(theme::SPACE_2)
             .pt(theme::SPACE_4)
-            .children(title.map(|t| div().px(theme::SPACE_1).text_size(theme::text_xs()).font_weight(theme::WEIGHT_MEDIUM).text_color(theme::text_subtle()).child(t)))
+            .children(title.map(|t| {
+                div()
+                    .px(theme::SPACE_1)
+                    .text_size(theme::text_xs())
+                    .font_weight(theme::WEIGHT_MEDIUM)
+                    .text_color(theme::text_subtle())
+                    .child(t)
+            }))
             .child(Card::new(self.surfaces()).rows().children(rows))
     }
 }

@@ -68,24 +68,48 @@ impl CodeState {
     }
 
     pub(crate) fn inline_rows(&self) -> InlineRows<'_> {
-        InlineRows { index: Some(&self.inline.index), draft: self.inline.draft.as_ref().map(|d| (d.fi, d.side, d.line)), split: self.split }
+        InlineRows {
+            index: Some(&self.inline.index),
+            draft: self.inline.draft.as_ref().map(|d| (d.fi, d.side, d.line)),
+            split: self.split,
+        }
     }
 
     /// Recompute rows and splice only the changed middle, so the scroll position holds.
     pub fn sync_rows(&mut self) {
         let Some(files) = &self.files else { return };
-        let (rows, starts) = build_rows(files, &self.collapsed, &self.shown_large, self.inline_rows());
-        let pre = self.rows.iter().zip(&rows).take_while(|(a, b)| a == b).count();
+        let (rows, starts) = build_rows(
+            files,
+            &self.collapsed,
+            &self.shown_large,
+            self.inline_rows(),
+        );
+        let pre = self
+            .rows
+            .iter()
+            .zip(&rows)
+            .take_while(|(a, b)| a == b)
+            .count();
         let max_suf = self.rows.len().min(rows.len()) - pre;
-        let suf = self.rows.iter().rev().zip(rows.iter().rev()).take(max_suf).take_while(|(a, b)| a == b).count();
-        self.list.splice(pre..self.rows.len() - suf, rows.len() - suf - pre);
+        let suf = self
+            .rows
+            .iter()
+            .rev()
+            .zip(rows.iter().rev())
+            .take(max_suf)
+            .take_while(|(a, b)| a == b)
+            .count();
+        self.list
+            .splice(pre..self.rows.len() - suf, rows.len() - suf - pre);
         self.rows = rows;
         self.starts = starts;
     }
 
     /// Stores the files in `tree_cmp` order, so file indices match the tree, the diff, n/p and "File i of N".
     pub(crate) fn set_files(&mut self, files: Arc<Vec<ChangedFile>>) {
-        let sorted = files.windows(2).all(|w| super::file_tree::tree_cmp(w[0].path(), w[1].path()).is_le());
+        let sorted = files
+            .windows(2)
+            .all(|w| super::file_tree::tree_cmp(w[0].path(), w[1].path()).is_le());
         let files = if sorted {
             files
         } else {
@@ -102,9 +126,17 @@ impl CodeState {
 
     pub fn rebuild(&mut self) {
         let Some(files) = &self.files else { return };
-        (self.rows, self.starts) = build_rows(files, &self.collapsed, &self.shown_large, self.inline_rows());
+        (self.rows, self.starts) = build_rows(
+            files,
+            &self.collapsed,
+            &self.shown_large,
+            self.inline_rows(),
+        );
         // A selection from an older diff may point past the new files or hunks.
-        if self.sel.is_some_and(|s| files.get(s.fi).is_none_or(|f| s.lines(f).is_empty())) {
+        if self
+            .sel
+            .is_some_and(|s| files.get(s.fi).is_none_or(|f| s.lines(f).is_empty()))
+        {
             self.sel = None;
         }
         // One extra trailing item: the scroll past end spacer, never a row.
@@ -113,7 +145,11 @@ impl CodeState {
 
     /// Index of the file at the top of the viewport.
     pub fn current_file(&self) -> usize {
-        let ix = self.list.logical_scroll_top().item_ix.min(self.rows.len().saturating_sub(1));
+        let ix = self
+            .list
+            .logical_scroll_top()
+            .item_ix
+            .min(self.rows.len().saturating_sub(1));
         self.rows.get(ix).map(|r| r.file()).unwrap_or(0)
     }
 
@@ -123,13 +159,28 @@ impl CodeState {
 
     /// Re-render one file's rows in place, keeping the scroll position.
     fn respan(&mut self, fi: usize) {
-        let Some(files) = self.files.clone() else { return };
-        let (Some(&start), Some(f)) = (self.starts.get(fi), files.get(fi)) else { return };
-        let end = self.starts.get(fi + 1).copied().unwrap_or(self.rows.len()).clamp(start, self.rows.len());
+        let Some(files) = self.files.clone() else {
+            return;
+        };
+        let (Some(&start), Some(f)) = (self.starts.get(fi), files.get(fi)) else {
+            return;
+        };
+        let end = self
+            .starts
+            .get(fi + 1)
+            .copied()
+            .unwrap_or(self.rows.len())
+            .clamp(start, self.rows.len());
         if start > self.rows.len() {
             return;
         }
-        let new = file_rows(fi, f, self.collapsed.contains(&fi), self.shown_large.contains(&fi), self.inline_rows());
+        let new = file_rows(
+            fi,
+            f,
+            self.collapsed.contains(&fi),
+            self.shown_large.contains(&fi),
+            self.inline_rows(),
+        );
         let delta = new.len() as isize - (end - start) as isize;
         self.list.splice(start..end, new.len());
         self.rows.splice(start..end, new);
@@ -165,7 +216,10 @@ impl CodeState {
 
     pub fn goto(&mut self, fi: usize) {
         if let Some(&ix) = self.starts.get(fi) {
-            self.list.scroll_to(ListOffset { item_ix: ix, offset_in_item: px(0.) });
+            self.list.scroll_to(ListOffset {
+                item_ix: ix,
+                offset_in_item: px(0.),
+            });
         }
     }
 

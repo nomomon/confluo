@@ -84,7 +84,8 @@ mod tests {
 
     #[test]
     fn drops_comments_and_marks_details() {
-        let src = "a<!-- hidden -->b\n<details><summary><b>Log</b></summary>\n\nlots\n</details>\nc";
+        let src =
+            "a<!-- hidden -->b\n<details><summary><b>Log</b></summary>\n\nlots\n</details>\nc";
         let out = preprocess(src);
         assert!(out.starts_with("ab\n"));
         assert!(out.contains(&format!("{DETAILS_OPEN}Log")));

@@ -45,7 +45,11 @@ pub struct CheckRun {
 impl CheckRun {
     pub fn duration_secs(&self, now: DateTime<Utc>) -> Option<i64> {
         let start = self.started_at?;
-        Some((self.finished_at.unwrap_or(now) - start).num_seconds().max(0))
+        Some(
+            (self.finished_at.unwrap_or(now) - start)
+                .num_seconds()
+                .max(0),
+        )
     }
 }
 
@@ -63,7 +67,12 @@ impl ChecksInfo {
     /// Runs sorted failing, running, pending, passed, skipped; by name within a group.
     pub fn sorted(&self) -> Vec<&CheckRun> {
         let mut v: Vec<&CheckRun> = self.runs.iter().collect();
-        v.sort_by(|a, b| a.status.rank().cmp(&b.status.rank()).then_with(|| a.name.cmp(&b.name)));
+        v.sort_by(|a, b| {
+            a.status
+                .rank()
+                .cmp(&b.status.rank())
+                .then_with(|| a.name.cmp(&b.name))
+        });
         v
     }
 
@@ -94,26 +103,61 @@ pub fn ago(t: DateTime<Utc>, now: DateTime<Utc>) -> String {
 
 /// One plain-language line about the checks, for the card header.
 pub fn checks_sentence(info: &ChecksInfo, now: DateTime<Utc>) -> String {
-    let runs: Vec<&CheckRun> = info.runs.iter().filter(|r| r.status != CheckStatus::Skipped).collect();
+    let runs: Vec<&CheckRun> = info
+        .runs
+        .iter()
+        .filter(|r| r.status != CheckStatus::Skipped)
+        .collect();
     if runs.is_empty() {
         return "No checks".into();
     }
     let total = runs.len();
-    let failed: Vec<&&CheckRun> = runs.iter().filter(|r| r.status == CheckStatus::Failed).collect();
-    let active = runs.iter().filter(|r| matches!(r.status, CheckStatus::Running | CheckStatus::Pending)).count();
+    let failed: Vec<&&CheckRun> = runs
+        .iter()
+        .filter(|r| r.status == CheckStatus::Failed)
+        .collect();
+    let active = runs
+        .iter()
+        .filter(|r| matches!(r.status, CheckStatus::Running | CheckStatus::Pending))
+        .count();
     if !failed.is_empty() {
         let first = failed[0];
-        let when = first.finished_at.map(|t| format!(" ({})", ago(t, now))).unwrap_or_default();
-        let more = if failed.len() > 1 { format!(" and {} more", failed.len() - 1) } else { String::new() };
-        let running = if active > 0 { format!(", {active} running") } else { String::new() };
-        return format!("{} failing: {}{when}{more}{running}", failed.len(), first.name);
+        let when = first
+            .finished_at
+            .map(|t| format!(" ({})", ago(t, now)))
+            .unwrap_or_default();
+        let more = if failed.len() > 1 {
+            format!(" and {} more", failed.len() - 1)
+        } else {
+            String::new()
+        };
+        let running = if active > 0 {
+            format!(", {active} running")
+        } else {
+            String::new()
+        };
+        return format!(
+            "{} failing: {}{when}{more}{running}",
+            failed.len(),
+            first.name
+        );
     }
     if active > 0 {
         // Estimate from the longest finished check against the oldest running one.
-        let longest = runs.iter().filter_map(|r| r.finished_at.and(r.duration_secs(now))).max();
-        let elapsed = runs.iter().filter(|r| r.status == CheckStatus::Running).filter_map(|r| r.duration_secs(now)).max();
+        let longest = runs
+            .iter()
+            .filter_map(|r| r.finished_at.and(r.duration_secs(now)))
+            .max();
+        let elapsed = runs
+            .iter()
+            .filter(|r| r.status == CheckStatus::Running)
+            .filter_map(|r| r.duration_secs(now))
+            .max();
         let left = match (longest, elapsed) {
-            (Some(l), Some(e)) if l > e => format!(", ~{} left", format_duration(((l - e) / 60).max(1) * 60).trim_end_matches(" 0s")),
+            (Some(l), Some(e)) if l > e => format!(
+                ", ~{} left",
+                format_duration(((l - e) / 60).max(1) * 60).trim_end_matches(" 0s")
+            ),
             _ => String::new(),
         };
         return format!("Running {active} of {total}{left}");
@@ -124,7 +168,11 @@ pub fn checks_sentence(info: &ChecksInfo, now: DateTime<Utc>) -> String {
         (Some(s), Some(e)) if e > s => format!(" in {}", format_duration((e - s).num_seconds())),
         _ => String::new(),
     };
-    let all = if total == 1 { "The check passed".to_string() } else { format!("All {total} checks passed") };
+    let all = if total == 1 {
+        "The check passed".to_string()
+    } else {
+        format!("All {total} checks passed")
+    };
     format!("{all}{took}")
 }
 
@@ -134,7 +182,12 @@ pub fn log_tail(log: &str, n: usize) -> Vec<String> {
         .lines()
         .map(strip_ansi)
         .map(|l| strip_stamp(l.rsplit('\r').next().unwrap_or_default()).to_string())
-        .filter(|l| !l.starts_with("section_start:") && !l.starts_with("section_end:") && !l.trim().is_empty() && !is_runner_noise(l))
+        .filter(|l| {
+            !l.starts_with("section_start:")
+                && !l.starts_with("section_end:")
+                && !l.trim().is_empty()
+                && !is_runner_noise(l)
+        })
         .collect();
     clean[clean.len().saturating_sub(n)..].to_vec()
 }
@@ -148,7 +201,8 @@ fn strip_stamp(l: &str) -> &str {
     let Some(z) = l.find("Z ") else { return l };
     let rest = &l[z + 2..];
     let tag = rest.as_bytes();
-    if tag.len() >= 3 && tag[..2].iter().all(u8::is_ascii_hexdigit) && matches!(tag[2], b'O' | b'E') {
+    if tag.len() >= 3 && tag[..2].iter().all(u8::is_ascii_hexdigit) && matches!(tag[2], b'O' | b'E')
+    {
         let skip = if tag.get(3) == Some(&b'+') { 4 } else { 3 };
         return rest[skip..].trim_start_matches(' ');
     }
@@ -158,9 +212,16 @@ fn strip_stamp(l: &str) -> &str {
 /// Runner housekeeping after the script (artifacts, cache, cleanup).
 fn is_runner_noise(l: &str) -> bool {
     let t = l.trim_start();
-    ["Uploading artifacts", "Cleaning up project directory", "Saving cache", "Created cache", "Running after_script", "Not uploading cache"]
-        .iter()
-        .any(|p| t.starts_with(p))
+    [
+        "Uploading artifacts",
+        "Cleaning up project directory",
+        "Saving cache",
+        "Created cache",
+        "Running after_script",
+        "Not uploading cache",
+    ]
+    .iter()
+    .any(|p| t.starts_with(p))
         || t.contains("matching artifact files")
         || t.contains("correlation_id=")
 }
@@ -184,7 +245,11 @@ fn strip_ansi(l: &str) -> String {
     }
     // GitLab embeds section markers mid-line after a color reset.
     match out.find("section_") {
-        Some(i) if out[i..].starts_with("section_start:") || out[i..].starts_with("section_end:") => out[..i].to_string(),
+        Some(i)
+            if out[i..].starts_with("section_start:") || out[i..].starts_with("section_end:") =>
+        {
+            out[..i].to_string()
+        }
         _ => out,
     }
 }
@@ -194,7 +259,13 @@ mod tests {
     use super::*;
     use chrono::Duration;
 
-    fn run(name: &str, status: CheckStatus, start: i64, end: Option<i64>, now: DateTime<Utc>) -> CheckRun {
+    fn run(
+        name: &str,
+        status: CheckStatus,
+        start: i64,
+        end: Option<i64>,
+        now: DateTime<Utc>,
+    ) -> CheckRun {
         CheckRun {
             id: name.into(),
             name: name.into(),
@@ -212,9 +283,13 @@ mod tests {
         let now = Utc::now();
         let mut i = ChecksInfo::default();
         assert_eq!(checks_sentence(&i, now), "No checks");
-        i.runs = vec![run("a", CheckStatus::Passed, 300, Some(48), now), run("b", CheckStatus::Passed, 200, Some(100), now)];
+        i.runs = vec![
+            run("a", CheckStatus::Passed, 300, Some(48), now),
+            run("b", CheckStatus::Passed, 200, Some(100), now),
+        ];
         assert_eq!(checks_sentence(&i, now), "All 2 checks passed in 4m 12s");
-        i.runs.push(run("lint", CheckStatus::Failed, 400, Some(120), now));
+        i.runs
+            .push(run("lint", CheckStatus::Failed, 400, Some(120), now));
         assert_eq!(checks_sentence(&i, now), "1 failing: lint (2m ago)");
         i.runs.pop();
         i.runs.push(run("c", CheckStatus::Running, 60, None, now));
@@ -227,7 +302,10 @@ mod tests {
         let log = "\u{1b}[0Ksection_start:1:step\r\u{1b}[0Kstep\nline 1\n\u{1b}[31;1mERROR\u{1b}[0m boom\nsection_end:1:step\n";
         assert_eq!(log_tail(log, 2), vec!["line 1", "ERROR boom"]);
         let gl = "2026-10-29T15:38:50.553443Z 01O === 1 failed ===\n2026-10-29T15:38:54.116926Z 00O+Uploading artifacts for failed job\n2026-10-29T15:38:56.562034Z 00O ERROR: Job failed\n";
-        assert_eq!(log_tail(gl, 5), vec!["=== 1 failed ===", "ERROR: Job failed"]);
+        assert_eq!(
+            log_tail(gl, 5),
+            vec!["=== 1 failed ===", "ERROR: Job failed"]
+        );
         assert_eq!(format_duration(3720), "1h 2m");
     }
 }

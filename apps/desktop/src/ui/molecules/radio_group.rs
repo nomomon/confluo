@@ -17,7 +17,12 @@ pub struct RadioGroup {
 
 impl RadioGroup {
     pub fn new(id: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), options: vec![], selected: 0, on_change: None }
+        Self {
+            id: id.into(),
+            options: vec![],
+            selected: 0,
+            on_change: None,
+        }
     }
 
     pub fn option(mut self, label: impl Into<SharedString>) -> Self {
@@ -38,27 +43,38 @@ impl RadioGroup {
 
 impl RenderOnce for RadioGroup {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        div().flex().flex_col().gap(theme::SPACE_2).children(self.options.into_iter().enumerate().map(|(i, label)| {
-            let on = i == self.selected;
-            let dot = div()
-                .size(px(16.))
-                .flex()
-                .items_center()
-                .justify_center()
-                .rounded(theme::RADIUS_FULL)
-                .border_1()
-                .border_color(if on { theme::text() } else { theme::border() })
-                .when(on, |d| d.child(div().size(px(8.)).rounded(theme::RADIUS_FULL).bg(theme::text())));
-            let f = self.on_change.clone();
-            div()
-                .id(ElementId::Name(format!("{}-{i}", self.id).into()))
-                .flex()
-                .items_center()
-                .gap(theme::SPACE_2)
-                .cursor_pointer()
-                .child(dot)
-                .child(label)
-                .when_some(f, |d, f| d.on_click(move |_: &ClickEvent, w, cx| f(&i, w, cx)))
-        }))
+        div().flex().flex_col().gap(theme::SPACE_2).children(
+            self.options.into_iter().enumerate().map(|(i, label)| {
+                let on = i == self.selected;
+                let dot = div()
+                    .size(px(16.))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .rounded(theme::RADIUS_FULL)
+                    .border_1()
+                    .border_color(if on { theme::text() } else { theme::border() })
+                    .when(on, |d| {
+                        d.child(
+                            div()
+                                .size(px(8.))
+                                .rounded(theme::RADIUS_FULL)
+                                .bg(theme::text()),
+                        )
+                    });
+                let f = self.on_change.clone();
+                div()
+                    .id(ElementId::Name(format!("{}-{i}", self.id).into()))
+                    .flex()
+                    .items_center()
+                    .gap(theme::SPACE_2)
+                    .cursor_pointer()
+                    .child(dot)
+                    .child(label)
+                    .when_some(f, |d, f| {
+                        d.on_click(move |_: &ClickEvent, w, cx| f(&i, w, cx))
+                    })
+            }),
+        )
     }
 }

@@ -10,13 +10,22 @@ use crate::app::GitViewer;
 impl GitViewer {
     pub(crate) fn post_comment(&mut self, cx: &mut Context<Self>) {
         let body = self.composer.read(cx).text().trim().to_string();
-        let Some(d) = self.detail.as_mut() else { return };
+        let Some(d) = self.detail.as_mut() else {
+            return;
+        };
         if body.is_empty() || d.posting {
             return;
         }
         let id = d.summary.id.clone();
         let me = User::named(d.me.clone().unwrap_or_else(|| "you".into()));
-        let optimistic = Comment { id: "pending".into(), author: me, body: body.clone(), created_at: Utc::now(), position: None, reactions: vec![] };
+        let optimistic = Comment {
+            id: "pending".into(),
+            author: me,
+            body: body.clone(),
+            created_at: Utc::now(),
+            position: None,
+            reactions: vec![],
+        };
         let reply_to = d.reply_to.take();
         let editing = d.editing.take();
         if let Some(det) = d.detail.as_mut() {
@@ -31,7 +40,8 @@ impl GitViewer {
                     t.comments.push(optimistic);
                 }
             } else {
-                det.threads.push(Thread::conversation("pending", vec![optimistic]));
+                det.threads
+                    .push(Thread::conversation("pending", vec![optimistic]));
             }
         }
         d.posting = true;
@@ -39,7 +49,8 @@ impl GitViewer {
         self.review.right_open = true;
         self.composer.update(cx, |i, cx| i.set_text("", cx));
         let engine = self.engine.clone();
-        let (restore_reply, restore_edit, restore_body) = (reply_to.clone(), editing.clone(), body.clone());
+        let (restore_reply, restore_edit, restore_body) =
+            (reply_to.clone(), editing.clone(), body.clone());
         let rx = bridge::spawn(async move {
             let r = if let Some(cid) = editing {
                 engine.edit_comment(&id, &cid, &body).await
@@ -84,16 +95,26 @@ impl GitViewer {
 
     /// Delete the confirmed comment: gone at once, back with a toast if the provider refuses.
     pub(crate) fn delete_comment(&mut self, cx: &mut Context<Self>) {
-        let Some(d) = self.detail.as_mut() else { return };
-        let Some(cid) = d.ui.delete_comment.take() else { return };
+        let Some(d) = self.detail.as_mut() else {
+            return;
+        };
+        let Some(cid) = d.ui.delete_comment.take() else {
+            return;
+        };
         self.overlay = crate::app::Overlay::None;
         self.refocus = true;
         let (engine, id, c2) = (self.engine.clone(), d.summary.id.clone(), cid.clone());
-        self.run_edit("Comment deleted", "Deleting the comment", move |d| {
-            if let Some(det) = d.detail.as_mut() {
-                remove_comment(&mut det.threads, &c2);
-            }
-        }, async move { engine.delete_comment(&id, &cid).await }, cx);
+        self.run_edit(
+            "Comment deleted",
+            "Deleting the comment",
+            move |d| {
+                if let Some(det) = d.detail.as_mut() {
+                    remove_comment(&mut det.threads, &c2);
+                }
+            },
+            async move { engine.delete_comment(&id, &cid).await },
+            cx,
+        );
     }
 }
 
@@ -110,15 +131,28 @@ mod tests {
     use super::*;
 
     fn c(id: &str) -> Comment {
-        Comment { id: id.into(), author: User::named("me"), body: String::new(), created_at: Utc::now(), position: None, reactions: vec![] }
+        Comment {
+            id: id.into(),
+            author: User::named("me"),
+            body: String::new(),
+            created_at: Utc::now(),
+            position: None,
+            reactions: vec![],
+        }
     }
 
     #[test]
     fn deleting_the_last_comment_removes_the_thread() {
-        let mut ts = vec![Thread::conversation("a", vec![c("1"), c("2")]), Thread::conversation("b", vec![c("3")])];
+        let mut ts = vec![
+            Thread::conversation("a", vec![c("1"), c("2")]),
+            Thread::conversation("b", vec![c("3")]),
+        ];
         remove_comment(&mut ts, "2");
         assert_eq!(ts.len(), 2);
         remove_comment(&mut ts, "3");
-        assert_eq!(ts.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(), vec!["a"]);
+        assert_eq!(
+            ts.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(),
+            vec!["a"]
+        );
     }
 }

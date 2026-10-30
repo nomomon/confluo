@@ -13,7 +13,10 @@ pub fn tree_cmp(a: &str, b: &str) -> Ordering {
         if pa[k] == pb[k] && da && db {
             continue;
         }
-        return db.cmp(&da).then_with(|| pa[k].to_lowercase().cmp(&pb[k].to_lowercase())).then_with(|| pa[k].cmp(pb[k]));
+        return db
+            .cmp(&da)
+            .then_with(|| pa[k].to_lowercase().cmp(&pb[k].to_lowercase()))
+            .then_with(|| pa[k].cmp(pb[k]));
     }
     pa.len().cmp(&pb.len())
 }
@@ -34,10 +37,17 @@ pub struct TreeQuery<'a> {
 }
 
 /// Visible rows for `paths` (file index order), in `tree_cmp` order. A filter shows matches flat.
-pub fn tree_entries(paths: &[&str], q: &TreeQuery, score: impl Fn(&str, &str) -> Option<i32>) -> Vec<TreeEntry> {
+pub fn tree_entries(
+    paths: &[&str],
+    q: &TreeQuery,
+    score: impl Fn(&str, &str) -> Option<i32>,
+) -> Vec<TreeEntry> {
     let keep = |i: &usize| !(q.hide_viewed && q.viewed.contains(paths[*i]));
     if !q.filter.trim().is_empty() {
-        let mut hits: Vec<(i32, usize)> = (0..paths.len()).filter(keep).filter_map(|i| score(q.filter, paths[i]).map(|s| (s, i))).collect();
+        let mut hits: Vec<(i32, usize)> = (0..paths.len())
+            .filter(keep)
+            .filter_map(|i| score(q.filter, paths[i]).map(|s| (s, i)))
+            .collect();
         hits.sort_by(|a, b| b.0.cmp(&a.0).then(paths[a.1].cmp(paths[b.1])));
         return hits.into_iter().map(|(_, i)| TreeEntry::File(i)).collect();
     }
@@ -72,29 +82,91 @@ mod tests {
     fn groups_folds_filters_and_hides() {
         let paths = ["src/b.rs", "README.md", "src/a.rs", "docs/x.md"];
         let (none, mut folded) = (HashSet::new(), HashSet::new());
-        let q = TreeQuery { filter: "", hide_viewed: false, viewed: &none, folded: &folded };
+        let q = TreeQuery {
+            filter: "",
+            hide_viewed: false,
+            viewed: &none,
+            folded: &folded,
+        };
         assert_eq!(
             tree_entries(&paths, &q, sub),
-            vec![TreeEntry::Dir("docs".into(), 1), TreeEntry::File(3), TreeEntry::Dir("src".into(), 2), TreeEntry::File(2), TreeEntry::File(0), TreeEntry::File(1)]
+            vec![
+                TreeEntry::Dir("docs".into(), 1),
+                TreeEntry::File(3),
+                TreeEntry::Dir("src".into(), 2),
+                TreeEntry::File(2),
+                TreeEntry::File(0),
+                TreeEntry::File(1)
+            ]
         );
         folded.insert("src".to_string());
-        let q = TreeQuery { filter: "", hide_viewed: false, viewed: &none, folded: &folded };
-        assert_eq!(tree_entries(&paths, &q, sub)[2], TreeEntry::Dir("src".into(), 2));
+        let q = TreeQuery {
+            filter: "",
+            hide_viewed: false,
+            viewed: &none,
+            folded: &folded,
+        };
+        assert_eq!(
+            tree_entries(&paths, &q, sub)[2],
+            TreeEntry::Dir("src".into(), 2)
+        );
         assert_eq!(tree_entries(&paths, &q, sub).len(), 4);
         let viewed = HashSet::from(["src/a.rs".to_string()]);
-        let q = TreeQuery { filter: "src", hide_viewed: true, viewed: &viewed, folded: &folded };
+        let q = TreeQuery {
+            filter: "src",
+            hide_viewed: true,
+            viewed: &viewed,
+            folded: &folded,
+        };
         assert_eq!(tree_entries(&paths, &q, sub), vec![TreeEntry::File(0)]);
     }
 
     #[test]
     fn tree_order_dirs_first_case_insensitive_root_files_last() {
-        let mut p = vec!["CONTEXT.md", "src/b.rs", "Cargo.toml", "src/sub/x.rs", "apps/A.rs", "src/a.rs", "apps/b.rs", "README.md", "docs/z.md"];
+        let mut p = vec![
+            "CONTEXT.md",
+            "src/b.rs",
+            "Cargo.toml",
+            "src/sub/x.rs",
+            "apps/A.rs",
+            "src/a.rs",
+            "apps/b.rs",
+            "README.md",
+            "docs/z.md",
+        ];
         p.sort_by(|a, b| tree_cmp(a, b));
-        assert_eq!(p, vec!["apps/A.rs", "apps/b.rs", "docs/z.md", "src/sub/x.rs", "src/a.rs", "src/b.rs", "Cargo.toml", "CONTEXT.md", "README.md"]);
+        assert_eq!(
+            p,
+            vec![
+                "apps/A.rs",
+                "apps/b.rs",
+                "docs/z.md",
+                "src/sub/x.rs",
+                "src/a.rs",
+                "src/b.rs",
+                "Cargo.toml",
+                "CONTEXT.md",
+                "README.md"
+            ]
+        );
         // The tree groups follow the same order as the sorted list (what the diff shows).
         let none = HashSet::new();
-        let q = TreeQuery { filter: "", hide_viewed: false, viewed: &none, folded: &none };
-        let files: Vec<usize> = tree_entries(&p, &q, sub).into_iter().filter_map(|e| if let TreeEntry::File(i) = e { Some(i) } else { None }).collect();
+        let q = TreeQuery {
+            filter: "",
+            hide_viewed: false,
+            viewed: &none,
+            folded: &none,
+        };
+        let files: Vec<usize> = tree_entries(&p, &q, sub)
+            .into_iter()
+            .filter_map(|e| {
+                if let TreeEntry::File(i) = e {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .collect();
         assert_eq!(files, (0..p.len()).collect::<Vec<_>>());
     }
 }

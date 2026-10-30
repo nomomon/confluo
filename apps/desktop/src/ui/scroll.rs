@@ -34,7 +34,12 @@ pub fn dominant(dx: Pixels, dy: Pixels) -> Axis {
 /// Axis for this event of a gesture: decided by the first event that moves (or a new gesture's
 /// start), then kept until the gesture ends, so a diagonal swipe never drifts onto the other axis.
 /// Returns the axis and the lock to keep for the next event.
-pub fn gesture_axis(locked: Option<Axis>, phase: TouchPhase, dx: Pixels, dy: Pixels) -> (Axis, Option<Axis>) {
+pub fn gesture_axis(
+    locked: Option<Axis>,
+    phase: TouchPhase,
+    dx: Pixels,
+    dy: Pixels,
+) -> (Axis, Option<Axis>) {
     let moving = dx != Pixels::ZERO || dy != Pixels::ZERO;
     let axis = match (phase, locked) {
         (TouchPhase::Started, _) | (_, None) => dominant(dx, dy),
@@ -68,9 +73,18 @@ mod tests {
         let (a, lock) = gesture_axis(lock, TouchPhase::Ended, px(0.), px(0.));
         assert_eq!((a, lock), (Axis::X, None));
         // The next gesture decides again; an empty first event does not lock.
-        assert_eq!(gesture_axis(None, TouchPhase::Moved, px(0.), px(0.)), (Axis::Y, None));
-        assert_eq!(gesture_axis(None, TouchPhase::Moved, px(1.), px(9.)), (Axis::Y, Some(Axis::Y)));
+        assert_eq!(
+            gesture_axis(None, TouchPhase::Moved, px(0.), px(0.)),
+            (Axis::Y, None)
+        );
+        assert_eq!(
+            gesture_axis(None, TouchPhase::Moved, px(1.), px(9.)),
+            (Axis::Y, Some(Axis::Y))
+        );
         // Mouse wheels report Moved per notch: Shift+wheel arrives as x and scrolls x.
-        assert_eq!(gesture_axis(None, TouchPhase::Moved, px(-20.), px(0.)).0, Axis::X);
+        assert_eq!(
+            gesture_axis(None, TouchPhase::Moved, px(-20.), px(0.)).0,
+            Axis::X
+        );
     }
 }

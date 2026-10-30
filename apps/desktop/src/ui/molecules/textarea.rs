@@ -16,7 +16,11 @@ pub struct Textarea {
 
 impl Textarea {
     pub fn new(input: Entity<TextInput>) -> Self {
-        Self { input, rows: 3, max_rows: 12 }
+        Self {
+            input,
+            rows: 3,
+            max_rows: 12,
+        }
     }
 
     pub fn rows(mut self, rows: u8) -> Self {

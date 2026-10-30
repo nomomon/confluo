@@ -16,7 +16,11 @@ pub struct Pill {
 
 impl Pill {
     pub fn new(label: impl Into<SharedString>, color: Hsla) -> Self {
-        Self { label: label.into(), color, icon: None }
+        Self {
+            label: label.into(),
+            color,
+            icon: None,
+        }
     }
 
     /// Leading icon in the pill color.
@@ -40,7 +44,10 @@ impl RenderOnce for Pill {
             .font_weight(theme::WEIGHT_MEDIUM)
             .bg(theme::tint_bg(self.color))
             .text_color(self.color)
-            .children(self.icon.map(|n| Icon::new(n).size(theme::ICON_SM).color(self.color)))
+            .children(
+                self.icon
+                    .map(|n| Icon::new(n).size(theme::ICON_SM).color(self.color)),
+            )
             .child(self.label)
     }
 }

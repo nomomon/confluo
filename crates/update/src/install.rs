@@ -10,7 +10,10 @@ use std::process::Command;
 /// The `.app` bundle this process runs from (`.../Confluo.app/Contents/MacOS/confluo`).
 pub fn running_bundle() -> Result<PathBuf> {
     let exe = std::env::current_exe()?.canonicalize()?;
-    let app = exe.ancestors().nth(3).ok_or_else(|| anyhow!("not inside an app bundle"))?;
+    let app = exe
+        .ancestors()
+        .nth(3)
+        .ok_or_else(|| anyhow!("not inside an app bundle"))?;
     if app.extension().and_then(|e| e.to_str()) != Some("app") {
         bail!("not running from an app bundle");
     }
@@ -18,7 +21,9 @@ pub fn running_bundle() -> Result<PathBuf> {
 }
 
 fn client() -> Result<reqwest::Client> {
-    Ok(reqwest::Client::builder().user_agent(concat!("Confluo/", env!("CARGO_PKG_VERSION"))).build()?)
+    Ok(reqwest::Client::builder()
+        .user_agent(concat!("Confluo/", env!("CARGO_PKG_VERSION")))
+        .build()?)
 }
 
 /// Stream `url` into `dest`, reporting the fraction done (0..=1) when the size is known.
@@ -40,31 +45,57 @@ async fn download(url: &str, dest: &Path, progress: &(dyn Fn(f32) + Send + Sync)
 
 /// Download the release zip next to `app`, verify it and replace `app` with it.
 /// Returns the path of the installed bundle (same as `app`).
-pub async fn install(release: &Release, app: &Path, progress: &(dyn Fn(f32) + Send + Sync)) -> Result<PathBuf> {
+pub async fn install(
+    release: &Release,
+    app: &Path,
+    progress: &(dyn Fn(f32) + Send + Sync),
+) -> Result<PathBuf> {
     let zip_name = release.zip_name();
-    let zip = release.asset(&zip_name).ok_or_else(|| anyhow!("release has no {zip_name}"))?;
-    let sums = release.asset(SUMS_ASSET).ok_or_else(|| anyhow!("release has no {SUMS_ASSET}"))?;
-    let parent = app.parent().ok_or_else(|| anyhow!("app has no parent folder"))?;
+    let zip = release
+        .asset(&zip_name)
+        .ok_or_else(|| anyhow!("release has no {zip_name}"))?;
+    let sums = release
+        .asset(SUMS_ASSET)
+        .ok_or_else(|| anyhow!("release has no {SUMS_ASSET}"))?;
+    let parent = app
+        .parent()
+        .ok_or_else(|| anyhow!("app has no parent folder"))?;
     // Same volume as the app, so the final moves are atomic renames.
     let work = parent.join(format!(".confluo-update-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&work);
-    std::fs::create_dir_all(&work).with_context(|| format!("cannot write to {}", parent.display()))?;
+    std::fs::create_dir_all(&work)
+        .with_context(|| format!("cannot write to {}", parent.display()))?;
     let result = async {
-        let sums_text = client()?.get(&sums.browser_download_url).send().await?.error_for_status()?.text().await?;
-        let want = parse_sums(&sums_text, &zip_name).ok_or_else(|| anyhow!("{zip_name} missing from {SUMS_ASSET}"))?;
+        let sums_text = client()?
+            .get(&sums.browser_download_url)
+            .send()
+            .await?
+            .error_for_status()?
+            .text()
+            .await?;
+        let want = parse_sums(&sums_text, &zip_name)
+            .ok_or_else(|| anyhow!("{zip_name} missing from {SUMS_ASSET}"))?;
         let zip_path = work.join(&zip_name);
         download(&zip.browser_download_url, &zip_path, progress).await?;
         if sha256_file(&zip_path)? != want {
             bail!("checksum mismatch for {zip_name}");
         }
         let unpacked = work.join("unpacked");
-        let ok = Command::new("/usr/bin/ditto").args(["-x", "-k"]).arg(&zip_path).arg(&unpacked).status()?.success();
+        let ok = Command::new("/usr/bin/ditto")
+            .args(["-x", "-k"])
+            .arg(&zip_path)
+            .arg(&unpacked)
+            .status()?
+            .success();
         if !ok {
             bail!("could not unpack {zip_name}");
         }
         let new_app = unpacked.join(app.file_name().unwrap_or_else(|| "Confluo.app".as_ref()));
         if !new_app.is_dir() {
-            bail!("{zip_name} does not contain {}", new_app.file_name().unwrap_or_default().to_string_lossy());
+            bail!(
+                "{zip_name} does not contain {}",
+                new_app.file_name().unwrap_or_default().to_string_lossy()
+            );
         }
         check_signature(&new_app, team_id(app).as_deref())?;
         swap(app, &new_app, &work)
@@ -88,8 +119,16 @@ pub fn swap(app: &Path, new_app: &Path, work: &Path) -> Result<()> {
 
 /// Open `app` as a new instance once this process has exited. The caller quits right after.
 pub fn relaunch_after_exit(app: &Path) -> Result<()> {
-    let script = format!("while kill -0 {} 2>/dev/null; do sleep 0.2; done; /usr/bin/open -n \"$0\"", std::process::id());
-    Command::new("/bin/sh").arg("-c").arg(script).arg(app).spawn().context("scheduling relaunch")?;
+    let script = format!(
+        "while kill -0 {} 2>/dev/null; do sleep 0.2; done; /usr/bin/open -n \"$0\"",
+        std::process::id()
+    );
+    Command::new("/bin/sh")
+        .arg("-c")
+        .arg(script)
+        .arg(app)
+        .spawn()
+        .context("scheduling relaunch")?;
     Ok(())
 }
 
@@ -100,7 +139,11 @@ mod tests {
     #[test]
     fn swaps_bundles() {
         let root = std::env::temp_dir().join(format!("gv-update-swap-{}", std::process::id()));
-        let (app, new_app, work) = (root.join("Confluo.app"), root.join("new/Confluo.app"), root.join("work"));
+        let (app, new_app, work) = (
+            root.join("Confluo.app"),
+            root.join("new/Confluo.app"),
+            root.join("work"),
+        );
         for (d, v) in [(&app, "old"), (&new_app, "new")] {
             std::fs::create_dir_all(d).unwrap();
             std::fs::write(d.join("v"), v).unwrap();

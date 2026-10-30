@@ -4,18 +4,20 @@
 
 use chrono::{DateTime, Utc};
 use gpui::{div, prelude::*, Context, Entity, FocusHandle, Pixels, ScrollHandle, Window};
-use std::cell::Cell;
-use std::rc::Rc;
 use gv_engine::{ChangeRequest, ChangeRequestId, Engine, Involvement, Project, RepoRef};
+use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::settings::Settings;
-pub use crate::state::{Layer, Overlay};
-use crate::state::{BotList, Copied, DetailState, HostStatus, NavState, QuietState, SettingsPage, SourceKind};
-use crate::ui::molecules::text_input::{InputEvent, TextInput};
 use crate::features::layout;
+use crate::settings::Settings;
+use crate::state::{
+    BotList, Copied, DetailState, HostStatus, NavState, QuietState, SettingsPage, SourceKind,
+};
+pub use crate::state::{Layer, Overlay};
+use crate::ui::molecules::text_input::{InputEvent, TextInput};
 use crate::ui::molecules::{Toast, ToastVariant, Toaster};
 use crate::ui::theme::{self, Translucency};
 
@@ -148,7 +150,11 @@ pub struct GitViewer {
 }
 
 /// Subscribe `f` to the input's Enter key.
-fn on_submit(cx: &mut Context<GitViewer>, input: &Entity<TextInput>, f: impl Fn(&mut GitViewer, Entity<TextInput>, &mut Context<GitViewer>) + 'static) {
+fn on_submit(
+    cx: &mut Context<GitViewer>,
+    input: &Entity<TextInput>,
+    f: impl Fn(&mut GitViewer, Entity<TextInput>, &mut Context<GitViewer>) + 'static,
+) {
     cx.subscribe(input, move |this, input, ev: &InputEvent, cx| {
         if matches!(ev, InputEvent::Submit) {
             f(this, input, cx)
@@ -158,20 +164,37 @@ fn on_submit(cx: &mut Context<GitViewer>, input: &Entity<TextInput>, f: impl Fn(
 }
 
 impl GitViewer {
-    pub fn new(engine: Arc<Engine>, settings: Settings, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let (saved_tree_w, saved_right_ratio) = (settings.review_tree_w, settings.review_right_ratio);
+    pub fn new(
+        engine: Arc<Engine>,
+        settings: Settings,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        let (saved_tree_w, saved_right_ratio) =
+            (settings.review_tree_w, settings.review_right_ratio);
         let input = |cx: &mut Context<Self>, ph: &'static str| cx.new(|cx| TextInput::new(ph, cx));
-        let search = cx.new(|cx| TextInput::new("Search title, repo, author or branch  /", cx).inset(crate::ui::molecules::INPUT_INSET, crate::ui::molecules::INPUT_INSET));
+        let search = cx.new(|cx| {
+            TextInput::new("Search title, repo, author or branch  /", cx).inset(
+                crate::ui::molecules::INPUT_INSET,
+                crate::ui::molecules::INPUT_INSET,
+            )
+        });
         let composer = cx.new(|cx| TextInput::new("Leave a comment", cx).multiline().markdown());
-        let inline_input = cx.new(|cx| TextInput::new("Leave a comment, \u{2318}Enter to post, Esc to cancel", cx).multiline().markdown());
+        let inline_input = cx.new(|cx| {
+            TextInput::new("Leave a comment, \u{2318}Enter to post, Esc to cancel", cx)
+                .multiline()
+                .markdown()
+        });
         let add_name = input(cx, "Project name");
         let add_value = input(cx, "Paste a repo or group URL, or a folder path");
         let alias_input = input(cx, "Alias (empty to clear)");
         let rename_input = input(cx, "Project name");
         let bot_authors_input = input(cx, "Add an author, e.g. *-bot, then Enter");
         let bot_branches_input = input(cx, "Add a branch prefix, e.g. deps/, then Enter");
-        let palette_input = cx.new(|cx| TextInput::new("Search pull requests, files and commands", cx));
-        let review_input = cx.new(|cx| TextInput::new("Leave a summary (optional)", cx).multiline());
+        let palette_input =
+            cx.new(|cx| TextInput::new("Search pull requests, files and commands", cx));
+        let review_input =
+            cx.new(|cx| TextInput::new("Leave a summary (optional)", cx).multiline());
         cx.subscribe(&palette_input, |this, _, ev: &InputEvent, cx| match ev {
             InputEvent::Changed => {
                 this.nav.palette_sel = 0;
@@ -190,7 +213,12 @@ impl GitViewer {
         })
         .detach();
         let title_input = input(cx, "Title");
-        let body_input = cx.new(|cx| TextInput::new("Describe the change (markdown), \u{2318}Enter to save", cx).multiline().markdown().document());
+        let body_input = cx.new(|cx| {
+            TextInput::new("Describe the change (markdown), \u{2318}Enter to save", cx)
+                .multiline()
+                .markdown()
+                .document()
+        });
         let people_input = input(cx, "Search people");
         on_submit(cx, &title_input, |this, _, cx| this.save_title(cx));
         on_submit(cx, &body_input, |this, _, cx| this.save_body(cx));
@@ -202,8 +230,12 @@ impl GitViewer {
             }
         })
         .detach();
-        on_submit(cx, &bot_authors_input, |this, _, cx| this.add_bot_entry(BotList::Authors, cx));
-        on_submit(cx, &bot_branches_input, |this, _, cx| this.add_bot_entry(BotList::Branches, cx));
+        on_submit(cx, &bot_authors_input, |this, _, cx| {
+            this.add_bot_entry(BotList::Authors, cx)
+        });
+        on_submit(cx, &bot_branches_input, |this, _, cx| {
+            this.add_bot_entry(BotList::Branches, cx)
+        });
 
         cx.subscribe(&search, |_, _, ev: &InputEvent, cx| {
             if matches!(ev, InputEvent::Changed) {
@@ -234,9 +266,19 @@ impl GitViewer {
             }
         });
         on_submit(cx, &rename_input, |this, _, cx| this.save_rename(cx));
-        let tree_filter = cx.new(|cx| TextInput::new("Filter files", cx).inset(crate::ui::molecules::INPUT_INSET, crate::ui::molecules::INPUT_INSET));
+        let tree_filter = cx.new(|cx| {
+            TextInput::new("Filter files", cx).inset(
+                crate::ui::molecules::INPUT_INSET,
+                crate::ui::molecules::INPUT_INSET,
+            )
+        });
         let quick_input = cx.new(|cx| TextInput::new("Go to file", cx));
-        let repo_search = cx.new(|cx| TextInput::new("Search repositories", cx).inset(crate::ui::molecules::INPUT_INSET, crate::ui::molecules::INPUT_INSET));
+        let repo_search = cx.new(|cx| {
+            TextInput::new("Search repositories", cx).inset(
+                crate::ui::molecules::INPUT_INSET,
+                crate::ui::molecules::INPUT_INSET,
+            )
+        });
         cx.subscribe(&repo_search, |_, _, ev: &InputEvent, cx| {
             if matches!(ev, InputEvent::Changed) {
                 cx.notify()
@@ -331,7 +373,10 @@ impl GitViewer {
             menu_projects: None,
             reviewing: false,
             preview_hidden: false,
-            review: crate::state::ReviewUi::with_sizes(gpui::px(saved_tree_w).clamp(layout::TREE_MIN_W, layout::TREE_MAX_W), saved_right_ratio.clamp(layout::RIGHT_RATIO_MIN, layout::RIGHT_RATIO_MAX)),
+            review: crate::state::ReviewUi::with_sizes(
+                gpui::px(saved_tree_w).clamp(layout::TREE_MIN_W, layout::TREE_MAX_W),
+                saved_right_ratio.clamp(layout::RIGHT_RATIO_MIN, layout::RIGHT_RATIO_MAX),
+            ),
             tree_filter,
             quick_input,
             refocus_quick: false,
@@ -343,7 +388,8 @@ impl GitViewer {
             hint_ctx: None,
             update: Default::default(),
         };
-        cx.observe_window_appearance(window, |_, _, cx| cx.notify()).detach();
+        cx.observe_window_appearance(window, |_, _, cx| cx.notify())
+            .detach();
         cx.observe_window_activation(window, |this, window, cx| {
             if window.is_window_active() {
                 this.on_activated(cx)
@@ -363,11 +409,16 @@ impl GitViewer {
         }
         this.reload_projects();
         if this.settings.launch == crate::settings::Launch::LastView {
-            this.selected = this.settings.last_project.filter(|id| this.projects.iter().any(|p| p.id == *id));
+            this.selected = this
+                .settings
+                .last_project
+                .filter(|id| this.projects.iter().any(|p| p.id == *id));
         }
         this.apply_dev_view();
         this.cursor = this.restored_cursor();
-        this.refreshed_at = this.engine.last_refreshed(&gv_engine::RefreshTarget::InvolvingMe);
+        this.refreshed_at = this
+            .engine
+            .last_refreshed(&gv_engine::RefreshTarget::InvolvingMe);
         this.reload();
         this.check_hosts(cx);
         this.refresh(cx);
@@ -409,13 +460,22 @@ impl Render for GitViewer {
             window.focus(&self.focus);
         }
         if std::mem::take(&mut self.refocus_alias) {
-            window.focus(&gpui::Focusable::focus_handle(self.alias_input.read(cx), cx));
+            window.focus(&gpui::Focusable::focus_handle(
+                self.alias_input.read(cx),
+                cx,
+            ));
         }
         if std::mem::take(&mut self.refocus_quick) {
-            window.focus(&gpui::Focusable::focus_handle(self.quick_input.read(cx), cx));
+            window.focus(&gpui::Focusable::focus_handle(
+                self.quick_input.read(cx),
+                cx,
+            ));
         }
         if std::mem::take(&mut self.refocus_palette) {
-            window.focus(&gpui::Focusable::focus_handle(self.palette_input.read(cx), cx));
+            window.focus(&gpui::Focusable::focus_handle(
+                self.palette_input.read(cx),
+                cx,
+            ));
         }
         if let Some(a) = self.pending_action.take() {
             window.focus(&self.focus);
@@ -433,7 +493,9 @@ impl Render for GitViewer {
         let previewing = !self.reviewing && !self.preview_hidden && self.detail.is_some();
         self.compact = previewing && self.viewport_w < layout::PREVIEW_COMPACT_BELOW;
         // One floating layer at a time: hold-Cmd hints stay hidden while a menu or popover is open.
-        self.hint_ctx = (self.hints.visible() && self.settings.shortcut_hints && !self.layer_open()).then(|| self.cmd_ctx());
+        self.hint_ctx =
+            (self.hints.visible() && self.settings.shortcut_hints && !self.layer_open())
+                .then(|| self.cmd_ctx());
         crate::ui::layer::begin_frame();
         let main = div().absolute().top_0().left_0().size_full().flex();
         let main = match self.detail.as_ref().filter(|_| self.reviewing) {
@@ -441,20 +503,44 @@ impl Render for GitViewer {
             Some(d) => {
                 let review = self.render_review(d, cx).into_any_element();
                 let x = self.review.swipe.page_x;
-                let review = if x != 0. { self.render_swipe_stack(review, x, cx) } else { review };
+                let review = if x != 0. {
+                    self.render_swipe_stack(review, x, cx)
+                } else {
+                    review
+                };
                 // Reduced motion: the view a swipe switched to fades in.
                 main.child(match self.review.swipe.fade {
-                    Some(n) => crate::ui::motion::fade_in_always(div().size_full().child(review), ("swipe-fade", n)),
+                    Some(n) => crate::ui::motion::fade_in_always(
+                        div().size_full().child(review),
+                        ("swipe-fade", n),
+                    ),
                     None => review,
                 })
             }
             None => main
-                .when(!self.nav.sidebar_hidden, |m| m.child(crate::ui::motion::slide_in_left(div().h_full().child(self.render_sidebar(cx)), "sidebar", layout::SIDEBAR_SLIDE)))
+                .when(!self.nav.sidebar_hidden, |m| {
+                    m.child(crate::ui::motion::slide_in_left(
+                        div().h_full().child(self.render_sidebar(cx)),
+                        "sidebar",
+                        layout::SIDEBAR_SLIDE,
+                    ))
+                })
                 .child(self.render_list(cx))
-                .children(self.detail.as_ref().filter(|_| previewing).map(|d| self.render_preview(d, cx))),
+                .children(
+                    self.detail
+                        .as_ref()
+                        .filter(|_| previewing)
+                        .map(|d| self.render_preview(d, cx)),
+                ),
         };
         let main = match self.review.swipe.fade.filter(|_| !self.reviewing) {
-            Some(n) => div().absolute().top_0().left_0().size_full().child(crate::ui::motion::fade_in_always(main, ("swipe-fade", n))).into_any_element(),
+            Some(n) => div()
+                .absolute()
+                .top_0()
+                .left_0()
+                .size_full()
+                .child(crate::ui::motion::fade_in_always(main, ("swipe-fade", n)))
+                .into_any_element(),
             None => main.into_any_element(),
         };
         let root = div().id("root");
@@ -468,18 +554,30 @@ impl Render for GitViewer {
             .text_size(theme::text_sm())
             .line_height(gpui::relative(theme::LINE_HEIGHT))
             .bg(self.surfaces().window_bg())
-            .when(self.review.resizing.is_some(), |root| self.resize_handlers(root, cx))
+            .when(self.review.resizing.is_some(), |root| {
+                self.resize_handlers(root, cx)
+            })
             .child(main)
             .children(self.toast.clone().map(|t| {
                 let toast = match &self.toast_error {
-                    Some(why) => Toast::new(t).description(why.clone()).variant(ToastVariant::Error),
+                    Some(why) => Toast::new(t)
+                        .description(why.clone())
+                        .variant(ToastVariant::Error),
                     None if self.toast_plain => Toast::new(t),
                     None => Toast::new(t).variant(ToastVariant::Success),
                 };
                 let toast = if self.quiet.undo.is_some() {
-                    toast.action("Undo", cx.listener(|this, _: &gpui::ClickEvent, _, cx| this.undo_snooze(cx)))
+                    toast.action(
+                        "Undo",
+                        cx.listener(|this, _: &gpui::ClickEvent, _, cx| this.undo_snooze(cx)),
+                    )
                 } else if let Some(file) = self.toast_file.clone() {
-                    toast.action("Open log", move |_: &gpui::ClickEvent, _: &mut Window, cx: &mut gpui::App| cx.open_with_system(&file))
+                    toast.action(
+                        "Open log",
+                        move |_: &gpui::ClickEvent, _: &mut Window, cx: &mut gpui::App| {
+                            cx.open_with_system(&file)
+                        },
+                    )
                 } else {
                     toast
                 };

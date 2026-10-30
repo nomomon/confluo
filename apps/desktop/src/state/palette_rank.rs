@@ -73,18 +73,27 @@ pub const SHORTCUTS_KEY: &str = "a:ShowShortcuts";
 fn allowed(p: Prefix, empty: bool, c: &Cand) -> bool {
     let g = c.group;
     match p {
-        Prefix::None if empty => matches!(g, Group::Suggested | Group::GoTo | Group::Recent | Group::Actions),
+        Prefix::None if empty => matches!(
+            g,
+            Group::Suggested | Group::GoTo | Group::Recent | Group::Actions
+        ),
         Prefix::None => g != Group::Recent,
         Prefix::Actions => matches!(g, Group::Suggested | Group::Actions),
         Prefix::Prs => g == Group::Prs,
         Prefix::Files => g == Group::Files,
         Prefix::Views => g == Group::GoTo,
-        Prefix::Help => matches!(g, Group::Suggested | Group::Actions) && (c.has_shortcut || c.key == SHORTCUTS_KEY),
+        Prefix::Help => {
+            matches!(g, Group::Suggested | Group::Actions)
+                && (c.has_shortcut || c.key == SHORTCUTS_KEY)
+        }
     }
 }
 
 fn mru_bonus(mru: &[String], key: &str) -> i32 {
-    mru.iter().position(|k| k == key).map(|i| (MRU_MAX - i.min(MRU_MAX - 1)) as i32 * 8).unwrap_or(0)
+    mru.iter()
+        .position(|k| k == key)
+        .map(|i| (MRU_MAX - i.min(MRU_MAX - 1)) as i32 * 8)
+        .unwrap_or(0)
 }
 
 /// Indices of `cands` to show, in order. Groups stay contiguous (one heading each).
@@ -104,7 +113,9 @@ pub fn rank(cands: &[Cand], query: &str, mru: &[String]) -> Vec<usize> {
             let num = c.number.map(|n| n.to_string());
             let s = match (&num, digits) {
                 (Some(n), true) if *n == rest => Some(100_000),
-                (Some(n), true) if prefix == Prefix::Prs && n.starts_with(rest) => Some(50_000 - n.len() as i32),
+                (Some(n), true) if prefix == Prefix::Prs && n.starts_with(rest) => {
+                    Some(50_000 - n.len() as i32)
+                }
                 (_, true) if prefix == Prefix::Prs => None,
                 _ => score(rest, &c.text),
             };
@@ -120,14 +131,23 @@ pub fn rank(cands: &[Cand], query: &str, mru: &[String]) -> Vec<usize> {
         }
     }
     let gorder = |g: Group| -> (i32, Group) {
-        let b = best.iter().find(|(bg, _)| *bg == g).map(|b| b.1).unwrap_or(0);
+        let b = best
+            .iter()
+            .find(|(bg, _)| *bg == g)
+            .map(|b| b.1)
+            .unwrap_or(0);
         if empty {
             (0, g)
         } else {
             (-b, g)
         }
     };
-    hits.sort_by(|a, b| gorder(a.0).cmp(&gorder(b.0)).then(b.1.cmp(&a.1)).then(a.2.cmp(&b.2)));
+    hits.sort_by(|a, b| {
+        gorder(a.0)
+            .cmp(&gorder(b.0))
+            .then(b.1.cmp(&a.1))
+            .then(a.2.cmp(&b.2))
+    });
     let mut out: Vec<usize> = hits.into_iter().map(|(_, _, i)| i).collect();
     // `?` leads with the cheat sheet itself.
     if prefix == Prefix::Help {
@@ -151,7 +171,13 @@ mod tests {
     use super::*;
 
     fn c(key: &str, group: Group, text: &str, number: Option<u64>) -> Cand {
-        Cand { key: key.into(), group, text: text.into(), number, has_shortcut: key.starts_with("a:") }
+        Cand {
+            key: key.into(),
+            group,
+            text: text.into(),
+            number,
+            has_shortcut: key.starts_with("a:"),
+        }
     }
 
     fn set() -> Vec<Cand> {
@@ -165,13 +191,21 @@ mod tests {
             c("pr:51", Group::Prs, "Refactor list", Some(51)),
             c("pr:15", Group::Prs, "Bump deps", Some(15)),
             c("f:src/main.rs", Group::Files, "src/main.rs", None),
-            c("a:ShowShortcuts", Group::Actions, "Keyboard shortcuts", None),
+            c(
+                "a:ShowShortcuts",
+                Group::Actions,
+                "Keyboard shortcuts",
+                None,
+            ),
         ]
     }
 
     fn keys(q: &str, mru: &[String]) -> Vec<String> {
         let s = set();
-        rank(&s, q, mru).into_iter().map(|i| s[i].key.clone()).collect()
+        rank(&s, q, mru)
+            .into_iter()
+            .map(|i| s[i].key.clone())
+            .collect()
     }
 
     #[test]
@@ -183,7 +217,17 @@ mod tests {
 
     #[test]
     fn empty_query_shows_groups_in_order_without_all_prs_or_files() {
-        assert_eq!(keys("", &[]), ["a:Approve", "go:inbox", "pr:recent", "a:Refresh", "a:ToggleTheme", "a:ShowShortcuts"]);
+        assert_eq!(
+            keys("", &[]),
+            [
+                "a:Approve",
+                "go:inbox",
+                "pr:recent",
+                "a:Refresh",
+                "a:ToggleTheme",
+                "a:ShowShortcuts"
+            ]
+        );
     }
 
     #[test]
@@ -194,7 +238,10 @@ mod tests {
 
     #[test]
     fn other_prefixes_filter_groups() {
-        assert_eq!(keys(">", &[]), ["a:Approve", "a:Refresh", "a:ToggleTheme", "a:ShowShortcuts"]);
+        assert_eq!(
+            keys(">", &[]),
+            ["a:Approve", "a:Refresh", "a:ToggleTheme", "a:ShowShortcuts"]
+        );
         assert_eq!(keys("@main", &[]), ["f:src/main.rs"]);
         assert_eq!(keys("/", &[]), ["go:inbox"]);
         assert_eq!(keys("?", &[])[0], "a:ShowShortcuts");

@@ -40,7 +40,11 @@ pub enum MonoFont {
 }
 
 impl MonoFont {
-    pub const ALL: [MonoFont; 3] = [MonoFont::System, MonoFont::JetBrainsMono, MonoFont::GeistMono];
+    pub const ALL: [MonoFont; 3] = [
+        MonoFont::System,
+        MonoFont::JetBrainsMono,
+        MonoFont::GeistMono,
+    ];
     pub fn label(self) -> &'static str {
         match self {
             MonoFont::System => "Menlo",
@@ -101,7 +105,10 @@ impl ThemeMode {
         match self {
             ThemeMode::Light => true,
             ThemeMode::Dark => false,
-            ThemeMode::System => matches!(appearance, gpui::WindowAppearance::Light | gpui::WindowAppearance::VibrantLight),
+            ThemeMode::System => matches!(
+                appearance,
+                gpui::WindowAppearance::Light | gpui::WindowAppearance::VibrantLight
+            ),
         }
     }
 }

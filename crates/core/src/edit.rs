@@ -62,7 +62,12 @@ pub struct MergeOptions {
 
 impl Default for MergeOptions {
     fn default() -> Self {
-        Self { method: MergeMethod::Merge, squash: false, delete_branch: false, when_pipeline_succeeds: false }
+        Self {
+            method: MergeMethod::Merge,
+            squash: false,
+            delete_branch: false,
+            when_pipeline_succeeds: false,
+        }
     }
 }
 
@@ -94,7 +99,16 @@ pub struct EditCapabilities {
 impl EditCapabilities {
     /// Every edit allowed (author or maintainer on an open PR), without merge.
     pub fn editor(open: bool) -> Self {
-        Self { title: true, body: true, reviewers: open, assignees: true, draft: open, close: open, reopen: !open, ..Default::default() }
+        Self {
+            title: true,
+            body: true,
+            reviewers: open,
+            assignees: true,
+            draft: open,
+            close: open,
+            reopen: !open,
+            ..Default::default()
+        }
     }
 }
 
@@ -113,7 +127,10 @@ pub fn draft_title(title: &str, draft: bool) -> String {
     let mut bare = title.trim_start();
     loop {
         let lower = bare.to_ascii_lowercase();
-        let cut = ["draft:", "[draft]", "(draft)", "wip:", "[wip]"].iter().find(|p| lower.starts_with(*p)).map(|p| p.len());
+        let cut = ["draft:", "[draft]", "(draft)", "wip:", "[wip]"]
+            .iter()
+            .find(|p| lower.starts_with(*p))
+            .map(|p| p.len());
         match cut {
             Some(n) => bare = bare[n..].trim_start(),
             None => break,
@@ -129,8 +146,16 @@ pub fn draft_title(title: &str, draft: bool) -> String {
 /// Usernames to add and remove to go from `current` to `desired` (case-insensitive).
 pub fn people_diff(current: &[String], desired: &[String]) -> (Vec<String>, Vec<String>) {
     let has = |list: &[String], u: &str| list.iter().any(|x| x.eq_ignore_ascii_case(u));
-    let add = desired.iter().filter(|u| !has(current, u)).cloned().collect();
-    let remove = current.iter().filter(|u| !has(desired, u)).cloned().collect();
+    let add = desired
+        .iter()
+        .filter(|u| !has(current, u))
+        .cloned()
+        .collect();
+    let remove = current
+        .iter()
+        .filter(|u| !has(desired, u))
+        .cloned()
+        .collect();
     (add, remove)
 }
 
@@ -167,6 +192,9 @@ mod tests {
         let cur = vec!["ada".to_string(), "bob".to_string()];
         let want = apply_people_args(&cur, &["+Carol".into(), "-bob".into(), "@ada".into()]);
         assert_eq!(want, vec!["ada", "Carol"]);
-        assert_eq!(people_diff(&cur, &want), (vec!["Carol".to_string()], vec!["bob".to_string()]));
+        assert_eq!(
+            people_diff(&cur, &want),
+            (vec!["Carol".to_string()], vec!["bob".to_string()])
+        );
     }
 }

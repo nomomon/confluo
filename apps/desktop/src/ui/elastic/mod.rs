@@ -7,7 +7,10 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::time::Instant;
 
-use gpui::{point, px, Div, InteractiveElement, Styled, ListState, Pixels, ScrollDelta, ScrollHandle, ScrollWheelEvent, Stateful, Window};
+use gpui::{
+    point, px, Div, InteractiveElement, ListState, Pixels, ScrollDelta, ScrollHandle,
+    ScrollWheelEvent, Stateful, Styled, Window,
+};
 
 use super::scroll::Axis;
 
@@ -38,7 +41,11 @@ impl Scroller for ScrollHandle {
 
 impl Scroller for ListState {
     fn pos(&self, _: Axis) -> (f32, f32, f32) {
-        (self.scroll_px_offset_for_scrollbar().y.into(), self.max_offset_for_scrollbar().height.into(), self.viewport_bounds().size.height.into())
+        (
+            self.scroll_px_offset_for_scrollbar().y.into(),
+            self.max_offset_for_scrollbar().height.into(),
+            self.viewport_bounds().size.height.into(),
+        )
     }
     fn pin(&self, _: Axis, at: f32) {
         self.set_offset_from_scrollbar(point(px(0.), px(at)));
@@ -70,17 +77,42 @@ pub fn wheel(key: &str, axis: Axis, ev: &ScrollWheelEvent, s: &dyn Scroller) -> 
 
 /// `wheel` for a scroller kept in app state: given its offset (GPUI sign), max and viewport length, returns
 /// whether to redraw and where to hold it.
-pub fn feed(key: &str, axis: Axis, ev: &ScrollWheelEvent, offset: f32, max: f32, extent: f32) -> (bool, Option<Pin>) {
+pub fn feed(
+    key: &str,
+    axis: Axis,
+    ev: &ScrollWheelEvent,
+    offset: f32,
+    max: f32,
+    extent: f32,
+) -> (bool, Option<Pin>) {
     let (precise, delta) = match ev.delta {
         ScrollDelta::Pixels(p) => (true, p),
         ScrollDelta::Lines(l) => (false, point(px(l.x), px(l.y))),
     };
-    STRETCH.with(|m| m.borrow_mut().entry(key.to_string()).or_default().feed(axis, ev.touch_phase, precise, super::motion::reduced_motion(), delta.x.into(), delta.y.into(), offset >= -0.5, offset <= -max + 0.5, extent, Instant::now()))
+    STRETCH.with(|m| {
+        m.borrow_mut().entry(key.to_string()).or_default().feed(
+            axis,
+            ev.touch_phase,
+            precise,
+            super::motion::reduced_motion(),
+            delta.x.into(),
+            delta.y.into(),
+            offset >= -0.5,
+            offset <= -max + 0.5,
+            extent,
+            Instant::now(),
+        )
+    })
 }
 
 /// Current stretch of `key` as a translate (steps its spring).
 pub fn shift(key: &str) -> Pixels {
-    px(STRETCH.with(|m| m.borrow_mut().get_mut(key).map(|s| s.shown(Instant::now()).0).unwrap_or(0.)))
+    px(STRETCH.with(|m| {
+        m.borrow_mut()
+            .get_mut(key)
+            .map(|s| s.shown(Instant::now()).0)
+            .unwrap_or(0.)
+    }))
 }
 
 /// Call at the start of the window's render: keeps frames coming while any stretch springs back
@@ -88,7 +120,14 @@ pub fn shift(key: &str) -> Pixels {
 pub fn begin_frame(window: &mut Window) {
     let now = Instant::now();
     // Every stretch is visited (no short circuit): stale springs are dropped on the way.
-    let any = STRETCH.with(|m| m.borrow_mut().values_mut().map(|s| s.animating(now)).filter(|a| *a).count() > 0);
+    let any = STRETCH.with(|m| {
+        m.borrow_mut()
+            .values_mut()
+            .map(|s| s.animating(now))
+            .filter(|a| *a)
+            .count()
+            > 0
+    });
     if any {
         window.request_animation_frame();
     }
@@ -129,4 +168,3 @@ pub fn guard_vertical(ev: &ScrollWheelEvent, s: &dyn Scroller, drawn_y: f32) -> 
 pub fn content(key: &str) -> Div {
     gpui::div().relative().top(shift(key))
 }
-

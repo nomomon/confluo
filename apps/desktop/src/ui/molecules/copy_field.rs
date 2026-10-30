@@ -15,7 +15,12 @@ pub struct CopyField {
 
 impl CopyField {
     pub fn new(id: impl Into<SharedString>, value: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), value: value.into(), copied: false, on_copy: None }
+        Self {
+            id: id.into(),
+            value: value.into(),
+            copied: false,
+            on_copy: None,
+        }
     }
 
     /// Show the "Copied" label instead of "Copy".
@@ -52,11 +57,19 @@ impl RenderOnce for CopyField {
                     .truncate()
                     .child(self.value),
             )
-            .child(Button::new(self.id, if self.copied { "Copied" } else { "Copy" }).icon(if self.copied { IconName::Check } else { IconName::Copy }).on_click(move |ev, window, cx| {
-                cx.write_to_clipboard(ClipboardItem::new_string(value.to_string()));
-                if let Some(f) = &on_copy {
-                    f(ev, window, cx)
-                }
-            }))
+            .child(
+                Button::new(self.id, if self.copied { "Copied" } else { "Copy" })
+                    .icon(if self.copied {
+                        IconName::Check
+                    } else {
+                        IconName::Copy
+                    })
+                    .on_click(move |ev, window, cx| {
+                        cx.write_to_clipboard(ClipboardItem::new_string(value.to_string()));
+                        if let Some(f) = &on_copy {
+                            f(ev, window, cx)
+                        }
+                    }),
+            )
     }
 }

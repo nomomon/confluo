@@ -8,13 +8,20 @@ use crate::ui::atoms::{Button, ButtonVariant, Chip, ErrorText};
 use crate::ui::molecules::{Field, Tabs, TabsVariant};
 use crate::ui::theme;
 
-const KINDS: [(&str, SourceKind); 3] = [("Folder", SourceKind::Folder), ("Repo", SourceKind::Repo), ("Group", SourceKind::Group)];
+const KINDS: [(&str, SourceKind); 3] = [
+    ("Folder", SourceKind::Folder),
+    ("Repo", SourceKind::Repo),
+    ("Group", SourceKind::Group),
+];
 
 impl GitViewer {
     pub(super) fn render_add_project(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let kinds = KINDS
             .iter()
-            .fold(Tabs::new("add-kind").variant(TabsVariant::Underline), |t, (label, k)| t.tab(*label, self.add_kind == *k))
+            .fold(
+                Tabs::new("add-kind").variant(TabsVariant::Underline),
+                |t, (label, k)| t.tab(*label, self.add_kind == *k),
+            )
             .on_select(cx.listener(|this, i: &usize, _, cx| {
                 this.add_kind = KINDS[*i].1;
                 cx.notify();
@@ -22,40 +29,68 @@ impl GitViewer {
         let mut existing = div().flex().flex_wrap().gap(theme::SPACE_1);
         for p in &self.projects {
             let n = p.name.clone();
-            existing = existing.child(Chip::new(format!("existing-{}", p.id), p.name.clone()).on_click(cx.listener(
-                move |this, _: &ClickEvent, _, cx| {
-                    this.add_name.update(cx, |i, cx| i.set_text(n.clone(), cx));
-                },
-            )));
+            existing = existing.child(
+                Chip::new(format!("existing-{}", p.id), p.name.clone()).on_click(cx.listener(
+                    move |this, _: &ClickEvent, _, cx| {
+                        this.add_name.update(cx, |i, cx| i.set_text(n.clone(), cx));
+                    },
+                )),
+            );
         }
         let browse = (self.add_kind == SourceKind::Folder).then(|| {
-            Button::new("folder-browse", "Choose...").on_click(cx.listener(|_, _: &ClickEvent, _, cx| {
-                let rx = cx.prompt_for_paths(PathPromptOptions { files: false, directories: true, multiple: false, prompt: Some("Add".into()) });
-                cx.spawn(async move |this, cx| {
-                    if let Ok(Ok(Some(paths))) = rx.await {
-                        if let Some(p) = paths.into_iter().next() {
-                            this.update(cx, |v, cx| v.add_value.update(cx, |i, cx| i.set_text(p.to_string_lossy().to_string(), cx))).ok();
+            Button::new("folder-browse", "Choose...").on_click(cx.listener(
+                |_, _: &ClickEvent, _, cx| {
+                    let rx = cx.prompt_for_paths(PathPromptOptions {
+                        files: false,
+                        directories: true,
+                        multiple: false,
+                        prompt: Some("Add".into()),
+                    });
+                    cx.spawn(async move |this, cx| {
+                        if let Ok(Ok(Some(paths))) = rx.await {
+                            if let Some(p) = paths.into_iter().next() {
+                                this.update(cx, |v, cx| {
+                                    v.add_value.update(cx, |i, cx| {
+                                        i.set_text(p.to_string_lossy().to_string(), cx)
+                                    })
+                                })
+                                .ok();
+                            }
                         }
-                    }
-                })
-                .detach();
-            }))
+                    })
+                    .detach();
+                },
+            ))
         });
-        let value_row = div().flex().gap(theme::SPACE_2).items_center().child(div().flex_1().child(self.add_value.clone())).children(browse);
+        let value_row = div()
+            .flex()
+            .gap(theme::SPACE_2)
+            .items_center()
+            .child(div().flex_1().child(self.add_value.clone()))
+            .children(browse);
         div()
             .flex()
             .flex_col()
             .gap(theme::SPACE_3)
             .child(Field::new("Source", value_row))
             .child(Field::new("Kind (detected)", kinds))
-            .child(Field::new("Project", div().flex().flex_col().gap(theme::SPACE_1).child(self.add_name.clone()).child(existing)))
-            .when_some(self.add_error.clone(), |col, e| col.child(ErrorText::new(e)))
-            .child(
+            .child(Field::new(
+                "Project",
                 div()
                     .flex()
-                    .justify_end()
-                    .child(Button::new("add-submit", "Add").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.submit_add_project(cx)))),
-            )
+                    .flex_col()
+                    .gap(theme::SPACE_1)
+                    .child(self.add_name.clone())
+                    .child(existing),
+            ))
+            .when_some(self.add_error.clone(), |col, e| {
+                col.child(ErrorText::new(e))
+            })
+            .child(div().flex().justify_end().child(
+                Button::new("add-submit", "Add").on_click(
+                    cx.listener(|this, _: &ClickEvent, _, cx| this.submit_add_project(cx)),
+                ),
+            ))
     }
 }
 
@@ -65,18 +100,35 @@ impl GitViewer {
             .flex()
             .gap(theme::SPACE_2)
             .child(div().flex_1().child(self.rename_input.clone()))
-            .child(Button::new("rename-save", "Save").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.save_rename(cx))))
+            .child(
+                Button::new("rename-save", "Save")
+                    .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.save_rename(cx))),
+            )
     }
 
     /// Footer buttons of the delete confirmation.
-    pub(super) fn render_confirm_delete_footer(&self, id: i64, cx: &mut Context<Self>) -> impl IntoElement {
+    pub(super) fn render_confirm_delete_footer(
+        &self,
+        id: i64,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
         div()
             .flex()
             .gap(theme::SPACE_2)
-            .child(Button::new("delete-cancel", "Cancel").variant(ButtonVariant::Ghost).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
-                this.close_confirm();
-                cx.notify()
-            })))
-            .child(Button::new("delete-confirm", "Delete").variant(ButtonVariant::Destructive).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.delete_project(id, cx))))
+            .child(
+                Button::new("delete-cancel", "Cancel")
+                    .variant(ButtonVariant::Ghost)
+                    .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                        this.close_confirm();
+                        cx.notify()
+                    })),
+            )
+            .child(
+                Button::new("delete-confirm", "Delete")
+                    .variant(ButtonVariant::Destructive)
+                    .on_click(
+                        cx.listener(move |this, _: &ClickEvent, _, cx| this.delete_project(id, cx)),
+                    ),
+            )
     }
 }

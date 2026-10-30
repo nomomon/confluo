@@ -39,7 +39,11 @@ pub(crate) fn checks_info(jobs: &[Value], pipeline: Option<String>, can_rerun: b
         })
         .collect();
     let failed = runs.iter().any(|r| r.status == CheckStatus::Failed);
-    ChecksInfo { can_rerun: can_rerun && failed && pipeline.is_some(), rerun_target: pipeline.filter(|_| failed), runs }
+    ChecksInfo {
+        can_rerun: can_rerun && failed && pipeline.is_some(),
+        rerun_target: pipeline.filter(|_| failed),
+        runs,
+    }
 }
 
 #[cfg(test)]
@@ -57,7 +61,15 @@ mod tests {
         ];
         let i = checks_info(&jobs, Some("9/77".into()), true);
         let st: Vec<CheckStatus> = i.runs.iter().map(|r| r.status).collect();
-        assert_eq!(st, vec![CheckStatus::Failed, CheckStatus::Passed, CheckStatus::Skipped, CheckStatus::Running]);
+        assert_eq!(
+            st,
+            vec![
+                CheckStatus::Failed,
+                CheckStatus::Passed,
+                CheckStatus::Skipped,
+                CheckStatus::Running
+            ]
+        );
         assert_eq!(i.runs[0].stage.as_deref(), Some("test"));
         assert!(i.can_rerun && i.runs[0].has_log);
         assert_eq!(i.rerun_target.as_deref(), Some("9/77"));

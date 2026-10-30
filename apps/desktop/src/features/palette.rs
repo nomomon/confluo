@@ -37,44 +37,118 @@ struct Row {
 }
 
 #[allow(clippy::too_many_arguments)] // one flat call per row kind reads better than a builder here
-fn row(cmd: PaletteCmd, key: String, group: Group, icon: IconName, title: String, detail: Option<String>, shortcut: String, text: String, number: Option<u64>) -> Row {
+fn row(
+    cmd: PaletteCmd,
+    key: String,
+    group: Group,
+    icon: IconName,
+    title: String,
+    detail: Option<String>,
+    shortcut: String,
+    text: String,
+    number: Option<u64>,
+) -> Row {
     let has_shortcut = !shortcut.is_empty();
     Row {
         cmd,
-        item: PaletteItem { icon, title: title.into(), detail: detail.map(SharedString::from), shortcut: has_shortcut.then(|| shortcut.into()), group: group.title() },
-        cand: Cand { key, group, text, number, has_shortcut },
+        item: PaletteItem {
+            icon,
+            title: title.into(),
+            detail: detail.map(SharedString::from),
+            shortcut: has_shortcut.then(|| shortcut.into()),
+            group: group.title(),
+        },
+        cand: Cand {
+            key,
+            group,
+            text,
+            number,
+            has_shortcut,
+        },
     }
 }
 
 impl GitViewer {
     fn pr_row(&self, c: &ChangeRequest, group: Group) -> Row {
         let repo = self.repo_label(&c.id.repo);
-        let text = format!("{} {} {} #{} {}", c.title, repo, c.id.repo.path, c.id.number, c.author.username);
+        let text = format!(
+            "{} {} {} #{} {}",
+            c.title, repo, c.id.repo.path, c.id.number, c.author.username
+        );
         let detail = format!("{repo} {}", number_label(c));
-        row(PaletteCmd::Open(Box::new(c.clone())), format!("pr:{}", c.web_url), group, state_icon_name(c.state), c.title.clone(), Some(detail), String::new(), text, Some(c.id.number))
+        row(
+            PaletteCmd::Open(Box::new(c.clone())),
+            format!("pr:{}", c.web_url),
+            group,
+            state_icon_name(c.state),
+            c.title.clone(),
+            Some(detail),
+            String::new(),
+            text,
+            Some(c.id.number),
+        )
     }
 
     /// Every candidate row for the current context (ranking picks and orders them).
     fn palette_rows(&self) -> Vec<Row> {
         let ctx = self.cmd_ctx();
         let mut rows = vec![];
-        for e in ENTRIES.iter().filter(|e| e.pal != Pal::No && (e.available)(&ctx)) {
+        for e in ENTRIES
+            .iter()
+            .filter(|e| e.pal != Pal::No && (e.available)(&ctx))
+        {
             let group = match e.pal {
                 Pal::Suggest => Group::Suggested,
                 Pal::Go => Group::GoTo,
                 _ => Group::Actions,
             };
-            let title = if e.pal == Pal::Go { format!("Go to {}", e.label) } else { e.label.to_string() };
-            rows.push(row(PaletteCmd::Action(e.action), format!("a:{}", e.action), group, e.icon, title.clone(), None, e.shortcut(), title, None));
+            let title = if e.pal == Pal::Go {
+                format!("Go to {}", e.label)
+            } else {
+                e.label.to_string()
+            };
+            rows.push(row(
+                PaletteCmd::Action(e.action),
+                format!("a:{}", e.action),
+                group,
+                e.icon,
+                title.clone(),
+                None,
+                e.shortcut(),
+                title,
+                None,
+            ));
         }
         for (i, p) in self.projects.iter().enumerate() {
-            let sc = keymap::project_entry(i).map(|e| e.shortcut()).unwrap_or_default();
+            let sc = keymap::project_entry(i)
+                .map(|e| e.shortcut())
+                .unwrap_or_default();
             let title = format!("Go to {}", p.name);
-            rows.push(row(PaletteCmd::Project(p.id), format!("go:project:{}", p.id), Group::GoTo, IconName::Folder, title.clone(), None, sc, title, None));
+            rows.push(row(
+                PaletteCmd::Project(p.id),
+                format!("go:project:{}", p.id),
+                Group::GoTo,
+                IconName::Folder,
+                title.clone(),
+                None,
+                sc,
+                title,
+                None,
+            ));
         }
         for p in SettingsPage::ALL {
             let title = format!("Settings: {}", p.label());
-            rows.push(row(PaletteCmd::Settings(p), format!("go:settings:{}", p.label()), Group::GoTo, IconName::Settings, title.clone(), None, String::new(), title, None));
+            rows.push(row(
+                PaletteCmd::Settings(p),
+                format!("go:settings:{}", p.label()),
+                Group::GoTo,
+                IconName::Settings,
+                title.clone(),
+                None,
+                String::new(),
+                title,
+                None,
+            ));
         }
         let current = self.detail.as_ref().map(|d| d.summary.id.clone());
         let mut seen = vec![];
@@ -83,18 +157,36 @@ impl GitViewer {
                 continue;
             }
             seen.push(id.clone());
-            if let Some(c) = self.find_item(id).or_else(|| self.engine.store().get_change_request(id).ok().flatten()) {
+            if let Some(c) = self
+                .find_item(id)
+                .or_else(|| self.engine.store().get_change_request(id).ok().flatten())
+            {
                 rows.push(self.pr_row(&c, Group::Recent));
             }
         }
         for c in self.items.iter().chain(&self.quiet.stale) {
             rows.push(self.pr_row(c, Group::Prs));
         }
-        if let Some(files) = self.detail.as_ref().filter(|_| ctx.reviewing).and_then(|d| d.code.files.clone()) {
+        if let Some(files) = self
+            .detail
+            .as_ref()
+            .filter(|_| ctx.reviewing)
+            .and_then(|d| d.code.files.clone())
+        {
             for (i, f) in files.iter().enumerate() {
                 let p = f.path();
                 let (dir, name) = p.rsplit_once('/').unwrap_or(("", p));
-                rows.push(row(PaletteCmd::File(i), format!("f:{p}"), Group::Files, IconName::FileCode, name.to_string(), Some(dir.to_string()), String::new(), p.to_string(), None));
+                rows.push(row(
+                    PaletteCmd::File(i),
+                    format!("f:{p}"),
+                    Group::Files,
+                    IconName::FileCode,
+                    name.to_string(),
+                    Some(dir.to_string()),
+                    String::new(),
+                    p.to_string(),
+                    None,
+                ));
             }
         }
         rows
@@ -105,7 +197,11 @@ impl GitViewer {
         let q = self.palette_input.read(cx).text();
         let mut rows: Vec<Option<Row>> = self.palette_rows().into_iter().map(Some).collect();
         let cands: Vec<Cand> = rows.iter().flatten().map(|r| r.cand.clone()).collect();
-        rank(&cands, &q, &self.settings.palette_mru).into_iter().filter_map(|i| rows[i].take()).map(|r| (r.cmd, r.item)).collect()
+        rank(&cands, &q, &self.settings.palette_mru)
+            .into_iter()
+            .filter_map(|i| rows[i].take())
+            .map(|r| (r.cmd, r.item))
+            .collect()
     }
 
     fn palette_key(&self, i: usize, cx: &App) -> Option<(PaletteCmd, String)> {
@@ -134,21 +230,26 @@ impl GitViewer {
     pub(crate) fn palette_move(&mut self, delta: isize, cx: &mut Context<Self>) {
         let n = self.palette_entries(cx).len().min(50);
         if n > 0 {
-            self.nav.palette_sel = (self.nav.palette_sel as isize + delta).rem_euclid(n as isize) as usize;
+            self.nav.palette_sel =
+                (self.nav.palette_sel as isize + delta).rem_euclid(n as isize) as usize;
         }
         cx.notify();
     }
 
     /// Run row `i` (Cmd+Enter: `alt`, opens a PR in the browser); it moves to the front of the MRU list.
     pub(crate) fn run_palette_with(&mut self, i: usize, alt: bool, cx: &mut Context<Self>) {
-        let Some((cmd, key)) = self.palette_key(i, cx) else { return };
+        let Some((cmd, key)) = self.palette_key(i, cx) else {
+            return;
+        };
         self.overlay = Overlay::None;
         self.refocus = true;
         push_mru(&mut self.settings.palette_mru, &key);
         self.save_settings(cx);
         match cmd {
             PaletteCmd::Open(c) if alt => cx.open_url(&c.web_url),
-            PaletteCmd::Action(name) => self.pending_action = keymap::entry(name).map(|e| (e.build)()),
+            PaletteCmd::Action(name) => {
+                self.pending_action = keymap::entry(name).map(|e| (e.build)())
+            }
             PaletteCmd::Project(id) => {
                 if self.reviewing {
                     self.exit_review(cx);
@@ -190,7 +291,11 @@ impl GitViewer {
 impl GitViewer {
     pub(crate) fn render_palette(&self, cx: &mut Context<Self>) -> AnyElement {
         let q = self.palette_input.read(cx).text();
-        let items: Vec<PaletteItem> = self.palette_entries(cx).into_iter().map(|(_, it)| it).collect();
+        let items: Vec<PaletteItem> = self
+            .palette_entries(cx)
+            .into_iter()
+            .map(|(_, it)| it)
+            .collect();
         let sel = self.nav.palette_sel.min(items.len().saturating_sub(1));
         let (prefix, rest) = split_prefix(&q);
         let palette = CommandPalette::new(self.palette_input.clone())
@@ -216,7 +321,11 @@ impl GitViewer {
                 window.focus(&this.focus);
                 cx.notify()
             }));
-        let palette = if prefix == Prefix::None && rest.is_empty() { palette.footer(PREFIX_HINT) } else { palette };
+        let palette = if prefix == Prefix::None && rest.is_empty() {
+            palette.footer(PREFIX_HINT)
+        } else {
+            palette
+        };
         palette.into_any_element()
     }
 }

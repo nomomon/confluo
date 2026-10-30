@@ -65,7 +65,11 @@ impl ChangedFile {
     }
 
     pub fn path(&self) -> &str {
-        if self.status == FileStatus::Deleted { &self.old_path } else { &self.new_path }
+        if self.status == FileStatus::Deleted {
+            &self.old_path
+        } else {
+            &self.new_path
+        }
     }
 
     pub fn line_count(&self) -> usize {
@@ -88,7 +92,9 @@ fn count(hunks: &[Hunk]) -> (u32, u32) {
 
 /// Sum of additions and deletions over files.
 pub fn totals(files: &[ChangedFile]) -> (u32, u32) {
-    files.iter().fold((0, 0), |(a, d), f| (a + f.additions, d + f.deletions))
+    files
+        .iter()
+        .fold((0, 0), |(a, d), f| (a + f.additions, d + f.deletions))
 }
 
 fn range(s: &str) -> (u32, u32) {
@@ -105,14 +111,23 @@ pub fn parse_unified(patch: &str) -> Vec<Hunk> {
     let (mut old, mut new) = (0u32, 0u32);
     for raw in patch.lines() {
         if let Some(rest) = raw.strip_prefix("@@") {
-            let Some((ranges, _)) = rest.split_once("@@") else { continue };
+            let Some((ranges, _)) = rest.split_once("@@") else {
+                continue;
+            };
             let mut parts = ranges.split_whitespace();
             let (old_start, old_lines) = range(parts.next().unwrap_or("-0"));
             let (new_start, new_lines) = range(parts.next().unwrap_or("+0"));
             old = old_start;
             new = new_start;
             let header = format!("@@{rest}");
-            hunks.push(Hunk { header, old_start, old_lines, new_start, new_lines, lines: Vec::new() });
+            hunks.push(Hunk {
+                header,
+                old_start,
+                old_lines,
+                new_start,
+                new_lines,
+                lines: Vec::new(),
+            });
             continue;
         }
         let Some(h) = hunks.last_mut() else { continue };
@@ -129,16 +144,31 @@ pub fn parse_unified(patch: &str) -> Vec<Hunk> {
         let line = match kind {
             LineKind::Add => {
                 new += 1;
-                DiffLine { kind, old_no: None, new_no: Some(new - 1), text: text.into() }
+                DiffLine {
+                    kind,
+                    old_no: None,
+                    new_no: Some(new - 1),
+                    text: text.into(),
+                }
             }
             LineKind::Del => {
                 old += 1;
-                DiffLine { kind, old_no: Some(old - 1), new_no: None, text: text.into() }
+                DiffLine {
+                    kind,
+                    old_no: Some(old - 1),
+                    new_no: None,
+                    text: text.into(),
+                }
             }
             LineKind::Context => {
                 old += 1;
                 new += 1;
-                DiffLine { kind, old_no: Some(old - 1), new_no: Some(new - 1), text: text.into() }
+                DiffLine {
+                    kind,
+                    old_no: Some(old - 1),
+                    new_no: Some(new - 1),
+                    text: text.into(),
+                }
             }
         };
         h.lines.push(line);
@@ -161,9 +191,20 @@ mod tests {
     fn basic_hunk_numbers() {
         let p = "@@ -100,3 +100,4 @@ fn main()\n ctx\n-old\n+new\n+more\n ctx2\n";
         let h = &parse_unified(p)[0];
-        assert_eq!((h.old_start, h.old_lines, h.new_start, h.new_lines), (100, 3, 100, 4));
+        assert_eq!(
+            (h.old_start, h.old_lines, h.new_start, h.new_lines),
+            (100, 3, 100, 4)
+        );
         assert_eq!(h.header, "@@ -100,3 +100,4 @@ fn main()");
-        assert_eq!(h.lines[1], DiffLine { kind: LineKind::Del, old_no: Some(101), new_no: None, text: "old".into() });
+        assert_eq!(
+            h.lines[1],
+            DiffLine {
+                kind: LineKind::Del,
+                old_no: Some(101),
+                new_no: None,
+                text: "old".into()
+            }
+        );
         assert_eq!(h.lines[3].new_no, Some(102));
         assert_eq!(h.lines[4].old_no, Some(102));
         assert_eq!(h.lines[4].new_no, Some(103));

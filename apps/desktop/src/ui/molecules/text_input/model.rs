@@ -33,7 +33,12 @@ impl Rows {
                 let soft = end_i < chars.len();
                 let byte = |k: usize| start + chars.get(k).map(|c| c.0).unwrap_or(para.len());
                 let stops = (i..=end_i).map(|k| (byte(k), (k - i) as f32)).collect();
-                rows.push(Row { start: byte(i), end: byte(end_i), soft, stops });
+                rows.push(Row {
+                    start: byte(i),
+                    end: byte(end_i),
+                    soft,
+                    stops,
+                });
                 i = end_i;
                 if !soft {
                     break;
@@ -58,15 +63,30 @@ impl Rows {
     }
 
     pub fn x_of(&self, off: usize) -> f32 {
-        let Some(row) = self.0.get(self.row_of(off)) else { return 0. };
-        row.stops.iter().find(|s| s.0 >= off).or(row.stops.last()).map(|s| s.1).unwrap_or(0.)
+        let Some(row) = self.0.get(self.row_of(off)) else {
+            return 0.;
+        };
+        row.stops
+            .iter()
+            .find(|s| s.0 >= off)
+            .or(row.stops.last())
+            .map(|s| s.1)
+            .unwrap_or(0.)
     }
 
     /// Closest caret stop to `x` on `row`; a soft-wrapped row never returns its end (that is the next row).
     pub fn offset_at(&self, row: usize, x: f32) -> usize {
         let Some(r) = self.0.get(row) else { return 0 };
-        let stops = if r.soft && r.stops.len() > 1 { &r.stops[..r.stops.len() - 1] } else { &r.stops[..] };
-        stops.iter().min_by(|a, b| (a.1 - x).abs().total_cmp(&(b.1 - x).abs())).map(|s| s.0).unwrap_or(r.start)
+        let stops = if r.soft && r.stops.len() > 1 {
+            &r.stops[..r.stops.len() - 1]
+        } else {
+            &r.stops[..]
+        };
+        stops
+            .iter()
+            .min_by(|a, b| (a.1 - x).abs().total_cmp(&(b.1 - x).abs()))
+            .map(|s| s.0)
+            .unwrap_or(r.start)
     }
 
     pub fn row_home(&self, off: usize) -> usize {
@@ -75,7 +95,9 @@ impl Rows {
 
     /// End of the caret's visual row; before the wrap point on a soft-wrapped row.
     pub fn row_end(&self, off: usize) -> usize {
-        let Some(r) = self.0.get(self.row_of(off)) else { return off };
+        let Some(r) = self.0.get(self.row_of(off)) else {
+            return off;
+        };
         if r.soft && r.stops.len() > 1 {
             r.stops[r.stops.len() - 2].0
         } else {
@@ -85,7 +107,13 @@ impl Rows {
 
     /// Caret after moving `delta` rows, keeping the goal column; returns the offset and the goal x.
     /// Past the first or last row it goes to the document start or end.
-    pub fn vertical(&self, off: usize, delta: isize, goal: Option<f32>, len: usize) -> (usize, f32) {
+    pub fn vertical(
+        &self,
+        off: usize,
+        delta: isize,
+        goal: Option<f32>,
+        len: usize,
+    ) -> (usize, f32) {
         let x = goal.unwrap_or_else(|| self.x_of(off));
         let target = self.row_of(off) as isize + delta;
         if target < 0 {
@@ -113,7 +141,9 @@ fn is_word(c: char) -> bool {
 
 /// Option+Left: skip non-word characters, then the word before the caret.
 pub fn word_left(text: &str, off: usize) -> usize {
-    let Some(head) = text.get(..off) else { return off.min(text.len()) };
+    let Some(head) = text.get(..off) else {
+        return off.min(text.len());
+    };
     let mut it = head.char_indices().rev().peekable();
     let mut pos = off;
     while let Some(&(i, c)) = it.peek() {
@@ -135,7 +165,9 @@ pub fn word_left(text: &str, off: usize) -> usize {
 
 /// Option+Right: skip non-word characters, then the word after the caret.
 pub fn word_right(text: &str, off: usize) -> usize {
-    let Some(tail) = text.get(off..) else { return off.min(text.len()) };
+    let Some(tail) = text.get(off..) else {
+        return off.min(text.len());
+    };
     let mut it = tail.char_indices().peekable();
     let mut pos = off;
     let mut skip = |word: bool, it: &mut std::iter::Peekable<std::str::CharIndices>| {
@@ -155,15 +187,44 @@ pub fn word_right(text: &str, off: usize) -> usize {
 /// Double click: the word (or whitespace run, or single symbol) under `off`.
 pub fn word_at(text: &str, off: usize) -> Range<usize> {
     let off = floor_boundary(text, off);
-    let Some(c) = text[off..].chars().next().or_else(|| text[..off].chars().next_back()) else { return off..off };
-    let at = if text[off..].is_empty() { off - c.len_utf8() } else { off };
-    let class = |ch: char| if is_word(ch) { 0 } else if ch.is_whitespace() && ch != '\n' { 1 } else { 2 };
+    let Some(c) = text[off..]
+        .chars()
+        .next()
+        .or_else(|| text[..off].chars().next_back())
+    else {
+        return off..off;
+    };
+    let at = if text[off..].is_empty() {
+        off - c.len_utf8()
+    } else {
+        off
+    };
+    let class = |ch: char| {
+        if is_word(ch) {
+            0
+        } else if ch.is_whitespace() && ch != '\n' {
+            1
+        } else {
+            2
+        }
+    };
     let k = class(c);
     if k == 2 {
         return at..at + c.len_utf8();
     }
-    let start = text[..at].char_indices().rev().take_while(|&(_, ch)| class(ch) == k).last().map(|(i, _)| i).unwrap_or(at);
-    let end = text[at..].char_indices().take_while(|&(_, ch)| class(ch) == k).last().map(|(i, ch)| at + i + ch.len_utf8()).unwrap_or(at);
+    let start = text[..at]
+        .char_indices()
+        .rev()
+        .take_while(|&(_, ch)| class(ch) == k)
+        .last()
+        .map(|(i, _)| i)
+        .unwrap_or(at);
+    let end = text[at..]
+        .char_indices()
+        .take_while(|&(_, ch)| class(ch) == k)
+        .last()
+        .map(|(i, ch)| at + i + ch.len_utf8())
+        .unwrap_or(at);
     start..end
 }
 
@@ -171,7 +232,10 @@ pub fn word_at(text: &str, off: usize) -> Range<usize> {
 pub fn line_at(text: &str, off: usize) -> Range<usize> {
     let off = floor_boundary(text, off);
     let start = text[..off].rfind('\n').map(|i| i + 1).unwrap_or(0);
-    let end = text[off..].find('\n').map(|i| off + i).unwrap_or(text.len());
+    let end = text[off..]
+        .find('\n')
+        .map(|i| off + i)
+        .unwrap_or(text.len());
     start..end
 }
 
@@ -301,7 +365,10 @@ mod tests {
 
     #[test]
     fn history_coalesces_typing_and_redoes() {
-        let snap = |t: &str| Snapshot { text: t.into(), sel: t.len()..t.len() };
+        let snap = |t: &str| Snapshot {
+            text: t.into(),
+            sel: t.len()..t.len(),
+        };
         let mut h = History::default();
         h.record(snap(""), true);
         h.record(snap("a"), true);

@@ -36,13 +36,32 @@ pub enum Block {
     Heading(u8, Inline),
     Paragraph(Inline),
     /// Fenced or indented code with its info-string language.
-    Code { lang: String, code: String },
-    List { start: Option<u64>, items: Vec<Item> },
-    Quote { alert: Option<Alert>, blocks: Vec<Block> },
-    Table { aligns: Vec<Align>, head: Vec<Inline>, rows: Vec<Vec<Inline>> },
+    Code {
+        lang: String,
+        code: String,
+    },
+    List {
+        start: Option<u64>,
+        items: Vec<Item>,
+    },
+    Quote {
+        alert: Option<Alert>,
+        blocks: Vec<Block>,
+    },
+    Table {
+        aligns: Vec<Align>,
+        head: Vec<Inline>,
+        rows: Vec<Vec<Inline>>,
+    },
     /// `<details><summary>..</summary>..</details>`, collapsed until clicked.
-    Details { summary: String, blocks: Vec<Block> },
-    Footnote { label: String, blocks: Vec<Block> },
+    Details {
+        summary: String,
+        blocks: Vec<Block>,
+    },
+    Footnote {
+        label: String,
+        blocks: Vec<Block>,
+    },
     Rule,
 }
 

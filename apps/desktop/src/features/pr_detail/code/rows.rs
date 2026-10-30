@@ -37,31 +37,74 @@ impl GitViewer {
             .border_color(theme::border_subtle())
             .when(on, |e| e.bg(theme::surface_active()))
             .text_size(theme::text_xs())
-            .text_color(if on { theme::text() } else { theme::text_muted() })
-            .tooltip(crate::ui::atoms::tooltip(crate::features::keymap::tip::<crate::features::keymap::ToggleViewed>("Mark as viewed")))
+            .text_color(if on {
+                theme::text()
+            } else {
+                theme::text_muted()
+            })
+            .tooltip(crate::ui::atoms::tooltip(crate::features::keymap::tip::<
+                crate::features::keymap::ToggleViewed,
+            >("Mark as viewed")))
             .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                 cx.stop_propagation();
                 this.toggle_viewed(fi, cx)
             }))
-            .child(Icon::new(if on { IconName::Check } else { IconName::Eye }).size(theme::ICON_SM).color(if on { theme::success() } else { theme::text_subtle() }))
+            .child(
+                Icon::new(if on { IconName::Check } else { IconName::Eye })
+                    .size(theme::ICON_SM)
+                    .color(if on {
+                        theme::success()
+                    } else {
+                        theme::text_subtle()
+                    }),
+            )
             .child("Viewed")
     }
 
     pub(super) fn card_side(&self) -> Div {
-        div().w_full().bg(self.surfaces().card()).border_l_1().border_r_1().border_color(theme::border_subtle()).overflow_hidden()
+        div()
+            .w_full()
+            .bg(self.surfaces().card())
+            .border_l_1()
+            .border_r_1()
+            .border_color(theme::border_subtle())
+            .overflow_hidden()
     }
 
-    pub(super) fn render_code_row(&mut self, ix: usize, view_h: gpui::Pixels, cx: &mut Context<Self>) -> AnyElement {
-        let Some(d) = self.detail.as_ref() else { return div().into_any_element() };
+    pub(super) fn render_code_row(
+        &mut self,
+        ix: usize,
+        view_h: gpui::Pixels,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let Some(d) = self.detail.as_ref() else {
+            return div().into_any_element();
+        };
         if ix == d.code.rows.len() {
-            let h = if view_h > px(0.) { view_h * layout::SCROLL_PAST_END } else { layout::SCROLL_PAST_END_FALLBACK };
+            let h = if view_h > px(0.) {
+                view_h * layout::SCROLL_PAST_END
+            } else {
+                layout::SCROLL_PAST_END_FALLBACK
+            };
             return div().h(h).into_any_element();
         }
-        let (Some(files), Some(&row)) = (d.code.files.clone(), d.code.rows.get(ix)) else { return div().into_any_element() };
-        let Some(f) = files.get(row.file()) else { return div().into_any_element() };
+        let (Some(files), Some(&row)) = (d.code.files.clone(), d.code.rows.get(ix)) else {
+            return div().into_any_element();
+        };
+        let Some(f) = files.get(row.file()) else {
+            return div().into_any_element();
+        };
         match row {
-            Row::Header(fi) => self.render_file_header(fi, f, d.code.collapsed.contains(&fi), d.code.inline.index.count(f.path()), cx).into_any_element(),
+            Row::Header(fi) => self
+                .render_file_header(
+                    fi,
+                    f,
+                    d.code.collapsed.contains(&fi),
+                    d.code.inline.index.count(f.path()),
+                    cx,
+                )
+                .into_any_element(),
             Row::Hunk(_, hi) => self
                 .card_side()
                 .h(layout::DIFF_HUNK_H)
@@ -73,7 +116,12 @@ impl GitViewer {
                 .text_size(theme::text_xs())
                 .text_color(theme::text_subtle())
                 .whitespace_nowrap()
-                .child(f.hunks.get(hi).map(|h| h.header.clone()).unwrap_or_default())
+                .child(
+                    f.hunks
+                        .get(hi)
+                        .map(|h| h.header.clone())
+                        .unwrap_or_default(),
+                )
                 .into_any_element(),
             Row::Line(fi, hi, li) => self.render_diff_line(ix, fi, hi, li, &files, d, cx),
             Row::Pair(fi, hi, a, b) => self.render_pair(ix, fi, hi, a, b, &files, d, cx),
@@ -93,18 +141,45 @@ impl GitViewer {
             Row::End(_) => div()
                 .w_full()
                 .pb(theme::SPACE_3)
-                .child(div().w_full().h(theme::SPACE_1P5).bg(self.surfaces().card()).rounded_b(theme::RADIUS_LG).border_1().border_t_0().border_color(theme::border_subtle()))
+                .child(
+                    div()
+                        .w_full()
+                        .h(theme::SPACE_1P5)
+                        .bg(self.surfaces().card())
+                        .rounded_b(theme::RADIUS_LG)
+                        .border_1()
+                        .border_t_0()
+                        .border_color(theme::border_subtle()),
+                )
                 .into_any_element(),
         }
     }
 
-    fn render_notice(&self, fi: usize, n: Notice, cr: &ChangeRequest, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_notice(
+        &self,
+        fi: usize,
+        n: Notice,
+        cr: &ChangeRequest,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
         let url = files_url(cr);
         let (text, action): (String, Button) = match n {
-            Notice::Binary => ("Binary file not shown".into(), Button::new(format!("open-bin-{fi}"), "Open in browser")),
-            Notice::TooLarge => ("Diff too large to show here".into(), Button::new(format!("open-big-{fi}"), "Open in browser")),
-            Notice::Large(lines) => (format!("Large diff, {lines} lines"), Button::new(format!("show-diff-{fi}"), "Show diff")),
-            Notice::Empty => ("No content changes".into(), Button::new(format!("open-empty-{fi}"), "Open in browser")),
+            Notice::Binary => (
+                "Binary file not shown".into(),
+                Button::new(format!("open-bin-{fi}"), "Open in browser"),
+            ),
+            Notice::TooLarge => (
+                "Diff too large to show here".into(),
+                Button::new(format!("open-big-{fi}"), "Open in browser"),
+            ),
+            Notice::Large(lines) => (
+                format!("Large diff, {lines} lines"),
+                Button::new(format!("show-diff-{fi}"), "Show diff"),
+            ),
+            Notice::Empty => (
+                "No content changes".into(),
+                Button::new(format!("open-empty-{fi}"), "Open in browser"),
+            ),
         };
         let action = if let Notice::Large(_) = n {
             action.on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
@@ -114,7 +189,9 @@ impl GitViewer {
                 cx.notify()
             }))
         } else {
-            action.icon(IconName::ExternalLink).on_click(move |_, _, cx| cx.open_url(&url))
+            action
+                .icon(IconName::ExternalLink)
+                .on_click(move |_, _, cx| cx.open_url(&url))
         };
         self.card_side()
             .flex()
@@ -128,9 +205,20 @@ impl GitViewer {
             .child(action)
     }
 
-    fn render_file_header(&self, fi: usize, f: &gv_engine::ChangedFile, collapsed: bool, comments: usize, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_file_header(
+        &self,
+        fi: usize,
+        f: &gv_engine::ChangedFile,
+        collapsed: bool,
+        comments: usize,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
         let path = f.path().to_string();
-        let name: SharedString = if f.status == FileStatus::Renamed { format!("{} -> {}", f.old_path, f.new_path).into() } else { path.clone().into() };
+        let name: SharedString = if f.status == FileStatus::Renamed {
+            format!("{} -> {}", f.old_path, f.new_path).into()
+        } else {
+            path.clone().into()
+        };
         let copy_path = path.clone();
         let view_path = path.clone();
         div()
@@ -153,12 +241,21 @@ impl GitViewer {
                 }
                 cx.notify()
             }))
-            .child(Icon::new(if collapsed { IconName::ChevronRight } else { IconName::ChevronDown }).size(theme::ICON_SM))
+            .child(
+                Icon::new(if collapsed {
+                    IconName::ChevronRight
+                } else {
+                    IconName::ChevronDown
+                })
+                .size(theme::ICON_SM),
+            )
             .child(Icon::new(IconName::FileCode).color(status_color(f.status)))
             .child({
                 // File name first, then its directory muted; the directory gives way so the name stays readable.
                 let (dir, file) = match name.rfind('/') {
-                    Some(i) if f.status != FileStatus::Renamed => (name[..=i].to_string(), name[i + 1..].to_string()),
+                    Some(i) if f.status != FileStatus::Renamed => {
+                        (name[..=i].to_string(), name[i + 1..].to_string())
+                    }
                     _ => (String::new(), name.to_string()),
                 };
                 div()
@@ -169,8 +266,25 @@ impl GitViewer {
                     .overflow_hidden()
                     .font_family(theme::mono_font())
                     .text_size(theme::text_xs())
-                    .child(div().flex_shrink_0().whitespace_nowrap().text_color(if f.status == FileStatus::Deleted { theme::text_muted() } else { theme::text() }).child(file))
-                    .child(div().min_w(theme::SPACE_0).flex_shrink().truncate().text_color(theme::text_subtle()).child(dir.trim_end_matches('/').to_string()))
+                    .child(
+                        div()
+                            .flex_shrink_0()
+                            .whitespace_nowrap()
+                            .text_color(if f.status == FileStatus::Deleted {
+                                theme::text_muted()
+                            } else {
+                                theme::text()
+                            })
+                            .child(file),
+                    )
+                    .child(
+                        div()
+                            .min_w(theme::SPACE_0)
+                            .flex_shrink()
+                            .truncate()
+                            .text_color(theme::text_subtle())
+                            .child(dir.trim_end_matches('/').to_string()),
+                    )
             })
             .children(comment_count(comments))
             .child(diff_counts(f.additions, f.deletions))
@@ -186,10 +300,14 @@ impl GitViewer {
             )
             .child(self.viewed_toggle(fi, f.path(), cx))
             .when(f.status != FileStatus::Deleted && !f.binary, |el| {
-                el.child(Button::new(format!("view-file-{fi}"), "View file").variant(ButtonVariant::Ghost).on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
-                    cx.stop_propagation();
-                    this.open_file_view(view_path.clone(), cx)
-                })))
+                el.child(
+                    Button::new(format!("view-file-{fi}"), "View file")
+                        .variant(ButtonVariant::Ghost)
+                        .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+                            cx.stop_propagation();
+                            this.open_file_view(view_path.clone(), cx)
+                        })),
+                )
             })
     }
 }

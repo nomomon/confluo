@@ -6,7 +6,12 @@
 use gpui::Hsla;
 
 const fn c(h: f32, s: f32, l: f32) -> Hsla {
-    Hsla { h: h / 360., s, l, a: 1. }
+    Hsla {
+        h: h / 360.,
+        s,
+        l,
+        a: 1.,
+    }
 }
 
 /// Neutral zinc-like scale, 50 (lightest) to 950 (darkest).

@@ -23,12 +23,26 @@ pub struct Dialog {
 
 impl Dialog {
     pub fn new(title: impl Into<SharedString>) -> Self {
-        Self { title: Some(title.into()), description: None, content: None, footer: None, size: None, on_close: None }
+        Self {
+            title: Some(title.into()),
+            description: None,
+            content: None,
+            footer: None,
+            size: None,
+            on_close: None,
+        }
     }
 
     /// A dialog without the title row; the content draws its own chrome (Settings).
     pub fn bare() -> Self {
-        Self { title: None, description: None, content: None, footer: None, size: None, on_close: None }
+        Self {
+            title: None,
+            description: None,
+            content: None,
+            footer: None,
+            size: None,
+            on_close: None,
+        }
     }
 
     pub fn description(mut self, text: impl Into<SharedString>) -> Self {
@@ -62,7 +76,10 @@ impl RenderOnce for Dialog {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         let bare = self.title.is_none();
         let header = self.title.map(|title| {
-            let mut close = Button::new("close-overlay", "").icon(IconName::X).variant(ButtonVariant::Ghost).size(Size::Sm);
+            let mut close = Button::new("close-overlay", "")
+                .icon(IconName::X)
+                .variant(ButtonVariant::Ghost)
+                .size(Size::Sm);
             if let Some(f) = self.on_close {
                 close = close.on_click(f);
             }
@@ -71,8 +88,18 @@ impl RenderOnce for Dialog {
                 .flex()
                 .flex_col()
                 .gap(theme::SPACE_1)
-                .child(div().text_size(theme::text_base()).font_weight(theme::WEIGHT_SEMIBOLD).child(title))
-                .children(self.description.map(|d| div().text_size(theme::text_sm()).text_color(theme::text_muted()).child(d)));
+                .child(
+                    div()
+                        .text_size(theme::text_base())
+                        .font_weight(theme::WEIGHT_SEMIBOLD)
+                        .child(title),
+                )
+                .children(self.description.map(|d| {
+                    div()
+                        .text_size(theme::text_sm())
+                        .text_color(theme::text_muted())
+                        .child(d)
+                }));
             div().flex().items_start().child(text).child(close)
         });
         let panel = div()
@@ -90,8 +117,18 @@ impl RenderOnce for Dialog {
             })
             .when(!bare, |d| d.gap(theme::SPACE_4).p(theme::SPACE_5))
             .children(header)
-            .children(self.content.map(|c| div().flex().flex_col().flex_1().min_h(theme::SPACE_0).child(c)))
-            .children(self.footer.map(|f| div().flex().justify_end().gap(theme::SPACE_2).child(f)));
+            .children(self.content.map(|c| {
+                div()
+                    .flex()
+                    .flex_col()
+                    .flex_1()
+                    .min_h(theme::SPACE_0)
+                    .child(c)
+            }))
+            .children(
+                self.footer
+                    .map(|f| div().flex().justify_end().gap(theme::SPACE_2).child(f)),
+            );
         let scrim = div()
             .absolute()
             .top_0()

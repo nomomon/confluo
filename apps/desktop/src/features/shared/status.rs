@@ -13,13 +13,17 @@ pub fn provider_icon(kind: ProviderKind) -> Icon {
         ProviderKind::GitLab => IconName::BrandGitlab,
         ProviderKind::Azure => IconName::BrandAzure,
     };
-    Icon::new(name).size(theme::ICON_MD).color(theme::text_muted())
+    Icon::new(name)
+        .size(theme::ICON_MD)
+        .color(theme::text_muted())
 }
 
 /// Small muted provider mark shown on every PR row, the preview and the review bar. Always shown, so the
 /// layout never shifts when the visible rows switch between one and several providers.
 pub fn provider_mark(kind: ProviderKind) -> Icon {
-    provider_icon(kind).size(theme::ICON_SM).color(theme::text_subtle())
+    provider_icon(kind)
+        .size(theme::ICON_SM)
+        .color(theme::text_subtle())
 }
 
 /// Leading pull request icon: green open, grey draft, purple merged, red closed.
@@ -45,7 +49,11 @@ pub fn state_icon(s: ChangeRequestState) -> Icon {
 
 /// `#12` on GitHub and Azure, `!12` on GitLab.
 pub fn number_label(c: &ChangeRequest) -> String {
-    let sep = if c.id.repo.kind == ProviderKind::GitLab { '!' } else { '#' };
+    let sep = if c.id.repo.kind == ProviderKind::GitLab {
+        '!'
+    } else {
+        '#'
+    };
     format!("{sep}{}", c.id.number)
 }
 
@@ -71,7 +79,10 @@ pub fn row_hint(c: &ChangeRequest) -> Option<&'static str> {
     if !c.needs_you {
         return None;
     }
-    if c.reviewers.iter().any(|r| r.state == ReviewState::ChangesRequested) {
+    if c.reviewers
+        .iter()
+        .any(|r| r.state == ReviewState::ChangesRequested)
+    {
         Some("Changes requested")
     } else if c.checks.failed == 0 {
         Some("Your review requested")

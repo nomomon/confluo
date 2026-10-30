@@ -7,7 +7,12 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use gpui::Hsla;
 
 const fn g(h: f32, s: f32, l: f32) -> Hsla {
-    Hsla { h: h / 360., s, l, a: 1. }
+    Hsla {
+        h: h / 360.,
+        s,
+        l,
+        a: 1.,
+    }
 }
 
 const WHITE: Hsla = g(0., 0., 1.);
@@ -74,7 +79,11 @@ static VARIANT: AtomicU8 = AtomicU8::new(b'c');
 
 /// Pick a light candidate (`a`, `b` or `c`); anything else keeps the default.
 pub fn set_light_variant(v: &str) {
-    if let Some(&c) = v.as_bytes().first().filter(|c| matches!(c, b'a' | b'b' | b'c')) {
+    if let Some(&c) = v
+        .as_bytes()
+        .first()
+        .filter(|c| matches!(c, b'a' | b'b' | b'c'))
+    {
         VARIANT.store(c, Ordering::Relaxed);
     }
 }

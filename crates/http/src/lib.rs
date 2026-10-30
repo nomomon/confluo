@@ -59,14 +59,27 @@ pub async fn send(req: reqwest::RequestBuilder) -> ProviderResult<Resp> {
                 return Err(ProviderError::RateLimited { host, until });
             }
         };
-        let mut r = request.try_clone().ok_or_else(|| ProviderError::Network("request body not clonable".into()))?;
-        let cached = if is_get { etags().lock().unwrap_or_else(|e| e.into_inner()).get(&key).cloned() } else { None };
+        let mut r = request
+            .try_clone()
+            .ok_or_else(|| ProviderError::Network("request body not clonable".into()))?;
+        let cached = if is_get {
+            etags()
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .get(&key)
+                .cloned()
+        } else {
+            None
+        };
         if let Some((tag, _)) = &cached {
             if let Ok(v) = tag.parse() {
                 r.headers_mut().insert(IF_NONE_MATCH, v);
             }
         }
-        let resp = client.execute(r).await.map_err(|e| ProviderError::Network(e.to_string()));
+        let resp = client
+            .execute(r)
+            .await
+            .map_err(|e| ProviderError::Network(e.to_string()));
         let resp = match resp {
             Ok(x) => x,
             Err(e) => {
@@ -76,9 +89,22 @@ pub async fn send(req: reqwest::RequestBuilder) -> ProviderResult<Resp> {
         };
         let status = resp.status().as_u16();
         let headers = resp.headers().clone();
-        let body = resp.bytes().await.map_err(|e| ProviderError::Network(e.to_string()))?.to_vec();
+        let body = resp
+            .bytes()
+            .await
+            .map_err(|e| ProviderError::Network(e.to_string()))?
+            .to_vec();
         drop(permit);
-        let sig = read_signal(status, |n| headers.get(n).and_then(|v| v.to_str().ok()).map(str::to_string), &body);
+        let sig = read_signal(
+            status,
+            |n| {
+                headers
+                    .get(n)
+                    .and_then(|v| v.to_str().ok())
+                    .map(str::to_string)
+            },
+            &body,
+        );
         if let Verdict::Limited(wait) = gov.observe(&sig) {
             stats::record(&host, &endpoint, stats::Outcome::Limited);
             if attempt == 0 && wait <= governor::MAX_INLINE_WAIT {
@@ -94,7 +120,11 @@ pub async fn send(req: reqwest::RequestBuilder) -> ProviderResult<Resp> {
             }
         }
         stats::record(&host, &endpoint, stats::Outcome::Sent);
-        let out = Resp { status, headers, body };
+        let out = Resp {
+            status,
+            headers,
+            body,
+        };
         if is_get && (200..300).contains(&status) && out.body.len() <= ETAG_MAX_BODY {
             if let Some(tag) = out.header(ETAG.as_str()) {
                 let mut m = etags().lock().unwrap_or_else(|e| e.into_inner());

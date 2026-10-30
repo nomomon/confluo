@@ -7,7 +7,10 @@
 //!
 //! `Popover::new("more").placement(Placement::BottomEnd).on_dismiss(..).child(panel)`
 
-use gpui::{anchored, deferred, div, point, prelude::*, AnyElement, App, Corner, MouseDownEvent, Pixels, SharedString, Window};
+use gpui::{
+    anchored, deferred, div, point, prelude::*, AnyElement, App, Corner, MouseDownEvent, Pixels,
+    SharedString, Window,
+};
 
 use crate::ui::{layer, motion, theme, MouseDownHandler};
 
@@ -51,7 +54,14 @@ pub struct Popover {
 #[allow(dead_code)] // kit API
 impl Popover {
     pub fn new(id: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), placement: Placement::default(), offset: theme::SPACE_1, children: vec![], on_dismiss: None, animate: true }
+        Self {
+            id: id.into(),
+            placement: Placement::default(),
+            offset: theme::SPACE_1,
+            children: vec![],
+            on_dismiss: None,
+            animate: true,
+        }
     }
 
     pub fn placement(mut self, p: Placement) -> Self {
@@ -66,7 +76,10 @@ impl Popover {
     }
 
     /// Called on a mouse press outside the panel.
-    pub fn on_dismiss(mut self, f: impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_dismiss(
+        mut self,
+        f: impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_dismiss = Some(Box::new(f));
         self
     }
@@ -87,8 +100,13 @@ impl ParentElement for Popover {
 impl RenderOnce for Popover {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         let (corner, dir) = self.placement.corner();
-        let panel = layer::track(div().occlude().children(self.children)).when_some(self.on_dismiss, |el, f| el.on_mouse_down_out(f));
-        let panel = if self.animate { motion::pop_in(panel, self.id).into_any_element() } else { panel.into_any_element() };
+        let panel = layer::track(div().occlude().children(self.children))
+            .when_some(self.on_dismiss, |el, f| el.on_mouse_down_out(f));
+        let panel = if self.animate {
+            motion::pop_in(panel, self.id).into_any_element()
+        } else {
+            panel.into_any_element()
+        };
         // A zero-size marker at the trigger corner; `anchored` pins the panel's matching corner to it.
         let marker = div().absolute().size_0();
         let marker = match self.placement {
@@ -97,6 +115,14 @@ impl RenderOnce for Popover {
             Placement::TopStart => marker.top_0().left_0(),
             Placement::TopEnd => marker.top_0().right_0(),
         };
-        deferred(marker.child(anchored().anchor(corner).offset(point(gpui::px(0.), self.offset * dir)).child(panel))).with_priority(2)
+        deferred(
+            marker.child(
+                anchored()
+                    .anchor(corner)
+                    .offset(point(gpui::px(0.), self.offset * dir))
+                    .child(panel),
+            ),
+        )
+        .with_priority(2)
     }
 }

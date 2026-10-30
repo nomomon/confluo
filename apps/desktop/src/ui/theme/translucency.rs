@@ -33,12 +33,22 @@ pub struct Translucency {
 pub fn mix(a: Hsla, b: Hsla, t: f32) -> Hsla {
     let (a, b): (Rgba, Rgba) = (a.into(), b.into());
     let l = |x: f32, y: f32| x + (y - x) * t;
-    Rgba { r: l(a.r, b.r), g: l(a.g, b.g), b: l(a.b, b.b), a: 1. }.into()
+    Rgba {
+        r: l(a.r, b.r),
+        g: l(a.g, b.g),
+        b: l(a.b, b.b),
+        a: 1.,
+    }
+    .into()
 }
 
 impl Translucency {
     pub fn new(panel_opacity: f32, tint: Option<Hsla>, base_alpha: f32) -> Self {
-        Self { panel_opacity, tint, base_alpha }
+        Self {
+            panel_opacity,
+            tint,
+            base_alpha,
+        }
     }
 
     fn tinted(&self, base: Hsla, strength: f32) -> Hsla {
@@ -50,8 +60,15 @@ impl Translucency {
 
     /// Tinted window background behind everything.
     pub fn window_bg(&self) -> Hsla {
-        let (base, floor) = if is_light() { (light().frame, light().frame_min) } else { (zinc::Z950, DARK_WINDOW_MIN) };
-        Hsla { a: self.base_alpha.max(floor), ..self.tinted(base, TINT_WINDOW) }
+        let (base, floor) = if is_light() {
+            (light().frame, light().frame_min)
+        } else {
+            (zinc::Z950, DARK_WINDOW_MIN)
+        };
+        Hsla {
+            a: self.base_alpha.max(floor),
+            ..self.tinted(base, TINT_WINDOW)
+        }
     }
 
     /// Sidebar fill: the panel in dark; in light the one surface allowed to show the desktop.
@@ -60,7 +77,12 @@ impl Translucency {
             return self.panel();
         }
         let floor = light().sidebar_min;
-        Hsla { a: self.base_alpha.max(floor + (1. - floor) * self.panel_opacity.clamp(0., 1.)), ..self.tinted(light().sidebar, TINT_PANEL) }
+        Hsla {
+            a: self
+                .base_alpha
+                .max(floor + (1. - floor) * self.panel_opacity.clamp(0., 1.)),
+            ..self.tinted(light().sidebar, TINT_PANEL)
+        }
     }
 
     /// List and diff column fill: none in dark (the window shows), opaque white in light.
@@ -68,15 +90,24 @@ impl Translucency {
         if !is_light() {
             return Hsla::transparent_black();
         }
-        Hsla { a: LIGHT_CONTENT_MIN.max(self.base_alpha), ..light().content }
+        Hsla {
+            a: LIGHT_CONTENT_MIN.max(self.base_alpha),
+            ..light().content
+        }
     }
 
     /// Preview and Review side panes.
     pub fn panel(&self) -> Hsla {
         if is_light() {
-            return Hsla { a: LIGHT_CONTENT_MIN.max(self.base_alpha), ..self.tinted(light().panel, TINT_PANEL) };
+            return Hsla {
+                a: LIGHT_CONTENT_MIN.max(self.base_alpha),
+                ..self.tinted(light().panel, TINT_PANEL)
+            };
         }
-        Hsla { a: DARK_PANEL_MIN + (1. - DARK_PANEL_MIN) * self.panel_opacity.clamp(0., 1.), ..self.tinted(zinc::Z900, TINT_PANEL) }
+        Hsla {
+            a: DARK_PANEL_MIN + (1. - DARK_PANEL_MIN) * self.panel_opacity.clamp(0., 1.),
+            ..self.tinted(zinc::Z900, TINT_PANEL)
+        }
     }
 
     /// Card fill inside panels: translucent zinc in dark, an opaque light surface in light.
@@ -84,7 +115,10 @@ impl Translucency {
         if is_light() {
             return self.tinted(light().card, TINT_PANEL * 0.5);
         }
-        Hsla { a: 0.35 + 0.35 * self.panel_opacity, ..self.tinted(zinc::Z800, TINT_PANEL) }
+        Hsla {
+            a: 0.35 + 0.35 * self.panel_opacity,
+            ..self.tinted(zinc::Z800, TINT_PANEL)
+        }
     }
 }
 
@@ -96,14 +130,25 @@ mod tests {
     static THEME: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     fn lum(c: Rgba) -> f32 {
-        let f = |v: f32| if v <= 0.03928 { v / 12.92 } else { ((v + 0.055) / 1.055).powf(2.4) };
+        let f = |v: f32| {
+            if v <= 0.03928 {
+                v / 12.92
+            } else {
+                ((v + 0.055) / 1.055).powf(2.4)
+            }
+        };
         0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b)
     }
 
     fn over(top: Hsla, under: Rgba) -> Rgba {
         let t: Rgba = top.into();
         let m = |x: f32, y: f32| x * t.a + y * (1. - t.a);
-        Rgba { r: m(t.r, under.r), g: m(t.g, under.g), b: m(t.b, under.b), a: 1. }
+        Rgba {
+            r: m(t.r, under.r),
+            g: m(t.g, under.g),
+            b: m(t.b, under.b),
+            a: 1.,
+        }
     }
 
     fn contrast(a: Rgba, b: Rgba) -> f32 {
@@ -116,7 +161,12 @@ mod tests {
         let _g = THEME.lock().unwrap_or_else(|e| e.into_inner());
         super::super::set_light(false);
         let s = Translucency::new(0.0, None, 0.35);
-        let white = Rgba { r: 1., g: 1., b: 1., a: 1. };
+        let white = Rgba {
+            r: 1.,
+            g: 1.,
+            b: 1.,
+            a: 1.,
+        };
         let page = over(s.window_bg(), white);
         assert!(contrast(super::super::text().into(), page) >= 4.5);
         let panel = over(s.panel(), page);
@@ -127,15 +177,26 @@ mod tests {
     fn light_text_reads_over_black() {
         let _g = THEME.lock().unwrap_or_else(|e| e.into_inner());
         super::super::set_light(true);
-        let black = Rgba { r: 0., g: 0., b: 0., a: 1. };
+        let black = Rgba {
+            r: 0.,
+            g: 0.,
+            b: 0.,
+            a: 1.,
+        };
         for v in ["a", "b", "c"] {
             super::super::set_light_variant(v);
             let s = Translucency::new(0.0, None, 0.35);
             let page = over(s.window_bg(), black);
             let content = over(s.content(), page);
-            assert!(contrast(super::super::text_subtle().into(), content) >= 4.5, "{v} content");
+            assert!(
+                contrast(super::super::text_subtle().into(), content) >= 4.5,
+                "{v} content"
+            );
             let side = over(s.sidebar(), page);
-            assert!(contrast(super::super::text_muted().into(), side) >= 4.5, "{v} sidebar");
+            assert!(
+                contrast(super::super::text_muted().into(), side) >= 4.5,
+                "{v} sidebar"
+            );
         }
         super::super::set_light_variant("c");
         super::super::set_light(false);

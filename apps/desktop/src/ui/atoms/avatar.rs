@@ -14,7 +14,11 @@ pub struct Avatar {
 
 impl Avatar {
     pub fn new(name: impl Into<SharedString>) -> Self {
-        Self { name: name.into(), image: None, size: theme::SPACE_4 }
+        Self {
+            name: name.into(),
+            image: None,
+            size: theme::SPACE_4,
+        }
     }
 
     /// Diameter; 16px by default, 24px in the activity timeline.
@@ -31,12 +35,31 @@ impl Avatar {
 
 impl RenderOnce for Avatar {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let base = div().flex().flex_shrink_0().items_center().justify_center().size(self.size).rounded(theme::RADIUS_FULL).overflow_hidden();
+        let base = div()
+            .flex()
+            .flex_shrink_0()
+            .items_center()
+            .justify_center()
+            .size(self.size)
+            .rounded(theme::RADIUS_FULL)
+            .overflow_hidden();
         match self.image {
             Some(image) => base.child(img(image).size_full().rounded(theme::RADIUS_FULL)),
             None => {
-                let initial: String = self.name.chars().next().map(|c| c.to_uppercase().collect()).unwrap_or_default();
-                base.bg(theme::surface()).text_color(theme::text_subtle()).text_size(if self.size > theme::SPACE_5 { theme::text_xs() } else { theme::text_2xs() }).child(initial)
+                let initial: String = self
+                    .name
+                    .chars()
+                    .next()
+                    .map(|c| c.to_uppercase().collect())
+                    .unwrap_or_default();
+                base.bg(theme::surface())
+                    .text_color(theme::text_subtle())
+                    .text_size(if self.size > theme::SPACE_5 {
+                        theme::text_xs()
+                    } else {
+                        theme::text_2xs()
+                    })
+                    .child(initial)
             }
         }
     }

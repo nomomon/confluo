@@ -34,7 +34,9 @@ impl Render for Tooltip {
 }
 
 /// Builder for GPUI's `.tooltip(..)` on stateful elements.
-pub fn tooltip(text: impl Into<SharedString>) -> impl Fn(&mut Window, &mut App) -> AnyView + 'static {
+pub fn tooltip(
+    text: impl Into<SharedString>,
+) -> impl Fn(&mut Window, &mut App) -> AnyView + 'static {
     let text = text.into();
     move |window, cx| {
         // An open menu or popover elsewhere owns the screen: show nothing (an empty view).

@@ -15,15 +15,26 @@ pub struct RepoMenu {
 }
 
 impl GitViewer {
-    pub(crate) fn open_repo_menu(&mut self, repo: RepoRef, pos: Point<Pixels>, cx: &mut Context<Self>) {
+    pub(crate) fn open_repo_menu(
+        &mut self,
+        repo: RepoRef,
+        pos: Point<Pixels>,
+        cx: &mut Context<Self>,
+    ) {
         self.close_layers(cx);
-        self.repo_menu = Some(RepoMenu { repo, pos, renaming: false });
+        self.repo_menu = Some(RepoMenu {
+            repo,
+            pos,
+            renaming: false,
+        });
         cx.notify();
     }
 
     /// Swap the menu for a field prefilled with the shown name; the placeholder is the full path.
     pub(crate) fn start_repo_rename(&mut self, cx: &mut Context<Self>) {
-        let Some(m) = self.repo_menu.as_mut() else { return };
+        let Some(m) = self.repo_menu.as_mut() else {
+            return;
+        };
         m.renaming = true;
         let repo = m.repo.clone();
         self.set_alias_repo(Some(repo), cx);
@@ -37,7 +48,12 @@ impl GitViewer {
         self.save_alias(cx)
     }
 
-    pub(crate) fn set_alias(&mut self, repo: &RepoRef, alias: Option<String>, cx: &mut Context<Self>) {
+    pub(crate) fn set_alias(
+        &mut self,
+        repo: &RepoRef,
+        alias: Option<String>,
+        cx: &mut Context<Self>,
+    ) {
         let mut o = self.engine.repo_override(repo).unwrap_or_default();
         o.alias = alias;
         if let Err(e) = self.engine.set_repo_override(repo, o) {

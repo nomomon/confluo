@@ -18,12 +18,16 @@ fn dir() -> PathBuf {
 
 /// Stable FNV-1a hash for file names.
 fn fnv(s: &str) -> u64 {
-    s.bytes().fold(0xcbf29ce484222325u64, |h, b| (h ^ u64::from(b)).wrapping_mul(0x100000001b3))
+    s.bytes().fold(0xcbf29ce484222325u64, |h, b| {
+        (h ^ u64::from(b)).wrapping_mul(0x100000001b3)
+    })
 }
 
 /// Ask the host for a small image: GitHub `s=`, Gravatar `s=`, GitLab uploads `width=`.
 pub fn small_avatar_url(url: &str) -> String {
-    let Ok(mut u) = reqwest::Url::parse(url) else { return url.to_string() };
+    let Ok(mut u) = reqwest::Url::parse(url) else {
+        return url.to_string();
+    };
     let host = u.host_str().unwrap_or_default().to_ascii_lowercase();
     let key = if host.ends_with("githubusercontent.com") || host.contains("gravatar.com") {
         "s"
@@ -32,13 +36,24 @@ pub fn small_avatar_url(url: &str) -> String {
     } else {
         return url.to_string();
     };
-    let pairs: Vec<(String, String)> = u.query_pairs().filter(|(k, _)| k != key && k != "s" && k != "width").map(|(k, v)| (k.into_owned(), v.into_owned())).collect();
-    u.query_pairs_mut().clear().extend_pairs(pairs).append_pair(key, &SIZE.to_string());
+    let pairs: Vec<(String, String)> = u
+        .query_pairs()
+        .filter(|(k, _)| k != key && k != "s" && k != "width")
+        .map(|(k, v)| (k.into_owned(), v.into_owned()))
+        .collect();
+    u.query_pairs_mut()
+        .clear()
+        .extend_pairs(pairs)
+        .append_pair(key, &SIZE.to_string());
     u.to_string()
 }
 
 fn fresh(p: &std::path::Path, ttl: Duration) -> bool {
-    std::fs::metadata(p).and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok()).is_some_and(|age| age < ttl)
+    std::fs::metadata(p)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.elapsed().ok())
+        .is_some_and(|age| age < ttl)
 }
 
 impl crate::Engine {
@@ -62,7 +77,10 @@ impl crate::Engine {
         }
         let _ = std::fs::create_dir_all(&d);
         let client = avatar_client();
-        let got = gv_http::send(client.get(small_avatar_url(url))).await.ok().filter(|r| (200..300).contains(&r.status) && r.body.len() <= MAX_BYTES);
+        let got = gv_http::send(client.get(small_avatar_url(url)))
+            .await
+            .ok()
+            .filter(|r| (200..300).contains(&r.status) && r.body.len() <= MAX_BYTES);
         match got {
             Some(r) => {
                 let _ = std::fs::write(&img, &r.body);
@@ -80,7 +98,13 @@ impl crate::Engine {
 
 fn avatar_client() -> &'static reqwest::Client {
     static C: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
-    C.get_or_init(|| reqwest::Client::builder().user_agent("Confluo").timeout(Duration::from_secs(20)).build().expect("http client"))
+    C.get_or_init(|| {
+        reqwest::Client::builder()
+            .user_agent("Confluo")
+            .timeout(Duration::from_secs(20))
+            .build()
+            .expect("http client")
+    })
 }
 
 #[cfg(test)]
@@ -89,12 +113,21 @@ mod tests {
 
     #[test]
     fn sizes_avatar_urls() {
-        assert_eq!(small_avatar_url("https://avatars.githubusercontent.com/u/1?v=4"), "https://avatars.githubusercontent.com/u/1?v=4&s=64");
-        assert_eq!(small_avatar_url("https://secure.gravatar.com/avatar/abc?s=80&d=identicon"), "https://secure.gravatar.com/avatar/abc?d=identicon&s=64");
+        assert_eq!(
+            small_avatar_url("https://avatars.githubusercontent.com/u/1?v=4"),
+            "https://avatars.githubusercontent.com/u/1?v=4&s=64"
+        );
+        assert_eq!(
+            small_avatar_url("https://secure.gravatar.com/avatar/abc?s=80&d=identicon"),
+            "https://secure.gravatar.com/avatar/abc?d=identicon&s=64"
+        );
         assert_eq!(
             small_avatar_url("https://gitlab.com/uploads/-/system/user/avatar/9/avatar.png"),
             "https://gitlab.com/uploads/-/system/user/avatar/9/avatar.png?width=64"
         );
-        assert_eq!(small_avatar_url("https://example.com/a.png"), "https://example.com/a.png");
+        assert_eq!(
+            small_avatar_url("https://example.com/a.png"),
+            "https://example.com/a.png"
+        );
     }
 }

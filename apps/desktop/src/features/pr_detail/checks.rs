@@ -15,12 +15,24 @@ pub(super) use crate::features::shared::ci::status_icon;
 
 /// Overall status for the header icon.
 fn overall(c: &ChecksInfo) -> Option<CheckStatus> {
-    c.runs.iter().filter(|r| r.status != CheckStatus::Skipped).map(|r| r.status).min_by_key(|s| s.rank())
+    c.runs
+        .iter()
+        .filter(|r| r.status != CheckStatus::Skipped)
+        .map(|r| r.status)
+        .min_by_key(|s| s.rank())
 }
 
 impl GitViewer {
-    pub(super) fn render_checks_card(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
-        let info = d.detail.as_ref().map(|x| x.checks.clone()).unwrap_or_default();
+    pub(super) fn render_checks_card(
+        &self,
+        d: &DetailState,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let info = d
+            .detail
+            .as_ref()
+            .map(|x| x.checks.clone())
+            .unwrap_or_default();
         let (sentence, color) = if info.runs.is_empty() && d.summary.checks.total > 0 {
             checks_text(&d.summary)
         } else {
@@ -33,7 +45,10 @@ impl GitViewer {
         };
         let failed = info.count(CheckStatus::Failed) > 0;
         let rerun = (info.can_rerun && failed).then(|| {
-            Button::new("checks-rerun", "Re-run failed").icon(IconName::Refresh).variant(ButtonVariant::Ghost).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.confirm_rerun(cx)))
+            Button::new("checks-rerun", "Re-run failed")
+                .icon(IconName::Refresh)
+                .variant(ButtonVariant::Ghost)
+                .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.confirm_rerun(cx)))
         });
         let header = div()
             .flex()
@@ -42,14 +57,38 @@ impl GitViewer {
             .px(theme::row_pad_x())
             .min_h(theme::control_h())
             .children(overall(&info).map(|s| status_icon("checks-head", s)))
-            .child(div().text_size(theme::text_sm()).font_weight(theme::WEIGHT_MEDIUM).child("Checks"))
-            .child(div().flex_1().min_w(theme::SPACE_0).truncate().text_size(theme::text_sm()).text_color(color).child(sentence))
+            .child(
+                div()
+                    .text_size(theme::text_sm())
+                    .font_weight(theme::WEIGHT_MEDIUM)
+                    .child("Checks"),
+            )
+            .child(
+                div()
+                    .flex_1()
+                    .min_w(theme::SPACE_0)
+                    .truncate()
+                    .text_size(theme::text_sm())
+                    .text_color(color)
+                    .child(sentence),
+            )
             .children(rerun);
         let sorted = info.sorted();
-        let (top, rest): (Vec<_>, Vec<_>) = sorted.into_iter().partition(|r| matches!(r.status, CheckStatus::Failed | CheckStatus::Running | CheckStatus::Pending));
-        let mut rows: Vec<AnyElement> = top.into_iter().map(|r| self.render_check_row(d, r, cx)).collect();
+        let (top, rest): (Vec<_>, Vec<_>) = sorted.into_iter().partition(|r| {
+            matches!(
+                r.status,
+                CheckStatus::Failed | CheckStatus::Running | CheckStatus::Pending
+            )
+        });
+        let mut rows: Vec<AnyElement> = top
+            .into_iter()
+            .map(|r| self.render_check_row(d, r, cx))
+            .collect();
         if !rest.is_empty() {
-            let passed = rest.iter().filter(|r| r.status == CheckStatus::Passed).count();
+            let passed = rest
+                .iter()
+                .filter(|r| r.status == CheckStatus::Passed)
+                .count();
             let skipped = rest.len() - passed;
             let label = match (d.ui.show_passed, passed, skipped) {
                 (true, _, _) => "Hide passed".to_string(),
@@ -67,7 +106,15 @@ impl GitViewer {
                 .text_size(theme::text_xs())
                 .text_color(theme::text_muted())
                 .list_item(false)
-                .child(Icon::new(if d.ui.show_passed { IconName::ChevronDown } else { IconName::ChevronRight }).size(theme::ICON_SM).color(theme::text_subtle()))
+                .child(
+                    Icon::new(if d.ui.show_passed {
+                        IconName::ChevronDown
+                    } else {
+                        IconName::ChevronRight
+                    })
+                    .size(theme::ICON_SM)
+                    .color(theme::text_subtle()),
+                )
                 .child(label)
                 .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_show_passed(cx)));
             rows.push(toggle.into_any_element());

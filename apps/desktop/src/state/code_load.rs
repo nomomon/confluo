@@ -10,14 +10,20 @@ use crate::app::GitViewer;
 impl GitViewer {
     /// Load changed files for the open PR: memory cache first, then the engine (sha-keyed cache).
     pub(crate) fn load_code(&mut self, cx: &mut Context<Self>) {
-        let Some(d) = self.detail.as_mut() else { return };
+        let Some(d) = self.detail.as_mut() else {
+            return;
+        };
         if d.code.loading {
             return;
         }
         let id = d.summary.id.clone();
         if d.code.files.is_none() {
             // Memory first, then the disk cache, so a reopened Code tab paints at once and revalidates quietly.
-            let cached = self.code_cache.get(&id).cloned().or_else(|| self.engine.cached_changed_files(&id).map(Arc::new));
+            let cached = self
+                .code_cache
+                .get(&id)
+                .cloned()
+                .or_else(|| self.engine.cached_changed_files(&id).map(Arc::new));
             if let Some(f) = cached {
                 self.code_cache.insert(id.clone(), f.clone());
                 d.code.set_files(f);
@@ -25,7 +31,9 @@ impl GitViewer {
                 self.after_files(cx);
             }
         }
-        let Some(d) = self.detail.as_mut() else { return };
+        let Some(d) = self.detail.as_mut() else {
+            return;
+        };
         d.code.loading = true;
         d.code.show_skeleton = false;
         let engine = self.engine.clone();
@@ -34,7 +42,11 @@ impl GitViewer {
         cx.spawn(async move |this, cx| {
             cx.background_executor().timer(timing::LOADING_DELAY).await;
             this.update(cx, |v, cx| {
-                if let Some(d) = v.detail.as_mut().filter(|d| d.code.loading && d.code.files.is_none()) {
+                if let Some(d) = v
+                    .detail
+                    .as_mut()
+                    .filter(|d| d.code.loading && d.code.files.is_none())
+                {
                     d.code.show_skeleton = true;
                     cx.notify()
                 }
@@ -50,7 +62,9 @@ impl GitViewer {
                     v.code_cache.insert(id.clone(), f.clone());
                     v.apply_file_totals(&id, f);
                 }
-                let Some(d) = v.detail.as_mut().filter(|d| d.summary.id == id) else { return };
+                let Some(d) = v.detail.as_mut().filter(|d| d.summary.id == id) else {
+                    return;
+                };
                 d.code.loading = false;
                 d.code.show_skeleton = false;
                 match (files, r) {

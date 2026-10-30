@@ -20,7 +20,12 @@ impl Version {
             None => (s, None),
         };
         let mut it = core.split('.');
-        let v = Self { major: it.next()?.parse().ok()?, minor: it.next().unwrap_or("0").parse().ok()?, patch: it.next().unwrap_or("0").parse().ok()?, pre };
+        let v = Self {
+            major: it.next()?.parse().ok()?,
+            minor: it.next().unwrap_or("0").parse().ok()?,
+            patch: it.next().unwrap_or("0").parse().ok()?,
+            pre,
+        };
         it.next().is_none().then_some(v)
     }
 }
@@ -33,12 +38,14 @@ impl PartialOrd for Version {
 
 impl Ord for Version {
     fn cmp(&self, o: &Self) -> Ordering {
-        (self.major, self.minor, self.patch).cmp(&(o.major, o.minor, o.patch)).then_with(|| match (&self.pre, &o.pre) {
-            (None, None) => Ordering::Equal,
-            (None, Some(_)) => Ordering::Greater,
-            (Some(_), None) => Ordering::Less,
-            (Some(a), Some(b)) => a.cmp(b),
-        })
+        (self.major, self.minor, self.patch)
+            .cmp(&(o.major, o.minor, o.patch))
+            .then_with(|| match (&self.pre, &o.pre) {
+                (None, None) => Ordering::Equal,
+                (None, Some(_)) => Ordering::Greater,
+                (Some(_), None) => Ordering::Less,
+                (Some(a), Some(b)) => a.cmp(b),
+            })
     }
 }
 
@@ -63,7 +70,15 @@ mod tests {
         assert!(!is_newer("0.1.0-rc.1", "0.1.0"));
         assert!(!is_newer("0.0.9", "0.1.0"));
         assert!(!is_newer("nightly", "0.1.0"));
-        assert_eq!(Version::parse("v1.2"), Some(Version { major: 1, minor: 2, patch: 0, pre: None }));
+        assert_eq!(
+            Version::parse("v1.2"),
+            Some(Version {
+                major: 1,
+                minor: 2,
+                patch: 0,
+                pre: None
+            })
+        );
         assert!(Version::parse("1.2.3.4").is_none());
     }
 }

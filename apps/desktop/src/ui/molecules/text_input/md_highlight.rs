@@ -66,13 +66,20 @@ fn marker_len(s: &str) -> Option<usize> {
         2
     } else {
         let d = b.iter().take_while(|c| c.is_ascii_digit()).count();
-        if d == 0 || d > 9 || !matches!(b.get(d), Some(b'.' | b')')) || b.get(d + 1) != Some(&b' ') {
+        if d == 0 || d > 9 || !matches!(b.get(d), Some(b'.' | b')')) || b.get(d + 1) != Some(&b' ')
+        {
             return None;
         }
         d + 2
     };
     let after = &s[n..];
-    Some(if after.starts_with("[ ] ") || after.starts_with("[x] ") || after.starts_with("[X] ") { n + 4 } else { n })
+    Some(
+        if after.starts_with("[ ] ") || after.starts_with("[x] ") || after.starts_with("[X] ") {
+            n + 4
+        } else {
+            n
+        },
+    )
 }
 
 fn inline_spans(s: &str, base: usize, out: &mut Vec<(Range<usize>, Mark)>) {
@@ -106,7 +113,8 @@ fn inline_spans(s: &str, base: usize, out: &mut Vec<(Range<usize>, Mark)>) {
                 if !(c == b'_' && word_before) && next_ok {
                     if let Some(j) = s[i + 1..].find(c as char).filter(|j| *j > 0) {
                         let end = i + 1 + j + 1;
-                        let word_after = c == b'_' && b.get(end).is_some_and(|n| n.is_ascii_alphanumeric());
+                        let word_after =
+                            c == b'_' && b.get(end).is_some_and(|n| n.is_ascii_alphanumeric());
                         if !word_after {
                             out.push((base + i..base + i + 1, Mark::Syntax));
                             out.push((base + i + 1..base + end - 1, Mark::Italic));
@@ -144,13 +152,47 @@ mod tests {
 
     #[test]
     fn headings_lists_and_inline() {
-        assert_eq!(marks("## Title"), vec![("##", Mark::Syntax), (" Title", Mark::Heading)]);
-        assert_eq!(marks("- [ ] do `x`"), vec![("- [ ] ", Mark::Syntax), ("`x`", Mark::Code)]);
-        assert_eq!(marks("1. **b** _i_"), vec![("1. ", Mark::Syntax), ("**", Mark::Syntax), ("b", Mark::Bold), ("**", Mark::Syntax), ("_", Mark::Syntax), ("i", Mark::Italic), ("_", Mark::Syntax)]);
-        assert_eq!(marks("see [docs](http://x) now"), vec![("[docs](http://x)", Mark::Link)]);
+        assert_eq!(
+            marks("## Title"),
+            vec![("##", Mark::Syntax), (" Title", Mark::Heading)]
+        );
+        assert_eq!(
+            marks("- [ ] do `x`"),
+            vec![("- [ ] ", Mark::Syntax), ("`x`", Mark::Code)]
+        );
+        assert_eq!(
+            marks("1. **b** _i_"),
+            vec![
+                ("1. ", Mark::Syntax),
+                ("**", Mark::Syntax),
+                ("b", Mark::Bold),
+                ("**", Mark::Syntax),
+                ("_", Mark::Syntax),
+                ("i", Mark::Italic),
+                ("_", Mark::Syntax)
+            ]
+        );
+        assert_eq!(
+            marks("see [docs](http://x) now"),
+            vec![("[docs](http://x)", Mark::Link)]
+        );
         assert_eq!(marks("snake_case_name"), vec![]);
-        assert_eq!(marks("```\nlet x;\n```"), vec![("```", Mark::Code), ("let x;", Mark::Code), ("```", Mark::Code)]);
-        assert_eq!(marks("é *ü*"), vec![("*", Mark::Syntax), ("ü", Mark::Italic), ("*", Mark::Syntax)]);
+        assert_eq!(
+            marks("```\nlet x;\n```"),
+            vec![
+                ("```", Mark::Code),
+                ("let x;", Mark::Code),
+                ("```", Mark::Code)
+            ]
+        );
+        assert_eq!(
+            marks("é *ü*"),
+            vec![
+                ("*", Mark::Syntax),
+                ("ü", Mark::Italic),
+                ("*", Mark::Syntax)
+            ]
+        );
     }
 
     #[test]
@@ -158,6 +200,8 @@ mod tests {
         let t = "# h\n- a **b** `c` [d](e)\n> q _i_";
         let s = spans(t);
         assert!(s.windows(2).all(|w| w[0].0.end <= w[1].0.start));
-        assert!(s.iter().all(|(r, _)| t.is_char_boundary(r.start) && t.is_char_boundary(r.end)));
+        assert!(s
+            .iter()
+            .all(|(r, _)| t.is_char_boundary(r.start) && t.is_char_boundary(r.end)));
     }
 }

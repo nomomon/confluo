@@ -14,22 +14,46 @@ pub struct LinkBase<'a> {
 }
 
 fn hex_sha256(s: &str) -> String {
-    Sha256::digest(s.as_bytes()).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(s.as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 /// GitHub's anchor into the PR "Files changed" page, e.g. `#diff-<sha256(path)>R3-R7`.
-pub fn github_diff_link(pr_url: &str, path: &str, a: (DiffSide, u32), b: (DiffSide, u32)) -> String {
-    let s = |(side, n): (DiffSide, u32)| format!("{}{n}", if side == DiffSide::Old { 'L' } else { 'R' });
-    let span = if a == b { s(a) } else { format!("{}-{}", s(a), s(b)) };
+pub fn github_diff_link(
+    pr_url: &str,
+    path: &str,
+    a: (DiffSide, u32),
+    b: (DiffSide, u32),
+) -> String {
+    let s = |(side, n): (DiffSide, u32)| {
+        format!("{}{n}", if side == DiffSide::Old { 'L' } else { 'R' })
+    };
+    let span = if a == b {
+        s(a)
+    } else {
+        format!("{}-{}", s(a), s(b))
+    };
     format!("{pr_url}/files#diff-{}{span}", hex_sha256(path))
 }
 
 /// The file at a commit with lines `a..=b` highlighted.
-pub fn blob_link(kind: ProviderKind, repo_url: &str, sha: &str, path: &str, a: u32, b: u32) -> String {
+pub fn blob_link(
+    kind: ProviderKind,
+    repo_url: &str,
+    sha: &str,
+    path: &str,
+    a: u32,
+    b: u32,
+) -> String {
     match kind {
         ProviderKind::GitLab if a == b => format!("{repo_url}/-/blob/{sha}/{path}#L{a}"),
         ProviderKind::GitLab => format!("{repo_url}/-/blob/{sha}/{path}#L{a}-{b}"),
-        ProviderKind::Azure => format!("{repo_url}?path=/{path}&version=GC{sha}&line={a}&lineEnd={}&lineStartColumn=1", b + 1),
+        ProviderKind::Azure => format!(
+            "{repo_url}?path=/{path}&version=GC{sha}&line={a}&lineEnd={}&lineStartColumn=1",
+            b + 1
+        ),
         _ if a == b => format!("{repo_url}/blob/{sha}/{path}#L{a}"),
         _ => format!("{repo_url}/blob/{sha}/{path}#L{a}-L{b}"),
     }
@@ -65,22 +89,87 @@ mod tests {
     fn github_and_gitlab_links() {
         let h = hex_sha256("src/a.rs");
         assert_eq!(h.len(), 64);
-        assert_eq!(github_diff_link("https://github.com/o/r/pull/4", "src/a.rs", (DiffSide::New, 3), (DiffSide::New, 7)), format!("https://github.com/o/r/pull/4/files#diff-{h}R3-R7"));
-        assert_eq!(github_diff_link("u", "src/a.rs", (DiffSide::Old, 2), (DiffSide::Old, 2)), format!("u/files#diff-{h}L2"));
-        assert_eq!(blob_link(ProviderKind::GitHub, "https://github.com/o/r", "abc", "a.rs", 1, 4), "https://github.com/o/r/blob/abc/a.rs#L1-L4");
-        assert_eq!(blob_link(ProviderKind::GitLab, "https://gitlab.com/g/p", "abc", "a.rs", 1, 4), "https://gitlab.com/g/p/-/blob/abc/a.rs#L1-4");
-        assert_eq!(blob_link(ProviderKind::GitLab, "https://gitlab.com/g/p", "abc", "a.rs", 5, 5), "https://gitlab.com/g/p/-/blob/abc/a.rs#L5");
+        assert_eq!(
+            github_diff_link(
+                "https://github.com/o/r/pull/4",
+                "src/a.rs",
+                (DiffSide::New, 3),
+                (DiffSide::New, 7)
+            ),
+            format!("https://github.com/o/r/pull/4/files#diff-{h}R3-R7")
+        );
+        assert_eq!(
+            github_diff_link("u", "src/a.rs", (DiffSide::Old, 2), (DiffSide::Old, 2)),
+            format!("u/files#diff-{h}L2")
+        );
+        assert_eq!(
+            blob_link(
+                ProviderKind::GitHub,
+                "https://github.com/o/r",
+                "abc",
+                "a.rs",
+                1,
+                4
+            ),
+            "https://github.com/o/r/blob/abc/a.rs#L1-L4"
+        );
+        assert_eq!(
+            blob_link(
+                ProviderKind::GitLab,
+                "https://gitlab.com/g/p",
+                "abc",
+                "a.rs",
+                1,
+                4
+            ),
+            "https://gitlab.com/g/p/-/blob/abc/a.rs#L1-4"
+        );
+        assert_eq!(
+            blob_link(
+                ProviderKind::GitLab,
+                "https://gitlab.com/g/p",
+                "abc",
+                "a.rs",
+                5,
+                5
+            ),
+            "https://gitlab.com/g/p/-/blob/abc/a.rs#L5"
+        );
     }
 
     #[test]
     fn diff_link_by_provider() {
-        let f = ChangedFile::from_patch("a.rs", "a.rs", FileStatus::Modified, "@@ -1,2 +1,2 @@\n-old\n+new\n ctx\n");
+        let f = ChangedFile::from_patch(
+            "a.rs",
+            "a.rs",
+            FileStatus::Modified,
+            "@@ -1,2 +1,2 @@\n-old\n+new\n ctx\n",
+        );
         let lines = &f.hunks[0].lines;
-        let gh = LinkBase { kind: ProviderKind::GitHub, pr_url: "p", repo_url: "r", head_sha: Some("s") };
+        let gh = LinkBase {
+            kind: ProviderKind::GitHub,
+            pr_url: "p",
+            repo_url: "r",
+            head_sha: Some("s"),
+        };
         assert!(diff_link(&gh, "a.rs", lines).ends_with("L1-R2"));
-        let gl = LinkBase { kind: ProviderKind::GitLab, ..gh };
+        let gl = LinkBase {
+            kind: ProviderKind::GitLab,
+            ..gh
+        };
         assert_eq!(diff_link(&gl, "a.rs", lines), "r/-/blob/s/a.rs#L1-2");
         assert_eq!(diff_link(&gl, "a.rs", &lines[..1]), "p");
-        assert_eq!(file_link(&LinkBase { head_sha: None, ..gl }, "a.rs", 1, 2), "p");
+        assert_eq!(
+            file_link(
+                &LinkBase {
+                    head_sha: None,
+                    ..gl
+                },
+                "a.rs",
+                1,
+                2
+            ),
+            "p"
+        );
     }
 }

@@ -39,7 +39,9 @@ impl GitViewer {
                 }
             }))
             .on_action(cx.listener(Self::dismiss))
-            .on_action(cx.listener(|this, _: &FocusSearch, window, cx| window.focus(&this.search.focus_handle(cx))))
+            .on_action(cx.listener(|this, _: &FocusSearch, window, cx| {
+                window.focus(&this.search.focus_handle(cx))
+            }))
             .on_action(cx.listener(|this, _: &Refresh, _, cx| this.refresh(cx)))
             .on_action(cx.listener(|this, _: &OpenInBrowser, _, cx| {
                 if let Some(c) = this.target_item(cx) {
@@ -58,8 +60,14 @@ impl GitViewer {
                     this.toggle_star(c.id, cx)
                 }
             }))
-            .on_action(cx.listener(|this, _: &TabAuthored, _, cx| this.set_tab(Involvement::Authored, cx)))
-            .on_action(cx.listener(|this, _: &TabReviewing, _, cx| this.set_tab(Involvement::Reviewing, cx)))
+            .on_action(
+                cx.listener(|this, _: &TabAuthored, _, cx| this.set_tab(Involvement::Authored, cx)),
+            )
+            .on_action(
+                cx.listener(|this, _: &TabReviewing, _, cx| {
+                    this.set_tab(Involvement::Reviewing, cx)
+                }),
+            )
             .on_action(cx.listener(|this, _: &TabAll, _, cx| this.set_tab(Involvement::All, cx)))
             .on_action(cx.listener(|this, _: &NextFile, _, cx| {
                 if this.code_tab_active() {
@@ -79,25 +87,45 @@ impl GitViewer {
             .on_action(cx.listener(|_, _: &Minimize, window, _| window.minimize_window()))
             .on_action(cx.listener(|_, _: &Zoom, window, _| window.zoom_window()))
             .on_action(cx.listener(|_, _: &About, window, cx| {
-                let detail = format!("Version {}\nPRs and MRs across GitHub, GitLab and Azure DevOps.", env!("CARGO_PKG_VERSION"));
-                drop(window.prompt(gpui::PromptLevel::Info, "Confluo", Some(&detail), &["OK"], cx));
+                let detail = format!(
+                    "Version {}\nPRs and MRs across GitHub, GitLab and Azure DevOps.",
+                    env!("CARGO_PKG_VERSION")
+                );
+                drop(window.prompt(
+                    gpui::PromptLevel::Info,
+                    "Confluo",
+                    Some(&detail),
+                    &["OK"],
+                    cx,
+                ));
             }))
             .on_action(cx.listener(|this, _: &OpenSettings, _, cx| this.toggle_settings(cx)))
     }
 
     /// Code tab shortcuts (n/p, ]/[, x) act only while the diff is showing.
     fn code_tab_active(&self) -> bool {
-        self.reviewing && self.detail.as_ref().is_some_and(|d| d.tab == crate::state::DetailTab::Code && d.code.viewer.is_none())
+        self.reviewing
+            && self
+                .detail
+                .as_ref()
+                .is_some_and(|d| d.tab == crate::state::DetailTab::Code && d.code.viewer.is_none())
     }
 
     pub(crate) fn cursor_item(&self, cx: &App) -> Option<ChangeRequest> {
         let id = self.cursor.as_ref()?;
-        self.items.iter().find(|c| &c.id == id).cloned().filter(|_| self.nav_order(cx).contains(id))
+        self.items
+            .iter()
+            .find(|c| &c.id == id)
+            .cloned()
+            .filter(|_| self.nav_order(cx).contains(id))
     }
 
     /// The PR a shortcut acts on: the open detail, else the keyboard selection.
     pub(crate) fn target_item(&self, cx: &App) -> Option<ChangeRequest> {
-        self.detail.as_ref().map(|d| d.summary.clone()).or_else(|| self.cursor_item(cx))
+        self.detail
+            .as_ref()
+            .map(|d| d.summary.clone())
+            .or_else(|| self.cursor_item(cx))
     }
 
     pub(crate) fn move_cursor(&mut self, delta: isize, cx: &mut Context<Self>) {
@@ -108,7 +136,10 @@ impl GitViewer {
         if order.is_empty() {
             return;
         }
-        let current = self.cursor.clone().or_else(|| self.detail.as_ref().map(|d| d.summary.id.clone()));
+        let current = self
+            .cursor
+            .clone()
+            .or_else(|| self.detail.as_ref().map(|d| d.summary.id.clone()));
         let next = match current.and_then(|id| order.iter().position(|x| *x == id)) {
             Some(i) => (i as isize + delta).clamp(0, order.len() as isize - 1) as usize,
             None if delta > 0 => 0,

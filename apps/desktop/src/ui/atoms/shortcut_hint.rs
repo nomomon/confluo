@@ -29,12 +29,20 @@ pub struct ShortcutHint {
 impl ShortcutHint {
     /// `keys` uses the keymap display form (`⌘ ⇧ A`); spaces are dropped inside the pill.
     pub fn new(id: impl Into<ElementId>, keys: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), keys: vec![keys.into()], anchor: HintAnchor::default() }
+        Self {
+            id: id.into(),
+            keys: vec![keys.into()],
+            anchor: HintAnchor::default(),
+        }
     }
 
     /// Several shortcuts side by side (e.g. approve and request changes).
     pub fn pair(id: impl Into<ElementId>, keys: Vec<String>) -> Self {
-        Self { id: id.into(), keys: keys.into_iter().map(Into::into).collect(), anchor: HintAnchor::default() }
+        Self {
+            id: id.into(),
+            keys: keys.into_iter().map(Into::into).collect(),
+            anchor: HintAnchor::default(),
+        }
     }
 
     pub fn anchor(mut self, anchor: HintAnchor) -> Self {
@@ -66,13 +74,38 @@ fn pill(keys: &str) -> Div {
 
 impl RenderOnce for ShortcutHint {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let row = div().flex().gap(theme::SPACE_1).children(self.keys.iter().map(|k| pill(k)));
+        let row = div()
+            .flex()
+            .gap(theme::SPACE_1)
+            .children(self.keys.iter().map(|k| pill(k)));
         let placed = match self.anchor {
-            HintAnchor::Corner => div().absolute().top(-theme::SPACE_2).right(-theme::SPACE_1P5).child(row),
-            HintAnchor::Inline => div().absolute().top_0().bottom_0().right(theme::SPACE_2).flex().items_center().child(row),
-            HintAnchor::Below => div().absolute().top_full().left_0().right_0().mt(theme::SPACE_1).flex().justify_center().child(row),
+            HintAnchor::Corner => div()
+                .absolute()
+                .top(-theme::SPACE_2)
+                .right(-theme::SPACE_1P5)
+                .child(row),
+            HintAnchor::Inline => div()
+                .absolute()
+                .top_0()
+                .bottom_0()
+                .right(theme::SPACE_2)
+                .flex()
+                .items_center()
+                .child(row),
+            HintAnchor::Below => div()
+                .absolute()
+                .top_full()
+                .left_0()
+                .right_0()
+                .mt(theme::SPACE_1)
+                .flex()
+                .justify_center()
+                .child(row),
         };
         // A 60ms linear opacity (no easing or scale) so hints feel instant; final frame under reduced motion.
-        deferred(motion::animate(placed, self.id, motion::BLINK, |el, t| el.opacity(t))).with_priority(3)
+        deferred(motion::animate(placed, self.id, motion::BLINK, |el, t| {
+            el.opacity(t)
+        }))
+        .with_priority(3)
     }
 }

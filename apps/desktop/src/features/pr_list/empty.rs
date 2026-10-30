@@ -11,11 +11,22 @@ use crate::ui::theme;
 impl GitViewer {
     pub(super) fn render_empty(&self, cx: &mut Context<Self>) -> AnyElement {
         if self.starred_only && self.selected.is_none() {
-            return EmptyState::new("No starred pull requests", "Star one from the list to keep it here").into_any_element();
+            return EmptyState::new(
+                "No starred pull requests",
+                "Star one from the list to keep it here",
+            )
+            .into_any_element();
         }
-        let add = || Button::new("empty-add-project", "Add project").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.open_add_project(cx)));
+        let add = || {
+            Button::new("empty-add-project", "Add project")
+                .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.open_add_project(cx)))
+        };
         let Some(hosts) = &self.hosts else {
-            return EmptyState::new("Checking connections...", "Looking for signed-in GitHub and GitLab accounts").into_any_element();
+            return EmptyState::new(
+                "Checking connections...",
+                "Looking for signed-in GitHub and GitLab accounts",
+            )
+            .into_any_element();
         };
         let connected = self.connected_hosts();
         if connected.is_empty() {
@@ -27,13 +38,26 @@ impl GitViewer {
                     div()
                         .flex()
                         .gap(theme::SPACE_2)
-                        .child(Button::new("empty-retry", "Retry").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.retry(cx))))
+                        .child(
+                            Button::new("empty-retry", "Retry").on_click(
+                                cx.listener(|this, _: &ClickEvent, _, cx| this.retry(cx)),
+                            ),
+                        )
                         .child(add()),
                 )
                 .into_any_element();
         }
-        let title = if self.refreshing { "Fetching pull requests..." } else { "No open pull requests" };
-        let who: Vec<String> = connected.iter().map(|h| format!("{} as @{}", h.host, h.user.as_deref().unwrap_or_default())).collect();
-        EmptyState::new(title, format!("Connected: {}", who.join(", "))).child(add()).into_any_element()
+        let title = if self.refreshing {
+            "Fetching pull requests..."
+        } else {
+            "No open pull requests"
+        };
+        let who: Vec<String> = connected
+            .iter()
+            .map(|h| format!("{} as @{}", h.host, h.user.as_deref().unwrap_or_default()))
+            .collect();
+        EmptyState::new(title, format!("Connected: {}", who.join(", ")))
+            .child(add())
+            .into_any_element()
     }
 }

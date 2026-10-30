@@ -22,8 +22,14 @@ pub fn install() {
             .map(|s| s.to_string())
             .or_else(|| info.payload().downcast_ref::<String>().cloned())
             .unwrap_or_else(|| "(non-string panic payload)".into());
-        let loc = info.location().map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column())).unwrap_or_default();
-        let thread = std::thread::current().name().unwrap_or("<unnamed>").to_string();
+        let loc = info
+            .location()
+            .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
+            .unwrap_or_default();
+        let thread = std::thread::current()
+            .name()
+            .unwrap_or("<unnamed>")
+            .to_string();
         let now = chrono::Local::now();
         let text = format!(
             "Confluo {} crashed at {}\nthread '{thread}' panicked at {loc}:\n{msg}\n\nbacktrace:\n{bt}\n",
@@ -46,7 +52,11 @@ fn crash_logs(dir: &Path) -> Vec<PathBuf> {
         .flatten()
         .flatten()
         .map(|e| e.path())
-        .filter(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with("crash-") && n.ends_with(".log")))
+        .filter(|p| {
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with("crash-") && n.ends_with(".log"))
+        })
         .collect();
     // Timestamped names sort chronologically.
     v.sort();

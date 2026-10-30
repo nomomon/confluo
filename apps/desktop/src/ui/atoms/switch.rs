@@ -21,7 +21,12 @@ pub struct Switch {
 
 impl Switch {
     pub fn new(id: impl Into<SharedString>, checked: bool) -> Self {
-        Self { id: id.into(), checked, disabled: false, on_change: None }
+        Self {
+            id: id.into(),
+            checked,
+            disabled: false,
+            on_change: None,
+        }
     }
 
     #[allow(dead_code)] // kit API
@@ -40,7 +45,11 @@ impl Switch {
 impl RenderOnce for Switch {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         let on = self.checked;
-        let knob = div().size(KNOB).rounded(theme::RADIUS_FULL).bg(if on { theme::bg() } else { theme::text_muted() }).shadow_sm();
+        let knob = div()
+            .size(KNOB)
+            .rounded(theme::RADIUS_FULL)
+            .bg(if on { theme::bg() } else { theme::text_muted() })
+            .shadow_sm();
         div()
             .id(ElementId::Name(self.id))
             .flex()
@@ -52,11 +61,17 @@ impl RenderOnce for Switch {
             .rounded(theme::RADIUS_FULL)
             .border_1()
             .border_color(if on { theme::text() } else { theme::border() })
-            .bg(if on { theme::text() } else { theme::surface_active() })
+            .bg(if on {
+                theme::text()
+            } else {
+                theme::surface_active()
+            })
             .when(on, |d| d.justify_end())
             .when(self.disabled, |d| d.opacity(0.5))
             .when(!self.disabled, |d| d.cursor_pointer())
             .child(knob)
-            .when_some(self.on_change.filter(|_| !self.disabled), |d, f| d.on_click(move |_: &ClickEvent, w, cx| f(&!on, w, cx)))
+            .when_some(self.on_change.filter(|_| !self.disabled), |d, f| {
+                d.on_click(move |_: &ClickEvent, w, cx| f(&!on, w, cx))
+            })
     }
 }

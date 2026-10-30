@@ -17,7 +17,12 @@ pub struct Field {
 
 impl Field {
     pub fn new(label: impl Into<SharedString>, control: impl IntoElement) -> Self {
-        Self { label: label.into(), description: None, control: control.into_any_element(), horizontal: false }
+        Self {
+            label: label.into(),
+            description: None,
+            control: control.into_any_element(),
+            horizontal: false,
+        }
     }
 
     pub fn description(mut self, text: impl Into<SharedString>) -> Self {
@@ -34,16 +39,41 @@ impl Field {
 
 impl RenderOnce for Field {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let desc = self.description.map(|d| div().text_size(theme::text_xs()).text_color(theme::text_muted()).child(d));
+        let desc = self.description.map(|d| {
+            div()
+                .text_size(theme::text_xs())
+                .text_color(theme::text_muted())
+                .child(d)
+        });
         if self.horizontal {
-            let text = div().flex_1().min_w(theme::SPACE_0).flex().flex_col().gap(theme::SPACE_0P5).child(div().text_size(theme::text_sm()).child(self.label)).children(desc);
-            return div().flex().items_center().gap(theme::SPACE_4).px(theme::card_pad()).py(theme::row_pad_y()).child(text).child(div().flex().flex_shrink_0().child(self.control));
+            let text = div()
+                .flex_1()
+                .min_w(theme::SPACE_0)
+                .flex()
+                .flex_col()
+                .gap(theme::SPACE_0P5)
+                .child(div().text_size(theme::text_sm()).child(self.label))
+                .children(desc);
+            return div()
+                .flex()
+                .items_center()
+                .gap(theme::SPACE_4)
+                .px(theme::card_pad())
+                .py(theme::row_pad_y())
+                .child(text)
+                .child(div().flex().flex_shrink_0().child(self.control));
         }
         div()
             .flex()
             .flex_col()
             .gap(theme::SPACE_1P5)
-            .child(div().text_size(theme::text_xs()).font_weight(theme::WEIGHT_MEDIUM).text_color(theme::text_muted()).child(self.label))
+            .child(
+                div()
+                    .text_size(theme::text_xs())
+                    .font_weight(theme::WEIGHT_MEDIUM)
+                    .text_color(theme::text_muted())
+                    .child(self.label),
+            )
             .child(self.control)
             .children(desc)
     }

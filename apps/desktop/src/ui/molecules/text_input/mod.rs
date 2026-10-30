@@ -14,8 +14,8 @@ pub(crate) mod md_highlight;
 pub(crate) mod model;
 
 use gpui::{
-    actions, div, prelude::*, px, App, Bounds, Context, CursorStyle, EventEmitter, FocusHandle, Focusable, KeyBinding, MouseButton, Pixels,
-    ScrollWheelEvent, SharedString, Window,
+    actions, div, prelude::*, px, App, Bounds, Context, CursorStyle, EventEmitter, FocusHandle,
+    Focusable, KeyBinding, MouseButton, Pixels, ScrollWheelEvent, SharedString, Window,
 };
 use std::ops::Range;
 
@@ -319,22 +319,40 @@ impl Render for TextInput {
             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_move(cx.listener(Self::on_mouse_move))
-            .when(self.multiline, |d| d.on_scroll_wheel(cx.listener(Self::on_scroll)))
+            .when(self.multiline, |d| {
+                d.on_scroll_wheel(cx.listener(Self::on_scroll))
+            })
             .w_full()
             .when(!self.multiline, |d| d.h(theme::control_h()))
-            .when(self.multiline && !self.document, |d| d.items_start().min_h(theme::control_h()).py(theme::SPACE_2))
-            .when(self.document, |d| d.items_start().line_height(gpui::relative(theme::MARKDOWN_LINE_HEIGHT)))
+            .when(self.multiline && !self.document, |d| {
+                d.items_start().min_h(theme::control_h()).py(theme::SPACE_2)
+            })
+            .when(self.document, |d| {
+                d.items_start()
+                    .line_height(gpui::relative(theme::MARKDOWN_LINE_HEIGHT))
+            })
             .min_h(self.min_h)
             .pl(self.inset.0)
             .pr(self.inset.1)
             .when(!self.document, |d| {
-                d.rounded(theme::RADIUS_LG).border_1().border_color(if focused { theme::focus_ring() } else { theme::border() }).bg(theme::surface())
+                d.rounded(theme::RADIUS_LG)
+                    .border_1()
+                    .border_color(if focused {
+                        theme::focus_ring()
+                    } else {
+                        theme::border()
+                    })
+                    .bg(theme::surface())
             })
             .text_size(theme::text_sm())
             .text_color(theme::text())
             .overflow_hidden()
-            .when(!self.multiline, |d| d.child(TextElement { input: cx.entity() }))
-            .when(self.multiline, |d| d.child(area::AreaElement { input: cx.entity() }))
+            .when(!self.multiline, |d| {
+                d.child(TextElement { input: cx.entity() })
+            })
+            .when(self.multiline, |d| {
+                d.child(area::AreaElement { input: cx.entity() })
+            })
     }
 }
 

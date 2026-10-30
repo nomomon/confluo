@@ -22,7 +22,11 @@ pub struct Listing {
 }
 
 /// Split `items` into shown, stale and snoozed.
-pub(crate) fn split(items: Vec<ChangeRequest>, q: &ListQuery, snoozes: &BTreeMap<String, Snooze>) -> (Vec<ChangeRequest>, Vec<ChangeRequest>, usize) {
+pub(crate) fn split(
+    items: Vec<ChangeRequest>,
+    q: &ListQuery,
+    snoozes: &BTreeMap<String, Snooze>,
+) -> (Vec<ChangeRequest>, Vec<ChangeRequest>, usize) {
     let now = Utc::now();
     let (mut shown, mut stale, mut snoozed) = (vec![], vec![], 0);
     for c in items {
@@ -40,18 +44,28 @@ pub(crate) fn split(items: Vec<ChangeRequest>, q: &ListQuery, snoozes: &BTreeMap
 impl Engine {
     /// Local snoozes and hides by PR key.
     pub fn snoozes(&self) -> BTreeMap<String, Snooze> {
-        self.store().get_meta(SNOOZES_KEY).ok().flatten().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default()
+        self.store()
+            .get_meta(SNOOZES_KEY)
+            .ok()
+            .flatten()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default()
     }
 
     /// Snooze or hide a PR (`None` removes it, for undo). Returns the previous entry.
-    pub fn set_snooze(&self, cr: &ChangeRequest, kind: Option<SnoozeKind>) -> Result<Option<Snooze>> {
+    pub fn set_snooze(
+        &self,
+        cr: &ChangeRequest,
+        kind: Option<SnoozeKind>,
+    ) -> Result<Option<Snooze>> {
         let mut all = self.snoozes();
         let key = cr.id.key();
         let prev = match kind {
             Some(k) => all.insert(key, Snooze::new(k, cr, Utc::now())),
             None => all.remove(&key),
         };
-        self.store().set_meta(SNOOZES_KEY, &serde_json::to_string(&all)?)?;
+        self.store()
+            .set_meta(SNOOZES_KEY, &serde_json::to_string(&all)?)?;
         Ok(prev)
     }
 
@@ -62,14 +76,21 @@ impl Engine {
             Some(s) => all.insert(id.key(), s),
             None => all.remove(&id.key()),
         };
-        Ok(self.store().set_meta(SNOOZES_KEY, &serde_json::to_string(&all)?)?)
+        Ok(self
+            .store()
+            .set_meta(SNOOZES_KEY, &serde_json::to_string(&all)?)?)
     }
 
     /// The list split into sections, stale and snoozed (see [`Listing`]).
     pub fn listing(&self, q: &ListQuery) -> Result<Listing> {
         let (items, hidden_bots) = self.list_counted(q)?;
         let (items, stale, snoozed) = split(items, q, &self.snoozes());
-        Ok(Listing { items, stale, hidden_bots, snoozed })
+        Ok(Listing {
+            items,
+            stale,
+            hidden_bots,
+            snoozed,
+        })
     }
 }
 
@@ -81,7 +102,10 @@ mod tests {
     fn cr(n: u64, age_days: i64) -> ChangeRequest {
         let t = Utc::now() - chrono::Duration::days(age_days);
         ChangeRequest {
-            id: ChangeRequestId { repo: RepoRef::new(ProviderKind::GitHub, "github.com", "a/b"), number: n },
+            id: ChangeRequestId {
+                repo: RepoRef::new(ProviderKind::GitHub, "github.com", "a/b"),
+                number: n,
+            },
             title: format!("pr {n}"),
             author: User::named("a"),
             state: ChangeRequestState::Open,
@@ -103,15 +127,28 @@ mod tests {
 
     #[test]
     fn splits_stale_and_snoozed() {
-        let q = ListQuery { stale_days: Some(60), ..Default::default() };
+        let q = ListQuery {
+            stale_days: Some(60),
+            ..Default::default()
+        };
         let mut sn = BTreeMap::new();
         let c4 = cr(4, 1);
-        sn.insert(c4.id.key(), Snooze::new(SnoozeKind::Hidden, &c4, Utc::now()));
+        sn.insert(
+            c4.id.key(),
+            Snooze::new(SnoozeKind::Hidden, &c4, Utc::now()),
+        );
         let (shown, stale, snoozed) = split(vec![cr(1, 1), cr(2, 90), cr(3, 200), c4], &q, &sn);
-        assert_eq!(shown.iter().map(|c| c.id.number).collect::<Vec<_>>(), vec![1]);
+        assert_eq!(
+            shown.iter().map(|c| c.id.number).collect::<Vec<_>>(),
+            vec![1]
+        );
         assert_eq!(stale.len(), 2);
         assert_eq!(snoozed, 1);
-        let q = ListQuery { stale_days: Some(60), include_stale: true, ..Default::default() };
+        let q = ListQuery {
+            stale_days: Some(60),
+            include_stale: true,
+            ..Default::default()
+        };
         let (shown, stale, _) = split(vec![cr(1, 1), cr(2, 90)], &q, &BTreeMap::new());
         assert_eq!((shown.len(), stale.len()), (2, 0));
     }
@@ -121,7 +158,9 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("gv-engine-snooze-{}", std::process::id()));
         let e = Engine::open(&dir.join("t.db")).unwrap();
         let c = cr(1, 1);
-        e.store().upsert_change_requests(&[c.clone(), cr(2, 1)]).unwrap();
+        e.store()
+            .upsert_change_requests(&[c.clone(), cr(2, 1)])
+            .unwrap();
         e.set_snooze(&c, Some(SnoozeKind::UntilUpdated)).unwrap();
         let l = e.listing(&ListQuery::default()).unwrap();
         assert_eq!((l.items.len(), l.snoozed), (1, 1));

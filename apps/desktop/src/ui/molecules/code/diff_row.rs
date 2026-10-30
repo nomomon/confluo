@@ -123,8 +123,20 @@ impl RenderOnce for DiffRow {
                 .text_color(theme::text_subtle())
                 .child(n.map(|n| n.to_string()).unwrap_or_default())
         };
-        let marker_x = theme::SPACE_0P5 + self.gutter_w * if self.show_marker && !self.one_number { 2. } else { 1. };
-        let dot = div().absolute().left(theme::SPACE_1).top((self.height - theme::SPACE_1P5) / 2.).size(theme::SPACE_1P5).rounded(theme::RADIUS_FULL).bg(theme::accent());
+        let marker_x = theme::SPACE_0P5
+            + self.gutter_w
+                * if self.show_marker && !self.one_number {
+                    2.
+                } else {
+                    1.
+                };
+        let dot = div()
+            .absolute()
+            .left(theme::SPACE_1)
+            .top((self.height - theme::SPACE_1P5) / 2.)
+            .size(theme::SPACE_1P5)
+            .rounded(theme::RADIUS_FULL)
+            .bg(theme::accent());
         div()
             .relative()
             .flex()
@@ -135,13 +147,40 @@ impl RenderOnce for DiffRow {
             .font_family(theme::mono_font())
             .text_size(theme::text_xs())
             .when_some(bg, |d, c| d.bg(c))
-            .when(self.selected, |d| d.child(div().absolute().inset_0().bg(theme::line_selected_bg())))
+            .when(self.selected, |d| {
+                d.child(div().absolute().inset_0().bg(theme::line_selected_bg()))
+            })
             .when(self.dot, |d| d.child(dot))
-            .child(div().flex_shrink_0().w(theme::SPACE_0P5).h_full().when_some(if self.selected { Some(theme::accent()) } else { accent }, |d, c| d.bg(c)))
-            .when(self.show_marker && !self.one_number, |d| d.child(num(self.old_no)))
-            .child(num(if self.one_number { self.new_no.or(self.old_no) } else { self.new_no }))
+            .child(
+                div()
+                    .flex_shrink_0()
+                    .w(theme::SPACE_0P5)
+                    .h_full()
+                    .when_some(
+                        if self.selected {
+                            Some(theme::accent())
+                        } else {
+                            accent
+                        },
+                        |d, c| d.bg(c),
+                    ),
+            )
+            .when(self.show_marker && !self.one_number, |d| {
+                d.child(num(self.old_no))
+            })
+            .child(num(if self.one_number {
+                self.new_no.or(self.old_no)
+            } else {
+                self.new_no
+            }))
             .when(self.show_marker, |d| {
-                d.child(div().flex_shrink_0().w(theme::SPACE_4).text_color(accent.unwrap_or(theme::text_subtle())).child(marker))
+                d.child(
+                    div()
+                        .flex_shrink_0()
+                        .w(theme::SPACE_4)
+                        .text_color(accent.unwrap_or(theme::text_subtle()))
+                        .child(marker),
+                )
             })
             .child(
                 div()
@@ -149,8 +188,23 @@ impl RenderOnce for DiffRow {
                     .min_w(theme::SPACE_0)
                     .overflow_hidden()
                     .pl(theme::SPACE_1)
-                    .child(div().ml(-self.scroll_x).child(CodeText::new(self.text, self.lang))),
+                    .child(
+                        div()
+                            .ml(-self.scroll_x)
+                            .child(CodeText::new(self.text, self.lang)),
+                    ),
             )
-            .when_some(self.action, |d, a| d.child(div().absolute().top_0().h_full().left(marker_x).flex().items_center().child(a)))
+            .when_some(self.action, |d, a| {
+                d.child(
+                    div()
+                        .absolute()
+                        .top_0()
+                        .h_full()
+                        .left(marker_x)
+                        .flex()
+                        .items_center()
+                        .child(a),
+                )
+            })
     }
 }

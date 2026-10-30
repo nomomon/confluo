@@ -10,10 +10,17 @@ use crate::ui::theme;
 
 /// Icon for a check status; running ones spin (still under reduced motion).
 pub fn status_icon(id: &str, s: CheckStatus) -> AnyElement {
-    let icon = |n: IconName, c| Icon::new(n).size(theme::ICON_MD).color(c).into_any_element();
+    let icon = |n: IconName, c| {
+        Icon::new(n)
+            .size(theme::ICON_MD)
+            .color(c)
+            .into_any_element()
+    };
     match s {
         CheckStatus::Failed => icon(IconName::CircleX, theme::danger()),
-        CheckStatus::Running => Spinner::new(format!("spin-{id}")).color(theme::warning()).into_any_element(),
+        CheckStatus::Running => Spinner::new(format!("spin-{id}"))
+            .color(theme::warning())
+            .into_any_element(),
         CheckStatus::Pending => icon(IconName::CircleDashed, theme::warning()),
         CheckStatus::Passed => icon(IconName::CircleCheck, theme::success()),
         CheckStatus::Skipped => icon(IconName::CircleMinus, theme::text_subtle()),
@@ -22,7 +29,13 @@ pub fn status_icon(id: &str, s: CheckStatus) -> AnyElement {
 
 /// Worst status among the runs, else from the list summary; None when nothing reported.
 pub fn ci_status(sum: &CheckSummary, info: Option<&ChecksInfo>) -> Option<CheckStatus> {
-    if let Some(s) = info.and_then(|c| c.runs.iter().filter(|r| r.status != CheckStatus::Skipped).map(|r| r.status).min_by_key(|s| s.rank())) {
+    if let Some(s) = info.and_then(|c| {
+        c.runs
+            .iter()
+            .filter(|r| r.status != CheckStatus::Skipped)
+            .map(|r| r.status)
+            .min_by_key(|s| s.rank())
+    }) {
         return Some(s);
     }
     if sum.total == 0 {
@@ -58,13 +71,30 @@ pub struct CiCard {
 }
 
 impl CiCard {
-    pub fn tooltip(sum: CheckSummary, info: Option<ChecksInfo>) -> impl Fn(&mut Window, &mut App) -> AnyView + 'static {
+    pub fn tooltip(
+        sum: CheckSummary,
+        info: Option<ChecksInfo>,
+    ) -> impl Fn(&mut Window, &mut App) -> AnyView + 'static {
         move |window, cx| {
             if crate::ui::layer::blocks(window.mouse_position()) {
                 return cx.new(|_| crate::ui::atoms::EmptyTooltip).into();
             }
             let now = Utc::now();
-            let rows = info.as_ref().map(|c| c.sorted().into_iter().map(|r| (r.status, r.name.clone(), r.duration_secs(now).map(format_duration))).collect()).unwrap_or_default();
+            let rows = info
+                .as_ref()
+                .map(|c| {
+                    c.sorted()
+                        .into_iter()
+                        .map(|r| {
+                            (
+                                r.status,
+                                r.name.clone(),
+                                r.duration_secs(now).map(format_duration),
+                            )
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
             let summary = ci_words(&sum);
             cx.new(|_| CiCard { rows, summary }).into()
         }
@@ -92,15 +122,38 @@ impl Render for CiCard {
         if self.rows.is_empty() {
             return card.child(self.summary.clone());
         }
-        card.children(self.rows.iter().take(shown).enumerate().map(|(i, (s, name, dur))| {
-            div()
-                .flex()
-                .items_center()
-                .gap(theme::SPACE_2)
-                .child(status_icon(&format!("ci-card-{i}"), *s))
-                .child(div().flex_1().min_w(theme::SPACE_0).truncate().child(name.clone()))
-                .children(dur.clone().map(|d| div().flex_shrink_0().text_color(theme::text_subtle()).child(d)))
-        }))
-        .when(more > 0, |c| c.child(div().text_color(theme::text_subtle()).child(SharedString::from(format!("{more} more")))))
+        card.children(
+            self.rows
+                .iter()
+                .take(shown)
+                .enumerate()
+                .map(|(i, (s, name, dur))| {
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(theme::SPACE_2)
+                        .child(status_icon(&format!("ci-card-{i}"), *s))
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w(theme::SPACE_0)
+                                .truncate()
+                                .child(name.clone()),
+                        )
+                        .children(dur.clone().map(|d| {
+                            div()
+                                .flex_shrink_0()
+                                .text_color(theme::text_subtle())
+                                .child(d)
+                        }))
+                }),
+        )
+        .when(more > 0, |c| {
+            c.child(
+                div()
+                    .text_color(theme::text_subtle())
+                    .child(SharedString::from(format!("{more} more"))),
+            )
+        })
     }
 }

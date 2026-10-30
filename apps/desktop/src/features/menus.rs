@@ -8,7 +8,10 @@ use crate::ui::molecules::text_input as ti;
 
 /// Install the menus; `projects` are the sidebar project names in order.
 pub fn set_menus(cx: &mut App, projects: &[String]) {
-    let mut go = vec![MenuItem::action("Inbox", GoInbox), MenuItem::action("Starred", GoStarred)];
+    let mut go = vec![
+        MenuItem::action("Inbox", GoInbox),
+        MenuItem::action("Starred", GoStarred),
+    ];
     let gos: [fn(String) -> MenuItem; 7] = [
         |n| MenuItem::action(n, GoProject1),
         |n| MenuItem::action(n, GoProject2),
@@ -71,7 +74,10 @@ pub fn set_menus(cx: &mut App, projects: &[String]) {
                 MenuItem::action("Toggle Light / Dark Theme", ToggleTheme),
             ],
         },
-        Menu { name: "Go".into(), items: go },
+        Menu {
+            name: "Go".into(),
+            items: go,
+        },
         Menu {
             name: "Pull Request".into(),
             items: vec![
@@ -97,7 +103,16 @@ pub fn set_menus(cx: &mut App, projects: &[String]) {
                 MenuItem::action("Close", CloseDetail),
             ],
         },
-        Menu { name: "Window".into(), items: vec![MenuItem::action("Minimize", Minimize), MenuItem::action("Zoom", Zoom)] },
-        Menu { name: "Help".into(), items: vec![MenuItem::action("Keyboard Shortcuts", ShowShortcuts)] },
+        Menu {
+            name: "Window".into(),
+            items: vec![
+                MenuItem::action("Minimize", Minimize),
+                MenuItem::action("Zoom", Zoom),
+            ],
+        },
+        Menu {
+            name: "Help".into(),
+            items: vec![MenuItem::action("Keyboard Shortcuts", ShowShortcuts)],
+        },
     ]);
 }

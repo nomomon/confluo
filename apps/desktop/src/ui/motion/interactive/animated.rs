@@ -14,21 +14,29 @@ pub struct Animated {
 
 impl Animated {
     pub fn new(value: f32) -> Self {
-        Self { target: value, spring: None, params: SNAPPY }
+        Self {
+            target: value,
+            spring: None,
+            params: SNAPPY,
+        }
     }
 
     pub fn set(&mut self, target: f32, now: Instant, reduced: bool) {
         if target == self.target {
             return;
         }
-        let (x, v) = self.spring.map_or((self.target, 0.), |(s, _)| (self.target + s.x, s.v));
+        let (x, v) = self
+            .spring
+            .map_or((self.target, 0.), |(s, _)| (self.target + s.x, s.v));
         self.target = target;
         self.spring = (!reduced).then(|| (Spring::new(self.params, x - target, v), now));
     }
 
     /// Value at `now`; second: still moving.
     pub fn get(&mut self, now: Instant) -> (f32, bool) {
-        let Some((s, last)) = self.spring.as_mut() else { return (self.target, false) };
+        let Some((s, last)) = self.spring.as_mut() else {
+            return (self.target, false);
+        };
         s.step(now.saturating_duration_since(*last).as_secs_f32());
         *last = now;
         if s.is_settled(0.5) {

@@ -1,7 +1,10 @@
 //! Markdown tables: header row, cell borders, column alignment and horizontal scroll.
 //! Column widths come from the longest cell so rows line up and wide tables scroll.
 
-use gpui::{canvas, div, fill, point, prelude::*, px, size, AnyElement, Bounds, Div, ElementId, Pixels, ScrollHandle, Stateful};
+use gpui::{
+    canvas, div, fill, point, prelude::*, px, size, AnyElement, Bounds, Div, ElementId, Pixels,
+    ScrollHandle, Stateful,
+};
 
 use super::blocks::Align;
 use super::inline::Inline;
@@ -22,8 +25,20 @@ pub fn hscroll(id: ElementId, child: impl IntoElement) -> Stateful<Div> {
     let h = scroll_handle(&key);
     let thumb = h.clone();
     // The content moves by the rubber-band stretch at the x edges (`ui::elastic`).
-    let content = div().flex_none().relative().left(crate::ui::elastic::shift(&key)).child(child);
-    let mut d = div().id(id).w_full().min_w(theme::SPACE_0).flex().items_start().overflow_x_scroll().track_scroll(&h).child(content);
+    let content = div()
+        .flex_none()
+        .relative()
+        .left(crate::ui::elastic::shift(&key))
+        .child(child);
+    let mut d = div()
+        .id(id)
+        .w_full()
+        .min_w(theme::SPACE_0)
+        .flex()
+        .items_start()
+        .overflow_x_scroll()
+        .track_scroll(&h)
+        .child(content);
     d.style().restrict_scroll_to_axis = Some(true);
     // GPUI's own handler (it runs first) already moved x by the event's x delta. The gesture's owner is
     // decided once (`ui::arbiter`): the block takes a sideways gesture only if it could still scroll that way
@@ -37,7 +52,11 @@ pub fn hscroll(id: ElementId, child: impl IntoElement) -> Stateful<Div> {
         if matches!(ev.touch_phase, gpui::TouchPhase::Started) {
             crate::ui::elastic::wheel(&lock_key, Axis::X, ev, &undo);
         }
-        let can = if delta.x > px(0.) { before < px(-0.5) } else { delta.x < px(0.) && before > -undo.max_offset().width + px(0.5) };
+        let can = if delta.x > px(0.) {
+            before < px(-0.5)
+        } else {
+            delta.x < px(0.) && before > -undo.max_offset().width + px(0.5)
+        };
         if crate::ui::arbiter::block_handles_x(ev, &lock_key, can) {
             cx.stop_propagation();
             if crate::ui::elastic::wheel(&lock_key, Axis::X, ev, &undo) {
@@ -49,15 +68,25 @@ pub fn hscroll(id: ElementId, child: impl IntoElement) -> Stateful<Div> {
     });
     let debug = std::env::var_os("CONFLUO_DEBUG_LAYOUT").is_some();
     d.relative().child(
-        canvas(|_, _, _| {}, move |b, _, window, _| {
-            let max = thumb.max_offset().width;
-            if debug {
-                eprintln!("hscroll {key} box_w={} max_scroll_x={max} offset_x={}", b.size.width, thumb.offset().x);
-            }
-            if let Some(t) = thumb_bounds(b, max, -thumb.offset().x) {
-                window.paint_quad(fill(t, theme::text_subtle().opacity(0.45)).corner_radii(t.size.height / 2.));
-            }
-        })
+        canvas(
+            |_, _, _| {},
+            move |b, _, window, _| {
+                let max = thumb.max_offset().width;
+                if debug {
+                    eprintln!(
+                        "hscroll {key} box_w={} max_scroll_x={max} offset_x={}",
+                        b.size.width,
+                        thumb.offset().x
+                    );
+                }
+                if let Some(t) = thumb_bounds(b, max, -thumb.offset().x) {
+                    window.paint_quad(
+                        fill(t, theme::text_subtle().opacity(0.45))
+                            .corner_radii(t.size.height / 2.),
+                    );
+                }
+            },
+        )
         .absolute()
         .top_0()
         .left_0()
@@ -84,7 +113,13 @@ pub fn thumb_bounds(b: Bounds<Pixels>, max: Pixels, x: Pixels) -> Option<Bounds<
     let w = b.size.width;
     let len = (w * (w / (w + max))).max(px(24.));
     let pos = (w - len) * (x / max).clamp(0., 1.);
-    Some(Bounds { origin: point(b.origin.x + pos + x, b.origin.y + b.size.height - px(THUMB_H + 1.)), size: size(len, px(THUMB_H)) })
+    Some(Bounds {
+        origin: point(
+            b.origin.x + pos + x,
+            b.origin.y + b.size.height - px(THUMB_H + 1.),
+        ),
+        size: size(len, px(THUMB_H)),
+    })
 }
 
 const COL_MIN: f32 = 56.;
@@ -100,32 +135,57 @@ pub fn table(ctx: &Ctx, aligns: &[Align], head: &[Inline], rows: &[Vec<Inline>])
     let size = f32::from(theme::text_xs());
     let widths: Vec<Pixels> = (0..cols)
         .map(|i| {
-            let longest = std::iter::once(head).chain(rows.iter().map(Vec::as_slice)).filter_map(|r| r.get(i)).map(|c| c.text.chars().count()).max().unwrap_or(0);
+            let longest = std::iter::once(head)
+                .chain(rows.iter().map(Vec::as_slice))
+                .filter_map(|r| r.get(i))
+                .map(|c| c.text.chars().count())
+                .max()
+                .unwrap_or(0);
             // Header cells are semibold, so they need a little more room per character.
-            let head_chars = head.get(i).map(|c| c.text.chars().count() * 6 / 5 + 1).unwrap_or(0);
+            let head_chars = head
+                .get(i)
+                .map(|c| c.text.chars().count() * 6 / 5 + 1)
+                .unwrap_or(0);
             let longest = longest.max(head_chars);
             col_width(longest, size)
         })
         .collect();
     let row = |cells: &[Inline], is_head: bool, last: bool| {
-        div().flex().when(!last, |d| d.border_b_1().border_color(theme::border_subtle())).when(is_head, |d| d.bg(theme::surface())).children((0..cols).map(|i| {
-            let cell = div()
-                .w(widths[i])
-                .flex_shrink_0()
-                .flex()
-                .px(theme::SPACE_3)
-                .py(theme::SPACE_2)
-                .when(i > 0, |d| d.border_l_1().border_color(theme::border_subtle()))
-                .map(|d| match aligns.get(i) {
-                    Some(Align::Center) => d.justify_center(),
-                    Some(Align::Right) => d.justify_end(),
-                    _ => d,
-                });
-            match cells.get(i) {
-                Some(c) => cell.child(MdText::new(ctx.id(), c, if is_head { theme::WEIGHT_SEMIBOLD } else { theme::WEIGHT_NORMAL }, ctx.images.clone())),
-                None => cell,
-            }
-        }))
+        div()
+            .flex()
+            .when(!last, |d| {
+                d.border_b_1().border_color(theme::border_subtle())
+            })
+            .when(is_head, |d| d.bg(theme::surface()))
+            .children((0..cols).map(|i| {
+                let cell = div()
+                    .w(widths[i])
+                    .flex_shrink_0()
+                    .flex()
+                    .px(theme::SPACE_3)
+                    .py(theme::SPACE_2)
+                    .when(i > 0, |d| {
+                        d.border_l_1().border_color(theme::border_subtle())
+                    })
+                    .map(|d| match aligns.get(i) {
+                        Some(Align::Center) => d.justify_center(),
+                        Some(Align::Right) => d.justify_end(),
+                        _ => d,
+                    });
+                match cells.get(i) {
+                    Some(c) => cell.child(MdText::new(
+                        ctx.id(),
+                        c,
+                        if is_head {
+                            theme::WEIGHT_SEMIBOLD
+                        } else {
+                            theme::WEIGHT_NORMAL
+                        },
+                        ctx.images.clone(),
+                    )),
+                    None => cell,
+                }
+            }))
     };
     let n = rows.len();
     let grid = div()
@@ -137,8 +197,14 @@ pub fn table(ctx: &Ctx, aligns: &[Align], head: &[Inline], rows: &[Vec<Inline>])
         .border_color(theme::border_subtle())
         .overflow_hidden()
         .child(row(head, true, n == 0))
-        .children(rows.iter().enumerate().map(|(i, r)| row(r, false, i + 1 == n)));
-    hscroll(ElementId::Name(ctx.id()), grid).text_size(theme::text_xs()).into_any_element()
+        .children(
+            rows.iter()
+                .enumerate()
+                .map(|(i, r)| row(r, false, i + 1 == n)),
+        );
+    hscroll(ElementId::Name(ctx.id()), grid)
+        .text_size(theme::text_xs())
+        .into_any_element()
 }
 
 #[cfg(test)]
@@ -147,7 +213,10 @@ mod tests {
 
     #[test]
     fn thumb_only_when_content_overflows_and_tracks_offset() {
-        let b = Bounds { origin: point(px(0.), px(0.)), size: size(px(500.), px(200.)) };
+        let b = Bounds {
+            origin: point(px(0.), px(0.)),
+            size: size(px(500.), px(200.)),
+        };
         assert!(thumb_bounds(b, px(0.), px(0.)).is_none());
         let start = thumb_bounds(b, px(500.), px(0.)).unwrap();
         assert_eq!(start.size.width, px(250.));

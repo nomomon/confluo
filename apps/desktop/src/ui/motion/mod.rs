@@ -12,7 +12,10 @@
 // The full token set is the public motion API even where unused today.
 #![allow(dead_code)]
 
-use gpui::{ease_in_out, ease_out_quint, linear, px, Animation, AnimationExt, AnyElement, ElementId, IntoElement, Pixels, Styled};
+use gpui::{
+    ease_in_out, ease_out_quint, linear, px, Animation, AnimationExt, AnyElement, ElementId,
+    IntoElement, Pixels, Styled,
+};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
@@ -46,23 +49,50 @@ pub struct Motion {
     pub easing: Easing,
 }
 
-pub const INSTANT: Motion = Motion { ms: 0, easing: Easing::Linear };
-pub const HOVER: Motion = Motion { ms: 110, easing: Easing::EaseOutQuint };
-pub const PRESS: Motion = Motion { ms: 70, easing: Easing::EaseOutQuint };
-pub const FADE: Motion = Motion { ms: 150, easing: Easing::EaseInOut };
+pub const INSTANT: Motion = Motion {
+    ms: 0,
+    easing: Easing::Linear,
+};
+pub const HOVER: Motion = Motion {
+    ms: 110,
+    easing: Easing::EaseOutQuint,
+};
+pub const PRESS: Motion = Motion {
+    ms: 70,
+    easing: Easing::EaseOutQuint,
+};
+pub const FADE: Motion = Motion {
+    ms: 150,
+    easing: Easing::EaseInOut,
+};
 /// Near-instant linear opacity for hints that should feel immediate.
-pub const BLINK: Motion = Motion { ms: 60, easing: Easing::Linear };
-pub const PANEL: Motion = Motion { ms: 220, easing: Easing::EaseOutQuint };
+pub const BLINK: Motion = Motion {
+    ms: 60,
+    easing: Easing::Linear,
+};
+pub const PANEL: Motion = Motion {
+    ms: 220,
+    easing: Easing::EaseOutQuint,
+};
 /// Exits run at about 70% of the entry.
-pub const PANEL_EXIT: Motion = Motion { ms: 154, easing: Easing::EaseOutQuint };
-pub const LIST_INSERT: Motion = Motion { ms: 180, easing: Easing::EaseOutQuint };
+pub const PANEL_EXIT: Motion = Motion {
+    ms: 154,
+    easing: Easing::EaseOutQuint,
+};
+pub const LIST_INSERT: Motion = Motion {
+    ms: 180,
+    easing: Easing::EaseOutQuint,
+};
 
 static REDUCED: AtomicBool = AtomicBool::new(false);
 
 /// Read the OS reduced-motion preference once at startup. Dev: `CONFLUO_REDUCE_MOTION=1` forces it
 /// (screenshots of a window that gets no animation frames, e.g. while the screen is locked).
 pub fn init() {
-    REDUCED.store(std::env::var_os("CONFLUO_REDUCE_MOTION").is_some() || system_prefers_reduced_motion(), Ordering::Relaxed);
+    REDUCED.store(
+        std::env::var_os("CONFLUO_REDUCE_MOTION").is_some() || system_prefers_reduced_motion(),
+        Ordering::Relaxed,
+    );
 }
 
 pub fn reduced_motion() -> bool {
@@ -98,7 +128,12 @@ impl Motion {
 }
 
 /// Run `animator` from 0 to 1 over `motion`, or render the final frame directly.
-pub fn animate<E>(el: E, id: impl Into<ElementId>, motion: Motion, animator: impl Fn(E, f32) -> E + 'static) -> AnyElement
+pub fn animate<E>(
+    el: E,
+    id: impl Into<ElementId>,
+    motion: Motion,
+    animator: impl Fn(E, f32) -> E + 'static,
+) -> AnyElement
 where
     E: IntoElement + 'static,
 {
@@ -114,31 +149,62 @@ pub fn fade_in<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId
 }
 
 /// `FADE` that also runs under reduced motion: the short cross-fade that replaces a tracked swipe there.
-pub fn fade_in_always<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId>) -> AnyElement {
-    el.with_animation(id, Animation::new(Duration::from_millis(FADE.ms)).with_easing(ease_in_out), |el, t| el.opacity(t)).into_any_element()
+pub fn fade_in_always<E: IntoElement + Styled + 'static>(
+    el: E,
+    id: impl Into<ElementId>,
+) -> AnyElement {
+    el.with_animation(
+        id,
+        Animation::new(Duration::from_millis(FADE.ms)).with_easing(ease_in_out),
+        |el, t| el.opacity(t),
+    )
+    .into_any_element()
 }
 
 /// Slide in from the right by `distance` while fading (`PANEL`). The element
 /// is offset with `left`, so it must be relatively positioned.
-pub fn slide_in_right<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId>, distance: Pixels) -> AnyElement {
-    animate(el.relative(), id, PANEL, move |el, t| el.left(distance * (1. - t)).opacity(t))
+pub fn slide_in_right<E: IntoElement + Styled + 'static>(
+    el: E,
+    id: impl Into<ElementId>,
+    distance: Pixels,
+) -> AnyElement {
+    animate(el.relative(), id, PANEL, move |el, t| {
+        el.left(distance * (1. - t)).opacity(t)
+    })
 }
 
 /// Slide in from the left by `distance` while fading (`PANEL`), for a panel shown again (sidebar).
-pub fn slide_in_left<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId>, distance: Pixels) -> AnyElement {
-    animate(el.relative(), id, PANEL, move |el, t| el.left(-distance * (1. - t)).opacity(t))
+pub fn slide_in_left<E: IntoElement + Styled + 'static>(
+    el: E,
+    id: impl Into<ElementId>,
+    distance: Pixels,
+) -> AnyElement {
+    animate(el.relative(), id, PANEL, move |el, t| {
+        el.left(-distance * (1. - t)).opacity(t)
+    })
 }
 
 /// Slide an element pinned to the right edge (`absolute().right_0()`) in from off-screen, plus fade.
 /// Keeps its absolute position, unlike `slide_in_right`, which is for elements in the flow.
-pub fn slide_in_from_edge<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId>, distance: Pixels) -> AnyElement {
-    animate(el, id, PANEL, move |el, t| el.right(-distance * (1. - t)).opacity(t))
+pub fn slide_in_from_edge<E: IntoElement + Styled + 'static>(
+    el: E,
+    id: impl Into<ElementId>,
+    distance: Pixels,
+) -> AnyElement {
+    animate(el, id, PANEL, move |el, t| {
+        el.right(-distance * (1. - t)).opacity(t)
+    })
 }
 
 /// Small rise plus fade for dialogs and popovers (`FADE` timing, quint ease).
 pub fn pop_in<E: IntoElement + Styled + 'static>(el: E, id: impl Into<ElementId>) -> AnyElement {
-    let m = Motion { easing: Easing::EaseOutQuint, ..FADE };
-    animate(el.relative(), id, m, |el, t| el.top(px(6.) * (1. - t)).opacity(t))
+    let m = Motion {
+        easing: Easing::EaseOutQuint,
+        ..FADE
+    };
+    animate(el.relative(), id, m, |el, t| {
+        el.top(px(6.) * (1. - t)).opacity(t)
+    })
 }
 
 #[cfg(test)]

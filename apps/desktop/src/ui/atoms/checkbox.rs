@@ -20,7 +20,12 @@ pub struct Checkbox {
 
 impl Checkbox {
     pub fn new(id: impl Into<SharedString>, checked: bool) -> Self {
-        Self { id: id.into(), checked, label: None, on_change: None }
+        Self {
+            id: id.into(),
+            checked,
+            label: None,
+            on_change: None,
+        }
     }
 
     #[allow(dead_code)] // kit API
@@ -48,7 +53,13 @@ impl RenderOnce for Checkbox {
             .rounded(px(4.))
             .border_1()
             .border_color(if on { theme::text() } else { theme::border() })
-            .when(on, |d| d.bg(theme::text()).child(Icon::new(IconName::Check).size(theme::ICON_SM).color(theme::bg())));
+            .when(on, |d| {
+                d.bg(theme::text()).child(
+                    Icon::new(IconName::Check)
+                        .size(theme::ICON_SM)
+                        .color(theme::bg()),
+                )
+            });
         div()
             .id(ElementId::Name(self.id))
             .flex()
@@ -56,6 +67,9 @@ impl RenderOnce for Checkbox {
             .gap(theme::SPACE_2)
             .child(mark)
             .children(self.label)
-            .when_some(self.on_change, |d, f| d.cursor_pointer().on_click(move |_: &ClickEvent, w, cx| f(&!on, w, cx)))
+            .when_some(self.on_change, |d, f| {
+                d.cursor_pointer()
+                    .on_click(move |_: &ClickEvent, w, cx| f(&!on, w, cx))
+            })
     }
 }

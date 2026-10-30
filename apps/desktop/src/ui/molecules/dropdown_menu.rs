@@ -19,7 +19,12 @@ pub struct DropdownMenu {
 #[allow(dead_code)] // kit API
 impl DropdownMenu {
     pub fn new(id: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), placement: Placement::BottomEnd, children: vec![], on_dismiss: None }
+        Self {
+            id: id.into(),
+            placement: Placement::BottomEnd,
+            children: vec![],
+            on_dismiss: None,
+        }
     }
 
     /// Default `BottomEnd` (right-aligned under the trigger).
@@ -29,7 +34,10 @@ impl DropdownMenu {
     }
 
     /// Called on a mouse press outside the menu.
-    pub fn on_dismiss(mut self, f: impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_dismiss(
+        mut self,
+        f: impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_dismiss = Some(Box::new(f));
         self
     }

@@ -39,7 +39,9 @@ impl LineDraft {
 
     /// Whether a line on `side` numbered `n` of file `fi` is inside the draft's range.
     pub fn covers(&self, fi: usize, side: DiffSide, n: u32) -> bool {
-        fi == self.fi && side == self.side && (self.start.unwrap_or(self.line)..=self.line).contains(&n)
+        fi == self.fi
+            && side == self.side
+            && (self.start.unwrap_or(self.line)..=self.line).contains(&n)
     }
 }
 
@@ -70,7 +72,9 @@ impl InlineState {
 impl DetailState {
     /// Re-place inline threads on the diff and splice the changed rows.
     pub fn reindex(&mut self) {
-        let (Some(det), Some(files)) = (&self.detail, &self.code.files) else { return };
+        let (Some(det), Some(files)) = (&self.detail, &self.code.files) else {
+            return;
+        };
         self.code.inline.index = Arc::new(index_inline_threads(&det.threads, files));
         self.code.sync_rows();
         self.reveal_pending();
@@ -78,9 +82,13 @@ impl DetailState {
 
     /// Scroll to the thread requested by "Show in code", expanding its file and resolved state.
     fn reveal_pending(&mut self) {
-        let Some(tid) = self.code.inline.reveal.clone() else { return };
+        let Some(tid) = self.code.inline.reveal.clone() else {
+            return;
+        };
         let Some(det) = &self.detail else { return };
-        let Some(ti) = det.threads.iter().position(|t| t.id == tid) else { return };
+        let Some(ti) = det.threads.iter().position(|t| t.id == tid) else {
+            return;
+        };
         let files = self.code.files.clone().unwrap_or_default();
         if let Some(fi) = files.iter().position(|f| self.thread_in_file(ti, f.path())) {
             let needs = self.code.collapsed.remove(&fi) | self.code.shown_large.insert(fi);
@@ -89,14 +97,26 @@ impl DetailState {
                 self.code.sync_rows();
             }
         }
-        if let Some(ix) = self.code.rows.iter().position(|r| matches!(r, Row::Thread(_, t) if *t == ti)) {
+        if let Some(ix) = self
+            .code
+            .rows
+            .iter()
+            .position(|r| matches!(r, Row::Thread(_, t) if *t == ti))
+        {
             self.code.inline.reveal = None;
-            self.code.list.scroll_to(ListOffset { item_ix: ix.saturating_sub(3), offset_in_item: px(0.) });
+            self.code.list.scroll_to(ListOffset {
+                item_ix: ix.saturating_sub(3),
+                offset_in_item: px(0.),
+            });
         }
     }
 
     fn thread_in_file(&self, ti: usize, path: &str) -> bool {
         let ix = &self.code.inline.index;
-        ix.outdated.get(path).is_some_and(|v| v.contains(&ti)) || ix.by_line.iter().any(|((p, _, _), v)| p == path && v.contains(&ti))
+        ix.outdated.get(path).is_some_and(|v| v.contains(&ti))
+            || ix
+                .by_line
+                .iter()
+                .any(|((p, _, _), v)| p == path && v.contains(&ti))
     }
 }

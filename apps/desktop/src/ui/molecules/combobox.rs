@@ -5,7 +5,10 @@
 //!
 //! `Combobox::new("reviewers", input).option(ComboOption::new("ada").selected(true)).on_toggle(..)`
 
-use gpui::{anchored, deferred, div, prelude::*, px, AnyElement, App, ClickEvent, ElementId, Entity, Image, KeyDownEvent, MouseDownEvent, Pixels, SharedString, Window};
+use gpui::{
+    anchored, deferred, div, prelude::*, px, AnyElement, App, ClickEvent, ElementId, Entity, Image,
+    KeyDownEvent, MouseDownEvent, Pixels, SharedString, Window,
+};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -25,7 +28,12 @@ pub struct ComboOption {
 
 impl ComboOption {
     pub fn new(label: impl Into<SharedString>) -> Self {
-        Self { label: label.into(), detail: None, avatar: None, selected: false }
+        Self {
+            label: label.into(),
+            detail: None,
+            avatar: None,
+            selected: false,
+        }
     }
 
     /// Muted text after the label (full name, email).
@@ -61,7 +69,17 @@ pub struct Combobox {
 
 impl Combobox {
     pub fn new(id: impl Into<SharedString>, input: Entity<TextInput>) -> Self {
-        Self { id: id.into(), input, options: vec![], highlight: 0, loading: false, empty: "No matches".into(), on_toggle: None, on_highlight: None, on_dismiss: None }
+        Self {
+            id: id.into(),
+            input,
+            options: vec![],
+            highlight: 0,
+            loading: false,
+            empty: "No matches".into(),
+            on_toggle: None,
+            on_highlight: None,
+            on_dismiss: None,
+        }
     }
 
     pub fn option(mut self, o: ComboOption) -> Self {
@@ -94,7 +112,10 @@ impl Combobox {
         self
     }
 
-    pub fn on_dismiss(mut self, f: impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_dismiss(
+        mut self,
+        f: impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_dismiss = Some(Rc::new(f));
         self
     }
@@ -111,8 +132,21 @@ impl Combobox {
             .list_item_radius(i == self.highlight, theme::RADIUS_SM)
             .children(o.avatar.map(|img| Avatar::new(o.label.clone()).image(img)))
             .child(div().flex_shrink_0().child(o.label))
-            .child(div().flex_1().min_w(theme::SPACE_0).truncate().text_color(theme::text_subtle()).children(o.detail))
-            .when(o.selected, |d| d.child(Icon::new(IconName::Check).size(theme::ICON_SM).color(theme::text())))
+            .child(
+                div()
+                    .flex_1()
+                    .min_w(theme::SPACE_0)
+                    .truncate()
+                    .text_color(theme::text_subtle())
+                    .children(o.detail),
+            )
+            .when(o.selected, |d| {
+                d.child(
+                    Icon::new(IconName::Check)
+                        .size(theme::ICON_SM)
+                        .color(theme::text()),
+                )
+            })
             .on_click(move |_: &ClickEvent, window, cx| {
                 if let Some(f) = &f {
                     f(&i, window, cx)
@@ -127,9 +161,21 @@ impl RenderOnce for Combobox {
         let n = self.options.len();
         let (hl, on_hl) = (self.highlight, self.on_highlight.clone());
         let options = std::mem::take(&mut self.options);
-        let rows: Vec<AnyElement> = options.into_iter().enumerate().map(|(i, o)| self.row(i, o)).collect();
+        let rows: Vec<AnyElement> = options
+            .into_iter()
+            .enumerate()
+            .map(|(i, o)| self.row(i, o))
+            .collect();
         let status = if self.loading {
-            Some(div().flex().items_center().gap(theme::SPACE_2).child(Spinner::new(format!("{}-spin", self.id)).size(theme::ICON_SM)).child("Searching...").into_any_element())
+            Some(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(theme::SPACE_2)
+                    .child(Spinner::new(format!("{}-spin", self.id)).size(theme::ICON_SM))
+                    .child("Searching...")
+                    .into_any_element(),
+            )
         } else if n == 0 {
             Some(div().child(self.empty.clone()).into_any_element())
         } else {
@@ -144,7 +190,11 @@ impl RenderOnce for Combobox {
             .h(theme::control_h())
             .border_b_1()
             .border_color(theme::border_subtle())
-            .child(Icon::new(IconName::Search).size(theme::ICON_SM).color(theme::text_subtle()))
+            .child(
+                Icon::new(IconName::Search)
+                    .size(theme::ICON_SM)
+                    .color(theme::text_subtle()),
+            )
             .child(div().flex_1().child(self.input.clone()));
         let panel = crate::ui::layer::track(div())
             .id(ElementId::Name(format!("{}-panel", self.id).into()))
@@ -184,8 +234,19 @@ impl RenderOnce for Combobox {
                     .flex()
                     .flex_col()
                     .children(rows)
-                    .children(status.map(|s| div().px(theme::SPACE_2).py(theme::item_pad_y()).text_color(theme::text_subtle()).child(s))),
+                    .children(status.map(|s| {
+                        div()
+                            .px(theme::SPACE_2)
+                            .py(theme::item_pad_y())
+                            .text_color(theme::text_subtle())
+                            .child(s)
+                    })),
             );
-        deferred(anchored().snap_to_window_with_margin(theme::SPACE_2).child(panel)).with_priority(1)
+        deferred(
+            anchored()
+                .snap_to_window_with_margin(theme::SPACE_2)
+                .child(panel),
+        )
+        .with_priority(1)
     }
 }

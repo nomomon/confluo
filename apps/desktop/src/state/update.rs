@@ -26,7 +26,13 @@ impl GitViewer {
     pub(crate) fn start_update_checks(&mut self, cx: &mut Context<Self>) {
         if let Some(v) = crate::dev::fake_update() {
             let html_url = format!("https://github.com/{}/releases/tag/v{v}", gv_update::REPO);
-            self.update.available = Some(gv_update::Release { tag_name: format!("v{v}"), html_url, draft: false, prerelease: false, assets: vec![] });
+            self.update.available = Some(gv_update::Release {
+                tag_name: format!("v{v}"),
+                html_url,
+                draft: false,
+                prerelease: false,
+                assets: vec![],
+            });
             self.update.progress = crate::dev::fake_update_progress();
             return;
         }
@@ -56,15 +62,30 @@ impl GitViewer {
         cx.notify();
         let rx = bridge::spawn(gv_update::check(gv_update::CURRENT));
         cx.spawn(async move |this, cx| {
-            let res = rx.await.unwrap_or_else(|_| Err(anyhow::anyhow!("check cancelled")));
+            let res = rx
+                .await
+                .unwrap_or_else(|_| Err(anyhow::anyhow!("check cancelled")));
             let _ = this.update(cx, |v, cx| {
                 v.update.checking = false;
                 match res {
-                    Ok(Some(r)) if should_offer(r.version(), v.settings.dismissed_update.as_deref(), manual) => v.update.available = Some(r),
+                    Ok(Some(r))
+                        if should_offer(
+                            r.version(),
+                            v.settings.dismissed_update.as_deref(),
+                            manual,
+                        ) =>
+                    {
+                        v.update.available = Some(r)
+                    }
                     Ok(Some(_)) => {}
-                    Ok(None) if manual => v.show_info_toast(format!("Confluo {} is up to date", gv_update::CURRENT), cx),
+                    Ok(None) if manual => v.show_info_toast(
+                        format!("Confluo {} is up to date", gv_update::CURRENT),
+                        cx,
+                    ),
                     Ok(None) => {}
-                    Err(e) if manual => v.show_info_toast(format!("Couldn't check for updates: {e:#}"), cx),
+                    Err(e) if manual => {
+                        v.show_info_toast(format!("Couldn't check for updates: {e:#}"), cx)
+                    }
                     Err(e) => eprintln!("confluo: update check failed: {e:#}"),
                 }
                 cx.notify()
@@ -84,7 +105,9 @@ impl GitViewer {
 
     /// Download, verify and install the offered release, then relaunch into it.
     pub(crate) fn install_update(&mut self, cx: &mut Context<Self>) {
-        let Some(release) = self.update.available.clone() else { return };
+        let Some(release) = self.update.available.clone() else {
+            return;
+        };
         if self.update.progress.is_some() {
             return;
         }
@@ -95,7 +118,12 @@ impl GitViewer {
         self.update.progress = Some(0.);
         let done = Arc::new(AtomicU32::new(0f32.to_bits()));
         let report = done.clone();
-        let rx = bridge::spawn(async move { gv_update::install(&release, &app, &move |f: f32| report.store(f.to_bits(), Ordering::Relaxed)).await });
+        let rx = bridge::spawn(async move {
+            gv_update::install(&release, &app, &move |f: f32| {
+                report.store(f.to_bits(), Ordering::Relaxed)
+            })
+            .await
+        });
         cx.spawn(async move |this, cx| {
             let mut rx = rx;
             let res = loop {
@@ -104,13 +132,16 @@ impl GitViewer {
                     Err(_) => break Err(anyhow::anyhow!("update task stopped")),
                     Ok(None) => {}
                 }
-                cx.background_executor().timer(timing::UPDATE_PROGRESS).await;
+                cx.background_executor()
+                    .timer(timing::UPDATE_PROGRESS)
+                    .await;
                 let p = f32::from_bits(done.load(Ordering::Relaxed));
-                if this.update(cx, |v, cx| {
-                    v.update.progress = Some(p);
-                    cx.notify()
-                })
-                .is_err()
+                if this
+                    .update(cx, |v, cx| {
+                        v.update.progress = Some(p);
+                        cx.notify()
+                    })
+                    .is_err()
                 {
                     return;
                 }

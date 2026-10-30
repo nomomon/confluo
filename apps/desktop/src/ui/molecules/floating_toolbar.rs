@@ -17,7 +17,11 @@ pub struct FloatingToolbar {
 
 impl FloatingToolbar {
     pub fn new(id: impl Into<ElementId>) -> Self {
-        Self { id: id.into(), animate: true, children: vec![] }
+        Self {
+            id: id.into(),
+            animate: true,
+            children: vec![],
+        }
     }
 
     /// Pop in on mount (default). Pass false for keyboard-driven appearances.

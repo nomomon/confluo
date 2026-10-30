@@ -36,19 +36,41 @@ impl GitViewer {
 
     /// Fetch and show the whole file at the head sha.
     pub(crate) fn open_file_view(&mut self, path: String, cx: &mut Context<Self>) {
-        let Some(d) = self.detail.as_mut() else { return };
+        let Some(d) = self.detail.as_mut() else {
+            return;
+        };
         let id = d.summary.id.clone();
-        let sha = d.detail.as_ref().and_then(|x| x.head_sha.clone()).unwrap_or_default();
-        d.code.viewer = Some(FileView { path: path.clone(), lines: None, error: None, scroll: UniformListScrollHandle::new(), sel: None });
+        let sha = d
+            .detail
+            .as_ref()
+            .and_then(|x| x.head_sha.clone())
+            .unwrap_or_default();
+        d.code.viewer = Some(FileView {
+            path: path.clone(),
+            lines: None,
+            error: None,
+            scroll: UniformListScrollHandle::new(),
+            sel: None,
+        });
         let engine = self.engine.clone();
         let p = path.clone();
-        let rx = bridge::spawn(async move { engine.file_content(&id, &p, &sha).await.map_err(err_str) });
+        let rx =
+            bridge::spawn(async move { engine.file_content(&id, &p, &sha).await.map_err(err_str) });
         cx.spawn(async move |this, cx| {
             let Ok(r) = rx.await else { return };
             this.update(cx, |v, cx| {
-                let Some(fv) = v.detail.as_mut().and_then(|d| d.code.viewer.as_mut()).filter(|f| f.path == path) else { return };
+                let Some(fv) = v
+                    .detail
+                    .as_mut()
+                    .and_then(|d| d.code.viewer.as_mut())
+                    .filter(|f| f.path == path)
+                else {
+                    return;
+                };
                 match r {
-                    Ok(Some(c)) => fv.lines = Some(Arc::new(c.lines().map(str::to_string).collect())),
+                    Ok(Some(c)) => {
+                        fv.lines = Some(Arc::new(c.lines().map(str::to_string).collect()))
+                    }
                     Ok(None) => fv.error = Some("File not found at the head commit".into()),
                     Err(e) => fv.error = Some(e),
                 }

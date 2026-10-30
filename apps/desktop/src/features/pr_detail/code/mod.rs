@@ -10,7 +10,10 @@ mod toolbar;
 mod tree;
 mod viewer;
 
-use gpui::{div, list, prelude::*, AnyElement, Context, Div, Hsla, MouseButton, MouseMoveEvent, MouseUpEvent};
+use gpui::{
+    div, list, prelude::*, AnyElement, Context, Div, Hsla, MouseButton, MouseMoveEvent,
+    MouseUpEvent,
+};
 use gv_engine::FileStatus;
 
 use crate::app::GitViewer;
@@ -37,8 +40,12 @@ pub(in crate::features::pr_detail) fn diff_counts(a: u32, d: u32) -> Div {
         .gap(theme::SPACE_1)
         .font_family(theme::mono_font())
         .text_size(theme::text_xs())
-        .when(a > 0, |el| el.child(div().text_color(theme::success()).child(format!("+{a}"))))
-        .when(d > 0, |el| el.child(div().text_color(theme::danger()).child(format!("-{d}"))))
+        .when(a > 0, |el| {
+            el.child(div().text_color(theme::success()).child(format!("+{a}")))
+        })
+        .when(d > 0, |el| {
+            el.child(div().text_color(theme::danger()).child(format!("-{d}")))
+        })
 }
 
 /// Message icon with the number of inline threads on a file; nothing when zero.
@@ -55,27 +62,47 @@ pub(in crate::features::pr_detail) fn comment_count(n: usize) -> Option<Div> {
             .text_color(theme::accent())
             .text_size(theme::text_2xs())
             .font_weight(theme::WEIGHT_MEDIUM)
-            .child(Icon::new(IconName::Message).size(theme::ICON_SM).color(theme::accent()))
+            .child(
+                Icon::new(IconName::Message)
+                    .size(theme::ICON_SM)
+                    .color(theme::accent()),
+            )
             .child(n.to_string())
     })
 }
 
 impl GitViewer {
-    pub(in crate::features::pr_detail) fn render_code(&self, d: &DetailState, cx: &mut Context<Self>) -> AnyElement {
+    pub(in crate::features::pr_detail) fn render_code(
+        &self,
+        d: &DetailState,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let c = &d.code;
         if let Some(v) = &c.viewer {
             return self.render_file_viewer(v, cx);
         }
         let body: AnyElement = match &c.files {
-            None if c.error.is_some() => ErrorText::new(c.error.clone().unwrap_or_default()).into_any_element(),
+            None if c.error.is_some() => {
+                ErrorText::new(c.error.clone().unwrap_or_default()).into_any_element()
+            }
             None if c.show_skeleton => skeleton().into_any_element(),
             None => div().into_any_element(),
-            Some(f) if f.is_empty() => EmptyState::new("No changed files", "This change has no file diffs").into_any_element(),
+            Some(f) if f.is_empty() => {
+                EmptyState::new("No changed files", "This change has no file diffs")
+                    .into_any_element()
+            }
             Some(_) => {
                 // Read the viewport here: inside the item callback the list state is mutably borrowed
                 // (calling `viewport_bounds()` there panics, which aborted the app).
                 let view_h = c.list.viewport_bounds().size.height;
-                let rows = list(c.list.clone(), cx.processor(move |this, ix: usize, _, cx| this.render_code_row(ix, view_h, cx))).flex_1().h_full();
+                let rows = list(
+                    c.list.clone(),
+                    cx.processor(move |this, ix: usize, _, cx| {
+                        this.render_code_row(ix, view_h, cx)
+                    }),
+                )
+                .flex_1()
+                .h_full();
                 // Rubber band: a translate of the whole list, the list's own scroll state stays in range.
                 let rows = rows.relative().top(crate::ui::elastic::shift("diff-list"));
                 let band = c.list.clone();
@@ -96,19 +123,34 @@ impl GitViewer {
                             .pr(theme::SPACE_0P5)
                             .overflow_hidden()
                             .on_scroll_wheel(move |ev, window, _| {
-                                if crate::ui::elastic::guard_vertical(ev, &band, drawn) && crate::ui::elastic::wheel("diff-list", crate::ui::scroll::Axis::Y, ev, &band) {
+                                if crate::ui::elastic::guard_vertical(ev, &band, drawn)
+                                    && crate::ui::elastic::wheel(
+                                        "diff-list",
+                                        crate::ui::scroll::Axis::Y,
+                                        ev,
+                                        &band,
+                                    )
+                                {
                                     window.refresh();
                                 }
                             })
-                            .on_mouse_down(MouseButton::Left, cx.listener(|this, _, _, cx| {
-                                this.clear_line_selection(cx);
-                            }))
+                            .on_mouse_down(
+                                MouseButton::Left,
+                                cx.listener(|this, _, _, cx| {
+                                    this.clear_line_selection(cx);
+                                }),
+                            )
                             .on_mouse_move(cx.listener(|this, ev: &MouseMoveEvent, _, cx| {
                                 if ev.pressed_button == Some(MouseButton::Left) {
                                     this.drag_autoscroll(ev.position.y, cx)
                                 }
                             }))
-                            .on_mouse_up(MouseButton::Left, cx.listener(|this, _: &MouseUpEvent, window, cx| this.finish_line_drag(window, cx)))
+                            .on_mouse_up(
+                                MouseButton::Left,
+                                cx.listener(|this, _: &MouseUpEvent, window, cx| {
+                                    this.finish_line_drag(window, cx)
+                                }),
+                            )
                             .child(rows),
                     )
                     .into_any_element()
@@ -128,7 +170,13 @@ impl GitViewer {
 
 /// Placeholder file cards while the first load is slow.
 fn skeleton() -> impl IntoElement {
-    let bar = |w: f32| div().h(theme::SPACE_3).w(gpui::relative(w)).rounded(theme::RADIUS_SM).bg(theme::surface_hover());
+    let bar = |w: f32| {
+        div()
+            .h(theme::SPACE_3)
+            .w(gpui::relative(w))
+            .rounded(theme::RADIUS_SM)
+            .bg(theme::surface_hover())
+    };
     let card = |id: usize| {
         div()
             .id(("code-skeleton", id))
@@ -144,5 +192,9 @@ fn skeleton() -> impl IntoElement {
             .child(bar(0.75))
             .child(bar(0.6))
     };
-    div().flex().flex_col().gap(theme::SPACE_3).children((0..3).map(card))
+    div()
+        .flex()
+        .flex_col()
+        .gap(theme::SPACE_3)
+        .children((0..3).map(card))
 }

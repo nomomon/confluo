@@ -58,7 +58,12 @@ impl GitViewer {
     }
 
     /// A click on a list row (`count` from the click event).
-    pub(crate) fn click_row(&mut self, c: gv_engine::ChangeRequest, count: usize, cx: &mut Context<Self>) {
+    pub(crate) fn click_row(
+        &mut self,
+        c: gv_engine::ChangeRequest,
+        count: usize,
+        cx: &mut Context<Self>,
+    ) {
         let this_open = self.detail.as_ref().is_some_and(|d| d.summary.id == c.id);
         self.row_click_gen += 1;
         match row_click(this_open, !self.preview_hidden, count) {
@@ -71,7 +76,9 @@ impl GitViewer {
             RowClick::HideLater => {
                 let gen = self.row_click_gen;
                 cx.spawn(async move |this, cx| {
-                    cx.background_executor().timer(super::timing::DOUBLE_CLICK).await;
+                    cx.background_executor()
+                        .timer(super::timing::DOUBLE_CLICK)
+                        .await;
                     this.update(cx, |v, cx| {
                         if v.row_click_gen == gen && !v.reviewing {
                             // Selected means previewed: hiding the preview by its row clears the highlight too.
@@ -102,7 +109,12 @@ impl GitViewer {
         }
         self.preview_hidden = !self.preview_hidden;
         if !self.preview_hidden && self.detail.is_none() {
-            if let Some(c) = self.nav.last_closed.clone().or_else(|| self.cursor.as_ref().and_then(|id| self.find_item(id))) {
+            if let Some(c) = self
+                .nav
+                .last_closed
+                .clone()
+                .or_else(|| self.cursor.as_ref().and_then(|id| self.find_item(id)))
+            {
                 self.open_detail(c, cx);
             }
         }
@@ -111,7 +123,11 @@ impl GitViewer {
 
     /// A PR in the list (or the older section) by id.
     pub(crate) fn find_item(&self, id: &ChangeRequestId) -> Option<ChangeRequest> {
-        self.items.iter().chain(&self.quiet.stale).find(|c| &c.id == id).cloned()
+        self.items
+            .iter()
+            .chain(&self.quiet.stale)
+            .find(|c| &c.id == id)
+            .cloned()
     }
 
     /// Cmd+[ / Cmd+]: walk the places visited this session (the list and PRs in Review mode).
@@ -134,7 +150,9 @@ impl GitViewer {
                 }
             }
             Some(id) => {
-                let cr = self.find_item(&id).or_else(|| self.engine.store().get_change_request(&id).ok().flatten());
+                let cr = self
+                    .find_item(&id)
+                    .or_else(|| self.engine.store().get_change_request(&id).ok().flatten());
                 if let Some(c) = cr {
                     self.open_detail(c, cx);
                     self.enter_review(cx);
@@ -159,7 +177,11 @@ impl GitViewer {
                 self.select_project(None, cx)
             }
             n => {
-                if let Some(id) = self.projects.get(usize::from(n.saturating_sub(3))).map(|p| p.id) {
+                if let Some(id) = self
+                    .projects
+                    .get(usize::from(n.saturating_sub(3)))
+                    .map(|p| p.id)
+                {
                     self.starred_only = false;
                     self.select_project(Some(id), cx)
                 }
@@ -170,7 +192,11 @@ impl GitViewer {
 
     /// Switch between light and dark from whatever is showing now.
     pub(crate) fn toggle_theme(&mut self, cx: &mut Context<Self>) {
-        self.settings.theme = if crate::ui::theme::is_light() { ThemeMode::Dark } else { ThemeMode::Light };
+        self.settings.theme = if crate::ui::theme::is_light() {
+            ThemeMode::Dark
+        } else {
+            ThemeMode::Light
+        };
         self.save_settings(cx);
     }
 }
@@ -216,7 +242,10 @@ mod tests {
     use gv_engine::{ProviderKind, RepoRef};
 
     fn id(n: u64) -> ChangeRequestId {
-        ChangeRequestId { repo: RepoRef::new(ProviderKind::GitHub, "github.com", "a/b"), number: n }
+        ChangeRequestId {
+            repo: RepoRef::new(ProviderKind::GitHub, "github.com", "a/b"),
+            number: n,
+        }
     }
 
     #[test]

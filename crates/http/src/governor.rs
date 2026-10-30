@@ -31,7 +31,12 @@ pub struct Bucket {
 
 impl Bucket {
     pub fn new(rate: f64, burst: f64, now: Instant) -> Self {
-        Self { tokens: burst, last: now, rate, burst }
+        Self {
+            tokens: burst,
+            last: now,
+            rate,
+            burst,
+        }
     }
 
     /// Take one token. Returns how long to wait before the request may go (the token is reserved).
@@ -57,7 +62,10 @@ pub fn backoff(failures: u32, jitter: f64) -> Duration {
 
 /// Cheap jitter in 0..1 without a rand dependency.
 pub fn jitter() -> f64 {
-    let n = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.subsec_nanos()).unwrap_or(0);
+    let n = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.subsec_nanos())
+        .unwrap_or(0);
     f64::from(n % 1000) / 1000.0
 }
 
@@ -77,7 +85,12 @@ pub struct Signal {
 /// Read rate limit headers (GitHub `x-ratelimit-*`, GitLab `ratelimit-*`, `retry-after`).
 /// `body` is consulted only for a 403 without headers that settle it.
 pub fn read_signal(status: u16, header: impl Fn(&str) -> Option<String>, body: &[u8]) -> Signal {
-    let num = |names: &[&str]| names.iter().find_map(|n| header(n)).and_then(|v| v.trim().parse::<i64>().ok());
+    let num = |names: &[&str]| {
+        names
+            .iter()
+            .find_map(|n| header(n))
+            .and_then(|v| v.trim().parse::<i64>().ok())
+    };
     let remaining = num(&["x-ratelimit-remaining", "ratelimit-remaining"]).map(|v| v.max(0) as u64);
     let limit = num(&["x-ratelimit-limit", "ratelimit-limit"]).map(|v| v.max(0) as u64);
     let reset = num(&["x-ratelimit-reset", "ratelimit-reset"]);
@@ -92,7 +105,13 @@ pub fn read_signal(status: u16, header: impl Fn(&str) -> Option<String>, body: &
         }
         _ => false,
     };
-    Signal { limited, retry_after, remaining, limit, reset }
+    Signal {
+        limited,
+        retry_after,
+        remaining,
+        limit,
+        reset,
+    }
 }
 
 #[derive(Debug)]
@@ -123,7 +142,11 @@ impl Governor {
     pub fn new(host: &str) -> Self {
         Self {
             host: host.to_string(),
-            state: Mutex::new(State { bucket: Bucket::new(RATE_PER_SEC, BURST, Instant::now()), paused_until: None, failures: 0 }),
+            state: Mutex::new(State {
+                bucket: Bucket::new(RATE_PER_SEC, BURST, Instant::now()),
+                paused_until: None,
+                failures: 0,
+            }),
             slots: Arc::new(Semaphore::new(MAX_CONCURRENT)),
         }
     }
@@ -135,14 +158,17 @@ impl Governor {
     /// When the host is paused, the wall-clock end of the pause.
     pub fn paused_until(&self) -> Option<DateTime<Utc>> {
         let s = self.lock();
-        s.paused_until.filter(|(i, _)| *i > Instant::now()).map(|(_, w)| w)
+        s.paused_until
+            .filter(|(i, _)| *i > Instant::now())
+            .map(|(_, w)| w)
     }
 
     /// Wait for a slot and a token. Fails fast when the host is paused for longer than `MAX_INLINE_WAIT`.
     pub async fn acquire(&self) -> Result<OwnedSemaphorePermit, DateTime<Utc>> {
         let pause = {
             let s = self.lock();
-            s.paused_until.map(|(i, w)| (i.saturating_duration_since(Instant::now()), w))
+            s.paused_until
+                .map(|(i, w)| (i.saturating_duration_since(Instant::now()), w))
         };
         if let Some((left, wall)) = pause {
             if left > MAX_INLINE_WAIT {
@@ -152,7 +178,12 @@ impl Governor {
                 tokio::time::sleep(left).await;
             }
         }
-        let permit = self.slots.clone().acquire_owned().await.expect("semaphore never closed");
+        let permit = self
+            .slots
+            .clone()
+            .acquire_owned()
+            .await
+            .expect("semaphore never closed");
         let wait = self.lock().bucket.take(Instant::now());
         if !wait.is_zero() {
             tokio::time::sleep(wait).await;
@@ -165,7 +196,9 @@ impl Governor {
         let now = Instant::now();
         let now_wall = Utc::now();
         let mut s = self.lock();
-        let until_reset = sig.reset.map(|r| Duration::from_secs((r - now_wall.timestamp()).max(1) as u64));
+        let until_reset = sig
+            .reset
+            .map(|r| Duration::from_secs((r - now_wall.timestamp()).max(1) as u64));
         if sig.limited {
             let wait = match (sig.retry_after, until_reset) {
                 (Some(ra), _) => Duration::from_secs(ra.max(1)),
@@ -173,12 +206,18 @@ impl Governor {
                 _ => backoff(s.failures, jitter()),
             };
             s.failures += 1;
-            s.paused_until = Some((now + wait, now_wall + chrono::Duration::from_std(wait).unwrap_or_default()));
+            s.paused_until = Some((
+                now + wait,
+                now_wall + chrono::Duration::from_std(wait).unwrap_or_default(),
+            ));
             return Verdict::Limited(wait);
         }
         s.failures = 0;
         if let (Some(0), Some(r)) = (sig.remaining, until_reset) {
-            s.paused_until = Some((now + r, now_wall + chrono::Duration::from_std(r).unwrap_or_default()));
+            s.paused_until = Some((
+                now + r,
+                now_wall + chrono::Duration::from_std(r).unwrap_or_default(),
+            ));
         }
         let low = match (sig.remaining, sig.limit) {
             (Some(rem), Some(lim)) if lim > 0 => rem * 10 < lim || rem < 20,
@@ -203,13 +242,17 @@ fn registry() -> &'static Mutex<HashMap<String, Arc<Governor>>> {
 pub fn governor(host: &str) -> Arc<Governor> {
     let host = host.to_ascii_lowercase();
     let mut m = registry().lock().unwrap_or_else(|e| e.into_inner());
-    m.entry(host.clone()).or_insert_with(|| Arc::new(Governor::new(&host))).clone()
+    m.entry(host.clone())
+        .or_insert_with(|| Arc::new(Governor::new(&host)))
+        .clone()
 }
 
 /// Latest end of any current pause, across hosts, with the host.
 pub fn paused() -> Vec<(String, DateTime<Utc>)> {
     let m = registry().lock().unwrap_or_else(|e| e.into_inner());
-    m.values().filter_map(|g| g.paused_until().map(|t| (g.host.clone(), t))).collect()
+    m.values()
+        .filter_map(|g| g.paused_until().map(|t| (g.host.clone(), t)))
+        .collect()
 }
 
 #[cfg(test)]
@@ -256,7 +299,12 @@ mod tests {
     }
 
     fn hdr<'a>(pairs: &'a [(&'a str, &'a str)]) -> impl Fn(&str) -> Option<String> + 'a {
-        move |n| pairs.iter().find(|(k, _)| *k == n).map(|(_, v)| v.to_string())
+        move |n| {
+            pairs
+                .iter()
+                .find(|(k, _)| *k == n)
+                .map(|(_, v)| v.to_string())
+        }
     }
 
     #[test]
@@ -268,8 +316,19 @@ mod tests {
         assert!(s.limited);
         let s = read_signal(403, hdr(&[]), b"Resource not accessible by integration");
         assert!(!s.limited);
-        let s = read_signal(200, hdr(&[("ratelimit-remaining", "12"), ("ratelimit-limit", "2000"), ("ratelimit-reset", "1700000000")]), b"");
-        assert_eq!((s.limited, s.remaining, s.limit, s.reset), (false, Some(12), Some(2000), Some(1_700_000_000)));
+        let s = read_signal(
+            200,
+            hdr(&[
+                ("ratelimit-remaining", "12"),
+                ("ratelimit-limit", "2000"),
+                ("ratelimit-reset", "1700000000"),
+            ]),
+            b"",
+        );
+        assert_eq!(
+            (s.limited, s.remaining, s.limit, s.reset),
+            (false, Some(12), Some(2000), Some(1_700_000_000))
+        );
         let s = read_signal(403, hdr(&[("x-ratelimit-remaining", "0")]), b"");
         assert!(s.limited);
     }
@@ -277,36 +336,80 @@ mod tests {
     #[test]
     fn limit_pauses_with_retry_after_and_ok_clears_failures() {
         let g = Governor::new("example.test");
-        let v = g.observe(&Signal { limited: true, retry_after: Some(120), remaining: None, limit: None, reset: None });
+        let v = g.observe(&Signal {
+            limited: true,
+            retry_after: Some(120),
+            remaining: None,
+            limit: None,
+            reset: None,
+        });
         assert_eq!(v, Verdict::Limited(Duration::from_secs(120)));
         let until = g.paused_until().expect("paused");
         assert!(until > Utc::now() + chrono::Duration::seconds(100));
         // Second hit without hints backs off exponentially from the failure count.
-        let v = g.observe(&Signal { limited: true, retry_after: None, remaining: None, limit: None, reset: None });
+        let v = g.observe(&Signal {
+            limited: true,
+            retry_after: None,
+            remaining: None,
+            limit: None,
+            reset: None,
+        });
         match v {
-            Verdict::Limited(d) => assert!(d >= Duration::from_secs(120) && d <= Duration::from_secs(144)),
+            Verdict::Limited(d) => {
+                assert!(d >= Duration::from_secs(120) && d <= Duration::from_secs(144))
+            }
             _ => panic!(),
         }
-        g.observe(&Signal { limited: false, retry_after: None, remaining: Some(1000), limit: Some(5000), reset: None });
+        g.observe(&Signal {
+            limited: false,
+            retry_after: None,
+            remaining: Some(1000),
+            limit: Some(5000),
+            reset: None,
+        });
         assert_eq!(g.lock().failures, 0);
     }
 
     #[test]
     fn low_budget_slows_and_zero_pauses_until_reset() {
         let g = Governor::new("example.test");
-        g.observe(&Signal { limited: false, retry_after: None, remaining: Some(30), limit: Some(5000), reset: None });
+        g.observe(&Signal {
+            limited: false,
+            retry_after: None,
+            remaining: Some(30),
+            limit: Some(5000),
+            reset: None,
+        });
         assert_eq!(g.lock().bucket.rate, SLOW_RATE_PER_SEC);
-        g.observe(&Signal { limited: false, retry_after: None, remaining: Some(4000), limit: Some(5000), reset: None });
+        g.observe(&Signal {
+            limited: false,
+            retry_after: None,
+            remaining: Some(4000),
+            limit: Some(5000),
+            reset: None,
+        });
         assert_eq!(g.lock().bucket.rate, RATE_PER_SEC);
         let reset = Utc::now().timestamp() + 600;
-        g.observe(&Signal { limited: false, retry_after: None, remaining: Some(0), limit: Some(5000), reset: Some(reset) });
+        g.observe(&Signal {
+            limited: false,
+            retry_after: None,
+            remaining: Some(0),
+            limit: Some(5000),
+            reset: Some(reset),
+        });
         assert!(g.paused_until().is_some());
     }
 
     #[tokio::test]
     async fn long_pause_fails_fast() {
         let g = Governor::new("example.test");
-        g.observe(&Signal { limited: true, retry_after: Some(600), remaining: None, limit: None, reset: None });
+        g.observe(&Signal {
+            limited: true,
+            retry_after: Some(600),
+            remaining: None,
+            limit: None,
+            reset: None,
+        });
         let started = Instant::now();
         assert!(g.acquire().await.is_err());
         assert!(started.elapsed() < Duration::from_secs(1));
@@ -314,7 +417,10 @@ mod tests {
 
     #[test]
     fn registry_shares_per_host() {
-        assert!(Arc::ptr_eq(&governor("GitLab.com"), &governor("gitlab.com")));
+        assert!(Arc::ptr_eq(
+            &governor("GitLab.com"),
+            &governor("gitlab.com")
+        ));
         assert!(!Arc::ptr_eq(&governor("a.test"), &governor("b.test")));
     }
 }

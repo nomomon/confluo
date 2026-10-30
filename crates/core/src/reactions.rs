@@ -17,7 +17,16 @@ pub enum ReactionKind {
 }
 
 impl ReactionKind {
-    pub const ALL: [ReactionKind; 8] = [Self::ThumbsUp, Self::ThumbsDown, Self::Laugh, Self::Hooray, Self::Confused, Self::Heart, Self::Rocket, Self::Eyes];
+    pub const ALL: [ReactionKind; 8] = [
+        Self::ThumbsUp,
+        Self::ThumbsDown,
+        Self::Laugh,
+        Self::Hooray,
+        Self::Confused,
+        Self::Heart,
+        Self::Rocket,
+        Self::Eyes,
+    ];
 
     /// Reactions a provider supports (Azure DevOps comments only have a like).
     pub fn for_provider(kind: crate::ProviderKind) -> &'static [ReactionKind] {
@@ -84,7 +93,9 @@ impl ReactionKind {
 
     /// Parse any of the provider spellings above.
     pub fn parse(s: &str) -> Option<Self> {
-        Self::ALL.into_iter().find(|k| k.github_rest() == s || k.github_graphql() == s || k.gitlab() == s)
+        Self::ALL
+            .into_iter()
+            .find(|k| k.github_rest() == s || k.github_graphql() == s || k.gitlab() == s)
     }
 }
 
@@ -99,17 +110,27 @@ pub struct ReactionGroup {
 }
 
 /// Group a flat list of (kind, username) award emoji, keeping `ALL` order and dropping unknown names.
-pub fn group_reactions<'a>(items: impl IntoIterator<Item = (&'a str, &'a str)>, me: &str) -> Vec<ReactionGroup> {
+pub fn group_reactions<'a>(
+    items: impl IntoIterator<Item = (&'a str, &'a str)>,
+    me: &str,
+) -> Vec<ReactionGroup> {
     let mut out: Vec<ReactionGroup> = vec![];
     for (name, user) in items {
-        let Some(kind) = ReactionKind::parse(name) else { continue };
+        let Some(kind) = ReactionKind::parse(name) else {
+            continue;
+        };
         match out.iter_mut().find(|g| g.kind == kind) {
             Some(g) => {
                 g.count += 1;
                 g.me |= user == me;
                 g.users.push(user.to_string());
             }
-            None => out.push(ReactionGroup { kind, count: 1, me: user == me, users: vec![user.to_string()] }),
+            None => out.push(ReactionGroup {
+                kind,
+                count: 1,
+                me: user == me,
+                users: vec![user.to_string()],
+            }),
         }
     }
     out.sort_by_key(|g| ReactionKind::ALL.iter().position(|k| *k == g.kind));
@@ -137,7 +158,12 @@ pub fn toggle_reaction(groups: &mut Vec<ReactionGroup>, kind: ReactionKind, me: 
             true
         }
         None => {
-            groups.push(ReactionGroup { kind, count: 1, me: true, users: vec![me.to_string()] });
+            groups.push(ReactionGroup {
+                kind,
+                count: 1,
+                me: true,
+                users: vec![me.to_string()],
+            });
             groups.sort_by_key(|g| ReactionKind::ALL.iter().position(|k| *k == g.kind));
             true
         }
@@ -200,14 +226,30 @@ mod tests {
 
     #[test]
     fn groups_and_toggles() {
-        let mut g = group_reactions([("heart", "bo"), ("thumbsup", "me"), ("thumbsup", "ada"), ("fire", "x")], "me");
+        let mut g = group_reactions(
+            [
+                ("heart", "bo"),
+                ("thumbsup", "me"),
+                ("thumbsup", "ada"),
+                ("fire", "x"),
+            ],
+            "me",
+        );
         assert_eq!(g.len(), 2);
-        assert_eq!((g[0].kind, g[0].count, g[0].me), (ReactionKind::ThumbsUp, 2, true));
+        assert_eq!(
+            (g[0].kind, g[0].count, g[0].me),
+            (ReactionKind::ThumbsUp, 2, true)
+        );
         assert!(!toggle_reaction(&mut g, ReactionKind::ThumbsUp, "me"));
         assert_eq!((g[0].count, g[0].me), (1, false));
         assert!(toggle_reaction(&mut g, ReactionKind::Eyes, "me"));
         assert!(toggle_reaction(&mut g, ReactionKind::Heart, "me"));
-        assert_eq!(g.iter().find(|x| x.kind == ReactionKind::Heart).map(|x| x.count), Some(2));
+        assert_eq!(
+            g.iter()
+                .find(|x| x.kind == ReactionKind::Heart)
+                .map(|x| x.count),
+            Some(2)
+        );
         let mut solo = vec![];
         toggle_reaction(&mut solo, ReactionKind::Rocket, "me");
         toggle_reaction(&mut solo, ReactionKind::Rocket, "me");
@@ -216,7 +258,13 @@ mod tests {
 
     #[test]
     fn counts_commits_since_review() {
-        let c = |s: &str| CommitInfo { sha: s.into(), message: String::new(), author: String::new(), at: None, url: None };
+        let c = |s: &str| CommitInfo {
+            sha: s.into(),
+            message: String::new(),
+            author: String::new(),
+            at: None,
+            url: None,
+        };
         let cs = vec![c("a"), c("b"), c("c")];
         assert_eq!(commits_since(&cs, Some("a")), Some(2));
         assert_eq!(commits_since(&cs, Some("c")), Some(0));

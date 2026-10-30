@@ -96,7 +96,9 @@ impl ReviewCapabilities {
 
     /// Label of the "Request changes" action on this provider.
     pub fn request_changes_label(&self) -> &str {
-        self.request_changes_label.as_deref().unwrap_or("Request changes")
+        self.request_changes_label
+            .as_deref()
+            .unwrap_or("Request changes")
     }
 }
 
@@ -138,7 +140,11 @@ fn is_me(u: &User, me: &str) -> bool {
 
 /// My verdict among the latest reviews of a PR.
 pub fn my_review_state(cr: &ChangeRequest, me: &str) -> Option<ReviewState> {
-    cr.reviewers.iter().find(|r| is_me(&r.user, me)).map(|r| r.state).filter(|s| *s != ReviewState::Pending)
+    cr.reviewers
+        .iter()
+        .find(|r| is_me(&r.user, me))
+        .map(|r| r.state)
+        .filter(|s| *s != ReviewState::Pending)
 }
 
 /// GitHub: approve, request changes and comment on open PRs; authors may only comment.
@@ -158,12 +164,21 @@ pub fn github_capabilities(cr: &ChangeRequest, me: &str) -> ReviewCapabilities {
 
 /// GitLab: approve or revoke depending on whether I approved; no "request changes".
 /// `can_approve` is `user_can_approve` from the approvals endpoint.
-pub fn gitlab_capabilities(cr: &ChangeRequest, me: &str, approved_by_me: bool, can_approve: bool) -> ReviewCapabilities {
+pub fn gitlab_capabilities(
+    cr: &ChangeRequest,
+    me: &str,
+    approved_by_me: bool,
+    can_approve: bool,
+) -> ReviewCapabilities {
     if !cr.state.is_active() {
         return ReviewCapabilities::default();
     }
     let blocked = (!approved_by_me && !can_approve).then(|| {
-        if is_me(&cr.author, me) { "You can't approve your own MR".to_string() } else { "You can't approve this MR".to_string() }
+        if is_me(&cr.author, me) {
+            "You can't approve your own MR".to_string()
+        } else {
+            "You can't approve this MR".to_string()
+        }
     });
     ReviewCapabilities {
         approve: !approved_by_me && can_approve,
@@ -210,13 +225,19 @@ mod tests {
 
     fn cr(author: &str, state: ChangeRequestState) -> ChangeRequest {
         ChangeRequest {
-            id: ChangeRequestId { repo: RepoRef::new(ProviderKind::GitHub, "github.com", "a/b"), number: 1 },
+            id: ChangeRequestId {
+                repo: RepoRef::new(ProviderKind::GitHub, "github.com", "a/b"),
+                number: 1,
+            },
             title: "t".into(),
             author: User::named(author),
             state,
             source_branch: "f".into(),
             target_branch: "main".into(),
-            reviewers: vec![Review { user: User::named("Me"), state: ReviewState::Approved }],
+            reviewers: vec![Review {
+                user: User::named("Me"),
+                state: ReviewState::Approved,
+            }],
             checks: CheckSummary::default(),
             labels: vec![],
             comments_count: 0,
@@ -234,7 +255,10 @@ mod tests {
     fn github_own_pr_cannot_approve() {
         let c = github_capabilities(&cr("me", ChangeRequestState::Open), "me");
         assert!(!c.approve && !c.request_changes && c.comment_review);
-        assert_eq!(c.approve_blocked.as_deref(), Some("You can't approve your own PR"));
+        assert_eq!(
+            c.approve_blocked.as_deref(),
+            Some("You can't approve your own PR")
+        );
         let c = github_capabilities(&cr("ada", ChangeRequestState::Open), "me");
         assert!(c.approve && c.request_changes && !c.unapprove && c.approve_blocked.is_none());
     }
@@ -242,7 +266,9 @@ mod tests {
     #[test]
     fn closed_prs_offer_nothing() {
         assert!(!github_capabilities(&cr("ada", ChangeRequestState::Merged), "me").any());
-        assert!(!gitlab_capabilities(&cr("ada", ChangeRequestState::Closed), "me", false, true).any());
+        assert!(
+            !gitlab_capabilities(&cr("ada", ChangeRequestState::Closed), "me", false, true).any()
+        );
     }
 
     #[test]
@@ -252,23 +278,50 @@ mod tests {
         let c = gitlab_capabilities(&cr("ada", ChangeRequestState::Open), "me", true, false);
         assert!(!c.approve && c.unapprove && c.approve_blocked.is_none());
         let c = gitlab_capabilities(&cr("me", ChangeRequestState::Open), "me", false, false);
-        assert_eq!(c.approve_blocked.as_deref(), Some("You can't approve your own MR"));
+        assert_eq!(
+            c.approve_blocked.as_deref(),
+            Some("You can't approve your own MR")
+        );
     }
 
     #[test]
     fn my_state_and_optimistic() {
-        assert_eq!(my_review_state(&cr("ada", ChangeRequestState::Open), "me"), Some(ReviewState::Approved));
-        assert_eq!(state_after(ReviewAction::Unapprove, Some(ReviewState::Approved)), None);
-        assert_eq!(state_after(ReviewAction::Comment, None), Some(ReviewState::Commented));
-        assert_eq!(ReviewAction::parse("request-changes"), Some(ReviewAction::RequestChanges));
-        assert_eq!(ReviewAction::parse("wait"), Some(ReviewAction::WaitForAuthor));
-        assert_eq!(state_after(ReviewAction::ResetVote, Some(ReviewState::Approved)), None);
+        assert_eq!(
+            my_review_state(&cr("ada", ChangeRequestState::Open), "me"),
+            Some(ReviewState::Approved)
+        );
+        assert_eq!(
+            state_after(ReviewAction::Unapprove, Some(ReviewState::Approved)),
+            None
+        );
+        assert_eq!(
+            state_after(ReviewAction::Comment, None),
+            Some(ReviewState::Commented)
+        );
+        assert_eq!(
+            ReviewAction::parse("request-changes"),
+            Some(ReviewAction::RequestChanges)
+        );
+        assert_eq!(
+            ReviewAction::parse("wait"),
+            Some(ReviewAction::WaitForAuthor)
+        );
+        assert_eq!(
+            state_after(ReviewAction::ResetVote, Some(ReviewState::Approved)),
+            None
+        );
     }
 
     #[test]
     fn azure_votes() {
         let c = azure_capabilities(&cr("me", ChangeRequestState::Open), 10);
-        assert!(!c.approve && c.approve_with_suggestions && c.wait_for_author && c.request_changes && c.reset_vote);
+        assert!(
+            !c.approve
+                && c.approve_with_suggestions
+                && c.wait_for_author
+                && c.request_changes
+                && c.reset_vote
+        );
         assert_eq!(c.request_changes_label(), "Reject");
         assert!(!azure_capabilities(&cr("ada", ChangeRequestState::Open), 0).reset_vote);
         assert!(!azure_capabilities(&cr("ada", ChangeRequestState::Merged), 0).any());

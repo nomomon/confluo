@@ -67,7 +67,12 @@ impl GitViewer {
     }
 
     /// Red toast with the provider's reason; stays longer than a success toast.
-    pub(crate) fn show_error_toast(&mut self, title: impl Into<String>, reason: impl Into<String>, cx: &mut Context<Self>) {
+    pub(crate) fn show_error_toast(
+        &mut self,
+        title: impl Into<String>,
+        reason: impl Into<String>,
+        cx: &mut Context<Self>,
+    ) {
         let reason: String = reason.into();
         self.toast_error = Some(reason.chars().take(200).collect());
         self.toast_plain = false;
@@ -78,7 +83,11 @@ impl GitViewer {
     pub(crate) fn show_crash_toast(&mut self, log: std::path::PathBuf, cx: &mut Context<Self>) {
         self.toast_error = None;
         self.toast_plain = true;
-        self.start_toast("Confluo quit unexpectedly last time.".into(), timing::TOAST_ERROR, cx);
+        self.start_toast(
+            "Confluo quit unexpectedly last time.".into(),
+            timing::TOAST_ERROR,
+            cx,
+        );
         self.toast_file = Some(log);
     }
 

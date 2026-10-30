@@ -26,31 +26,49 @@ struct Item {
 fn parse_item(line: &str) -> Option<Item> {
     let indent_len = line.len() - line.trim_start_matches([' ', '\t']).len();
     let (indent, rest) = line.split_at(indent_len);
-    let (number, bullet, marker_len) = if let Some(c) = rest.chars().next().filter(|c| matches!(c, '-' | '*' | '+')) {
-        if !rest[1..].starts_with(' ') {
-            return None;
-        }
-        (None, c, 2)
-    } else {
-        let digits = rest.len() - rest.trim_start_matches(|c: char| c.is_ascii_digit()).len();
-        if digits == 0 || digits > 9 {
-            return None;
-        }
-        let delim = rest[digits..].chars().next().filter(|c| matches!(c, '.' | ')'))?;
-        if !rest[digits + 1..].starts_with(' ') {
-            return None;
-        }
-        (Some((rest[..digits].parse().ok()?, delim)), '-', digits + 2)
-    };
+    let (number, bullet, marker_len) =
+        if let Some(c) = rest.chars().next().filter(|c| matches!(c, '-' | '*' | '+')) {
+            if !rest[1..].starts_with(' ') {
+                return None;
+            }
+            (None, c, 2)
+        } else {
+            let digits = rest.len() - rest.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+            if digits == 0 || digits > 9 {
+                return None;
+            }
+            let delim = rest[digits..]
+                .chars()
+                .next()
+                .filter(|c| matches!(c, '.' | ')'))?;
+            if !rest[digits + 1..].starts_with(' ') {
+                return None;
+            }
+            (Some((rest[..digits].parse().ok()?, delim)), '-', digits + 2)
+        };
     let after = &rest[marker_len..];
-    let task = number.is_none() && (after.starts_with("[ ] ") || after.starts_with("[x] ") || after.starts_with("[X] ") || after == "[ ]" || after == "[x]");
+    let task = number.is_none()
+        && (after.starts_with("[ ] ")
+            || after.starts_with("[x] ")
+            || after.starts_with("[X] ")
+            || after == "[ ]"
+            || after == "[x]");
     let task_len = if task { after.len().min(4) } else { 0 };
-    Some(Item { indent: indent.to_string(), number, bullet, task, prefix_len: indent_len + marker_len + task_len })
+    Some(Item {
+        indent: indent.to_string(),
+        number,
+        bullet,
+        task,
+        prefix_len: indent_len + marker_len + task_len,
+    })
 }
 
 fn line_bounds(text: &str, off: usize) -> Range<usize> {
     let start = text[..off].rfind('\n').map(|i| i + 1).unwrap_or(0);
-    let end = text[off..].find('\n').map(|i| off + i).unwrap_or(text.len());
+    let end = text[off..]
+        .find('\n')
+        .map(|i| off + i)
+        .unwrap_or(text.len());
     start..end
 }
 
@@ -66,17 +84,33 @@ pub fn enter(text: &str, sel: &Range<usize>) -> Option<Edit> {
     if caret < line.start + item.prefix_len {
         return None;
     }
-    if text[line.start + item.prefix_len..line.end].trim().is_empty() {
+    if text[line.start + item.prefix_len..line.end]
+        .trim()
+        .is_empty()
+    {
         // Empty item: end the list, leaving an empty line.
-        return Some(Edit { range: line.start..line.end, text: String::new(), sel: line.start..line.start });
+        return Some(Edit {
+            range: line.start..line.end,
+            text: String::new(),
+            sel: line.start..line.start,
+        });
     }
     let marker = match item.number {
         Some((n, d)) => format!("{}{d} ", n + 1),
         None => format!("{} ", item.bullet),
     };
-    let insert = format!("\n{}{}{}", item.indent, marker, if item.task { "[ ] " } else { "" });
+    let insert = format!(
+        "\n{}{}{}",
+        item.indent,
+        marker,
+        if item.task { "[ ] " } else { "" }
+    );
     let at = caret + insert.len();
-    Some(Edit { range: caret..caret, text: insert, sel: at..at })
+    Some(Edit {
+        range: caret..caret,
+        text: insert,
+        sel: at..at,
+    })
 }
 
 const INDENT: &str = "  ";
@@ -84,7 +118,8 @@ const INDENT: &str = "  ";
 /// Tab / Shift+Tab on list items: indent or outdent every line the selection touches.
 /// `None` when the caret's line is not a list item (Tab then inserts spaces as usual).
 pub fn indent(text: &str, sel: &Range<usize>, outdent: bool) -> Option<Edit> {
-    if sel.end > text.len() || !text.is_char_boundary(sel.start) || !text.is_char_boundary(sel.end) {
+    if sel.end > text.len() || !text.is_char_boundary(sel.start) || !text.is_char_boundary(sel.end)
+    {
         return None;
     }
     let first = line_bounds(text, sel.start).start;
@@ -115,7 +150,11 @@ pub fn indent(text: &str, sel: &Range<usize>, outdent: bool) -> Option<Edit> {
         // Shift the selection ends by the change on lines at or before them.
         let shift = |off: usize, acc: &mut isize| {
             if pos <= off {
-                *acc += if delta < 0 { delta.max(pos as isize - off as isize) } else { delta };
+                *acc += if delta < 0 {
+                    delta.max(pos as isize - off as isize)
+                } else {
+                    delta
+                };
             }
         };
         shift(sel.start, &mut d_start);
@@ -127,7 +166,11 @@ pub fn indent(text: &str, sel: &Range<usize>, outdent: bool) -> Option<Edit> {
     }
     let s = (sel.start as isize + d_start).max(first as isize) as usize;
     let e = (sel.end as isize + d_end).max(s as isize) as usize;
-    Some(Edit { range: first..last, text: out, sel: s..e })
+    Some(Edit {
+        range: first..last,
+        text: out,
+        sel: s..e,
+    })
 }
 
 /// Wrap the selection in `left`/`right` (Cmd+B `**`, Cmd+I `_`). With no selection, insert both and
@@ -135,7 +178,11 @@ pub fn indent(text: &str, sel: &Range<usize>, outdent: bool) -> Option<Edit> {
 pub fn wrap(text: &str, sel: &Range<usize>, left: &str, right: &str) -> Edit {
     let inner = text.get(sel.clone()).unwrap_or("");
     let start = sel.start + left.len();
-    Edit { range: sel.clone(), text: format!("{left}{inner}{right}"), sel: start..start + inner.len() }
+    Edit {
+        range: sel.clone(),
+        text: format!("{left}{inner}{right}"),
+        sel: start..start + inner.len(),
+    }
 }
 
 /// Cmd+K: `[selection](url)` with `url` selected; with no selection `[](url)` and the caret in the brackets.
@@ -147,12 +194,21 @@ pub fn link(text: &str, sel: &Range<usize>) -> Edit {
         let u = sel.start + inner.len() + 3;
         u..u + 3
     };
-    Edit { range: sel.clone(), text: format!("[{inner}](url)"), sel: new_sel }
+    Edit {
+        range: sel.clone(),
+        text: format!("[{inner}](url)"),
+        sel: new_sel,
+    }
 }
 
 #[cfg(test)]
 pub fn apply(text: &str, e: &Edit) -> String {
-    format!("{}{}{}", &text[..e.range.start], e.text, &text[e.range.end..])
+    format!(
+        "{}{}{}",
+        &text[..e.range.start],
+        e.text,
+        &text[e.range.end..]
+    )
 }
 
 #[cfg(test)]
@@ -168,7 +224,10 @@ mod tests {
     fn continues_bullets_numbers_and_tasks() {
         assert_eq!(enter_at_end("- a").unwrap().0, "- a\n- ");
         assert_eq!(enter_at_end("* a").unwrap().0, "* a\n* ");
-        assert_eq!(enter_at_end("x\n  - nested").unwrap().0, "x\n  - nested\n  - ");
+        assert_eq!(
+            enter_at_end("x\n  - nested").unwrap().0,
+            "x\n  - nested\n  - "
+        );
         assert_eq!(enter_at_end("1. one").unwrap().0, "1. one\n2. ");
         assert_eq!(enter_at_end("9) nine").unwrap().0, "9) nine\n10) ");
         assert_eq!(enter_at_end("- [ ] todo").unwrap().0, "- [ ] todo\n- [ ] ");
@@ -188,7 +247,10 @@ mod tests {
     fn plain_lines_and_selections_get_a_plain_newline() {
         assert_eq!(enter_at_end("hello"), None);
         assert_eq!(enter_at_end("-not a list"), None);
-        assert_eq!(enter_at_end("2026. year"), Some(("2026. year\n2027. ".into(), 17)));
+        assert_eq!(
+            enter_at_end("2026. year"),
+            Some(("2026. year\n2027. ".into(), 17))
+        );
         assert_eq!(enter("- a", &(0..1)), None);
         // Caret inside the marker: plain newline.
         assert_eq!(enter("  - a", &(1..1)), None);

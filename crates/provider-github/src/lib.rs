@@ -40,20 +40,42 @@ impl GitHubProvider {
     pub fn new(host: &str, token: String) -> Self {
         let host = host.to_ascii_lowercase();
         let (api, graphql) = if host == "github.com" {
-            ("https://api.github.com".to_string(), "https://api.github.com/graphql".to_string())
+            (
+                "https://api.github.com".to_string(),
+                "https://api.github.com/graphql".to_string(),
+            )
         } else {
-            (format!("https://{host}/api/v3"), format!("https://{host}/api/graphql"))
+            (
+                format!("https://{host}/api/v3"),
+                format!("https://{host}/api/graphql"),
+            )
         };
-        let http = reqwest::Client::builder().user_agent("git-viewer").build().expect("http client");
-        Self { host, api, graphql, token, http, viewer: OnceCell::new() }
+        let http = reqwest::Client::builder()
+            .user_agent("git-viewer")
+            .build()
+            .expect("http client");
+        Self {
+            host,
+            api,
+            graphql,
+            token,
+            http,
+            viewer: OnceCell::new(),
+        }
     }
 
     async fn send(&self, req: reqwest::RequestBuilder) -> ProviderResult<Value> {
-        let resp = gv_http::send(req.bearer_auth(&self.token).header("Accept", "application/vnd.github+json")).await?;
+        let resp = gv_http::send(
+            req.bearer_auth(&self.token)
+                .header("Accept", "application/vnd.github+json"),
+        )
+        .await?;
         let (status, body) = (resp.status, resp.text());
         match status {
             200..=299 if body.trim().is_empty() => Ok(Value::Null),
-            200..=299 => serde_json::from_str(&body).map_err(|e| ProviderError::Decode(e.to_string())),
+            200..=299 => {
+                serde_json::from_str(&body).map_err(|e| ProviderError::Decode(e.to_string()))
+            }
             401 => Err(ProviderError::Unauthenticated(self.host.clone())),
             404 => Err(ProviderError::NotFound(body)),
             _ => Err(ProviderError::Http { status, body }),
@@ -62,7 +84,13 @@ impl GitHubProvider {
 
     /// GET returning raw text (`Accept: raw`); None on 404.
     async fn get_raw(&self, url: &str) -> ProviderResult<Option<String>> {
-        let resp = gv_http::send(self.http.get(url).bearer_auth(&self.token).header("Accept", "application/vnd.github.raw")).await?;
+        let resp = gv_http::send(
+            self.http
+                .get(url)
+                .bearer_auth(&self.token)
+                .header("Accept", "application/vnd.github.raw"),
+        )
+        .await?;
         let (status, body) = (resp.status, resp.text());
         match status {
             200..=299 => Ok(Some(body)),
@@ -73,13 +101,30 @@ impl GitHubProvider {
     }
 
     async fn gql(&self, query: &str, variables: Value) -> ProviderResult<Value> {
-        let v = self.send(self.http.post(&self.graphql).json(&json!({"query": query, "variables": variables}))).await?;
-        if let Some(errs) = v.get("errors").and_then(|e| e.as_array()).filter(|e| !e.is_empty()) {
-            let msg = errs.iter().filter_map(|e| e["message"].as_str()).collect::<Vec<_>>().join("; ");
+        let v = self
+            .send(
+                self.http
+                    .post(&self.graphql)
+                    .json(&json!({"query": query, "variables": variables})),
+            )
+            .await?;
+        if let Some(errs) = v
+            .get("errors")
+            .and_then(|e| e.as_array())
+            .filter(|e| !e.is_empty())
+        {
+            let msg = errs
+                .iter()
+                .filter_map(|e| e["message"].as_str())
+                .collect::<Vec<_>>()
+                .join("; ");
             if errs.iter().any(|e| e["type"] == "NOT_FOUND") {
                 return Err(ProviderError::NotFound(msg));
             }
-            return Err(ProviderError::Http { status: 200, body: msg });
+            return Err(ProviderError::Http {
+                status: 200,
+                body: msg,
+            });
         }
         Ok(v["data"].clone())
     }
@@ -96,7 +141,10 @@ impl GitHubProvider {
             let d = self.gql(&query, json!({"q": q, "after": after})).await?;
             if gv_http::debug_enabled() {
                 let r = &d["rateLimit"];
-                eprintln!("github search cost {} remaining {} reset {}", r["cost"], r["remaining"], r["resetAt"]);
+                eprintln!(
+                    "github search cost {} remaining {} reset {}",
+                    r["cost"], r["remaining"], r["resetAt"]
+                );
             }
             for n in d["search"]["nodes"].as_array().into_iter().flatten() {
                 if n.get("number").is_some() {
@@ -112,7 +160,9 @@ impl GitHubProvider {
     }
 
     fn parse_pr(&self, n: &Value, me: &str) -> ProviderResult<ChangeRequest> {
-        let repo_path = n["repository"]["nameWithOwner"].as_str().unwrap_or_default();
+        let repo_path = n["repository"]["nameWithOwner"]
+            .as_str()
+            .unwrap_or_default();
         let state = match n["state"].as_str() {
             Some("MERGED") => ChangeRequestState::Merged,
             Some("CLOSED") => ChangeRequestState::Closed,
@@ -127,21 +177,39 @@ impl GitHubProvider {
                 Some("PENDING") => ReviewState::Pending,
                 _ => ReviewState::Commented,
             };
-            reviewers.push(Review { user: user(&r["author"]), state: st });
+            reviewers.push(Review {
+                user: user(&r["author"]),
+                state: st,
+            });
         }
-        for r in n["reviewRequests"]["nodes"].as_array().into_iter().flatten() {
+        for r in n["reviewRequests"]["nodes"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
             let rr = &r["requestedReviewer"];
-            let u = if let Some(slug) = rr["slug"].as_str() { User::named(format!("team:{slug}")) } else { user(rr) };
+            let u = if let Some(slug) = rr["slug"].as_str() {
+                User::named(format!("team:{slug}"))
+            } else {
+                user(rr)
+            };
             // A re-request after a review means the reviewer owes a new review.
             if let Some(existing) = reviewers.iter_mut().find(|x| x.user.username == u.username) {
                 existing.state = ReviewState::Pending;
             } else {
-                reviewers.push(Review { user: u, state: ReviewState::Pending });
+                reviewers.push(Review {
+                    user: u,
+                    state: ReviewState::Pending,
+                });
             }
         }
         let mut checks = CheckSummary::default();
         let commit = &n["commits"]["nodes"][0]["commit"];
-        for c in commit["statusCheckRollup"]["contexts"]["nodes"].as_array().into_iter().flatten() {
+        for c in commit["statusCheckRollup"]["contexts"]["nodes"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
             checks.total += 1;
             let outcome = if c["__typename"] == "CheckRun" {
                 if c["status"] != "COMPLETED" {
@@ -166,7 +234,10 @@ impl GitHubProvider {
             }
         }
         let mut cr = ChangeRequest {
-            id: ChangeRequestId { repo: RepoRef::new(ProviderKind::GitHub, &self.host, repo_path), number: n["number"].as_u64().unwrap_or(0) },
+            id: ChangeRequestId {
+                repo: RepoRef::new(ProviderKind::GitHub, &self.host, repo_path),
+                number: n["number"].as_u64().unwrap_or(0),
+            },
             title: s(&n["title"]),
             author: user(&n["author"]),
             state,
@@ -174,7 +245,12 @@ impl GitHubProvider {
             target_branch: s(&n["baseRefName"]),
             reviewers,
             checks,
-            labels: n["labels"]["nodes"].as_array().into_iter().flatten().map(|l| s(&l["name"])).collect(),
+            labels: n["labels"]["nodes"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|l| s(&l["name"]))
+                .collect(),
             comments_count: n["totalCommentsCount"].as_u64().unwrap_or(0) as u32,
             additions: n["additions"].as_u64().map(|x| x as u32),
             deletions: n["deletions"].as_u64().map(|x| x as u32),
@@ -193,23 +269,46 @@ impl GitHubProvider {
     }
 
     /// One search per chunk of repos (`repo:a repo:b ...` is an OR), split back per repo.
-    async fn list_repos_batched(&self, repos: Vec<RepoRef>, filter: &Filter) -> Vec<(Scope, ProviderResult<Vec<ChangeRequest>>)> {
+    async fn list_repos_batched(
+        &self,
+        repos: Vec<RepoRef>,
+        filter: &Filter,
+    ) -> Vec<(Scope, ProviderResult<Vec<ChangeRequest>>)> {
         let me = match self.me().await {
             Ok(m) => m,
             Err(e) => {
                 let msg = e.to_string();
-                return repos.into_iter().map(|r| (Scope::Repo(r), Err(ProviderError::Network(msg.clone())))).collect();
+                return repos
+                    .into_iter()
+                    .map(|r| (Scope::Repo(r), Err(ProviderError::Network(msg.clone()))))
+                    .collect();
             }
         };
         let base = format!("is:pr archived:false{}", state_qualifier(filter.state));
         let mut out = vec![];
         for chunk in chunk_repos(&repos, MAX_QUERY_LEN - base.len()) {
-            let q = format!("{base} {}", chunk.iter().map(|r| format!("repo:{}", r.path)).collect::<Vec<_>>().join(" "));
+            let q = format!(
+                "{base} {}",
+                chunk
+                    .iter()
+                    .map(|r| format!("repo:{}", r.path))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            );
             let res = self.search(&q, &me).await;
             for r in chunk {
                 let scoped = match &res {
-                    Ok(items) => Ok(items.iter().filter(|c| c.id.repo.path.eq_ignore_ascii_case(&r.path)).cloned().collect()),
-                    Err(ProviderError::RateLimited { host, until }) => Err(ProviderError::RateLimited { host: host.clone(), until: *until }),
+                    Ok(items) => Ok(items
+                        .iter()
+                        .filter(|c| c.id.repo.path.eq_ignore_ascii_case(&r.path))
+                        .cloned()
+                        .collect()),
+                    Err(ProviderError::RateLimited { host, until }) => {
+                        Err(ProviderError::RateLimited {
+                            host: host.clone(),
+                            until: *until,
+                        })
+                    }
                     Err(e) => Err(ProviderError::Network(e.to_string())),
                 };
                 out.push((Scope::Repo(r.clone()), scoped));
@@ -224,7 +323,10 @@ fn s(v: &Value) -> String {
 }
 
 fn time(v: &Value) -> DateTime<Utc> {
-    v.as_str().and_then(|t| DateTime::parse_from_rfc3339(t).ok()).map(|t| t.with_timezone(&Utc)).unwrap_or_default()
+    v.as_str()
+        .and_then(|t| DateTime::parse_from_rfc3339(t).ok())
+        .map(|t| t.with_timezone(&Utc))
+        .unwrap_or_default()
 }
 
 fn user(v: &Value) -> User {
@@ -233,7 +335,10 @@ fn user(v: &Value) -> User {
         bot: v["__typename"] == "Bot" || username.ends_with("[bot]"),
         id: None,
         username,
-        name: v["name"].as_str().filter(|x| !x.is_empty()).map(str::to_string),
+        name: v["name"]
+            .as_str()
+            .filter(|x| !x.is_empty())
+            .map(str::to_string),
         avatar_url: v["avatarUrl"].as_str().map(str::to_string),
     }
 }
@@ -271,7 +376,10 @@ fn comment(v: &Value) -> Comment {
         created_at: time(&v["createdAt"]),
         position: v["path"].as_str().map(|p| InlinePosition {
             path: p.to_string(),
-            line: v["line"].as_u64().or_else(|| v["originalLine"].as_u64()).map(|l| l as u32),
+            line: v["line"]
+                .as_u64()
+                .or_else(|| v["originalLine"].as_u64())
+                .map(|l| l as u32),
         }),
         reactions: extras::reactions(v),
     }
@@ -290,7 +398,10 @@ fn rest_comment(v: &Value) -> Comment {
         },
         body: s(&v["body"]),
         created_at: time(&v["created_at"]),
-        position: v["path"].as_str().map(|p| InlinePosition { path: p.into(), line: v["line"].as_u64().map(|l| l as u32) }),
+        position: v["path"].as_str().map(|p| InlinePosition {
+            path: p.into(),
+            line: v["line"].as_u64().map(|l| l as u32),
+        }),
         reactions: vec![],
     }
 }
@@ -304,7 +415,10 @@ fn changed_file(v: &Value) -> ChangedFile {
         _ => FileStatus::Modified,
     };
     let new_path = s(&v["filename"]);
-    let old_path = v["previous_filename"].as_str().map(str::to_string).unwrap_or_else(|| new_path.clone());
+    let old_path = v["previous_filename"]
+        .as_str()
+        .map(str::to_string)
+        .unwrap_or_else(|| new_path.clone());
     let patch = v["patch"].as_str();
     let mut f = ChangedFile::from_patch(&old_path, &new_path, status, patch.unwrap_or_default());
     f.additions = v["additions"].as_u64().unwrap_or(0) as u32;
@@ -321,14 +435,18 @@ fn changed_file(v: &Value) -> ChangedFile {
 fn urlencoding_seg(p: &str) -> String {
     p.bytes()
         .map(|b| match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => (b as char).to_string(),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
+                (b as char).to_string()
+            }
             _ => format!("%{b:02X}"),
         })
         .collect()
 }
 
 fn split_repo(r: &RepoRef) -> ProviderResult<(&str, &str)> {
-    r.path.split_once('/').ok_or_else(|| ProviderError::NotFound(r.path.clone()))
+    r.path
+        .split_once('/')
+        .ok_or_else(|| ProviderError::NotFound(r.path.clone()))
 }
 
 fn search_qualifiers(scope: &Scope) -> String {
@@ -352,32 +470,60 @@ impl Provider for GitHubProvider {
     async fn whoami(&self) -> ProviderResult<User> {
         let u = self
             .viewer
-            .get_or_try_init(|| async { Ok::<_, ProviderError>(user(&self.gql("query { viewer { login name avatarUrl } }", json!({})).await?["viewer"])) })
+            .get_or_try_init(|| async {
+                Ok::<_, ProviderError>(user(
+                    &self
+                        .gql("query { viewer { login name avatarUrl } }", json!({}))
+                        .await?["viewer"],
+                ))
+            })
             .await?;
         Ok(u.clone())
     }
 
-    async fn list_many(&self, scopes: Vec<Scope>, filter: &Filter) -> Vec<(Scope, ProviderResult<Vec<ChangeRequest>>)> {
-        let (repos, other): (Vec<Scope>, Vec<Scope>) = scopes.into_iter().partition(|s| matches!(s, Scope::Repo(_)) && filter.involvement == Involvement::All);
+    async fn list_many(
+        &self,
+        scopes: Vec<Scope>,
+        filter: &Filter,
+    ) -> Vec<(Scope, ProviderResult<Vec<ChangeRequest>>)> {
+        let (repos, other): (Vec<Scope>, Vec<Scope>) = scopes
+            .into_iter()
+            .partition(|s| matches!(s, Scope::Repo(_)) && filter.involvement == Involvement::All);
         let mut out = vec![];
         for s in other {
             let r = self.list_change_requests(&s, filter).await;
             out.push((s, r));
         }
-        let repos = repos.into_iter().filter_map(|s| if let Scope::Repo(r) = s { Some(r) } else { None }).collect::<Vec<_>>();
+        let repos = repos
+            .into_iter()
+            .filter_map(|s| {
+                if let Scope::Repo(r) = s {
+                    Some(r)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
         if !repos.is_empty() {
             out.extend(self.list_repos_batched(repos, filter).await);
         }
         out
     }
 
-    async fn list_change_requests(&self, scope: &Scope, filter: &Filter) -> ProviderResult<Vec<ChangeRequest>> {
+    async fn list_change_requests(
+        &self,
+        scope: &Scope,
+        filter: &Filter,
+    ) -> ProviderResult<Vec<ChangeRequest>> {
         let me = self.me().await?;
         let state = state_qualifier(filter.state);
         let base = format!("is:pr archived:false {}{state}", search_qualifiers(scope));
         let queries: Vec<String> = match filter.involvement {
             Involvement::Authored => vec![format!("{base} author:@me")],
-            Involvement::Reviewing => vec![format!("{base} review-requested:@me"), format!("{base} reviewed-by:@me -author:@me")],
+            Involvement::Reviewing => vec![
+                format!("{base} review-requested:@me"),
+                format!("{base} reviewed-by:@me -author:@me"),
+            ],
             Involvement::All => vec![base],
         };
         let mut out: Vec<ChangeRequest> = vec![];
@@ -392,7 +538,10 @@ impl Provider for GitHubProvider {
         Ok(out)
     }
 
-    async fn get_change_request(&self, id: &ChangeRequestId) -> ProviderResult<ChangeRequestDetail> {
+    async fn get_change_request(
+        &self,
+        id: &ChangeRequestId,
+    ) -> ProviderResult<ChangeRequestDetail> {
         let (owner, name) = split_repo(&id.repo)?;
         let me = self.me().await?;
         let query = format!(
@@ -408,7 +557,9 @@ impl Provider for GitHubProvider {
             inline::THREAD_FIELDS,
             R = extras::REACTION_FIELDS,
         );
-        let d = self.gql(&query, json!({"o": owner, "n": name, "num": id.number})).await?;
+        let d = self
+            .gql(&query, json!({"o": owner, "n": name, "num": id.number}))
+            .await?;
         let pr = &d["repository"]["pullRequest"];
         if pr.is_null() {
             return Err(ProviderError::NotFound(id.key()));
@@ -424,12 +575,20 @@ impl Provider for GitHubProvider {
                 threads.push(Thread::conversation(s(&c["id"]), vec![comment(c)]));
             }
         }
-        for t in pr["reviewThreads"]["nodes"].as_array().into_iter().flatten() {
+        for t in pr["reviewThreads"]["nodes"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
             threads.push(inline::parse_thread(t));
         }
         threads.sort_by_key(|t| t.comments.first().map(|c| c.created_at));
         let events = review::timeline(pr, &summary);
-        let review = ReviewInfo { caps: github_capabilities(&summary, &me), my_state: my_review_state(&summary, &me), approvals: None };
+        let review = ReviewInfo {
+            caps: github_capabilities(&summary, &me),
+            my_state: my_review_state(&summary, &me),
+            approvals: None,
+        };
         let edit = edit::edit_info(pr, &summary, &me);
         let checks = checks::checks_info(pr, edit::access(pr).0);
         Ok(ChangeRequestDetail {
@@ -440,7 +599,9 @@ impl Provider for GitHubProvider {
             summary,
             description: s(&pr["body"]),
             threads,
-            head_sha: pr["commits"]["nodes"][0]["commit"]["oid"].as_str().map(str::to_string),
+            head_sha: pr["commits"]["nodes"][0]["commit"]["oid"]
+                .as_str()
+                .map(str::to_string),
             reactions: extras::reactions(pr),
             commits: extras::commits(pr),
             my_review_sha: extras::my_review_sha(pr, &me),
@@ -452,12 +613,19 @@ impl Provider for GitHubProvider {
     async fn list_repos(&self, owner: &str) -> ProviderResult<Vec<RepoRef>> {
         let mut out = vec![];
         for page in 1..=10 {
-            let url = format!("{}/users/{owner}/repos?per_page=100&page={page}&type=all", self.api);
+            let url = format!(
+                "{}/users/{owner}/repos?per_page=100&page={page}&type=all",
+                self.api
+            );
             let v = self.send(self.http.get(url)).await?;
             let arr = v.as_array().cloned().unwrap_or_default();
             for r in &arr {
                 if r["archived"] != true {
-                    out.push(RepoRef::new(ProviderKind::GitHub, &self.host, s(&r["full_name"])));
+                    out.push(RepoRef::new(
+                        ProviderKind::GitHub,
+                        &self.host,
+                        s(&r["full_name"]),
+                    ));
                 }
             }
             if arr.len() < 100 {
@@ -470,11 +638,18 @@ impl Provider for GitHubProvider {
     async fn add_comment(&self, id: &ChangeRequestId, body: &str) -> ProviderResult<Comment> {
         let (o, n) = split_repo(&id.repo)?;
         let url = format!("{}/repos/{o}/{n}/issues/{}/comments", self.api, id.number);
-        let v = self.send(self.http.post(url).json(&json!({"body": body}))).await?;
+        let v = self
+            .send(self.http.post(url).json(&json!({"body": body})))
+            .await?;
         Ok(rest_comment(&v))
     }
 
-    async fn reply_to_thread(&self, id: &ChangeRequestId, thread_id: &str, body: &str) -> ProviderResult<Comment> {
+    async fn reply_to_thread(
+        &self,
+        id: &ChangeRequestId,
+        thread_id: &str,
+        body: &str,
+    ) -> ProviderResult<Comment> {
         // Only review threads (PRRT_) support replies; conversation comments are flat.
         if !thread_id.starts_with("PRRT_") {
             return self.add_comment(id, body).await;
@@ -489,20 +664,47 @@ impl Provider for GitHubProvider {
         Ok(comment(&d["addPullRequestReviewThreadReply"]["comment"]))
     }
 
-    async fn add_line_comment(&self, id: &ChangeRequestId, position: &DiffPosition, body: &str) -> ProviderResult<Comment> {
+    async fn add_line_comment(
+        &self,
+        id: &ChangeRequestId,
+        position: &DiffPosition,
+        body: &str,
+    ) -> ProviderResult<Comment> {
         let (o, n) = split_repo(&id.repo)?;
         let head = match &position.head_sha {
             Some(h) => h.clone(),
-            None => s(&self.send(self.http.get(format!("{}/repos/{o}/{n}/pulls/{}", self.api, id.number))).await?["head"]["sha"]),
+            None => s(&self
+                .send(
+                    self.http
+                        .get(format!("{}/repos/{o}/{n}/pulls/{}", self.api, id.number)),
+                )
+                .await?["head"]["sha"]),
         };
         let url = format!("{}/repos/{o}/{n}/pulls/{}/comments", self.api, id.number);
-        let v = self.send(self.http.post(url).json(&inline::line_comment_payload(position, &head, body))).await?;
+        let v = self
+            .send(
+                self.http
+                    .post(url)
+                    .json(&inline::line_comment_payload(position, &head, body)),
+            )
+            .await?;
         Ok(rest_comment(&v))
     }
 
-    async fn resolve_thread(&self, _id: &ChangeRequestId, thread_id: &str, resolved: bool) -> ProviderResult<()> {
-        let m = if resolved { "resolveReviewThread" } else { "unresolveReviewThread" };
-        let q = format!("mutation($t: ID!) {{ {m}(input: {{threadId: $t}}) {{ thread {{ id isResolved }} }} }}");
+    async fn resolve_thread(
+        &self,
+        _id: &ChangeRequestId,
+        thread_id: &str,
+        resolved: bool,
+    ) -> ProviderResult<()> {
+        let m = if resolved {
+            "resolveReviewThread"
+        } else {
+            "unresolveReviewThread"
+        };
+        let q = format!(
+            "mutation($t: ID!) {{ {m}(input: {{threadId: $t}}) {{ thread {{ id isResolved }} }} }}"
+        );
         self.gql(&q, json!({"t": thread_id})).await?;
         Ok(())
     }
@@ -511,7 +713,10 @@ impl Provider for GitHubProvider {
         let (owner, name) = split_repo(&id.repo)?;
         let mut out = vec![];
         for page in 1..=30 {
-            let url = format!("{}/repos/{owner}/{name}/pulls/{}/files?per_page=100&page={page}", self.api, id.number);
+            let url = format!(
+                "{}/repos/{owner}/{name}/pulls/{}/files?per_page=100&page={page}",
+                self.api, id.number
+            );
             let v = self.send(self.http.get(url)).await?;
             let items = v.as_array().cloned().unwrap_or_default();
             out.extend(items.iter().map(changed_file));
@@ -522,25 +727,55 @@ impl Provider for GitHubProvider {
         Ok(out)
     }
 
-    async fn get_file_content(&self, id: &ChangeRequestId, path: &str, rev: &str) -> ProviderResult<Option<String>> {
+    async fn get_file_content(
+        &self,
+        id: &ChangeRequestId,
+        path: &str,
+        rev: &str,
+    ) -> ProviderResult<Option<String>> {
         let (owner, name) = split_repo(&id.repo)?;
-        let path: String = path.split('/').map(urlencoding_seg).collect::<Vec<_>>().join("/");
-        self.get_raw(&format!("{}/repos/{owner}/{name}/contents/{path}?ref={rev}", self.api)).await
+        let path: String = path
+            .split('/')
+            .map(urlencoding_seg)
+            .collect::<Vec<_>>()
+            .join("/");
+        self.get_raw(&format!(
+            "{}/repos/{owner}/{name}/contents/{path}?ref={rev}",
+            self.api
+        ))
+        .await
     }
 
-    async fn submit_review(&self, id: &ChangeRequestId, action: ReviewAction, body: Option<&str>) -> ProviderResult<()> {
-        let payload = review::review_payload(action, body).ok_or_else(|| ProviderError::Unsupported(format!("{} on GitHub", action.label())))?;
+    async fn submit_review(
+        &self,
+        id: &ChangeRequestId,
+        action: ReviewAction,
+        body: Option<&str>,
+    ) -> ProviderResult<()> {
+        let payload = review::review_payload(action, body)
+            .ok_or_else(|| ProviderError::Unsupported(format!("{} on GitHub", action.label())))?;
         let (o, n) = split_repo(&id.repo)?;
         let url = format!("{}/repos/{o}/{n}/pulls/{}/reviews", self.api, id.number);
         self.send(self.http.post(url).json(&payload)).await?;
         Ok(())
     }
 
-    async fn update_change_request(&self, id: &ChangeRequestId, title: Option<&str>, body: Option<&str>) -> ProviderResult<()> {
+    async fn update_change_request(
+        &self,
+        id: &ChangeRequestId,
+        title: Option<&str>,
+        body: Option<&str>,
+    ) -> ProviderResult<()> {
         self.do_update(id, title, body).await
     }
 
-    async fn set_people(&self, id: &ChangeRequestId, role: PeopleRole, current: &[User], desired: &[User]) -> ProviderResult<()> {
+    async fn set_people(
+        &self,
+        id: &ChangeRequestId,
+        role: PeopleRole,
+        current: &[User],
+        desired: &[User],
+    ) -> ProviderResult<()> {
         self.do_set_people(id, role, current, desired).await
     }
 
@@ -548,7 +783,13 @@ impl Provider for GitHubProvider {
         self.do_search_users(id, query).await
     }
 
-    async fn set_draft(&self, id: &ChangeRequestId, draft: bool, _title: &str, node_id: Option<&str>) -> ProviderResult<()> {
+    async fn set_draft(
+        &self,
+        id: &ChangeRequestId,
+        draft: bool,
+        _title: &str,
+        node_id: Option<&str>,
+    ) -> ProviderResult<()> {
         self.do_set_draft(id, draft, node_id).await
     }
 
@@ -568,21 +809,40 @@ impl Provider for GitHubProvider {
         self.do_rerun(id, target).await
     }
 
-    async fn react(&self, _id: &ChangeRequestId, subject: &str, kind: ReactionKind, add: bool) -> ProviderResult<()> {
+    async fn react(
+        &self,
+        _id: &ChangeRequestId,
+        subject: &str,
+        kind: ReactionKind,
+        add: bool,
+    ) -> ProviderResult<()> {
         self.do_react(subject, kind, add).await
     }
 
-    async fn set_file_viewed(&self, _id: &ChangeRequestId, pr_node: Option<&str>, path: &str, viewed: bool) -> ProviderResult<()> {
-        let node = pr_node.ok_or_else(|| ProviderError::Unsupported("viewed files without a PR id".into()))?;
+    async fn set_file_viewed(
+        &self,
+        _id: &ChangeRequestId,
+        pr_node: Option<&str>,
+        path: &str,
+        viewed: bool,
+    ) -> ProviderResult<()> {
+        let node = pr_node
+            .ok_or_else(|| ProviderError::Unsupported("viewed files without a PR id".into()))?;
         self.do_set_viewed(node, path, viewed).await
     }
 
     async fn delete_comment(&self, _id: &ChangeRequestId, comment_id: &str) -> ProviderResult<()> {
-        let m = delete_mutation(comment_id).ok_or_else(|| ProviderError::Unsupported("deleting a review summary".into()))?;
+        let m = delete_mutation(comment_id)
+            .ok_or_else(|| ProviderError::Unsupported("deleting a review summary".into()))?;
         self.gql(m, json!({"c": comment_id})).await.map(|_| ())
     }
 
-    async fn edit_comment(&self, _id: &ChangeRequestId, comment_id: &str, body: &str) -> ProviderResult<Comment> {
+    async fn edit_comment(
+        &self,
+        _id: &ChangeRequestId,
+        comment_id: &str,
+        body: &str,
+    ) -> ProviderResult<Comment> {
         let (mutation, field) = if comment_id.starts_with("PRRC_") {
             ("updatePullRequestReviewComment(input: {pullRequestReviewCommentId: $c, body: $b}) { pullRequestReviewComment { id body createdAt path line author { login avatarUrl } } }", "pullRequestReviewComment")
         } else if comment_id.starts_with("PRR_") {
@@ -590,8 +850,17 @@ impl Provider for GitHubProvider {
         } else {
             ("updateIssueComment(input: {id: $c, body: $b}) { issueComment { id body createdAt author { login avatarUrl } } }", "issueComment")
         };
-        let d = self.gql(&format!("mutation($c: ID!, $b: String!) {{ {mutation} }}"), json!({"c": comment_id, "b": body})).await?;
-        let root = d.as_object().and_then(|o| o.values().next()).cloned().unwrap_or_default();
+        let d = self
+            .gql(
+                &format!("mutation($c: ID!, $b: String!) {{ {mutation} }}"),
+                json!({"c": comment_id, "b": body}),
+            )
+            .await?;
+        let root = d
+            .as_object()
+            .and_then(|o| o.values().next())
+            .cloned()
+            .unwrap_or_default();
         Ok(comment(&root[field]))
     }
 }
@@ -615,16 +884,25 @@ mod tests {
 
     #[test]
     fn delete_picks_the_comment_kind() {
-        assert!(delete_mutation("PRRC_kw1").unwrap().contains("deletePullRequestReviewComment"));
-        assert!(delete_mutation("IC_kw1").unwrap().contains("deleteIssueComment"));
+        assert!(delete_mutation("PRRC_kw1")
+            .unwrap()
+            .contains("deletePullRequestReviewComment"));
+        assert!(delete_mutation("IC_kw1")
+            .unwrap()
+            .contains("deleteIssueComment"));
         assert_eq!(delete_mutation("PRR_kw1"), None);
     }
 
     #[test]
     fn parses_changed_file() {
-        let f = changed_file(&json!({"filename": "b.rs", "previous_filename": "a.rs", "status": "renamed",
-            "additions": 1, "deletions": 0, "changes": 1, "patch": "@@ -1 +1,2 @@\n a\n+b"}));
-        assert_eq!((f.old_path.as_str(), f.status, f.additions), ("a.rs", FileStatus::Renamed, 1));
+        let f = changed_file(
+            &json!({"filename": "b.rs", "previous_filename": "a.rs", "status": "renamed",
+            "additions": 1, "deletions": 0, "changes": 1, "patch": "@@ -1 +1,2 @@\n a\n+b"}),
+        );
+        assert_eq!(
+            (f.old_path.as_str(), f.status, f.additions),
+            ("a.rs", FileStatus::Renamed, 1)
+        );
         assert_eq!(f.hunks[0].lines.len(), 2);
         let big = changed_file(&json!({"filename": "x", "status": "modified", "changes": 9000}));
         assert!(big.too_large && !big.binary);
@@ -634,7 +912,9 @@ mod tests {
 
     #[test]
     fn chunks_repo_qualifiers() {
-        let repos: Vec<RepoRef> = (0..30).map(|i| RepoRef::new(ProviderKind::GitHub, "github.com", format!("org/repo-{i}"))).collect();
+        let repos: Vec<RepoRef> = (0..30)
+            .map(|i| RepoRef::new(ProviderKind::GitHub, "github.com", format!("org/repo-{i}")))
+            .collect();
         let chunks = chunk_repos(&repos, 200);
         assert!(chunks.len() > 1);
         assert_eq!(chunks.iter().map(Vec::len).sum::<usize>(), 30);
@@ -663,7 +943,15 @@ mod tests {
         });
         let cr = p.parse_pr(&n, "me").unwrap();
         assert_eq!(cr.id.repo.path, "a/b");
-        assert_eq!(cr.checks, CheckSummary { total: 3, passed: 1, failed: 1, pending: 1 });
+        assert_eq!(
+            cr.checks,
+            CheckSummary {
+                total: 3,
+                passed: 1,
+                failed: 1,
+                pending: 1
+            }
+        );
         assert_eq!(cr.reviewers.len(), 2);
         assert!(cr.needs_you);
         assert_eq!(cr.labels, vec!["bug"]);

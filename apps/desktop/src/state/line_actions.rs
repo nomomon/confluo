@@ -18,7 +18,14 @@ impl GitViewer {
     }
 
     /// Mouse down on a diff line: select it, or extend with Shift; starts a drag.
-    pub(crate) fn press_diff_line(&mut self, fi: usize, hi: usize, li: usize, shift: bool, cx: &mut Context<Self>) {
+    pub(crate) fn press_diff_line(
+        &mut self,
+        fi: usize,
+        hi: usize,
+        li: usize,
+        shift: bool,
+        cx: &mut Context<Self>,
+    ) {
         let Some(c) = self.code_mut() else { return };
         let len = c.hunk_len(fi, hi);
         match c.sel.as_mut().filter(|_| shift) {
@@ -31,8 +38,16 @@ impl GitViewer {
     }
 
     /// Mouse moved over a diff line with the button held.
-    pub(crate) fn drag_diff_line(&mut self, fi: usize, hi: usize, li: usize, cx: &mut Context<Self>) {
-        let Some(c) = self.code_mut().filter(|c| c.dragging) else { return };
+    pub(crate) fn drag_diff_line(
+        &mut self,
+        fi: usize,
+        hi: usize,
+        li: usize,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(c) = self.code_mut().filter(|c| c.dragging) else {
+            return;
+        };
         let Some(mut s) = c.sel else { return };
         let len = c.hunk_len(s.fi, s.hi);
         s.extend_to(fi, hi, li, len);
@@ -43,7 +58,13 @@ impl GitViewer {
     }
 
     /// Whole-file viewer: press and drag on line `i`.
-    pub(crate) fn press_view_line(&mut self, i: usize, shift: bool, drag: bool, cx: &mut Context<Self>) {
+    pub(crate) fn press_view_line(
+        &mut self,
+        i: usize,
+        shift: bool,
+        drag: bool,
+        cx: &mut Context<Self>,
+    ) {
         let Some(c) = self.code_mut() else { return };
         if drag && !c.dragging {
             return;
@@ -60,7 +81,13 @@ impl GitViewer {
     }
 
     /// Press on the gutter "+": select the line and comment on the dragged range on release.
-    pub(crate) fn press_line_plus(&mut self, fi: usize, hi: usize, li: usize, cx: &mut Context<Self>) {
+    pub(crate) fn press_line_plus(
+        &mut self,
+        fi: usize,
+        hi: usize,
+        li: usize,
+        cx: &mut Context<Self>,
+    ) {
         self.press_diff_line(fi, hi, li, false, cx);
         if let Some(c) = self.code_mut() {
             c.plus_drag = true;
@@ -69,7 +96,10 @@ impl GitViewer {
 
     /// Mouse released: end the drag; a drag from the "+" opens the composer on the selection.
     pub(crate) fn finish_line_drag(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let plus = self.code_mut().map(|c| std::mem::take(&mut c.plus_drag)).unwrap_or(false);
+        let plus = self
+            .code_mut()
+            .map(|c| std::mem::take(&mut c.plus_drag))
+            .unwrap_or(false);
         self.end_line_drag(cx);
         if plus {
             self.comment_on_selection(window, cx);
@@ -85,16 +115,26 @@ impl GitViewer {
 
     /// While dragging near the top or bottom edge of the diff, scroll it.
     pub(crate) fn drag_autoscroll(&mut self, y: Pixels, cx: &mut Context<Self>) {
-        let Some(c) = self.code_mut().filter(|c| c.dragging && c.viewer.is_none()) else { return };
+        let Some(c) = self.code_mut().filter(|c| c.dragging && c.viewer.is_none()) else {
+            return;
+        };
         let b = c.list.viewport_bounds();
-        let step = if y < b.top() + EDGE { -EDGE_STEP } else if y > b.bottom() - EDGE { EDGE_STEP } else { return };
+        let step = if y < b.top() + EDGE {
+            -EDGE_STEP
+        } else if y > b.bottom() - EDGE {
+            EDGE_STEP
+        } else {
+            return;
+        };
         c.list.scroll_by(step);
         cx.notify()
     }
 
     /// Clear the diff or viewer selection. Returns whether there was one.
     pub(crate) fn clear_line_selection(&mut self, cx: &mut Context<Self>) -> bool {
-        let Some(c) = self.code_mut() else { return false };
+        let Some(c) = self.code_mut() else {
+            return false;
+        };
         let had = match c.viewer.as_mut() {
             Some(v) => v.sel.take().is_some(),
             None => c.sel.take().is_some(),
@@ -117,7 +157,11 @@ impl GitViewer {
                 }
                 let r = v.sel.get_or_insert(LineRange::at(0));
                 let head = (r.head as isize + delta).clamp(0, len as isize - 1) as usize;
-                if extend { r.head = head } else { *r = LineRange::at(head) }
+                if extend {
+                    r.head = head
+                } else {
+                    *r = LineRange::at(head)
+                }
                 reveal_view_line(&v.scroll, head);
             }
             None => c.step_line(delta, extend),
@@ -137,10 +181,19 @@ impl GitViewer {
         let c = &self.detail.as_ref()?.code;
         if let Some(v) = &c.viewer {
             let (r, lines) = (v.sel?, v.lines.as_ref()?);
-            return Some(copy_text(lines.get(r.lo()..=r.hi().min(lines.len().saturating_sub(1)))?.iter().map(String::as_str)));
+            return Some(copy_text(
+                lines
+                    .get(r.lo()..=r.hi().min(lines.len().saturating_sub(1)))?
+                    .iter()
+                    .map(String::as_str),
+            ));
         }
         let s = c.sel?;
-        Some(copy_text(s.lines(c.files.as_ref()?.get(s.fi)?).iter().map(|l| l.text.as_str())))
+        Some(copy_text(
+            s.lines(c.files.as_ref()?.get(s.fi)?)
+                .iter()
+                .map(|l| l.text.as_str()),
+        ))
     }
 
     /// Provider permalink to the selected lines.
@@ -148,10 +201,20 @@ impl GitViewer {
         let d = self.detail.as_ref()?;
         let repo_url = d.summary.id.repo.web_url();
         let sha = d.detail.as_ref().and_then(|x| x.head_sha.as_deref());
-        let base = LinkBase { kind: d.summary.id.repo.kind, pr_url: &d.summary.web_url, repo_url: &repo_url, head_sha: sha };
+        let base = LinkBase {
+            kind: d.summary.id.repo.kind,
+            pr_url: &d.summary.web_url,
+            repo_url: &repo_url,
+            head_sha: sha,
+        };
         if let Some(v) = &d.code.viewer {
             let r = v.sel?;
-            return Some(file_link(&base, &v.path, r.lo() as u32 + 1, r.hi() as u32 + 1));
+            return Some(file_link(
+                &base,
+                &v.path,
+                r.lo() as u32 + 1,
+                r.hi() as u32 + 1,
+            ));
         }
         let s = d.code.sel?;
         let f = &d.code.files.as_ref()?[s.fi];
@@ -163,9 +226,18 @@ impl GitViewer {
         let d = self.detail.as_ref()?;
         let repo_url = d.summary.id.repo.web_url();
         let sha = d.detail.as_ref().and_then(|x| x.head_sha.as_deref());
-        let base = LinkBase { kind: d.summary.id.repo.kind, pr_url: &d.summary.web_url, repo_url: &repo_url, head_sha: sha };
+        let base = LinkBase {
+            kind: d.summary.id.repo.kind,
+            pr_url: &d.summary.web_url,
+            repo_url: &repo_url,
+            head_sha: sha,
+        };
         let link = file_link(&base, path, 1, 1);
-        Some(if sha.is_some() { link.split('#').next().unwrap_or(&link).to_string() } else { link })
+        Some(if sha.is_some() {
+            link.split('#').next().unwrap_or(&link).to_string()
+        } else {
+            link
+        })
     }
 
     pub(crate) fn copy_selection(&mut self, cx: &mut Context<Self>) {
@@ -182,7 +254,14 @@ impl GitViewer {
 
     /// Open the inline composer on the diff selection.
     pub(crate) fn comment_on_selection(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let Some(s) = self.detail.as_ref().filter(|d| d.code.viewer.is_none()).and_then(|d| d.code.sel) else { return };
+        let Some(s) = self
+            .detail
+            .as_ref()
+            .filter(|d| d.code.viewer.is_none())
+            .and_then(|d| d.code.sel)
+        else {
+            return;
+        };
         self.open_line_draft(s.fi, s.hi, s.range.lo(), s.range.hi(), window, cx)
     }
 }
@@ -192,7 +271,11 @@ fn reveal_view_line(scroll: &gpui::UniformListScrollHandle, i: usize) {
     let (top, h, item) = {
         let st = scroll.0.borrow();
         let item = st.last_item_size.map(|s| s.item.height).unwrap_or(px(20.));
-        (-st.base_handle.offset().y, st.base_handle.bounds().size.height, item)
+        (
+            -st.base_handle.offset().y,
+            st.base_handle.bounds().size.height,
+            item,
+        )
     };
     let y = item * i as f32;
     if y < top {

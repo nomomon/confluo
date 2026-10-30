@@ -18,9 +18,18 @@ actions!(command_palette, [Up, Down, AltRun]);
 
 pub fn bind_keys(cx: &mut App) {
     let ctx = Some("CommandPalette");
-    cx.bind_keys([KeyBinding::new("up", Up, ctx), KeyBinding::new("down", Down, ctx), KeyBinding::new("ctrl-p", Up, ctx), KeyBinding::new("ctrl-n", Down, ctx)]);
+    cx.bind_keys([
+        KeyBinding::new("up", Up, ctx),
+        KeyBinding::new("down", Down, ctx),
+        KeyBinding::new("ctrl-p", Up, ctx),
+        KeyBinding::new("ctrl-n", Down, ctx),
+    ]);
     // Deeper than the text input's own Cmd+Enter (Submit), registered after it, so it wins here.
-    cx.bind_keys([KeyBinding::new("cmd-enter", AltRun, Some("CommandPalette > TextInput"))]);
+    cx.bind_keys([KeyBinding::new(
+        "cmd-enter",
+        AltRun,
+        Some("CommandPalette > TextInput"),
+    )]);
 }
 
 /// One row: icon, title, muted detail on the right, optional shortcut.
@@ -56,7 +65,17 @@ pub struct CommandPalette {
 
 impl CommandPalette {
     pub fn new(input: Entity<TextInput>) -> Self {
-        Self { input, items: vec![], selected: 0, footer: None, on_move: None, on_hover: None, on_run: None, on_alt_run: None, on_close: None }
+        Self {
+            input,
+            items: vec![],
+            selected: 0,
+            footer: None,
+            on_move: None,
+            on_hover: None,
+            on_run: None,
+            on_alt_run: None,
+            on_close: None,
+        }
     }
     pub fn items(mut self, items: Vec<PaletteItem>) -> Self {
         self.items = items;
@@ -101,15 +120,32 @@ impl RenderOnce for CommandPalette {
         let mv = std::rc::Rc::new(self.on_move);
         let hover = std::rc::Rc::new(self.on_hover);
         let (alt, selected) = (self.on_alt_run, self.selected);
-        let mut list = crate::ui::elastic::content("palette-list").flex().flex_col();
+        let mut list = crate::ui::elastic::content("palette-list")
+            .flex()
+            .flex_col();
         let mut last_group = "";
         if self.items.is_empty() {
-            list = list.child(div().py(theme::SPACE_6).flex().justify_center().text_color(theme::text_subtle()).child("No results"));
+            list = list.child(
+                div()
+                    .py(theme::SPACE_6)
+                    .flex()
+                    .justify_center()
+                    .text_color(theme::text_subtle())
+                    .child("No results"),
+            );
         }
         for (i, it) in self.items.into_iter().take(MAX_ROWS).enumerate() {
             if it.group != last_group {
                 last_group = it.group;
-                list = list.child(div().px(theme::SPACE_2).pt(theme::SPACE_2).pb(theme::SPACE_1).text_size(theme::text_xs()).text_color(theme::text_subtle()).child(it.group));
+                list = list.child(
+                    div()
+                        .px(theme::SPACE_2)
+                        .pt(theme::SPACE_2)
+                        .pb(theme::SPACE_1)
+                        .text_size(theme::text_xs())
+                        .text_color(theme::text_subtle())
+                        .child(it.group),
+                );
             }
             let active = i == self.selected;
             let run = run.clone();
@@ -123,9 +159,27 @@ impl RenderOnce for CommandPalette {
                     .px(theme::SPACE_2)
                     .py(theme::item_pad_y())
                     .list_item(active)
-                    .child(Icon::new(it.icon).color(if active { theme::text() } else { theme::text_muted() }))
-                    .child(div().flex_1().min_w(theme::SPACE_0).truncate().child(it.title))
-                    .children(it.detail.map(|d| div().flex_shrink_0().max_w(px(200.)).truncate().text_size(theme::text_xs()).text_color(theme::text_subtle()).child(d)))
+                    .child(Icon::new(it.icon).color(if active {
+                        theme::text()
+                    } else {
+                        theme::text_muted()
+                    }))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w(theme::SPACE_0)
+                            .truncate()
+                            .child(it.title),
+                    )
+                    .children(it.detail.map(|d| {
+                        div()
+                            .flex_shrink_0()
+                            .max_w(px(200.))
+                            .truncate()
+                            .text_size(theme::text_xs())
+                            .text_color(theme::text_subtle())
+                            .child(d)
+                    }))
                     .children(it.shortcut.map(Kbd::new))
                     .on_hover(move |on, w, cx| {
                         if let (true, Some(f)) = (*on, hover.as_ref()) {
@@ -166,14 +220,33 @@ impl RenderOnce for CommandPalette {
             .bg(theme::overlay())
             .shadow_lg()
             .overflow_hidden()
-            .child(div().p(theme::SPACE_2).border_b_1().border_color(theme::border_subtle()).child(self.input))
+            .child(
+                div()
+                    .p(theme::SPACE_2)
+                    .border_b_1()
+                    .border_color(theme::border_subtle())
+                    .child(self.input),
+            )
             .child({
                 let h = crate::ui::elastic::handle("palette-list");
-                let pane = div().id("palette-list").track_scroll(&h).max_h(LIST_MAX_H).map(crate::ui::scroll::y_only).p(theme::SPACE_1P5).child(list);
+                let pane = div()
+                    .id("palette-list")
+                    .track_scroll(&h)
+                    .max_h(LIST_MAX_H)
+                    .map(crate::ui::scroll::y_only)
+                    .p(theme::SPACE_1P5)
+                    .child(list);
                 crate::ui::elastic::y_scroller(pane, "palette-list", h)
             })
             .children(self.footer.map(|f| {
-                div().px(theme::SPACE_3).py(theme::SPACE_2).border_t_1().border_color(theme::border_subtle()).text_size(theme::text_xs()).text_color(theme::text_subtle()).child(f)
+                div()
+                    .px(theme::SPACE_3)
+                    .py(theme::SPACE_2)
+                    .border_t_1()
+                    .border_color(theme::border_subtle())
+                    .text_size(theme::text_xs())
+                    .text_color(theme::text_subtle())
+                    .child(f)
             }));
         let close = self.on_close;
         // Instant: the palette is keyboard driven (motion rules).
@@ -194,6 +267,10 @@ impl RenderOnce for CommandPalette {
                     f(&(), w, cx)
                 }
             })
-            .child(div().on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation()).child(panel))
+            .child(
+                div()
+                    .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                    .child(panel),
+            )
     }
 }

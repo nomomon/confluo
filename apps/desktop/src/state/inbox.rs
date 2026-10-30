@@ -15,7 +15,13 @@ pub enum Section {
 }
 
 impl Section {
-    pub const ALL: [Section; 5] = [Section::NeedsYou, Section::AwaitingReview, Section::Yours, Section::Drafts, Section::Waiting];
+    pub const ALL: [Section; 5] = [
+        Section::NeedsYou,
+        Section::AwaitingReview,
+        Section::Yours,
+        Section::Drafts,
+        Section::Waiting,
+    ];
 
     pub fn title(self) -> &'static str {
         match self {
@@ -51,7 +57,10 @@ pub fn classify(c: &ChangeRequest, me: Option<&str>) -> Section {
 
 impl GitViewer {
     pub(crate) fn section_of(&self, c: &ChangeRequest) -> Section {
-        classify(c, self.engine.me(c.id.repo.kind, &c.id.repo.host).as_deref())
+        classify(
+            c,
+            self.engine.me(c.id.repo.kind, &c.id.repo.host).as_deref(),
+        )
     }
 
     /// Key of the current view for remembered collapse state: Inbox, Starred or a project.
@@ -65,7 +74,16 @@ impl GitViewer {
 
     /// Collapsed sections of the current view; defaults until the user toggles one there.
     pub(crate) fn collapsed_sections(&self) -> Vec<Section> {
-        self.settings.collapsed_sections.get(&self.view_key()).cloned().unwrap_or_else(|| Section::ALL.into_iter().filter(|s| s.collapsed_by_default()).collect())
+        self.settings
+            .collapsed_sections
+            .get(&self.view_key())
+            .cloned()
+            .unwrap_or_else(|| {
+                Section::ALL
+                    .into_iter()
+                    .filter(|s| s.collapsed_by_default())
+                    .collect()
+            })
     }
 
     /// Collapse or open a section in the current view; remembered per view in settings.json.
@@ -86,17 +104,33 @@ impl GitViewer {
 mod tests {
     use super::*;
     use chrono::Utc;
-    use gv_engine::{ChangeRequestId, CheckSummary, ProviderKind, RepoRef, Review, ReviewState, User};
+    use gv_engine::{
+        ChangeRequestId, CheckSummary, ProviderKind, RepoRef, Review, ReviewState, User,
+    };
 
-    fn cr(author: &str, state: ChangeRequestState, reviewer: Option<&str>, needs_you: bool) -> ChangeRequest {
+    fn cr(
+        author: &str,
+        state: ChangeRequestState,
+        reviewer: Option<&str>,
+        needs_you: bool,
+    ) -> ChangeRequest {
         ChangeRequest {
-            id: ChangeRequestId { repo: RepoRef::new(ProviderKind::GitLab, "gitlab.com", "g/p"), number: 1 },
+            id: ChangeRequestId {
+                repo: RepoRef::new(ProviderKind::GitLab, "gitlab.com", "g/p"),
+                number: 1,
+            },
             title: "t".into(),
             author: User::named(author),
             state,
             source_branch: "a".into(),
             target_branch: "b".into(),
-            reviewers: reviewer.map(|r| Review { user: User::named(r), state: ReviewState::Pending }).into_iter().collect(),
+            reviewers: reviewer
+                .map(|r| Review {
+                    user: User::named(r),
+                    state: ReviewState::Pending,
+                })
+                .into_iter()
+                .collect(),
             checks: CheckSummary::default(),
             labels: vec![],
             comments_count: 0,
@@ -115,9 +149,18 @@ mod tests {
         use ChangeRequestState::*;
         let me = Some("me");
         assert_eq!(classify(&cr("me", Draft, None, true), me), Section::Drafts);
-        assert_eq!(classify(&cr("x", Open, Some("me"), true), me), Section::NeedsYou);
-        assert_eq!(classify(&cr("x", Open, Some("me"), false), me), Section::AwaitingReview);
+        assert_eq!(
+            classify(&cr("x", Open, Some("me"), true), me),
+            Section::NeedsYou
+        );
+        assert_eq!(
+            classify(&cr("x", Open, Some("me"), false), me),
+            Section::AwaitingReview
+        );
         assert_eq!(classify(&cr("me", Open, None, false), me), Section::Yours);
-        assert_eq!(classify(&cr("x", Open, Some("y"), false), me), Section::Waiting);
+        assert_eq!(
+            classify(&cr("x", Open, Some("y"), false), me),
+            Section::Waiting
+        );
     }
 }

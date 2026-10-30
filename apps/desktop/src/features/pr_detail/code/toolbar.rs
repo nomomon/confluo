@@ -3,19 +3,30 @@
 use gpui::{div, prelude::*, ClickEvent, Context};
 
 use crate::app::GitViewer;
+use crate::features::keymap::{
+    self, QuickOpenFile, ToggleDiffView, ToggleFileTree, ToggleRightPanel,
+};
 use crate::state::code_rows::patch_text;
 use crate::state::{Copied, DetailState};
-use crate::features::keymap::{self, QuickOpenFile, ToggleDiffView, ToggleFileTree, ToggleRightPanel};
 use crate::ui::atoms::HintAnchor;
 use crate::ui::atoms::{Button, ButtonVariant, IconName};
 use crate::ui::molecules::ToggleGroup;
 use crate::ui::theme;
 
 impl GitViewer {
-    pub(super) fn render_code_toolbar(&self, d: &DetailState, cx: &mut Context<Self>) -> impl IntoElement {
+    pub(super) fn render_code_toolbar(
+        &self,
+        d: &DetailState,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
         let c = &d.code;
         let n = c.file_count();
-        let icon = |id: &'static str, glyph: IconName, tip: &'static str| Button::new(id, "").icon(glyph).variant(ButtonVariant::Ghost).tooltip(tip);
+        let icon = |id: &'static str, glyph: IconName, tip: &'static str| {
+            Button::new(id, "")
+                .icon(glyph)
+                .variant(ButtonVariant::Ghost)
+                .tooltip(tip)
+        };
         let label = match (n, c.loading) {
             (0, true) => "Loading files...".to_string(),
             (0, false) => "No files".to_string(),
@@ -26,33 +37,91 @@ impl GitViewer {
             .flex()
             .items_center()
             .gap(theme::SPACE_1)
-            .child(self.hinted::<ToggleFileTree>(
-                Button::new("code-tree", "").icon(IconName::LayoutSidebar).variant(ButtonVariant::Ghost).tooltip(keymap::tip::<ToggleFileTree>("Toggle file tree")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_tree(cx))),
-                HintAnchor::Corner,
-            ))
-            .child(icon("code-prev", IconName::ChevronUp, "Previous file  P").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.step_file(-1, cx))))
-            .child(icon("code-next", IconName::ChevronDown, "Next file  N").on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.step_file(1, cx))))
-            .child(self.hinted::<QuickOpenFile>(div().pl(theme::SPACE_1).text_size(theme::text_sm()).text_color(theme::text_muted()).child(label), HintAnchor::Corner))
-            .child(div().flex_1())
-            .child(self.hinted::<ToggleDiffView>(ToggleGroup::new("diff-view").item("Unified", Some(IconName::LayoutRows), !c.split).item("Split", Some(IconName::LayoutColumns), c.split).on_change(cx.listener(|this, i: &usize, _, cx| this.set_split(*i == 1, cx))), HintAnchor::Corner))
             .child(
-                icon("code-collapse", IconName::Fold, if all_collapsed { "Expand all" } else { "Collapse all" }).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                self.hinted::<ToggleFileTree>(
+                    Button::new("code-tree", "")
+                        .icon(IconName::LayoutSidebar)
+                        .variant(ButtonVariant::Ghost)
+                        .tooltip(keymap::tip::<ToggleFileTree>("Toggle file tree"))
+                        .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_tree(cx))),
+                    HintAnchor::Corner,
+                ),
+            )
+            .child(
+                icon("code-prev", IconName::ChevronUp, "Previous file  P")
+                    .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.step_file(-1, cx))),
+            )
+            .child(
+                icon("code-next", IconName::ChevronDown, "Next file  N")
+                    .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.step_file(1, cx))),
+            )
+            .child(
+                self.hinted::<QuickOpenFile>(
+                    div()
+                        .pl(theme::SPACE_1)
+                        .text_size(theme::text_sm())
+                        .text_color(theme::text_muted())
+                        .child(label),
+                    HintAnchor::Corner,
+                ),
+            )
+            .child(div().flex_1())
+            .child(
+                self.hinted::<ToggleDiffView>(
+                    ToggleGroup::new("diff-view")
+                        .item("Unified", Some(IconName::LayoutRows), !c.split)
+                        .item("Split", Some(IconName::LayoutColumns), c.split)
+                        .on_change(
+                            cx.listener(|this, i: &usize, _, cx| this.set_split(*i == 1, cx)),
+                        ),
+                    HintAnchor::Corner,
+                ),
+            )
+            .child(
+                icon(
+                    "code-collapse",
+                    IconName::Fold,
+                    if all_collapsed {
+                        "Expand all"
+                    } else {
+                        "Collapse all"
+                    },
+                )
+                .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
                     if let Some(d) = this.detail.as_mut() {
                         d.code.toggle_all();
                     }
                     cx.notify()
                 })),
             )
-            .child(icon("code-copy", if self.copied == Some(Copied::Diff) { IconName::Check } else { IconName::Copy }, "Copy diff").on_click(cx.listener(
-                |this, _: &ClickEvent, _, cx| {
-                    let Some(files) = this.detail.as_ref().and_then(|d| d.code.files.clone()) else { return };
+            .child(
+                icon(
+                    "code-copy",
+                    if self.copied == Some(Copied::Diff) {
+                        IconName::Check
+                    } else {
+                        IconName::Copy
+                    },
+                    "Copy diff",
+                )
+                .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
+                    let Some(files) = this.detail.as_ref().and_then(|d| d.code.files.clone())
+                    else {
+                        return;
+                    };
                     this.copy(Copied::Diff, patch_text(&files), cx)
-                },
-            )))
-            .child(self.hinted::<ToggleRightPanel>(
-                Button::new("code-right", "").icon(IconName::LayoutSidebarRight).variant(ButtonVariant::Ghost).tooltip(keymap::tip::<ToggleRightPanel>("Toggle right panel")).on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_right(cx))),
-                HintAnchor::Corner,
-            ))
+                })),
+            )
+            .child(
+                self.hinted::<ToggleRightPanel>(
+                    Button::new("code-right", "")
+                        .icon(IconName::LayoutSidebarRight)
+                        .variant(ButtonVariant::Ghost)
+                        .tooltip(keymap::tip::<ToggleRightPanel>("Toggle right panel"))
+                        .on_click(cx.listener(|this, _: &ClickEvent, _, cx| this.toggle_right(cx))),
+                    HintAnchor::Corner,
+                ),
+            )
     }
 
     /// Jump to the next (`1`) or previous (`-1`) file card.

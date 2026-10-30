@@ -47,7 +47,11 @@ pub struct Decay {
 impl Decay {
     /// Advance `dt` seconds; returns the distance covered.
     pub fn step(&mut self, dt: f32) -> f32 {
-        let dt = if dt.is_finite() { dt.clamp(0., 0.1) } else { 0. };
+        let dt = if dt.is_finite() {
+            dt.clamp(0., 0.1)
+        } else {
+            0.
+        };
         let moved = self.v * dt;
         self.v *= self.d.powf(dt * 1000.);
         moved
@@ -79,7 +83,10 @@ mod tests {
         // A 1000 px/s flick travels 499 px under Apple's deceleration.
         assert!((project(0., 1000., DECELERATION) - 499.).abs() < 1.);
         assert_eq!(project(50., 0., DECELERATION), 50.);
-        let mut d = Decay { v: 1000., d: DECELERATION };
+        let mut d = Decay {
+            v: 1000.,
+            d: DECELERATION,
+        };
         let mut total = 0.;
         for _ in 0..2000 {
             total += d.step(1. / 60.);

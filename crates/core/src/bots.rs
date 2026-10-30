@@ -4,7 +4,15 @@ use crate::ChangeRequest;
 use serde::{Deserialize, Serialize};
 
 /// Author patterns hidden by default. `*` matches any run of characters; case-insensitive.
-pub const DEFAULT_BOT_AUTHORS: &[&str] = &["renovate", "renovate-bot", "dependabot", "*[bot]", "*-bot", "project_*_bot*", "group_*_bot*"];
+pub const DEFAULT_BOT_AUTHORS: &[&str] = &[
+    "renovate",
+    "renovate-bot",
+    "dependabot",
+    "*[bot]",
+    "*-bot",
+    "project_*_bot*",
+    "group_*_bot*",
+];
 /// Source branch prefixes hidden by default.
 pub const DEFAULT_BOT_BRANCHES: &[&str] = &["renovate/", "dependabot/"];
 
@@ -32,7 +40,10 @@ impl Default for BotFilter {
 impl BotFilter {
     /// A filter that hides nothing.
     pub fn off() -> Self {
-        Self { enabled: false, ..Self::default() }
+        Self {
+            enabled: false,
+            ..Self::default()
+        }
     }
 
     /// Whether `cr` looks like a bot PR, regardless of `enabled`.
@@ -41,7 +52,13 @@ impl BotFilter {
         a.bot
             || a.username.to_ascii_lowercase().ends_with("[bot]")
             || self.authors.iter().any(|p| glob(p.trim(), &a.username))
-            || self.branch_prefixes.iter().map(|p| p.trim()).any(|p| !p.is_empty() && cr.source_branch.to_ascii_lowercase().starts_with(&p.to_ascii_lowercase()))
+            || self.branch_prefixes.iter().map(|p| p.trim()).any(|p| {
+                !p.is_empty()
+                    && cr
+                        .source_branch
+                        .to_ascii_lowercase()
+                        .starts_with(&p.to_ascii_lowercase())
+            })
     }
 
     /// Whether `cr` is hidden by this filter.
@@ -88,9 +105,15 @@ mod tests {
 
     fn cr(author: &str, branch: &str, bot: bool) -> ChangeRequest {
         ChangeRequest {
-            id: ChangeRequestId { repo: RepoRef::new(ProviderKind::GitLab, "gitlab.com", "g/p"), number: 1 },
+            id: ChangeRequestId {
+                repo: RepoRef::new(ProviderKind::GitLab, "gitlab.com", "g/p"),
+                number: 1,
+            },
             title: "t".into(),
-            author: User { bot, ..User::named(author) },
+            author: User {
+                bot,
+                ..User::named(author)
+            },
             state: ChangeRequestState::Open,
             source_branch: branch.into(),
             target_branch: "main".into(),
@@ -136,7 +159,11 @@ mod tests {
 
     #[test]
     fn custom_lists() {
-        let f = BotFilter { enabled: true, authors: vec!["ci-*".into()], branch_prefixes: vec![] };
+        let f = BotFilter {
+            enabled: true,
+            authors: vec!["ci-*".into()],
+            branch_prefixes: vec![],
+        };
         assert!(f.hides(&cr("ci-runner", "x", false)));
         assert!(!f.hides(&cr("acme-bot", "renovate/x", false)));
     }

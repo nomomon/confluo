@@ -22,7 +22,16 @@ pub struct MenuItem {
 
 impl MenuItem {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), label: label.into(), icon: None, shortcut: None, destructive: false, disabled: false, tooltip: None, on_click: None }
+        Self {
+            id: id.into(),
+            label: label.into(),
+            icon: None,
+            shortcut: None,
+            destructive: false,
+            disabled: false,
+            tooltip: None,
+            on_click: None,
+        }
     }
 
     pub fn icon(mut self, icon: IconName) -> Self {
@@ -59,7 +68,11 @@ impl MenuItem {
 
 impl RenderOnce for MenuItem {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let color = if self.destructive { theme::danger() } else { theme::text() };
+        let color = if self.destructive {
+            theme::danger()
+        } else {
+            theme::text()
+        };
         div()
             .id(ElementId::Name(self.id))
             .flex()
@@ -68,13 +81,33 @@ impl RenderOnce for MenuItem {
             .px(theme::SPACE_2)
             .py(theme::item_pad_y())
             .rounded(theme::RADIUS_SM)
-            .text_color(if self.disabled { theme::text_subtle() } else { color })
-            .when(!self.disabled, |d| d.cursor_pointer().hover(|s| s.bg(if self.destructive { theme::tint_bg(theme::danger()) } else { theme::surface_hover() })))
-            .children(self.icon.map(|n| Icon::new(n).color(if self.destructive { theme::danger() } else { theme::text_muted() })))
+            .text_color(if self.disabled {
+                theme::text_subtle()
+            } else {
+                color
+            })
+            .when(!self.disabled, |d| {
+                d.cursor_pointer().hover(|s| {
+                    s.bg(if self.destructive {
+                        theme::tint_bg(theme::danger())
+                    } else {
+                        theme::surface_hover()
+                    })
+                })
+            })
+            .children(self.icon.map(|n| {
+                Icon::new(n).color(if self.destructive {
+                    theme::danger()
+                } else {
+                    theme::text_muted()
+                })
+            }))
             .child(div().flex_1().child(self.label))
             .children(self.shortcut.map(Kbd::new))
             .when_some(self.tooltip, |d, t| d.tooltip(crate::ui::atoms::tooltip(t)))
-            .when_some(self.on_click.filter(|_| !self.disabled), |d, f| d.on_click(f))
+            .when_some(self.on_click.filter(|_| !self.disabled), |d, f| {
+                d.on_click(f)
+            })
     }
 }
 
@@ -100,6 +133,12 @@ impl MenuLabel {
 
 impl RenderOnce for MenuLabel {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        div().px(theme::SPACE_2).py(theme::SPACE_1).text_size(theme::text_xs()).font_weight(theme::WEIGHT_MEDIUM).text_color(theme::text_subtle()).child(self.0)
+        div()
+            .px(theme::SPACE_2)
+            .py(theme::SPACE_1)
+            .text_size(theme::text_xs())
+            .font_weight(theme::WEIGHT_MEDIUM)
+            .text_color(theme::text_subtle())
+            .child(self.0)
     }
 }

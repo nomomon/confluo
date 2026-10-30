@@ -19,7 +19,10 @@ pub struct InlineIndex {
 
 impl InlineIndex {
     pub fn at(&self, path: &str, side: DiffSide, line: u32) -> &[usize] {
-        self.by_line.get(&(path.to_string(), side, line)).map(Vec::as_slice).unwrap_or(&[])
+        self.by_line
+            .get(&(path.to_string(), side, line))
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
     }
     pub fn count(&self, path: &str) -> usize {
         self.counts.get(path).copied().unwrap_or(0)
@@ -38,7 +41,11 @@ pub fn index_inline_threads(threads: &[Thread], files: &[ChangedFile]) -> Inline
     let mut ix = InlineIndex::default();
     for (i, t) in threads.iter().enumerate() {
         let Some(p) = &t.position else { continue };
-        let file = files.iter().find(|f| f.new_path == p.path || f.old_path == p.path || p.old_path.as_deref() == Some(f.old_path.as_str()));
+        let file = files.iter().find(|f| {
+            f.new_path == p.path
+                || f.old_path == p.path
+                || p.old_path.as_deref() == Some(f.old_path.as_str())
+        });
         let Some(f) = file else { continue };
         let key = f.path().to_string();
         *ix.counts.entry(key.clone()).or_default() += 1;
@@ -65,7 +72,12 @@ mod tests {
 
     #[test]
     fn indexes_by_line() {
-        let f = ChangedFile::from_patch("a.rs", "a.rs", FileStatus::Modified, "@@ -1,2 +1,2 @@\n ctx\n-old\n+new");
+        let f = ChangedFile::from_patch(
+            "a.rs",
+            "a.rs",
+            FileStatus::Modified,
+            "@@ -1,2 +1,2 @@\n ctx\n-old\n+new",
+        );
         let ts = vec![
             thread("a.rs", DiffSide::New, 2, false),
             thread("a.rs", DiffSide::Old, 2, false),

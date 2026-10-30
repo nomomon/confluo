@@ -12,11 +12,61 @@ use crate::ui::atoms::IconName;
 actions!(
     git_viewer,
     [
-        SelectNext, SelectPrev, OpenSelected, Dismiss, FocusSearch, Refresh, OpenInBrowser, CopyCheckout, ToggleStar, TabAuthored, TabReviewing, TabAll, NextFile, PrevFile,
-        ToggleFile, OpenSettings, About, Minimize, Zoom, ToggleSidebar, ToggleDetail, CommandPalette, CloseDetail, GoInbox, GoStarred, HistoryBack, HistoryForward,
-        CopyLink, PostComment, Approve, ToggleTheme, ToggleFileTree, ToggleRightPanel, QuickOpenFile, ToggleViewed, ToggleDiffView,
-        GoProject1, GoProject2, GoProject3, GoProject4, GoProject5, GoProject6, GoProject7, NextPr, PrevPr, NextSection, PrevSection,
-        RequestChanges, MergePr, ToggleDraft, ClosePr, CopyBranch, ShowShortcuts, NextUnresolved, PrevUnresolved
+        SelectNext,
+        SelectPrev,
+        OpenSelected,
+        Dismiss,
+        FocusSearch,
+        Refresh,
+        OpenInBrowser,
+        CopyCheckout,
+        ToggleStar,
+        TabAuthored,
+        TabReviewing,
+        TabAll,
+        NextFile,
+        PrevFile,
+        ToggleFile,
+        OpenSettings,
+        About,
+        Minimize,
+        Zoom,
+        ToggleSidebar,
+        ToggleDetail,
+        CommandPalette,
+        CloseDetail,
+        GoInbox,
+        GoStarred,
+        HistoryBack,
+        HistoryForward,
+        CopyLink,
+        PostComment,
+        Approve,
+        ToggleTheme,
+        ToggleFileTree,
+        ToggleRightPanel,
+        QuickOpenFile,
+        ToggleViewed,
+        ToggleDiffView,
+        GoProject1,
+        GoProject2,
+        GoProject3,
+        GoProject4,
+        GoProject5,
+        GoProject6,
+        GoProject7,
+        NextPr,
+        PrevPr,
+        NextSection,
+        PrevSection,
+        RequestChanges,
+        MergePr,
+        ToggleDraft,
+        ClosePr,
+        CopyBranch,
+        ShowShortcuts,
+        NextUnresolved,
+        PrevUnresolved
     ]
 );
 
@@ -51,7 +101,13 @@ pub enum Group {
 }
 
 impl Group {
-    pub const ALL: [Group; 5] = [Group::Global, Group::List, Group::Review, Group::Diff, Group::Palette];
+    pub const ALL: [Group; 5] = [
+        Group::Global,
+        Group::List,
+        Group::Review,
+        Group::Diff,
+        Group::Palette,
+    ];
     pub fn title(self) -> &'static str {
         match self {
             Group::Global => "Global",
@@ -186,7 +242,12 @@ keymap! {
 }
 
 /// Diff keys handled by the line cursor (`code_keys`, not palette commands).
-pub const LINE_KEYS: [(&str, &str); 4] = [("Move line cursor", "\u{2191} \u{2193}"), ("Extend selection", "\u{21e7} \u{2191}"), ("Comment on lines", "C"), ("Copy lines", "\u{2318} C")];
+pub const LINE_KEYS: [(&str, &str); 4] = [
+    ("Move line cursor", "\u{2191} \u{2193}"),
+    ("Extend selection", "\u{21e7} \u{2191}"),
+    ("Comment on lines", "C"),
+    ("Copy lines", "\u{2318} C"),
+];
 
 /// Keys inside the command palette.
 pub const PALETTE_KEYS: [(&str, &str); 9] = [
@@ -203,8 +264,20 @@ pub const PALETTE_KEYS: [(&str, &str); 9] = [
 
 /// Rows of a cheat sheet section: label and shown keys (all bindings joined).
 pub fn group_rows(g: Group) -> Vec<(&'static str, Vec<String>)> {
-    let mut rows: Vec<(&'static str, Vec<String>)> =
-        ENTRIES.iter().filter(|e| e.group == g && !e.keys.is_empty()).map(|e| (e.label, e.keys.iter().filter(|k| **k != "shift-/").map(|k| display(k)).collect())).collect();
+    let mut rows: Vec<(&'static str, Vec<String>)> = ENTRIES
+        .iter()
+        .filter(|e| e.group == g && !e.keys.is_empty())
+        .map(|e| {
+            (
+                e.label,
+                e.keys
+                    .iter()
+                    .filter(|k| **k != "shift-/")
+                    .map(|k| display(k))
+                    .collect(),
+            )
+        })
+        .collect();
     match g {
         Group::Diff => rows.extend(LINE_KEYS.iter().map(|(l, k)| (*l, vec![k.to_string()]))),
         Group::Palette => rows.extend(PALETTE_KEYS.iter().map(|(l, k)| (*l, vec![k.to_string()]))),
@@ -248,12 +321,19 @@ pub fn kbd<A: Action>() -> String {
 /// Tooltip text with the shortcut after a double space (rendered as `Kbd`).
 pub fn tip<A: Action>(label: &str) -> SharedString {
     let k = kbd::<A>();
-    if k.is_empty() { label.to_string().into() } else { format!("{label}  {k}").into() }
+    if k.is_empty() {
+        label.to_string().into()
+    } else {
+        format!("{label}  {k}").into()
+    }
 }
 
 /// The `GoProjectN` action for the project at sidebar index `i` (Cmd+3..9), if any.
 pub fn project_entry(i: usize) -> Option<&'static Entry> {
-    ENTRIES.iter().filter(|e| e.action.starts_with("GoProject")).nth(i)
+    ENTRIES
+        .iter()
+        .filter(|e| e.action.starts_with("GoProject"))
+        .nth(i)
 }
 
 #[cfg(test)]
@@ -289,16 +369,26 @@ mod tests {
     fn bare_keys_never_fire_in_text_inputs() {
         assert_eq!(predicate(Ctx::Any, "/"), Some("GitViewer && !TextInput"));
         assert_eq!(predicate(Ctx::Any, "cmd-f"), Some("GitViewer"));
-        assert_eq!(predicate(Ctx::List, "cmd-down"), Some("GitViewer && !TextInput"));
+        assert_eq!(
+            predicate(Ctx::List, "cmd-down"),
+            Some("GitViewer && !TextInput")
+        );
         // Cmd+Left / Cmd+Right go back / forward only outside inputs (inside they move the caret).
-        assert_eq!(predicate(Ctx::Any, "cmd-left"), Some("GitViewer && !TextInput"));
+        assert_eq!(
+            predicate(Ctx::Any, "cmd-left"),
+            Some("GitViewer && !TextInput")
+        );
         assert_eq!(predicate(Ctx::Any, "cmd-["), Some("GitViewer"));
         assert!(entry("HistoryBack").is_some_and(|e| e.keys.contains(&"cmd-left")));
         assert!(entry("HistoryForward").is_some_and(|e| e.keys.contains(&"cmd-right")));
     }
 
     fn avail(c: &CmdCtx) -> Vec<&'static str> {
-        ENTRIES.iter().filter(|e| e.pal != Pal::No && (e.available)(c)).map(|e| e.action).collect()
+        ENTRIES
+            .iter()
+            .filter(|e| e.pal != Pal::No && (e.available)(c))
+            .map(|e| e.action)
+            .collect()
     }
 
     #[test]
@@ -306,19 +396,39 @@ mod tests {
         let list = CmdCtx::default();
         let a = avail(&list);
         assert!(a.contains(&"Refresh") && a.contains(&"NextPr"));
-        assert!(!a.contains(&"Approve") && !a.contains(&"ToggleViewed") && !a.contains(&"OpenInBrowser"));
+        assert!(
+            !a.contains(&"Approve")
+                && !a.contains(&"ToggleViewed")
+                && !a.contains(&"OpenInBrowser")
+        );
 
         let own = CmdCtx {
             pr_open: true,
             reviewing: true,
             diff: true,
             projects: 2,
-            gate: Some(Gate { review: ReviewCapabilities { comment_review: true, approve_blocked: Some("You can't approve your own PR".into()), ..Default::default() }, edit: EditCapabilities::editor(true) }),
+            gate: Some(Gate {
+                review: ReviewCapabilities {
+                    comment_review: true,
+                    approve_blocked: Some("You can't approve your own PR".into()),
+                    ..Default::default()
+                },
+                edit: EditCapabilities::editor(true),
+            }),
         };
         let a = avail(&own);
-        assert!(a.contains(&"ToggleDraft") && a.contains(&"ToggleViewed") && a.contains(&"ToggleDiffView"));
-        assert!(!a.contains(&"Approve") && !a.contains(&"RequestChanges") && !a.contains(&"MergePr"));
+        assert!(
+            a.contains(&"ToggleDraft")
+                && a.contains(&"ToggleViewed")
+                && a.contains(&"ToggleDiffView")
+        );
+        assert!(
+            !a.contains(&"Approve") && !a.contains(&"RequestChanges") && !a.contains(&"MergePr")
+        );
         assert!(!a.contains(&"ToggleSidebar") && !a.contains(&"OpenSelected"));
-        assert!((project_entry(1).unwrap().available)(&own) && !(project_entry(2).unwrap().available)(&own));
+        assert!(
+            (project_entry(1).unwrap().available)(&own)
+                && !(project_entry(2).unwrap().available)(&own)
+        );
     }
 }

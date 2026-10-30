@@ -21,7 +21,11 @@ impl Builder {
             Tag::CodeBlock(kind) => {
                 self.flush();
                 let lang = match kind {
-                    CodeBlockKind::Fenced(info) => info.split_whitespace().next().unwrap_or_default().to_string(),
+                    CodeBlockKind::Fenced(info) => info
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or_default()
+                        .to_string(),
                     CodeBlockKind::Indented => String::new(),
                 };
                 self.code = Some((lang, String::new()));
@@ -44,7 +48,11 @@ impl Builder {
             }
             Tag::Table(aligns) => {
                 self.flush();
-                self.frames.push(Frame::Table(aligns.iter().map(align).collect(), vec![], vec![]));
+                self.frames.push(Frame::Table(
+                    aligns.iter().map(align).collect(),
+                    vec![],
+                    vec![],
+                ));
             }
             Tag::TableHead | Tag::TableRow => self.frames.push(Frame::Row(vec![])),
             Tag::TableCell => self.inline = Some(Inline::default()),
@@ -65,13 +73,23 @@ impl Builder {
             TagEnd::Paragraph | TagEnd::Heading(_) => self.flush(),
             TagEnd::CodeBlock => {
                 if let Some((lang, code)) = self.code.take() {
-                    self.push_block(Block::Code { lang, code: code.trim_end().to_string() });
+                    self.push_block(Block::Code {
+                        lang,
+                        code: code.trim_end().to_string(),
+                    });
                 }
             }
-            TagEnd::BlockQuote(_) | TagEnd::List(_) | TagEnd::Item | TagEnd::Table | TagEnd::TableRow | TagEnd::FootnoteDefinition => self.close_frame(),
+            TagEnd::BlockQuote(_)
+            | TagEnd::List(_)
+            | TagEnd::Item
+            | TagEnd::Table
+            | TagEnd::TableRow
+            | TagEnd::FootnoteDefinition => self.close_frame(),
             TagEnd::TableHead => {
                 self.flush();
-                if let (Some(Frame::Row(cells)), Some(Frame::Table(_, head, _))) = (self.frames.pop(), self.frames.last_mut()) {
+                if let (Some(Frame::Row(cells)), Some(Frame::Table(_, head, _))) =
+                    (self.frames.pop(), self.frames.last_mut())
+                {
                     *head = cells;
                 }
             }

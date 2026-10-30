@@ -6,4 +6,6 @@ pub mod layout;
 mod status;
 
 pub use format::relative_time;
-pub use status::{checks_text, row_hint, number_label, provider_icon, provider_mark, state_icon, state_icon_name};
+pub use status::{
+    checks_text, number_label, provider_icon, provider_mark, row_hint, state_icon, state_icon_name,
+};

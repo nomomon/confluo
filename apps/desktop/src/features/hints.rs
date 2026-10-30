@@ -13,7 +13,14 @@ fn cmd_keys(e: &Entry, ctx: &crate::state::cmd_ctx::CmdCtx) -> Option<String> {
     let first = e.keys.first()?;
     let is_cmd = |k: &str| k.split('-').any(|m| m == "cmd");
     // Every Cmd binding of the entry (Back shows both Cmd+[ and Cmd+Left).
-    (is_cmd(first) && (e.available)(ctx)).then(|| e.keys.iter().filter(|k| is_cmd(k)).map(|k| keymap::display(k)).collect::<Vec<_>>().join("  "))
+    (is_cmd(first) && (e.available)(ctx)).then(|| {
+        e.keys
+            .iter()
+            .filter(|k| is_cmd(k))
+            .map(|k| keymap::display(k))
+            .collect::<Vec<_>>()
+            .join("  ")
+    })
 }
 
 fn short_name<A: Action>() -> &'static str {
@@ -22,13 +29,21 @@ fn short_name<A: Action>() -> &'static str {
 }
 
 impl GitViewer {
-    pub(crate) fn hint_modifiers(&mut self, ev: &ModifiersChangedEvent, _: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn hint_modifiers(
+        &mut self,
+        ev: &ModifiersChangedEvent,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if !self.settings.shortcut_hints {
             return;
         }
         let m = ev.modifiers;
         let was = self.hints.visible();
-        if let Some(gen) = self.hints.modifiers(m.platform, m.shift || m.alt || m.control || m.function) {
+        if let Some(gen) = self
+            .hints
+            .modifiers(m.platform, m.shift || m.alt || m.control || m.function)
+        {
             cx.spawn(async move |this, cx| {
                 cx.background_executor().timer(timing::HINT_HOLD).await;
                 this.update(cx, |v, cx| {
@@ -53,11 +68,22 @@ impl GitViewer {
 
     /// Hint for action `A` at `anchor`, or `None` when hidden or unavailable.
     pub(crate) fn hint<A: Action>(&self, anchor: HintAnchor) -> Option<ShortcutHint> {
-        self.hint_keys::<A>().map(|k| ShortcutHint::new(gpui::SharedString::from(format!("hint-{}", short_name::<A>())), k).anchor(anchor))
+        self.hint_keys::<A>().map(|k| {
+            ShortcutHint::new(
+                gpui::SharedString::from(format!("hint-{}", short_name::<A>())),
+                k,
+            )
+            .anchor(anchor)
+        })
     }
 
     /// Several actions in one compact row (only the available ones), or `None`.
-    pub(crate) fn hint_group(&self, id: &'static str, keys: Vec<Option<String>>, anchor: HintAnchor) -> Option<ShortcutHint> {
+    pub(crate) fn hint_group(
+        &self,
+        id: &'static str,
+        keys: Vec<Option<String>>,
+        anchor: HintAnchor,
+    ) -> Option<ShortcutHint> {
         let keys: Vec<String> = keys.into_iter().flatten().collect();
         (!keys.is_empty()).then(|| ShortcutHint::pair(id, keys).anchor(anchor))
     }
@@ -66,7 +92,10 @@ impl GitViewer {
     pub(crate) fn project_hint(&self, i: usize) -> Option<ShortcutHint> {
         let ctx = self.hint_ctx.as_ref()?;
         let keys = cmd_keys(keymap::project_entry(i)?, ctx)?;
-        Some(ShortcutHint::new(gpui::SharedString::from(format!("hint-project-{i}")), keys).anchor(HintAnchor::Inline))
+        Some(
+            ShortcutHint::new(gpui::SharedString::from(format!("hint-project-{i}")), keys)
+                .anchor(HintAnchor::Inline),
+        )
     }
 
     /// `el` with the hint for `A` overlaid (absolute; no layout shift).

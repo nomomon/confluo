@@ -7,7 +7,10 @@ use std::path::PathBuf;
 mod edit;
 
 #[derive(Parser)]
-#[command(name = "gv", about = "Your PRs and MRs from GitHub, GitLab and Azure DevOps in one place")]
+#[command(
+    name = "gv",
+    about = "Your PRs and MRs from GitHub, GitLab and Azure DevOps in one place"
+)]
 struct Cli {
     #[command(subcommand)]
     cmd: Cmd,
@@ -63,7 +66,11 @@ enum Cmd {
         off: bool,
     },
     /// Edit an existing comment you wrote.
-    EditComment { target: String, comment_id: String, body: String },
+    EditComment {
+        target: String,
+        comment_id: String,
+        body: String,
+    },
     /// Delete a comment you wrote.
     DeleteComment { target: String, comment_id: String },
     /// Submit a review: approve, request-changes, comment or unapprove (GitLab).
@@ -143,10 +150,20 @@ struct ListArgs {
 }
 
 fn parse_group(s: &str) -> Result<Source> {
-    let Some((prov, rest)) = s.split_once(':') else { bail!("expected <provider>:<host>/<path>") };
-    let Some(provider) = ProviderKind::parse(prov) else { bail!("unknown provider {prov}") };
-    let Some((host, path)) = rest.split_once('/') else { bail!("expected <host>/<path>") };
-    Ok(Source::Group { provider, host: host.to_ascii_lowercase(), path: path.trim_matches('/').to_string() })
+    let Some((prov, rest)) = s.split_once(':') else {
+        bail!("expected <provider>:<host>/<path>")
+    };
+    let Some(provider) = ProviderKind::parse(prov) else {
+        bail!("unknown provider {prov}")
+    };
+    let Some((host, path)) = rest.split_once('/') else {
+        bail!("expected <host>/<path>")
+    };
+    Ok(Source::Group {
+        provider,
+        host: host.to_ascii_lowercase(),
+        path: path.trim_matches('/').to_string(),
+    })
 }
 
 fn gv_http_debug() -> bool {
@@ -220,9 +237,18 @@ async fn main() -> Result<()> {
     let engine = Engine::open_default()?;
     match cli.cmd {
         Cmd::Project(p) => match p {
-            ProjectCmd::Add { name, folder, depth, repo, group } => {
+            ProjectCmd::Add {
+                name,
+                folder,
+                depth,
+                repo,
+                group,
+            } => {
                 let src = if let Some(f) = folder {
-                    Source::Folder { path: std::fs::canonicalize(&f).unwrap_or(f), depth }
+                    Source::Folder {
+                        path: std::fs::canonicalize(&f).unwrap_or(f),
+                        depth,
+                    }
                 } else if let Some(r) = repo {
                     Source::Repo { url: r }
                 } else if let Some(g) = group {
@@ -234,16 +260,27 @@ async fn main() -> Result<()> {
                 };
                 let p = engine.add_source(&name, src)?;
                 let repos = engine.resolve_project_repos(p.id).await?;
-                println!("project {} now has {} source(s), {} repo(s)", p.name, p.sources.len(), repos.len());
+                println!(
+                    "project {} now has {} source(s), {} repo(s)",
+                    p.name,
+                    p.sources.len(),
+                    repos.len()
+                );
             }
             ProjectCmd::List => {
                 for p in engine.projects()? {
                     println!("{} (id {})", p.name, p.id);
                     for s in p.sources {
                         match s {
-                            Source::Folder { path, depth } => println!("  folder {} depth {depth}", path.display()),
+                            Source::Folder { path, depth } => {
+                                println!("  folder {} depth {depth}", path.display())
+                            }
                             Source::Repo { url } => println!("  repo   {url}"),
-                            Source::Group { provider, host, path } => println!("  group  {provider}:{host}/{path}"),
+                            Source::Group {
+                                provider,
+                                host,
+                                path,
+                            } => println!("  group  {provider}:{host}/{path}"),
                         }
                     }
                 }
@@ -266,16 +303,27 @@ async fn main() -> Result<()> {
                 None => None,
             };
             if !a.cached {
-                let target = project.map(RefreshTarget::Project).unwrap_or(RefreshTarget::InvolvingMe);
+                let target = project
+                    .map(RefreshTarget::Project)
+                    .unwrap_or(RefreshTarget::InvolvingMe);
                 let rep = engine.refresh(target).await?;
                 for (scope, err) in &rep.errors {
-                    eprintln!("warning: {scope}: {}", err.lines().next().unwrap_or_default());
+                    eprintln!(
+                        "warning: {scope}: {}",
+                        err.lines().next().unwrap_or_default()
+                    );
                 }
                 if let Some(t) = rep.paused_until {
-                    eprintln!("paused until {} (rate limit); showing cached data", t.with_timezone(&chrono::Local).format("%H:%M"));
+                    eprintln!(
+                        "paused until {} (rate limit); showing cached data",
+                        t.with_timezone(&chrono::Local).format("%H:%M")
+                    );
                 }
                 if gv_http_debug() {
-                    eprintln!("refresh: {} fetched, {} enriched, {} pruned", rep.fetched, rep.enriched, rep.pruned);
+                    eprintln!(
+                        "refresh: {} fetched, {} enriched, {} pruned",
+                        rep.fetched, rep.enriched, rep.pruned
+                    );
                     eprint!("{}", engine.http_summary());
                 }
             }
@@ -298,7 +346,11 @@ async fn main() -> Result<()> {
                 filter: Filter { involvement, state },
                 starred_only: a.starred,
                 needs_you_only: a.needs_you,
-                bots: if a.include_bots { BotFilter::off() } else { bot_filter_from_settings() },
+                bots: if a.include_bots {
+                    BotFilter::off()
+                } else {
+                    bot_filter_from_settings()
+                },
                 stale_days: stale_days_from_settings(),
                 include_stale: a.include_stale,
             })?;
@@ -309,10 +361,25 @@ async fn main() -> Result<()> {
                 for cr in &items {
                     print_row(cr);
                 }
-                let bots = if hidden > 0 { format!(", {hidden} bot PR(s) hidden (--include-bots)") } else { String::new() };
-                let stale = if l.stale.is_empty() { String::new() } else { format!(", {} stale hidden (--include-stale)", l.stale.len()) };
-                let snoozed = if l.snoozed > 0 { format!(", {} snoozed", l.snoozed) } else { String::new() };
-                eprintln!("{} item(s){bots}{stale}{snoozed}; * = needs you", items.len());
+                let bots = if hidden > 0 {
+                    format!(", {hidden} bot PR(s) hidden (--include-bots)")
+                } else {
+                    String::new()
+                };
+                let stale = if l.stale.is_empty() {
+                    String::new()
+                } else {
+                    format!(", {} stale hidden (--include-stale)", l.stale.len())
+                };
+                let snoozed = if l.snoozed > 0 {
+                    format!(", {} snoozed", l.snoozed)
+                } else {
+                    String::new()
+                };
+                eprintln!(
+                    "{} item(s){bots}{stale}{snoozed}; * = needs you",
+                    items.len()
+                );
             }
         }
         Cmd::Show { target, json } => {
@@ -323,16 +390,31 @@ async fn main() -> Result<()> {
                 return Ok(());
             }
             let s = &d.summary;
-            println!("{}  [{}]{}", s.title, state_str(s.state), if s.needs_you { "  (needs you)" } else { "" });
+            println!(
+                "{}  [{}]{}",
+                s.title,
+                state_str(s.state),
+                if s.needs_you { "  (needs you)" } else { "" }
+            );
             println!("{}", s.web_url);
-            println!("{} by @{}  {} -> {}", s.id, s.author.username, s.source_branch, s.target_branch);
-            println!("created {} ago, updated {} ago", ago(s.created_at), ago(s.updated_at));
+            println!(
+                "{} by @{}  {} -> {}",
+                s.id, s.author.username, s.source_branch, s.target_branch
+            );
+            println!(
+                "created {} ago, updated {} ago",
+                ago(s.created_at),
+                ago(s.updated_at)
+            );
             if let (Some(a), Some(dl)) = (s.additions, s.deletions) {
                 println!("+{a} -{dl} in {} file(s)", s.changed_files.unwrap_or(0));
             } else if let Some(f) = s.changed_files {
                 println!("{f} file(s) changed");
             }
-            println!("checks: {} passed, {} failed, {} pending (of {})", s.checks.passed, s.checks.failed, s.checks.pending, s.checks.total);
+            println!(
+                "checks: {} passed, {} failed, {} pending (of {})",
+                s.checks.passed, s.checks.failed, s.checks.pending, s.checks.total
+            );
             for r in &s.reviewers {
                 println!("reviewer @{}: {:?}", r.user.username, r.state);
             }
@@ -342,7 +424,14 @@ async fn main() -> Result<()> {
             if let Some(sha) = &d.head_sha {
                 println!("head {sha}");
             }
-            println!("\n{}\n", if d.description.trim().is_empty() { "(no description)" } else { d.description.trim() });
+            println!(
+                "\n{}\n",
+                if d.description.trim().is_empty() {
+                    "(no description)"
+                } else {
+                    d.description.trim()
+                }
+            );
             for t in &d.threads {
                 let res = match t.resolved {
                     Some(true) => " (resolved)",
@@ -351,12 +440,33 @@ async fn main() -> Result<()> {
                 };
                 let at = t.position.as_ref().map(|p| {
                     let range = p.start_line.map(|s| format!("{s}-")).unwrap_or_default();
-                    format!(" at {}:{range}{} ({:?}){}", p.path, p.line, p.side, if t.outdated { " outdated" } else { "" })
+                    format!(
+                        " at {}:{range}{} ({:?}){}",
+                        p.path,
+                        p.line,
+                        p.side,
+                        if t.outdated { " outdated" } else { "" }
+                    )
                 });
                 println!("--- thread {}{res}{}", t.id, at.unwrap_or_default());
                 for c in &t.comments {
-                    let pos = c.position.as_ref().map(|p| format!(" on {}:{}", p.path, p.line.map(|l| l.to_string()).unwrap_or_default())).unwrap_or_default();
-                    println!("  @{} {} ago{pos} [{}]", c.author.username, ago(c.created_at), c.id);
+                    let pos = c
+                        .position
+                        .as_ref()
+                        .map(|p| {
+                            format!(
+                                " on {}:{}",
+                                p.path,
+                                p.line.map(|l| l.to_string()).unwrap_or_default()
+                            )
+                        })
+                        .unwrap_or_default();
+                    println!(
+                        "  @{} {} ago{pos} [{}]",
+                        c.author.username,
+                        ago(c.created_at),
+                        c.id
+                    );
                     for l in c.body.lines() {
                         println!("    {l}");
                     }
@@ -377,25 +487,55 @@ async fn main() -> Result<()> {
             let (a, d) = totals(&files);
             println!("{} files  +{a} -{d}", files.len());
             for f in &files {
-                let flag = if f.binary { " [binary]" } else if f.too_large { " [too large]" } else { "" };
-                let name = if f.old_path != f.new_path { format!("{} -> {}", f.old_path, f.new_path) } else { f.path().to_string() };
-                println!("{:?}\t+{} -{}\t{} hunks\t{name}{flag}", f.status, f.additions, f.deletions, f.hunks.len());
+                let flag = if f.binary {
+                    " [binary]"
+                } else if f.too_large {
+                    " [too large]"
+                } else {
+                    ""
+                };
+                let name = if f.old_path != f.new_path {
+                    format!("{} -> {}", f.old_path, f.new_path)
+                } else {
+                    f.path().to_string()
+                };
+                println!(
+                    "{:?}\t+{} -{}\t{} hunks\t{name}{flag}",
+                    f.status,
+                    f.additions,
+                    f.deletions,
+                    f.hunks.len()
+                );
                 for h in f.hunks.iter().filter(|_| diff) {
                     println!("  {}", h.header);
                     for l in &h.lines {
-                        let m = match l.kind { LineKind::Add => '+', LineKind::Del => '-', LineKind::Context => ' ' };
+                        let m = match l.kind {
+                            LineKind::Add => '+',
+                            LineKind::Del => '-',
+                            LineKind::Context => ' ',
+                        };
                         let n = |x: Option<u32>| x.map(|x| x.to_string()).unwrap_or_default();
                         println!("  {:>5} {:>5} {m}{}", n(l.old_no), n(l.new_no), l.text);
                     }
                 }
             }
         }
-        Cmd::Comment { target, body, thread, file, line, start_line, side } => {
+        Cmd::Comment {
+            target,
+            body,
+            thread,
+            file,
+            line,
+            start_line,
+            side,
+        } => {
             let id = engine.resolve_id(&target)?;
             let c = match (thread, file, line) {
                 (Some(t), _, _) => engine.reply_to_thread(&id, &t, &body).await?,
                 (None, Some(f), Some(l)) => {
-                    let Some(side) = DiffSide::parse(&side) else { bail!("--side must be old or new") };
+                    let Some(side) = DiffSide::parse(&side) else {
+                        bail!("--side must be old or new")
+                    };
                     let mut pos = DiffPosition::new(f, side, l);
                     pos.start_line = start_line;
                     engine.detail(&id, true).await?;
@@ -406,12 +546,20 @@ async fn main() -> Result<()> {
             };
             println!("posted comment {}", c.id);
         }
-        Cmd::Resolve { target, thread, off } => {
+        Cmd::Resolve {
+            target,
+            thread,
+            off,
+        } => {
             let id = engine.resolve_id(&target)?;
             engine.resolve_thread(&id, &thread, !off).await?;
             println!("{} {thread}", if off { "unresolved" } else { "resolved" });
         }
-        Cmd::EditComment { target, comment_id, body } => {
+        Cmd::EditComment {
+            target,
+            comment_id,
+            body,
+        } => {
             let id = engine.resolve_id(&target)?;
             let c = engine.edit_comment(&id, &comment_id, &body).await?;
             println!("edited comment {}", c.id);
@@ -421,11 +569,20 @@ async fn main() -> Result<()> {
             engine.delete_comment(&id, &comment_id).await?;
             println!("deleted comment {comment_id}");
         }
-        Cmd::Review { target, action, body } => {
-            let Some(act) = ReviewAction::parse(&action) else { bail!("action must be approve, request-changes (reject), comment, unapprove, approve-with-suggestions, wait-for-author or reset") };
+        Cmd::Review {
+            target,
+            action,
+            body,
+        } => {
+            let Some(act) = ReviewAction::parse(&action) else {
+                bail!("action must be approve, request-changes (reject), comment, unapprove, approve-with-suggestions, wait-for-author or reset")
+            };
             let id = engine.resolve_id(&target)?;
             let d = engine.detail(&id, true).await?;
-            if act == ReviewAction::Comment && body.as_deref().is_none_or(|b| b.trim().is_empty()) && id.repo.kind == ProviderKind::GitLab {
+            if act == ReviewAction::Comment
+                && body.as_deref().is_none_or(|b| b.trim().is_empty())
+                && id.repo.kind == ProviderKind::GitLab
+            {
                 bail!("a comment review needs -m <body> on GitLab");
             }
             engine.submit_review(&id, act, body.as_deref()).await?;

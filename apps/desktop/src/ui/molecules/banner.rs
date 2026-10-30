@@ -17,11 +17,20 @@ pub struct Banner {
 
 impl Banner {
     pub fn warning(id: impl Into<SharedString>, text: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), text: text.into(), action: None, on_dismiss: None }
+        Self {
+            id: id.into(),
+            text: text.into(),
+            action: None,
+            on_dismiss: None,
+        }
     }
 
     /// Inline link-style action such as "Retry".
-    pub fn action(mut self, label: impl Into<SharedString>, f: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn action(
+        mut self,
+        label: impl Into<SharedString>,
+        f: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.action = Some((label.into(), Box::new(f)));
         self
     }
@@ -34,8 +43,17 @@ impl Banner {
 
 impl RenderOnce for Banner {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
-        let action = self.action.map(|(label, f)| Button::new(format!("{}-action", self.id), label).variant(ButtonVariant::Link).on_click(f));
-        let dismiss = self.on_dismiss.map(|f| Button::new(format!("{}-dismiss", self.id), "").icon(IconName::X).variant(ButtonVariant::Ghost).on_click(f));
+        let action = self.action.map(|(label, f)| {
+            Button::new(format!("{}-action", self.id), label)
+                .variant(ButtonVariant::Link)
+                .on_click(f)
+        });
+        let dismiss = self.on_dismiss.map(|f| {
+            Button::new(format!("{}-dismiss", self.id), "")
+                .icon(IconName::X)
+                .variant(ButtonVariant::Ghost)
+                .on_click(f)
+        });
         let el = div()
             .flex()
             .items_center()
@@ -46,7 +64,13 @@ impl RenderOnce for Banner {
             .py(theme::SPACE_1)
             .rounded(theme::RADIUS_MD)
             .bg(theme::tint_bg(theme::warning()))
-            .child(div().flex_1().min_w(theme::SPACE_0).truncate().child(self.text))
+            .child(
+                div()
+                    .flex_1()
+                    .min_w(theme::SPACE_0)
+                    .truncate()
+                    .child(self.text),
+            )
             .children(action)
             .children(dismiss);
         motion::fade_in(el, "banner")

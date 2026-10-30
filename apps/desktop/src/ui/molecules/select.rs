@@ -3,7 +3,10 @@
 //!
 //! `Select::new("ui-font").option("Inter").font_option("Geist", "Geist").selected(1).on_change(..)`
 
-use gpui::{anchored, deferred, div, prelude::*, px, App, ClickEvent, ElementId, Entity, FocusHandle, KeyDownEvent, MouseDownEvent, SharedString, Window};
+use gpui::{
+    anchored, deferred, div, prelude::*, px, App, ClickEvent, ElementId, Entity, FocusHandle,
+    KeyDownEvent, MouseDownEvent, SharedString, Window,
+};
 use std::rc::Rc;
 
 use crate::ui::atoms::{Icon, IconName, ListItem};
@@ -30,17 +33,32 @@ pub struct Select {
 
 impl Select {
     pub fn new(id: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), options: vec![], selected: 0, on_change: None }
+        Self {
+            id: id.into(),
+            options: vec![],
+            selected: 0,
+            on_change: None,
+        }
     }
 
     pub fn option(mut self, label: impl Into<SharedString>) -> Self {
-        self.options.push(Opt { label: label.into(), font: None });
+        self.options.push(Opt {
+            label: label.into(),
+            font: None,
+        });
         self
     }
 
     /// An option rendered in its own font family (font pickers).
-    pub fn font_option(mut self, label: impl Into<SharedString>, family: impl Into<SharedString>) -> Self {
-        self.options.push(Opt { label: label.into(), font: Some(family.into()) });
+    pub fn font_option(
+        mut self,
+        label: impl Into<SharedString>,
+        family: impl Into<SharedString>,
+    ) -> Self {
+        self.options.push(Opt {
+            label: label.into(),
+            font: Some(family.into()),
+        });
         self
     }
 
@@ -65,13 +83,24 @@ fn set(state: &Entity<SelectState>, cx: &mut App, f: impl FnOnce(&mut SelectStat
 impl RenderOnce for Select {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let selected = self.selected;
-        let state = window.use_keyed_state(ElementId::Name(format!("{}-state", self.id).into()), cx, |_, cx| SelectState { open: false, highlight: selected, focus: cx.focus_handle() });
+        let state = window.use_keyed_state(
+            ElementId::Name(format!("{}-state", self.id).into()),
+            cx,
+            |_, cx| SelectState {
+                open: false,
+                highlight: selected,
+                focus: cx.focus_handle(),
+            },
+        );
         let (open, hl, focus) = {
             let s = state.read(cx);
             (s.open, s.highlight, s.focus.clone())
         };
         let n = self.options.len();
-        let current = self.options.get(selected).map(|o| (o.label.clone(), o.font.clone()));
+        let current = self
+            .options
+            .get(selected)
+            .map(|o| (o.label.clone(), o.font.clone()));
         let on_change = self.on_change.clone();
         let (st_click, st_key, st_focus) = (state.clone(), state.clone(), focus.clone());
         let trigger = div()
@@ -85,12 +114,24 @@ impl RenderOnce for Select {
             .px(theme::SPACE_2P5)
             .rounded(theme::RADIUS_MD)
             .border_1()
-            .border_color(if focus.is_focused(window) { theme::focus_ring() } else { theme::border() })
+            .border_color(if focus.is_focused(window) {
+                theme::focus_ring()
+            } else {
+                theme::border()
+            })
             .bg(theme::surface())
             .text_size(theme::text_sm())
             .cursor_pointer()
             .hover(|s| s.bg(theme::surface_hover()))
-            .child(div().flex_1().truncate().when_some(current.as_ref().and_then(|c| c.1.clone()), |d, f| d.font_family(f)).children(current.map(|c| c.0)))
+            .child(
+                div()
+                    .flex_1()
+                    .truncate()
+                    .when_some(current.as_ref().and_then(|c| c.1.clone()), |d, f| {
+                        d.font_family(f)
+                    })
+                    .children(current.map(|c| c.0)),
+            )
             .child(Icon::new(IconName::Selector).size(theme::ICON_SM))
             .on_click(move |_: &ClickEvent, window, cx| {
                 window.focus(&st_focus);
@@ -107,7 +148,9 @@ impl RenderOnce for Select {
                 };
                 match ev.keystroke.key.as_str() {
                     "down" | "up" if !open => set(&st_key, cx, |s| s.open = true),
-                    "down" => set(&st_key, cx, |s| s.highlight = (s.highlight + 1).min(n.saturating_sub(1))),
+                    "down" => set(&st_key, cx, |s| {
+                        s.highlight = (s.highlight + 1).min(n.saturating_sub(1))
+                    }),
                     "up" => set(&st_key, cx, |s| s.highlight = s.highlight.saturating_sub(1)),
                     "enter" | "space" if open => {
                         set(&st_key, cx, |s| s.open = false);
@@ -133,7 +176,9 @@ impl RenderOnce for Select {
                 .bg(theme::overlay())
                 .shadow_lg()
                 .text_size(theme::text_sm())
-                .on_mouse_down_out(move |_: &MouseDownEvent, _, cx| set(&st_out, cx, |s| s.open = false))
+                .on_mouse_down_out(move |_: &MouseDownEvent, _, cx| {
+                    set(&st_out, cx, |s| s.open = false)
+                })
                 .children(self.options.into_iter().enumerate().map(|(i, o)| {
                     let (st, f) = (state.clone(), self.on_change.clone());
                     div()
@@ -144,8 +189,19 @@ impl RenderOnce for Select {
                         .px(theme::SPACE_2)
                         .py(theme::item_pad_y())
                         .list_item_radius(i == hl, theme::RADIUS_SM)
-                        .child(div().flex_1().when_some(o.font, |d, f| d.font_family(f)).child(o.label))
-                        .when(i == selected, |d| d.child(Icon::new(IconName::Check).size(theme::ICON_SM).color(theme::text())))
+                        .child(
+                            div()
+                                .flex_1()
+                                .when_some(o.font, |d, f| d.font_family(f))
+                                .child(o.label),
+                        )
+                        .when(i == selected, |d| {
+                            d.child(
+                                Icon::new(IconName::Check)
+                                    .size(theme::ICON_SM)
+                                    .color(theme::text()),
+                            )
+                        })
                         .on_click(move |_: &ClickEvent, window, cx| {
                             set(&st, cx, |s| s.open = false);
                             if let Some(f) = &f {
@@ -153,7 +209,12 @@ impl RenderOnce for Select {
                             }
                         })
                 }));
-            deferred(anchored().snap_to_window_with_margin(theme::SPACE_2).child(panel)).with_priority(1)
+            deferred(
+                anchored()
+                    .snap_to_window_with_margin(theme::SPACE_2)
+                    .child(panel),
+            )
+            .with_priority(1)
         });
         div().flex().flex_col().child(trigger).children(list)
     }

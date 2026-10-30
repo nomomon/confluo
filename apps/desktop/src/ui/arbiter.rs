@@ -32,11 +32,24 @@ pub struct Arbiter {
 
 impl Arbiter {
     /// Note one event (repeat calls for the same event are ignored); returns the gesture's axis, if known.
-    pub fn observe(&mut self, phase: TouchPhase, precise: bool, dx: f32, dy: f32, at: (f32, f32)) -> Option<Axis> {
+    pub fn observe(
+        &mut self,
+        phase: TouchPhase,
+        precise: bool,
+        dx: f32,
+        dy: f32,
+        at: (f32, f32),
+    ) -> Option<Axis> {
         if !precise {
             return None;
         }
-        let key = (phase as u8, dx.to_bits(), dy.to_bits(), at.0.to_bits(), at.1.to_bits());
+        let key = (
+            phase as u8,
+            dx.to_bits(),
+            dy.to_bits(),
+            at.0.to_bits(),
+            at.1.to_bits(),
+        );
         if self.last == Some(key) {
             return self.axis;
         }
@@ -69,7 +82,11 @@ impl Arbiter {
     /// Some pager or block owns a horizontal gesture: vertical scrollers must not move.
     #[cfg(test)]
     pub fn horizontal_owned(&self) -> bool {
-        self.axis == Some(Axis::X) && matches!(self.owner, Some(Owner::Block(_) | Owner::Panel | Owner::Page))
+        self.axis == Some(Axis::X)
+            && matches!(
+                self.owner,
+                Some(Owner::Block(_) | Owner::Panel | Owner::Page)
+            )
     }
 }
 
@@ -98,7 +115,6 @@ pub fn claim(who: Owner) -> bool {
 pub fn owner_is(who: &Owner) -> bool {
     ARB.with(|a| a.borrow().owner() == Some(who))
 }
-
 
 /// Whether horizontal block `key` handles `ev` along x. Trackpad: only if it owns the gesture, which it takes
 /// at the gesture's first horizontal movement when it `can` still scroll that way (else the gesture goes on

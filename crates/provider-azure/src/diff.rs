@@ -35,7 +35,10 @@ pub(crate) fn entries(changes: &Value) -> Vec<Entry> {
         .as_array()
         .into_iter()
         .flatten()
-        .filter(|c| c["item"]["gitObjectType"].as_str().unwrap_or("blob") == "blob" && c["item"]["isFolder"] != true)
+        .filter(|c| {
+            c["item"]["gitObjectType"].as_str().unwrap_or("blob") == "blob"
+                && c["item"]["isFolder"] != true
+        })
         .filter_map(|c| {
             let item = &c["item"];
             let path = clean(item["path"].as_str()?);
@@ -49,14 +52,29 @@ pub(crate) fn entries(changes: &Value) -> Vec<Entry> {
             } else {
                 FileStatus::Modified
             };
-            let old_path = c["originalPath"].as_str().or(c["sourceServerItem"].as_str()).map(clean).unwrap_or_else(|| path.clone());
-            let blob = |k: &str| item[k].as_str().filter(|s| !s.is_empty()).map(str::to_string);
+            let old_path = c["originalPath"]
+                .as_str()
+                .or(c["sourceServerItem"].as_str())
+                .map(clean)
+                .unwrap_or_else(|| path.clone());
+            let blob = |k: &str| {
+                item[k]
+                    .as_str()
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_string)
+            };
             let (old_blob, new_blob) = match status {
                 FileStatus::Added => (None, blob("objectId")),
                 FileStatus::Deleted => (blob("originalObjectId").or(blob("objectId")), None),
                 _ => (blob("originalObjectId"), blob("objectId")),
             };
-            Some(Entry { old_path, new_path: path, status, old_blob, new_blob })
+            Some(Entry {
+                old_path,
+                new_path: path,
+                status,
+                old_blob,
+                new_blob,
+            })
         })
         .collect()
 }
@@ -103,7 +121,10 @@ impl Blob {
 /// A changed file from the blob contents (None = the side does not exist).
 pub(crate) fn file(e: &Entry, old: Option<Blob>, new: Option<Blob>) -> ChangedFile {
     let mut f = ChangedFile::from_patch(&e.old_path, &e.new_path, e.status, "");
-    if [&old, &new].iter().any(|b| matches!(b, Some(Blob::TooLarge))) {
+    if [&old, &new]
+        .iter()
+        .any(|b| matches!(b, Some(Blob::TooLarge)))
+    {
         f.too_large = true;
     } else if [&old, &new].iter().any(|b| matches!(b, Some(Blob::Binary))) {
         f.binary = true;
@@ -124,18 +145,32 @@ impl AzureProvider {
     /// A blob by object id.
     async fn blob(&self, repo_url: &str, sha: &str) -> ProviderResult<Blob> {
         let url = format!("{repo_url}/blobs/{sha}?$format=octetStream&{API}");
-        Ok(Blob::from_bytes(&self.get_bytes(&url).await?.unwrap_or_default()))
+        Ok(Blob::from_bytes(
+            &self.get_bytes(&url).await?.unwrap_or_default(),
+        ))
     }
 
-    pub(crate) async fn changed_files(&self, id: &ChangeRequestId) -> ProviderResult<Vec<ChangedFile>> {
+    pub(crate) async fn changed_files(
+        &self,
+        id: &ChangeRequestId,
+    ) -> ProviderResult<Vec<ChangedFile>> {
         let base = self.pr_url(id)?;
         let repo_url = self.repo_url(id)?;
         let its = self.get(&format!("{base}/iterations?{API}")).await?;
-        let Some(last) = its["value"].as_array().and_then(|a| a.iter().filter_map(|i| i["id"].as_u64()).max()) else { return Ok(vec![]) };
+        let Some(last) = its["value"]
+            .as_array()
+            .and_then(|a| a.iter().filter_map(|i| i["id"].as_u64()).max())
+        else {
+            return Ok(vec![]);
+        };
         let mut all = vec![];
         let mut skip = 0u64;
         for _ in 0..10 {
-            let v = self.get(&format!("{base}/iterations/{last}/changes?$top=1000&$skip={skip}&$compareTo=0&{API}")).await?;
+            let v = self
+                .get(&format!(
+                    "{base}/iterations/{last}/changes?$top=1000&$skip={skip}&$compareTo=0&{API}"
+                ))
+                .await?;
             all.extend(entries(&v));
             match v["nextSkip"].as_u64() {
                 Some(n) if n > skip => skip = n,
@@ -152,7 +187,12 @@ impl AzureProvider {
                 }
                 // A pure rename keeps its blob: nothing to fetch.
                 if e.old_blob.is_some() && e.old_blob == e.new_blob {
-                    return Ok(ChangedFile::from_patch(&e.old_path, &e.new_path, e.status, ""));
+                    return Ok(ChangedFile::from_patch(
+                        &e.old_path,
+                        &e.new_path,
+                        e.status,
+                        "",
+                    ));
                 }
                 let old = match &e.old_blob {
                     Some(b) => Some(self.blob(&repo_url, b).await?),
@@ -165,7 +205,12 @@ impl AzureProvider {
                 Ok::<_, ProviderError>(file(&e, old, new))
             }
         });
-        stream::iter(jobs).buffered(crate::CONCURRENCY).collect::<Vec<_>>().await.into_iter().collect()
+        stream::iter(jobs)
+            .buffered(crate::CONCURRENCY)
+            .collect::<Vec<_>>()
+            .await
+            .into_iter()
+            .collect()
     }
 }
 
@@ -178,11 +223,39 @@ mod tests {
         let v: Value = serde_json::from_str(include_str!("../fixtures/changes.json")).unwrap();
         let e = entries(&v);
         assert_eq!(e.len(), 5, "folders are skipped");
-        assert_eq!((e[0].new_path.as_str(), e[0].status, e[0].old_blob.as_deref(), e[0].new_blob.as_deref()), ("src/app.ts", FileStatus::Modified, Some("o1"), Some("n1")));
-        assert_eq!((e[1].status, e[1].old_blob.as_deref(), e[1].new_blob.as_deref()), (FileStatus::Added, None, Some("n2")));
-        assert_eq!((e[2].status, e[2].old_blob.as_deref(), e[2].new_blob.as_deref()), (FileStatus::Deleted, Some("o3"), None));
-        assert_eq!((e[3].old_path.as_str(), e[3].new_path.as_str(), e[3].status), ("lib/a.rs", "lib/b.rs", FileStatus::Renamed));
-        assert_eq!((e[4].old_path.as_str(), e[4].status), ("lib/c_old.rs", FileStatus::Renamed));
+        assert_eq!(
+            (
+                e[0].new_path.as_str(),
+                e[0].status,
+                e[0].old_blob.as_deref(),
+                e[0].new_blob.as_deref()
+            ),
+            ("src/app.ts", FileStatus::Modified, Some("o1"), Some("n1"))
+        );
+        assert_eq!(
+            (
+                e[1].status,
+                e[1].old_blob.as_deref(),
+                e[1].new_blob.as_deref()
+            ),
+            (FileStatus::Added, None, Some("n2"))
+        );
+        assert_eq!(
+            (
+                e[2].status,
+                e[2].old_blob.as_deref(),
+                e[2].new_blob.as_deref()
+            ),
+            (FileStatus::Deleted, Some("o3"), None)
+        );
+        assert_eq!(
+            (e[3].old_path.as_str(), e[3].new_path.as_str(), e[3].status),
+            ("lib/a.rs", "lib/b.rs", FileStatus::Renamed)
+        );
+        assert_eq!(
+            (e[4].old_path.as_str(), e[4].status),
+            ("lib/c_old.rs", FileStatus::Renamed)
+        );
     }
 
     #[test]
@@ -191,12 +264,22 @@ mod tests {
         let new = "a\nb\nc\nD\ne\nf\ng\nh\ni\n";
         let p = unified(old, new);
         assert!(p.starts_with("@@ -1,8 +1,9 @@"), "{p}");
-        let e = Entry { old_path: "x".into(), new_path: "x".into(), status: FileStatus::Modified, old_blob: Some("o".into()), new_blob: Some("n".into()) };
+        let e = Entry {
+            old_path: "x".into(),
+            new_path: "x".into(),
+            status: FileStatus::Modified,
+            old_blob: Some("o".into()),
+            new_blob: Some("n".into()),
+        };
         let t = |s: &str| Some(Blob::Text(s.into()));
         let f = file(&e, t(old), t(new));
         assert_eq!((f.additions, f.deletions, f.hunks.len()), (2, 1, 1));
         assert_eq!(f.hunks[0].lines[3].old_no, Some(4));
-        let added = Entry { status: FileStatus::Added, old_blob: None, ..e.clone() };
+        let added = Entry {
+            status: FileStatus::Added,
+            old_blob: None,
+            ..e.clone()
+        };
         let f = file(&added, None, t("1\n2\n"));
         assert_eq!((f.additions, f.deletions), (2, 0));
         assert!(file(&e, t("x"), Some(Blob::Binary)).binary);

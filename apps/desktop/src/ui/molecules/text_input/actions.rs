@@ -1,6 +1,9 @@
 //! Keyboard, mouse and clipboard handlers plus offset helpers for `TextInput`.
 
-use gpui::{ClipboardItem, Context, EntityInputHandler, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, Window};
+use gpui::{
+    ClipboardItem, Context, EntityInputHandler, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
+    Pixels, Point, Window,
+};
 use std::ops::Range;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -30,7 +33,9 @@ impl TextInput {
         } else {
             self.selected_range.end
         };
-        let (to, x) = self.rows.vertical(from, delta, self.goal_x, self.content.len());
+        let (to, x) = self
+            .rows
+            .vertical(from, delta, self.goal_x, self.content.len());
         if extend {
             self.select_to(to, cx)
         } else {
@@ -62,10 +67,20 @@ impl TextInput {
     pub(super) fn word_right(&mut self, _: &WordRight, _: &mut Window, cx: &mut Context<Self>) {
         self.move_to(model::word_right(&self.content, self.cursor_offset()), cx)
     }
-    pub(super) fn select_word_left(&mut self, _: &SelectWordLeft, _: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn select_word_left(
+        &mut self,
+        _: &SelectWordLeft,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.select_to(model::word_left(&self.content, self.cursor_offset()), cx)
     }
-    pub(super) fn select_word_right(&mut self, _: &SelectWordRight, _: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn select_word_right(
+        &mut self,
+        _: &SelectWordRight,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.select_to(model::word_right(&self.content, self.cursor_offset()), cx)
     }
     pub(super) fn select_all(&mut self, _: &SelectAll, _: &mut Window, cx: &mut Context<Self>) {
@@ -104,10 +119,20 @@ impl TextInput {
     pub(super) fn doc_end(&mut self, _: &DocEnd, _: &mut Window, cx: &mut Context<Self>) {
         self.move_to(self.content.len(), cx);
     }
-    pub(super) fn select_doc_start(&mut self, _: &SelectDocStart, _: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn select_doc_start(
+        &mut self,
+        _: &SelectDocStart,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.select_to(0, cx);
     }
-    pub(super) fn select_doc_end(&mut self, _: &SelectDocEnd, _: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn select_doc_end(
+        &mut self,
+        _: &SelectDocEnd,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.select_to(self.content.len(), cx);
     }
     pub(super) fn backspace(&mut self, _: &Backspace, window: &mut Window, cx: &mut Context<Self>) {
@@ -122,28 +147,53 @@ impl TextInput {
         }
         self.replace_text_in_range(None, "", window, cx)
     }
-    pub(super) fn delete_word_left(&mut self, _: &DeleteWordLeft, window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn delete_word_left(
+        &mut self,
+        _: &DeleteWordLeft,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if self.selected_range.is_empty() {
             self.select_to(model::word_left(&self.content, self.cursor_offset()), cx)
         }
         self.replace_text_in_range(None, "", window, cx)
     }
-    pub(super) fn delete_word_right(&mut self, _: &DeleteWordRight, window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn delete_word_right(
+        &mut self,
+        _: &DeleteWordRight,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if self.selected_range.is_empty() {
             self.select_to(model::word_right(&self.content, self.cursor_offset()), cx)
         }
         self.replace_text_in_range(None, "", window, cx)
     }
-    pub(super) fn delete_to_line_start(&mut self, _: &DeleteToLineStart, window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn delete_to_line_start(
+        &mut self,
+        _: &DeleteToLineStart,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if self.selected_range.is_empty() {
             let off = self.cursor_offset();
             let home = self.line_home();
-            self.select_to(if home == off { self.previous_boundary(off) } else { home }, cx)
+            self.select_to(
+                if home == off {
+                    self.previous_boundary(off)
+                } else {
+                    home
+                },
+                cx,
+            )
         }
         self.replace_text_in_range(None, "", window, cx)
     }
     fn snapshot(&self) -> Snapshot {
-        Snapshot { text: self.content.to_string(), sel: self.selected_range.clone() }
+        Snapshot {
+            text: self.content.to_string(),
+            sel: self.selected_range.clone(),
+        }
     }
     fn restore(&mut self, s: Snapshot, cx: &mut Context<Self>) {
         self.content = s.text.into();
@@ -157,7 +207,9 @@ impl TextInput {
     }
     /// Records the pre-edit state for undo; called by every text replacement.
     pub(super) fn record_edit(&mut self, new_text: &str, range: &Range<usize>) {
-        let typing = range.is_empty() && new_text.graphemes(true).count() == 1 && !new_text.contains(char::is_whitespace);
+        let typing = range.is_empty()
+            && new_text.graphemes(true).count() == 1
+            && !new_text.contains(char::is_whitespace);
         let snap = self.snapshot();
         self.history.record(snap, typing);
         self.goal_x = None;
@@ -189,20 +241,30 @@ impl TextInput {
         }
     }
     pub(super) fn bold(&mut self, _: &Bold, _: &mut Window, cx: &mut Context<Self>) {
-        self.apply_edit(super::md_edit::wrap(&self.content, &self.selected_range, "**", "**"), cx)
+        self.apply_edit(
+            super::md_edit::wrap(&self.content, &self.selected_range, "**", "**"),
+            cx,
+        )
     }
     pub(super) fn italic(&mut self, _: &Italic, _: &mut Window, cx: &mut Context<Self>) {
-        self.apply_edit(super::md_edit::wrap(&self.content, &self.selected_range, "_", "_"), cx)
+        self.apply_edit(
+            super::md_edit::wrap(&self.content, &self.selected_range, "_", "_"),
+            cx,
+        )
     }
     pub(super) fn link(&mut self, _: &Link, _: &mut Window, cx: &mut Context<Self>) {
-        self.apply_edit(super::md_edit::link(&self.content, &self.selected_range), cx)
+        self.apply_edit(
+            super::md_edit::link(&self.content, &self.selected_range),
+            cx,
+        )
     }
     /// One undoable markdown edit: replace a range and set the selection.
     fn apply_edit(&mut self, e: super::md_edit::Edit, cx: &mut Context<Self>) {
         let range = self.clamp_range(e.range);
         self.record_edit(&e.text, &range);
         self.history.seal();
-        self.content = (self.content[..range.start].to_owned() + &e.text + &self.content[range.end..]).into();
+        self.content =
+            (self.content[..range.start].to_owned() + &e.text + &self.content[range.end..]).into();
         self.selected_range = self.clamp_range(e.sel);
         self.selection_reversed = false;
         self.marked_range = None;
@@ -220,7 +282,12 @@ impl TextInput {
         }
         self.replace_text_in_range(None, "\n", window, cx)
     }
-    pub(super) fn on_mouse_down(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn on_mouse_down(
+        &mut self,
+        event: &MouseDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         window.focus(&self.focus_handle);
         let at = self.index_for_mouse_position(event.position);
         match event.click_count {
@@ -247,25 +314,38 @@ impl TextInput {
     pub(super) fn on_mouse_up(&mut self, _: &MouseUpEvent, _: &mut Window, _: &mut Context<Self>) {
         self.is_selecting = false;
     }
-    pub(super) fn on_mouse_move(&mut self, event: &MouseMoveEvent, _: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn on_mouse_move(
+        &mut self,
+        event: &MouseMoveEvent,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if self.is_selecting {
             self.select_to(self.index_for_mouse_position(event.position), cx);
         }
     }
     pub(super) fn paste(&mut self, _: &Paste, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
-            let text = if self.multiline { text } else { text.replace('\n', " ") };
+            let text = if self.multiline {
+                text
+            } else {
+                text.replace('\n', " ")
+            };
             self.replace_text_in_range(None, &text, window, cx);
         }
     }
     pub(super) fn copy(&mut self, _: &Copy, _: &mut Window, cx: &mut Context<Self>) {
         if !self.selected_range.is_empty() {
-            cx.write_to_clipboard(ClipboardItem::new_string(self.content[self.clamp_range(self.selected_range.clone())].to_string()));
+            cx.write_to_clipboard(ClipboardItem::new_string(
+                self.content[self.clamp_range(self.selected_range.clone())].to_string(),
+            ));
         }
     }
     pub(super) fn cut(&mut self, _: &Cut, window: &mut Window, cx: &mut Context<Self>) {
         if !self.selected_range.is_empty() {
-            cx.write_to_clipboard(ClipboardItem::new_string(self.content[self.clamp_range(self.selected_range.clone())].to_string()));
+            cx.write_to_clipboard(ClipboardItem::new_string(
+                self.content[self.clamp_range(self.selected_range.clone())].to_string(),
+            ));
             self.replace_text_in_range(None, "", window, cx)
         }
     }
@@ -356,9 +436,16 @@ impl TextInput {
         self.offset_from_utf16(r.start)..self.offset_from_utf16(r.end)
     }
     pub(super) fn previous_boundary(&self, offset: usize) -> usize {
-        self.content.grapheme_indices(true).rev().find_map(|(i, _)| (i < offset).then_some(i)).unwrap_or(0)
+        self.content
+            .grapheme_indices(true)
+            .rev()
+            .find_map(|(i, _)| (i < offset).then_some(i))
+            .unwrap_or(0)
     }
     pub(super) fn next_boundary(&self, offset: usize) -> usize {
-        self.content.grapheme_indices(true).find_map(|(i, _)| (i > offset).then_some(i)).unwrap_or(self.content.len())
+        self.content
+            .grapheme_indices(true)
+            .find_map(|(i, _)| (i > offset).then_some(i))
+            .unwrap_or(self.content.len())
     }
 }

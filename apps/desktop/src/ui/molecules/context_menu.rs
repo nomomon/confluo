@@ -3,7 +3,10 @@
 //!
 //! `ContextMenu::new("row-menu", event.position).on_dismiss(..).child(MenuItem::new(..))`
 
-use gpui::{anchored, deferred, div, prelude::*, AnyElement, App, MouseDownEvent, Pixels, Point, SharedString, Window};
+use gpui::{
+    anchored, deferred, div, prelude::*, AnyElement, App, MouseDownEvent, Pixels, Point,
+    SharedString, Window,
+};
 
 use crate::ui::{layer, motion, theme, MouseDownHandler};
 
@@ -17,10 +20,18 @@ pub struct ContextMenu {
 
 impl ContextMenu {
     pub fn new(id: impl Into<SharedString>, position: Point<Pixels>) -> Self {
-        Self { id: id.into(), position, children: vec![], on_dismiss: None }
+        Self {
+            id: id.into(),
+            position,
+            children: vec![],
+            on_dismiss: None,
+        }
     }
 
-    pub fn on_dismiss(mut self, f: impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_dismiss(
+        mut self,
+        f: impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_dismiss = Some(Box::new(f));
         self
     }
@@ -48,6 +59,12 @@ impl RenderOnce for ContextMenu {
             .occlude()
             .children(self.children)
             .when_some(self.on_dismiss, |el, f| el.on_mouse_down_out(f));
-        deferred(anchored().position(self.position).snap_to_window_with_margin(theme::SPACE_2).child(motion::pop_in(panel, self.id))).with_priority(2)
+        deferred(
+            anchored()
+                .position(self.position)
+                .snap_to_window_with_margin(theme::SPACE_2)
+                .child(motion::pop_in(panel, self.id)),
+        )
+        .with_priority(2)
     }
 }

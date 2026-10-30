@@ -78,7 +78,8 @@ pub(crate) fn merge_strategy(o: &MergeOptions) -> &'static str {
 
 /// Complete now (needs the current source commit) or set auto-complete (`when_pipeline_succeeds`).
 pub(crate) fn complete_payload(o: &MergeOptions, head: &str, my_id: &str) -> Value {
-    let options = json!({ "mergeStrategy": merge_strategy(o), "deleteSourceBranch": o.delete_branch });
+    let options =
+        json!({ "mergeStrategy": merge_strategy(o), "deleteSourceBranch": o.delete_branch });
     if o.when_pipeline_succeeds {
         json!({ "autoCompleteSetBy": { "id": my_id }, "completionOptions": options })
     } else {
@@ -87,11 +88,28 @@ pub(crate) fn complete_payload(o: &MergeOptions, head: &str, my_id: &str) -> Val
 }
 
 /// Reviewer ids to add and remove going from `current` to `desired`.
-pub(crate) fn reviewer_changes(current: &[User], desired: &[User]) -> ProviderResult<(Vec<String>, Vec<String>)> {
-    let id = |u: &User| u.id.clone().ok_or_else(|| ProviderError::Decode(format!("no Azure DevOps id for {}", u.username)));
-    let has = |list: &[User], u: &User| list.iter().any(|x| x.id == u.id || x.username.eq_ignore_ascii_case(&u.username));
-    let add = desired.iter().filter(|u| !has(current, u)).map(id).collect::<ProviderResult<Vec<_>>>()?;
-    let remove = current.iter().filter(|u| !has(desired, u)).map(id).collect::<ProviderResult<Vec<_>>>()?;
+pub(crate) fn reviewer_changes(
+    current: &[User],
+    desired: &[User],
+) -> ProviderResult<(Vec<String>, Vec<String>)> {
+    let id = |u: &User| {
+        u.id.clone()
+            .ok_or_else(|| ProviderError::Decode(format!("no Azure DevOps id for {}", u.username)))
+    };
+    let has = |list: &[User], u: &User| {
+        list.iter()
+            .any(|x| x.id == u.id || x.username.eq_ignore_ascii_case(&u.username))
+    };
+    let add = desired
+        .iter()
+        .filter(|u| !has(current, u))
+        .map(id)
+        .collect::<ProviderResult<Vec<_>>>()?;
+    let remove = current
+        .iter()
+        .filter(|u| !has(desired, u))
+        .map(id)
+        .collect::<ProviderResult<Vec<_>>>()?;
     Ok((add, remove))
 }
 
@@ -127,7 +145,16 @@ pub(crate) fn edit_info(v: &Value, cr: &ChangeRequest, evals: &[Value]) -> EditI
                     _ => MergeMethod::Merge,
                 };
                 let mut methods = vec![preferred];
-                methods.extend([MergeMethod::Merge, MergeMethod::Squash, MergeMethod::Rebase, MergeMethod::RebaseMerge].into_iter().filter(|m| *m != preferred));
+                methods.extend(
+                    [
+                        MergeMethod::Merge,
+                        MergeMethod::Squash,
+                        MergeMethod::Rebase,
+                        MergeMethod::RebaseMerge,
+                    ]
+                    .into_iter()
+                    .filter(|m| *m != preferred),
+                );
                 caps.merge_methods = methods;
                 caps.delete_branch_option = true;
                 caps.delete_branch_default = v["completionOptions"]["deleteSourceBranch"] == true;
@@ -135,7 +162,11 @@ pub(crate) fn edit_info(v: &Value, cr: &ChangeRequest, evals: &[Value]) -> EditI
             }
         }
     }
-    EditInfo { caps, assignees: vec![], node_id: None }
+    EditInfo {
+        caps,
+        assignees: vec![],
+        node_id: None,
+    }
 }
 
 /// `DELETE .../pullRequests/{id}/threads/{t}/comments/{c}` for comment id `t/c`.
@@ -156,9 +187,17 @@ mod tests {
     }
 
     fn pr(extra: Value) -> (Value, ChangeRequest) {
-        let mut v: Value = serde_json::from_str(include_str!("../fixtures/pull_request.json")).unwrap();
-        v.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
-        let cr = parse_pr("dev.azure.com", "contoso", &v, &User::named("me@example.com"));
+        let mut v: Value =
+            serde_json::from_str(include_str!("../fixtures/pull_request.json")).unwrap();
+        v.as_object_mut()
+            .unwrap()
+            .extend(extra.as_object().unwrap().clone());
+        let cr = parse_pr(
+            "dev.azure.com",
+            "contoso",
+            &v,
+            &User::named("me@example.com"),
+        );
         (v, cr)
     }
 
@@ -178,8 +217,14 @@ mod tests {
         let mut o = DiffPosition::new("new.rs", DiffSide::Old, 3);
         o.old_path = Some("old.rs".into());
         let v = thread_payload("x", Some(&o));
-        assert_eq!(v["threadContext"], json!({"filePath": "/old.rs", "leftFileStart": {"line": 3, "offset": 1}, "leftFileEnd": {"line": 3, "offset": 1}}));
-        assert_eq!(reply_payload("ok"), json!({"parentCommentId": 1, "content": "ok", "commentType": "text"}));
+        assert_eq!(
+            v["threadContext"],
+            json!({"filePath": "/old.rs", "leftFileStart": {"line": 3, "offset": 1}, "leftFileEnd": {"line": 3, "offset": 1}})
+        );
+        assert_eq!(
+            reply_payload("ok"),
+            json!({"parentCommentId": 1, "content": "ok", "commentType": "text"})
+        );
         assert_eq!(resolve_payload(true), json!({"status": "fixed"}));
         assert_eq!(resolve_payload(false), json!({"status": "active"}));
     }
@@ -191,44 +236,92 @@ mod tests {
         assert_eq!(update_payload(None, Some("B")), json!({"description": "B"}));
         assert_eq!(status_payload(false), json!({"status": "abandoned"}));
         assert_eq!(status_payload(true), json!({"status": "active"}));
-        let o = MergeOptions { method: MergeMethod::Squash, delete_branch: true, ..Default::default() };
+        let o = MergeOptions {
+            method: MergeMethod::Squash,
+            delete_branch: true,
+            ..Default::default()
+        };
         assert_eq!(
             complete_payload(&o, "abc", "me"),
             json!({"status": "completed", "lastMergeSourceCommit": {"commitId": "abc"}, "completionOptions": {"mergeStrategy": "squash", "deleteSourceBranch": true}})
         );
-        let auto = MergeOptions { method: MergeMethod::RebaseMerge, when_pipeline_succeeds: true, ..Default::default() };
+        let auto = MergeOptions {
+            method: MergeMethod::RebaseMerge,
+            when_pipeline_succeeds: true,
+            ..Default::default()
+        };
         assert_eq!(
             complete_payload(&auto, "abc", "me-id"),
             json!({"autoCompleteSetBy": {"id": "me-id"}, "completionOptions": {"mergeStrategy": "rebaseMerge", "deleteSourceBranch": false}})
         );
         assert_eq!(merge_strategy(&MergeOptions::default()), "noFastForward");
-        assert_eq!(merge_strategy(&MergeOptions { method: MergeMethod::Rebase, ..Default::default() }), "rebase");
-        assert_eq!(merge_strategy(&MergeOptions { squash: true, ..Default::default() }), "squash");
+        assert_eq!(
+            merge_strategy(&MergeOptions {
+                method: MergeMethod::Rebase,
+                ..Default::default()
+            }),
+            "rebase"
+        );
+        assert_eq!(
+            merge_strategy(&MergeOptions {
+                squash: true,
+                ..Default::default()
+            }),
+            "squash"
+        );
     }
 
     #[test]
     fn reviewers_by_id() {
-        let u = |n: &str, id: Option<&str>| User { id: id.map(str::to_string), ..User::named(n) };
-        let (add, remove) = reviewer_changes(&[u("a", Some("1")), u("b", Some("2"))], &[u("a", Some("1")), u("c", Some("3"))]).unwrap();
-        assert_eq!((add, remove), (vec!["3".to_string()], vec!["2".to_string()]));
+        let u = |n: &str, id: Option<&str>| User {
+            id: id.map(str::to_string),
+            ..User::named(n)
+        };
+        let (add, remove) = reviewer_changes(
+            &[u("a", Some("1")), u("b", Some("2"))],
+            &[u("a", Some("1")), u("c", Some("3"))],
+        )
+        .unwrap();
+        assert_eq!(
+            (add, remove),
+            (vec!["3".to_string()], vec!["2".to_string()])
+        );
         assert!(reviewer_changes(&[], &[u("x", None)]).is_err());
     }
 
     #[test]
     fn capabilities() {
-        let evals: Value = serde_json::from_str(include_str!("../fixtures/policy_evaluations.json")).unwrap();
+        let evals: Value =
+            serde_json::from_str(include_str!("../fixtures/policy_evaluations.json")).unwrap();
         let evals = evals["value"].as_array().unwrap().clone();
         let (v, cr) = pr(json!({}));
         let e = edit_info(&v, &cr, &[]);
-        assert!(e.caps.title && e.caps.draft && e.caps.close && !e.caps.reopen && !e.caps.assignees && e.caps.merge);
+        assert!(
+            e.caps.title
+                && e.caps.draft
+                && e.caps.close
+                && !e.caps.reopen
+                && !e.caps.assignees
+                && e.caps.merge
+        );
         assert_eq!(e.caps.merge_methods[0], MergeMethod::Squash);
         assert_eq!(e.caps.merge_methods.len(), 4);
         assert!(e.caps.delete_branch_default && !e.caps.auto_merge);
-        assert_eq!(edit_info(&v, &cr, &evals).caps.merge_blocked.as_deref(), Some("Required policies are not met"));
-        let running: Vec<Value> = evals.iter().filter(|e| e["status"] != "rejected").cloned().collect();
+        assert_eq!(
+            edit_info(&v, &cr, &evals).caps.merge_blocked.as_deref(),
+            Some("Required policies are not met")
+        );
+        let running: Vec<Value> = evals
+            .iter()
+            .filter(|e| e["status"] != "rejected")
+            .cloned()
+            .collect();
         assert!(edit_info(&v, &cr, &running).caps.auto_merge);
         let (v, cr) = pr(json!({"mergeStatus": "conflicts"}));
-        assert_eq!(edit_info(&v, &cr, &[]).caps.merge_blocked.as_deref(), Some("This branch has conflicts"));
+        assert_eq!(
+            edit_info(&v, &cr, &[]).caps.merge_blocked.as_deref(),
+            Some("This branch has conflicts")
+        );
         let (v, cr) = pr(json!({"isDraft": true}));
         assert!(!edit_info(&v, &cr, &[]).caps.merge);
         let (v, cr) = pr(json!({"status": "abandoned"}));

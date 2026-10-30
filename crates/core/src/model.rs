@@ -44,7 +44,11 @@ pub struct RepoRef {
 
 impl RepoRef {
     pub fn new(kind: ProviderKind, host: impl Into<String>, path: impl Into<String>) -> Self {
-        Self { kind, host: host.into().to_ascii_lowercase(), path: path.into() }
+        Self {
+            kind,
+            host: host.into().to_ascii_lowercase(),
+            path: path.into(),
+        }
     }
     pub fn web_url(&self) -> String {
         if self.kind == ProviderKind::Azure {
@@ -89,13 +93,19 @@ impl ChangeRequestId {
 
     /// Parse a web URL of a PR/MR on GitHub, GitLab or Azure DevOps.
     pub fn from_web_url(url: &str) -> Option<Self> {
-        let rest = url.trim().strip_prefix("https://").or_else(|| url.trim().strip_prefix("http://"))?;
+        let rest = url
+            .trim()
+            .strip_prefix("https://")
+            .or_else(|| url.trim().strip_prefix("http://"))?;
         let rest = rest.split(['?', '#']).next()?.trim_end_matches('/');
         let (host, path) = rest.split_once('/')?;
         let host = host.to_ascii_lowercase();
         if let Some((repo, tail)) = path.split_once("/-/merge_requests/") {
             let n = tail.split('/').next()?.parse().ok()?;
-            return Some(Self { repo: RepoRef::new(ProviderKind::GitLab, host, repo), number: n });
+            return Some(Self {
+                repo: RepoRef::new(ProviderKind::GitLab, host, repo),
+                number: n,
+            });
         }
         if let Some((repo, tail)) = path.split_once("/_git/") {
             // dev.azure.com/org/project/_git/repo/pullrequest/12
@@ -116,7 +126,11 @@ impl ChangeRequestId {
         }
         let parts: Vec<&str> = path.split('/').collect();
         if parts.len() >= 4 && parts[2] == "pull" {
-            let kind = if host.contains("gitlab") { ProviderKind::GitLab } else { ProviderKind::GitHub };
+            let kind = if host.contains("gitlab") {
+                ProviderKind::GitLab
+            } else {
+                ProviderKind::GitHub
+            };
             return Some(Self {
                 repo: RepoRef::new(kind, host, format!("{}/{}", parts[0], parts[1])),
                 number: parts[3].parse().ok()?,
@@ -128,7 +142,11 @@ impl ChangeRequestId {
 
 impl fmt::Display for ChangeRequestId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let sep = if self.repo.kind == ProviderKind::GitLab { '!' } else { '#' };
+        let sep = if self.repo.kind == ProviderKind::GitLab {
+            '!'
+        } else {
+            '#'
+        };
         write!(f, "{}{}{}", self.repo.path, sep, self.number)
     }
 }
@@ -148,7 +166,10 @@ pub struct User {
 
 impl User {
     pub fn named(username: impl Into<String>) -> Self {
-        Self { username: username.into(), ..Default::default() }
+        Self {
+            username: username.into(),
+            ..Default::default()
+        }
     }
 }
 
@@ -272,7 +293,12 @@ pub struct DiffPosition {
 
 impl DiffPosition {
     pub fn new(path: impl Into<String>, side: DiffSide, line: u32) -> Self {
-        Self { path: path.into(), side, line, ..Default::default() }
+        Self {
+            path: path.into(),
+            side,
+            line,
+            ..Default::default()
+        }
     }
 }
 
@@ -291,7 +317,13 @@ pub struct Thread {
 
 impl Thread {
     pub fn conversation(id: impl Into<String>, comments: Vec<Comment>) -> Self {
-        Self { id: id.into(), resolved: None, comments, position: None, outdated: false }
+        Self {
+            id: id.into(),
+            resolved: None,
+            comments,
+            position: None,
+            outdated: false,
+        }
     }
 }
 
@@ -370,9 +402,16 @@ pub struct Filter {
 pub enum Scope {
     Repo(RepoRef),
     /// GitHub org/user or GitLab group (path may be nested).
-    Group { kind: ProviderKind, host: String, owner: String },
+    Group {
+        kind: ProviderKind,
+        host: String,
+        owner: String,
+    },
     /// Everything on a host that involves the current user.
-    InvolvingMe { kind: ProviderKind, host: String },
+    InvolvingMe {
+        kind: ProviderKind,
+        host: String,
+    },
 }
 
 #[cfg(test)]
@@ -382,24 +421,43 @@ mod tests {
     #[test]
     fn parse_urls() {
         let g = ChangeRequestId::from_web_url("https://github.com/nomomon/zeron/pull/4").unwrap();
-        assert_eq!(g.repo, RepoRef::new(ProviderKind::GitHub, "github.com", "nomomon/zeron"));
+        assert_eq!(
+            g.repo,
+            RepoRef::new(ProviderKind::GitHub, "github.com", "nomomon/zeron")
+        );
         assert_eq!(g.number, 4);
-        let l = ChangeRequestId::from_web_url("https://gitlab.com/a/b/c/-/merge_requests/17/diffs?x=1").unwrap();
+        let l =
+            ChangeRequestId::from_web_url("https://gitlab.com/a/b/c/-/merge_requests/17/diffs?x=1")
+                .unwrap();
         assert_eq!(l.repo.path, "a/b/c");
         assert_eq!(l.repo.kind, ProviderKind::GitLab);
         assert_eq!(l.number, 17);
-        let a = ChangeRequestId::from_web_url("https://dev.azure.com/org/proj/_git/repo/pullrequest/9").unwrap();
+        let a =
+            ChangeRequestId::from_web_url("https://dev.azure.com/org/proj/_git/repo/pullrequest/9")
+                .unwrap();
         assert_eq!(a.repo.path, "org/proj/repo");
         assert_eq!(a.repo.kind, ProviderKind::Azure);
-        let v = ChangeRequestId::from_web_url("https://org.visualstudio.com/DefaultCollection/proj/_git/repo/pullrequest/9?_a=files").unwrap();
-        assert_eq!((v.repo.host.as_str(), v.repo.path.as_str(), v.number), ("dev.azure.com", "org/proj/repo", 9));
-        let w = ChangeRequestId::from_web_url("https://org.visualstudio.com/proj/_git/repo/pullrequest/3").unwrap();
+        let v = ChangeRequestId::from_web_url(
+            "https://org.visualstudio.com/DefaultCollection/proj/_git/repo/pullrequest/9?_a=files",
+        )
+        .unwrap();
+        assert_eq!(
+            (v.repo.host.as_str(), v.repo.path.as_str(), v.number),
+            ("dev.azure.com", "org/proj/repo", 9)
+        );
+        let w = ChangeRequestId::from_web_url(
+            "https://org.visualstudio.com/proj/_git/repo/pullrequest/3",
+        )
+        .unwrap();
         assert_eq!(w.repo.path, "org/proj/repo");
     }
 
     #[test]
     fn key_roundtrip() {
-        let id = ChangeRequestId { repo: RepoRef::new(ProviderKind::GitLab, "gitlab.com", "a/b"), number: 3 };
+        let id = ChangeRequestId {
+            repo: RepoRef::new(ProviderKind::GitLab, "gitlab.com", "a/b"),
+            number: 3,
+        };
         assert_eq!(ChangeRequestId::parse_key(&id.key()), Some(id));
     }
 }

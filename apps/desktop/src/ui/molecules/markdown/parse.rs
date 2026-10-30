@@ -30,7 +30,14 @@ pub(super) struct Marks {
 
 impl Marks {
     pub(super) fn style(&self) -> Style {
-        Style { bold: self.bold > 0, italic: self.italic > 0, strike: self.strike > 0, code: false, image: self.image.clone(), link: self.link.clone() }
+        Style {
+            bold: self.bold > 0,
+            italic: self.italic > 0,
+            strike: self.strike > 0,
+            code: false,
+            image: self.image.clone(),
+            link: self.link.clone(),
+        }
     }
 }
 
@@ -43,8 +50,18 @@ pub(super) struct Builder {
 }
 
 pub fn parse(src: &str) -> Vec<Block> {
-    let opts = Options::ENABLE_TABLES | Options::ENABLE_TASKLISTS | Options::ENABLE_STRIKETHROUGH | Options::ENABLE_GFM | Options::ENABLE_FOOTNOTES;
-    let mut b = Builder { frames: vec![Frame::Root(vec![])], inline: None, heading: None, code: None, marks: Marks::default() };
+    let opts = Options::ENABLE_TABLES
+        | Options::ENABLE_TASKLISTS
+        | Options::ENABLE_STRIKETHROUGH
+        | Options::ENABLE_GFM
+        | Options::ENABLE_FOOTNOTES;
+    let mut b = Builder {
+        frames: vec![Frame::Root(vec![])],
+        inline: None,
+        heading: None,
+        code: None,
+        marks: Marks::default(),
+    };
     for ev in Parser::new_ext(src, opts) {
         b.event(ev);
     }
@@ -79,23 +96,35 @@ pub(super) fn align(a: &Alignment) -> Align {
 impl Builder {
     pub(super) fn push_block(&mut self, block: Block) {
         match self.frames.last_mut() {
-            Some(Frame::Root(v) | Frame::Quote(_, v) | Frame::Item(_, v) | Frame::Details(_, v) | Frame::Footnote(_, v)) => v.push(block),
+            Some(
+                Frame::Root(v)
+                | Frame::Quote(_, v)
+                | Frame::Item(_, v)
+                | Frame::Details(_, v)
+                | Frame::Footnote(_, v),
+            ) => v.push(block),
             // A block directly in a list (should not happen): wrap it in an item.
-            Some(Frame::List(_, items)) => items.push(Item { task: None, blocks: vec![block] }),
+            Some(Frame::List(_, items)) => items.push(Item {
+                task: None,
+                blocks: vec![block],
+            }),
             _ => {}
         }
     }
 
     /// Close the pending inline text as a paragraph or heading.
     pub(super) fn flush(&mut self) {
-        let Some(inline) = self.inline.take() else { return };
+        let Some(inline) = self.inline.take() else {
+            return;
+        };
         let level = self.heading.take();
         if inline.is_blank() {
             return;
         }
         if level.is_none() {
             if let Some(summary) = inline.text.trim().strip_prefix(DETAILS_OPEN) {
-                self.frames.push(Frame::Details(summary.trim().to_string(), vec![]));
+                self.frames
+                    .push(Frame::Details(summary.trim().to_string(), vec![]));
                 return;
             }
             if inline.text.trim() == DETAILS_CLOSE {
@@ -116,7 +145,9 @@ impl Builder {
 
     pub(super) fn close_frame(&mut self) {
         self.flush();
-        let Some(frame) = self.frames.pop() else { return };
+        let Some(frame) = self.frames.pop() else {
+            return;
+        };
         match frame {
             Frame::Quote(alert, blocks) => self.push_block(Block::Quote { alert, blocks }),
             Frame::List(start, items) => self.push_block(Block::List { start, items }),
@@ -125,7 +156,9 @@ impl Builder {
                     items.push(Item { task, blocks });
                 }
             }
-            Frame::Table(aligns, head, rows) => self.push_block(Block::Table { aligns, head, rows }),
+            Frame::Table(aligns, head, rows) => {
+                self.push_block(Block::Table { aligns, head, rows })
+            }
             Frame::Details(summary, blocks) => self.push_block(Block::Details { summary, blocks }),
             Frame::Footnote(label, blocks) => self.push_block(Block::Footnote { label, blocks }),
             Frame::Row(cells) => {
@@ -141,7 +174,9 @@ impl Builder {
         if style.image.is_some() {
             self.marks.image_alt = true;
         }
-        self.inline.get_or_insert_with(Inline::default).push_autolinked(s, style);
+        self.inline
+            .get_or_insert_with(Inline::default)
+            .push_autolinked(s, style);
     }
 
     fn event(&mut self, ev: Event) {
@@ -152,9 +187,26 @@ impl Builder {
                 Some((_, code)) => code.push_str(&t),
                 None => self.text(&t, self.marks.style()),
             },
-            Event::Code(t) => self.text(&t, Style { code: true, ..self.marks.style() }),
-            Event::FootnoteReference(label) => self.text(&format!("[{label}]"), Style { bold: true, ..self.marks.style() }),
-            Event::InlineHtml(h) if h.trim().eq_ignore_ascii_case("<br>") || h.trim().eq_ignore_ascii_case("<br/>") => self.text("\n", self.marks.style()),
+            Event::Code(t) => self.text(
+                &t,
+                Style {
+                    code: true,
+                    ..self.marks.style()
+                },
+            ),
+            Event::FootnoteReference(label) => self.text(
+                &format!("[{label}]"),
+                Style {
+                    bold: true,
+                    ..self.marks.style()
+                },
+            ),
+            Event::InlineHtml(h)
+                if h.trim().eq_ignore_ascii_case("<br>")
+                    || h.trim().eq_ignore_ascii_case("<br/>") =>
+            {
+                self.text("\n", self.marks.style())
+            }
             Event::SoftBreak => self.text(" ", self.marks.style()),
             Event::HardBreak => self.text("\n", self.marks.style()),
             Event::Rule => {

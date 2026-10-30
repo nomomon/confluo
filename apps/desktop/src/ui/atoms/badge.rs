@@ -28,7 +28,10 @@ pub struct Badge {
 
 impl Badge {
     pub fn new(label: impl Into<SharedString>) -> Self {
-        Self { label: label.into(), variant: BadgeVariant::default() }
+        Self {
+            label: label.into(),
+            variant: BadgeVariant::default(),
+        }
     }
 
     pub fn variant(mut self, variant: BadgeVariant) -> Self {
@@ -45,9 +48,21 @@ impl RenderOnce for Badge {
     fn render(self, _: &mut Window, _: &mut App) -> impl IntoElement {
         let (bg, fg, border) = match self.variant {
             BadgeVariant::Default => (theme::text(), theme::bg(), theme::text()),
-            BadgeVariant::Secondary => (theme::surface_active(), theme::text_muted(), theme::border_subtle()),
-            BadgeVariant::Outline => (gpui::transparent_black(), theme::text_muted(), theme::border()),
-            BadgeVariant::Destructive => (theme::tint_bg(theme::danger()), theme::danger(), theme::tint_bg(theme::danger())),
+            BadgeVariant::Secondary => (
+                theme::surface_active(),
+                theme::text_muted(),
+                theme::border_subtle(),
+            ),
+            BadgeVariant::Outline => (
+                gpui::transparent_black(),
+                theme::text_muted(),
+                theme::border(),
+            ),
+            BadgeVariant::Destructive => (
+                theme::tint_bg(theme::danger()),
+                theme::danger(),
+                theme::tint_bg(theme::danger()),
+            ),
             BadgeVariant::Tint(c) => (theme::tint_bg(c), c, theme::tint_bg(c)),
         };
         div()

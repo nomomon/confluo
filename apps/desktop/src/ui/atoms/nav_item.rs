@@ -1,6 +1,9 @@
 //! Selectable navigation row (sidebar entries, menu items, list pickers).
 
-use gpui::{div, prelude::*, AnyElement, App, ClickEvent, Div, ElementId, MouseButton, MouseDownEvent, SharedString, StyleRefinement, Window};
+use gpui::{
+    div, prelude::*, AnyElement, App, ClickEvent, Div, ElementId, MouseButton, MouseDownEvent,
+    SharedString, StyleRefinement, Window,
+};
 
 use super::{Icon, IconName, ListItem};
 use crate::ui::{theme, ClickHandler, MouseDownHandler};
@@ -20,7 +23,17 @@ pub struct NavItem {
 
 impl NavItem {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { base: div(), id: id.into(), label: label.into(), active: false, compact: false, icon: None, trailing: None, on_click: None, on_right_click: None }
+        Self {
+            base: div(),
+            id: id.into(),
+            label: label.into(),
+            active: false,
+            compact: false,
+            icon: None,
+            trailing: None,
+            on_click: None,
+            on_right_click: None,
+        }
     }
 
     pub fn active(mut self, active: bool) -> Self {
@@ -46,7 +59,10 @@ impl NavItem {
         self
     }
 
-    pub fn on_right_click(mut self, f: impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_right_click(
+        mut self,
+        f: impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_right_click = Some(Box::new(f));
         self
     }
@@ -79,12 +95,44 @@ impl RenderOnce for NavItem {
             .py(theme::item_pad_y())
             .list_item(active)
             .text_size(theme::text_sm())
-            .text_color(if active { theme::text() } else { theme::text_muted() })
-            .children(self.icon.map(|n| Icon::new(n).color(if active { theme::text() } else { theme::text_subtle() })))
-            .when(compact, |d| d.justify_center().px(theme::SPACE_2).tooltip(super::tooltip(label)))
-            .when(!compact, |d| d.child(div().flex_1().min_w(theme::SPACE_0).truncate().child(self.label)))
-            .when_some(self.trailing.filter(|_| !compact), |el, t| el.child(div().flex_shrink_0().opacity(0.).group_hover(group, |s| s.opacity(1.)).child(t)))
+            .text_color(if active {
+                theme::text()
+            } else {
+                theme::text_muted()
+            })
+            .children(self.icon.map(|n| {
+                Icon::new(n).color(if active {
+                    theme::text()
+                } else {
+                    theme::text_subtle()
+                })
+            }))
+            .when(compact, |d| {
+                d.justify_center()
+                    .px(theme::SPACE_2)
+                    .tooltip(super::tooltip(label))
+            })
+            .when(!compact, |d| {
+                d.child(
+                    div()
+                        .flex_1()
+                        .min_w(theme::SPACE_0)
+                        .truncate()
+                        .child(self.label),
+                )
+            })
+            .when_some(self.trailing.filter(|_| !compact), |el, t| {
+                el.child(
+                    div()
+                        .flex_shrink_0()
+                        .opacity(0.)
+                        .group_hover(group, |s| s.opacity(1.))
+                        .child(t),
+                )
+            })
             .when_some(self.on_click, |el, f| el.on_click(f))
-            .when_some(self.on_right_click, |el, f| el.on_mouse_down(MouseButton::Right, f))
+            .when_some(self.on_right_click, |el, f| {
+                el.on_mouse_down(MouseButton::Right, f)
+            })
     }
 }

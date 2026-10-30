@@ -41,6 +41,8 @@ icon_set! {
     ChevronRight => "chevron-right",
     ChevronUp => "chevron-up",
     CircleCheck => "circle-check",
+    CircleDashed => "circle-dashed",
+    CircleMinus => "circle-minus",
     CircleX => "circle-x",
     Clock => "clock",
     Code => "code",
@@ -69,6 +71,7 @@ icon_set! {
     LayoutRows => "layout-rows",
     LayoutSidebar => "layout-sidebar",
     Link => "link",
+    Loader => "loader-2",
     Message => "message",
     MessageCircle => "message-circle",
     Moon => "moon",
@@ -81,8 +84,11 @@ icon_set! {
     Settings => "settings",
     Star => "star",
     StarFilled => "star-filled",
+    Tag => "tag",
+    Terminal => "terminal",
     Trash => "trash",
     User => "user",
+    Users => "users",
     X => "x",
 }
 

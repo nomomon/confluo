@@ -33,7 +33,8 @@ impl GitViewer {
                     .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| this.copy(Copied::Link, link.clone(), cx))),
             )
             .child(icon("open-browser", IconName::ExternalLink, keymap::tip::<OpenInBrowser>("Open in browser")).on_click(cx.listener(move |_, _: &ClickEvent, _, cx| cx.open_url(&url))))
-            .children(self.render_review_button(d, cx).map(|b| div().pl(theme::SPACE_2).child(b)))
+            .children(self.render_merge_button(d, cx).map(|b| div().pl(theme::SPACE_2).child(b)))
+            .children(self.render_review_button(d, cx).map(|b| div().pl(theme::SPACE_1).child(b)))
             .child(icon("detail-more", IconName::Ellipsis, "More".into()).on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
                 this.menu = if this.menu == Some(Menu::DetailMore) { None } else { Some(Menu::DetailMore) };
                 cx.notify()
@@ -55,7 +56,7 @@ impl GitViewer {
             .flex_col()
             .gap(theme::SPACE_2)
             .child(actions)
-            .child(div().pt(theme::SPACE_2).text_size(theme::text_xl()).font_weight(theme::WEIGHT_SEMIBOLD).child(s.title.clone()))
+            .child(self.render_title(d, cx))
             .child(meta)
             .when(self.menu == Some(Menu::DetailMore), |el| el.child(self.render_detail_menu(d, cx)))
     }
@@ -75,6 +76,7 @@ impl GitViewer {
                     cx.open_url(&d.summary.web_url)
                 }
             })))
+            .children(self.edit_menu_items(d, cx))
             .child(MenuSeparator)
             .children(self.snooze_items(&d.summary, cx))
             .child(MenuSeparator)

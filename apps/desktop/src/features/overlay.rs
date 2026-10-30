@@ -13,6 +13,9 @@ impl GitViewer {
             Overlay::Settings => return Some(self.render_settings_dialog(cx)),
             Overlay::Palette => return Some(self.render_palette(cx)),
             Overlay::ReviewSummary(action) => self.render_review_dialog(action, cx),
+            Overlay::ConfirmClose => self.render_close_dialog(cx),
+            Overlay::Merge => self.render_merge_dialog(cx),
+            Overlay::ConfirmRerun => self.render_rerun_dialog(cx),
             Overlay::AddProject => {
                 let close = cx.listener(|this, _: &(), _, cx| {
                     this.overlay = Overlay::None;

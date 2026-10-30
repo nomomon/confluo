@@ -4,6 +4,7 @@
 
 mod avatars;
 pub mod bridge;
+mod check_actions;
 mod code;
 mod code_load;
 pub mod code_rows;
@@ -23,6 +24,8 @@ mod permalink;
 mod list;
 mod overlay;
 mod nav;
+mod people;
+pub mod pr_edit;
 mod review;
 mod projects;
 mod quiet;
@@ -41,6 +44,7 @@ pub use selection::reveal;
 pub use sources::SourceKind;
 pub use quiet::QuietState;
 pub use nav::NavState;
+pub use pr_edit::{EditUi, LogState};
 pub use overlay::{BotList, Menu, Overlay, SettingsPage};
 
 /// Format an error with its full context chain.

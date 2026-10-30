@@ -22,7 +22,8 @@ pub struct DetailState {
     pub error: Option<String>,
     pub me: Option<String>,
     pub tab: DetailTab,
-    pub checks_open: bool,
+    /// Editing, people picker and checks expansion.
+    pub ui: super::EditUi,
     pub reply_to: Option<String>,
     pub editing: Option<String>,
     pub posting: bool,
@@ -43,7 +44,7 @@ impl GitViewer {
             error: None,
             me: None,
             tab: DetailTab::Summary,
-            checks_open: false,
+            ui: Default::default(),
             reply_to: None,
             editing: None,
             posting: false,

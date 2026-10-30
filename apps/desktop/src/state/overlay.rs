@@ -32,6 +32,12 @@ pub enum Overlay {
     ReviewSummary(gv_engine::ReviewAction),
     /// Cmd+K command palette.
     Palette,
+    /// Confirm closing the open PR.
+    ConfirmClose,
+    /// Merge options for the open PR.
+    Merge,
+    /// Confirm re-running failed checks.
+    ConfirmRerun,
 }
 
 /// Left navigation of the Settings dialog.

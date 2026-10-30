@@ -221,6 +221,7 @@ Atoms:
 - `Icon`: `Icon::new(IconName::BrandGithub).size(ICON_MD)`; Tabler outline SVGs in `assets/icons` (MIT)
 - `Kbd`: `Kbd::new("⌘ R")`, one box per space separated key
 - `Separator`: `Separator::new()` or `Separator::vertical()`
+- `Spinner`: `Spinner::new(id).color(theme::warning())`, rotating loader, still under reduced motion
 - `Skeleton`: `Skeleton::new().w(px(120.)).h(px(12.))`, pulses unless reduced motion
 - `Swatch`: `Swatch::new(id, color).active(true)`, selected ring
 - `Switch`: `Switch::new("hide-bots", on).on_change(|on, w, cx| ..)`
@@ -231,6 +232,8 @@ Molecules:
 - `Banner`: one-line dismissible error with an action such as Retry
 - `CommandPalette`: `CommandPalette::new(input).items(Vec<PaletteItem>).selected(i).on_move(..).on_run(..).on_close(..)`;
   Up/Down (Ctrl+P/N) move, Enter runs, no open animation; `command_palette::score` is the fuzzy matcher
+- `Combobox`: `Combobox::new(id, input).option(ComboOption::new("ada").detail(name).avatar(img).selected(true)).highlight(i).loading(b).on_toggle(..).on_highlight(..).on_dismiss(..)`;
+  searchable multi-select popover, the caller owns the query input and (remote) filtering
 - `Card`: `Card::new(s).title("Checkout").description("..").action(btn).footer(..)`; `.rows()` for flush divided rows
 - `ContextMenu`: `ContextMenu::new(id, event.position).on_dismiss(..).child(MenuItem::new(..))`
 - `CopyField`, `EmptyState`, `KeyValueRow`, `FloatingToolbar` (selection pill; `.animate(false)` for keyboard moves)
@@ -326,3 +329,16 @@ Rules:
   on, every duration is 0 and helpers render the final frame without wrapping
   the element in an animation (a zero-length GPUI animation would divide by
   zero).
+
+Editing (Summary): click the title to edit (Enter saves, Esc cancels); the description card shows Edit on
+hover (Write / Preview, Cmd+Enter saves). A properties card lists Reviewers, Assignees and Labels; editable
+rows open a `Combobox` of candidate users (GitHub `assignableUsers`, GitLab project members, 250ms debounce).
+The More menu holds Mark as draft / Ready for review, Edit title, Copy branch name, Close / Reopen (Close
+confirms) and a disabled Merge with the blocking reason; Merge sits beside Review only when the provider
+says it is mergeable now. Everything is driven by `EditCapabilities`, applied optimistically and rolled back
+with an error toast.
+
+Checks card: one plain-language line (`gv_core::checks_sentence`), failing/running/pending rows first, passed
+and skipped behind "Show N passed"; rows show status (spinner when running), name, stage or workflow,
+duration, finish time and an open-logs button; failed rows expand to a lazily fetched log tail. "Re-run
+failed" appears when `ChecksInfo::can_rerun` and asks first.

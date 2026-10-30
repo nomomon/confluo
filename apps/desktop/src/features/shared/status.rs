@@ -99,8 +99,3 @@ pub fn row_hint(c: &ChangeRequest) -> Option<&'static str> {
         None
     }
 }
-
-pub fn checks_summary(c: &ChangeRequest) -> Div {
-    let (text, color) = checks_text(c);
-    div().text_size(theme::text_xs()).text_color(color).child(text)
-}

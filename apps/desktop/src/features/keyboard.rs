@@ -121,6 +121,8 @@ impl GitViewer {
             self.quiet.row_menu = None;
         } else if self.overlay != Overlay::None {
             self.overlay = Overlay::None;
+        } else if self.cancel_edits(cx) {
+            // Left title or description editing, or closed the people picker.
         } else if self.code_tab_active() && self.cancel_inline(cx) {
             // Closed the inline comment composer; keep the detail open.
         } else if self.code_lines_active() && self.clear_line_selection(cx) {

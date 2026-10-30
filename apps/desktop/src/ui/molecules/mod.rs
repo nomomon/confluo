@@ -1,6 +1,7 @@
 //! Molecules: small compositions of atoms (inputs, tabs, cards, dialogs).
 
 mod card;
+mod combobox;
 pub mod command_palette;
 mod context_menu;
 pub mod code;
@@ -27,6 +28,7 @@ pub mod text_input;
 mod toast;
 
 pub use card::Card;
+pub use combobox::{ComboOption, Combobox};
 pub use command_palette::{CommandPalette, PaletteItem};
 pub use copy_field::CopyField;
 pub use dialog::Dialog;

@@ -108,6 +108,14 @@ pub struct GitViewer {
     pub(crate) palette_input: Entity<TextInput>,
     /// Summary field of the review dialog.
     pub(crate) review_input: Entity<TextInput>,
+    /// Inline title editor, description editor and people picker search of the detail.
+    pub(crate) title_input: Entity<TextInput>,
+    pub(crate) body_input: Entity<TextInput>,
+    pub(crate) people_input: Entity<TextInput>,
+    /// Choices in the merge dialog.
+    pub(crate) merge_opts: gv_engine::MergeOptions,
+    /// Reason under an error toast; None for success toasts.
+    pub(crate) toast_error: Option<String>,
 }
 
 /// Subscribe `f` to the input's Enter key.
@@ -148,6 +156,19 @@ impl GitViewer {
                 if let Overlay::ReviewSummary(a) = this.overlay {
                     this.submit_review(a, cx)
                 }
+            }
+        })
+        .detach();
+        let title_input = input(cx, "Title");
+        let body_input = cx.new(|cx| TextInput::new("Describe the change (markdown), \u{2318}Enter to save", cx).multiline());
+        let people_input = input(cx, "Search people");
+        on_submit(cx, &title_input, |this, _, cx| this.save_title(cx));
+        on_submit(cx, &body_input, |this, _, cx| this.save_body(cx));
+        cx.subscribe(&people_input, |this, _, ev: &InputEvent, cx| match ev {
+            InputEvent::Changed => this.search_people(cx),
+            InputEvent::Submit => {
+                let hl = this.detail.as_ref().map(|d| d.ui.people_hl).unwrap_or(0);
+                this.toggle_person(hl, cx)
             }
         })
         .detach();
@@ -241,6 +262,11 @@ impl GitViewer {
             refocus_palette: false,
             palette_input,
             review_input,
+            title_input,
+            body_input,
+            people_input,
+            merge_opts: Default::default(),
+            toast_error: None,
         };
         cx.observe_window_appearance(window, |_, _, cx| cx.notify()).detach();
         cx.observe_window_activation(window, |this, window, cx| {
@@ -330,7 +356,10 @@ impl Render for GitViewer {
             .when(self.resizing, |root| self.resize_handlers(root, cx))
             .child(main)
             .children(self.toast.clone().map(|t| {
-                let toast = Toast::new(t).variant(ToastVariant::Success);
+                let toast = match &self.toast_error {
+                    Some(why) => Toast::new(t).description(why.clone()).variant(ToastVariant::Error),
+                    None => Toast::new(t).variant(ToastVariant::Success),
+                };
                 let toast = if self.quiet.undo.is_some() { toast.action("Undo", cx.listener(|this, _: &gpui::ClickEvent, _, cx| this.undo_snooze(cx))) } else { toast };
                 Toaster::new().toast(toast)
             }))

@@ -4,7 +4,7 @@ use gpui::{div, prelude::*, AnyElement, Context};
 
 use crate::app::GitViewer;
 use crate::state::{DetailState, DetailTab};
-use crate::ui::molecules::{Card, Tabs, TabsVariant};
+use crate::ui::molecules::{Tabs, TabsVariant};
 use crate::ui::theme;
 
 impl GitViewer {
@@ -32,21 +32,15 @@ impl GitViewer {
                 None => self.placeholder(d).into_any_element(),
             };
         }
-        let description = match &d.detail {
-            None => self.placeholder(d).into_any_element(),
-            Some(det) if det.description.trim().is_empty() => {
-                div().text_size(theme::text_sm()).text_color(theme::text_subtle()).child("No description").into_any_element()
-            }
-            Some(det) => self.markdown("desc", &det.description).into_any_element(),
-        };
         div()
             .flex()
             .flex_col()
             .gap(theme::SPACE_3)
             .child(super::overview::overview_card(&d.summary, self.surfaces()))
+            .child(self.render_properties(d, cx))
             .child(self.render_checks_card(d, cx))
             .child(self.render_checkout_card(d, cx))
-            .child(Card::new(self.surfaces()).child(description))
+            .child(self.render_description(d, cx))
             .into_any_element()
     }
 

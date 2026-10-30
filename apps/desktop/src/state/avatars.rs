@@ -29,6 +29,11 @@ impl GitViewer {
             .chain(self.hosts.iter().flatten().filter_map(|h| super::connection::host_avatar_url(h.kind, &h.host, h.user.as_deref()?)))
             .filter(|u| !self.avatars.contains_key(u))
             .collect();
+        if let Some(d) = self.detail.as_ref() {
+            let det = d.detail.as_ref();
+            let people = d.summary.reviewers.iter().map(|r| &r.user).chain(det.into_iter().flat_map(|x| &x.edit.assignees)).chain(&d.ui.people_results);
+            wanted.extend(people.filter_map(|u| u.avatar_url.clone()).filter(|u| !self.avatars.contains_key(u)));
+        }
         if let Some(d) = self.detail.as_ref().and_then(|d| d.detail.as_ref()) {
             let bodies = std::iter::once(d.description.as_str()).chain(d.threads.iter().flat_map(|t| &t.comments).map(|c| c.body.as_str()));
             wanted.extend(bodies.flat_map(crate::ui::molecules::markdown::image_urls).filter(|u| !self.avatars.contains_key(u)));

@@ -18,7 +18,8 @@ impl GitViewer {
         }
     }
 
-    /// Dev only: `CONFLUO_OVERLAY=add-project|rename|delete|menu|palette|review|older` opens that overlay at launch
+    /// Dev only: `CONFLUO_OVERLAY=add-project|rename|delete|menu|palette|review|older|more|merge|close|people|checks`
+    /// opens that overlay at launch (people opens the reviewer picker, checks expands the first failed check)
     /// (rename, delete and menu act on the first project).
     pub(crate) fn overlay_from_env(&mut self, cx: &mut Context<Self>) {
         let first = self.projects.first().map(|p| p.id);
@@ -32,6 +33,21 @@ impl GitViewer {
                 self.refocus_palette = true;
             }
             (Some("review"), _) => self.menu = Some(Menu::Review),
+            (Some("more"), _) => self.menu = Some(Menu::DetailMore),
+            (Some("merge"), _) => self.open_merge(cx),
+            (Some("close"), _) => self.overlay = Overlay::ConfirmClose,
+            (Some("people"), _) => {
+                if let Some(d) = self.detail.as_mut() {
+                    d.ui.people = Some(gv_engine::PeopleRole::Reviewers);
+                }
+                self.search_people(cx);
+            }
+            (Some("checks"), _) => {
+                let failed = self.detail.as_ref().and_then(|d| d.detail.as_ref()).and_then(|x| x.checks.runs.iter().find(|r| r.has_log).map(|r| r.id.clone()));
+                if let Some(id) = failed {
+                    self.toggle_check(id, cx);
+                }
+            }
             (Some("older"), _) => {
                 self.quiet.show_stale = true;
                 cx.spawn(async move |this, cx| {

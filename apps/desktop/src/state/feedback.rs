@@ -16,6 +16,8 @@ pub enum Copied {
     Diff,
     /// Selected code lines.
     Lines,
+    /// The source branch name.
+    Branch,
 }
 
 impl GitViewer {
@@ -46,17 +48,30 @@ impl GitViewer {
             Copied::Path => self.show_toast("Path copied", cx),
             Copied::Diff => self.show_toast("Diff copied", cx),
             Copied::Lines => self.show_toast("Copied", cx),
+            Copied::Branch => self.show_toast("Branch copied", cx),
             Copied::Checkout => {}
         }
     }
 
     pub(crate) fn show_toast(&mut self, text: impl Into<String>, cx: &mut Context<Self>) {
-        self.toast = Some(text.into());
+        self.toast_error = None;
+        self.start_toast(text.into(), timing::TOAST, cx);
+    }
+
+    /// Red toast with the provider's reason; stays longer than a success toast.
+    pub(crate) fn show_error_toast(&mut self, title: impl Into<String>, reason: impl Into<String>, cx: &mut Context<Self>) {
+        let reason: String = reason.into();
+        self.toast_error = Some(reason.chars().take(200).collect());
+        self.start_toast(title.into(), timing::TOAST_ERROR, cx);
+    }
+
+    fn start_toast(&mut self, text: String, after: std::time::Duration, cx: &mut Context<Self>) {
+        self.toast = Some(text);
         self.quiet.undo = None;
         self.toast_gen += 1;
         let gen = self.toast_gen;
         cx.spawn(async move |this, cx| {
-            cx.background_executor().timer(timing::TOAST).await;
+            cx.background_executor().timer(after).await;
             this.update(cx, |v, cx| {
                 if v.toast_gen == gen {
                     v.toast = None;

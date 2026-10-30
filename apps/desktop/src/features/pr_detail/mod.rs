@@ -1,12 +1,17 @@
 //! Right-hand detail panel: header, Summary, Code or Activity body, floating tab pill.
 
 mod activity;
+mod check_row;
 mod checkout;
 mod checks;
+mod description;
+mod edit_dialogs;
+mod edit_menu;
 mod code;
 mod comment;
 mod header;
 mod overview;
+mod properties;
 mod tabs;
 
 pub(crate) use checkout::checkout_command;

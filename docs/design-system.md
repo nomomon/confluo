@@ -364,7 +364,8 @@ failed" appears when `ChecksInfo::can_rerun` and asks first.
 Triage: the list takes the full width; the selected row shows a slim preview (`PREVIEW_W` 360, Cmd+\\ hides it).
 Enter, a double click or "Open review" enters Review mode: the PR takes the whole content area (top bar; file tree,
 diff, right panel with Overview / Conversation). Esc, Cmd+[ or the back chevron return to the list with selection
-and scroll kept; Cmd+[ / Cmd+] walk the visited places (the list and reviewed PRs). File tree: viewed checkboxes
+and scroll kept; Cmd+[ / Cmd+] walk the visited places (the list and reviewed PRs). Files use one order everywhere (`file_tree::tree_cmp`: folders before files at each level, case-insensitive, so root
+files come last): the tree, the diff list, n/p and "File i of N". File tree: viewed checkboxes
 (GitHub `markFileAsViewed`, local fingerprint elsewhere), filter, Hide viewed, foldable folders; n/p, v, Cmd+P,
 Cmd+Shift+E, Cmd+Shift+I, Cmd+Shift+S (unified / side by side, saved as `diff_split`). CI is one icon
 (`shared::ci`): hover lists jobs, click opens the checks popover, nothing when there are no checks.

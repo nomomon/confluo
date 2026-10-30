@@ -80,7 +80,16 @@ impl CodeState {
         self.starts = starts;
     }
 
+    /// Stores the files in `tree_cmp` order, so file indices match the tree, the diff, n/p and "File i of N".
     pub(crate) fn set_files(&mut self, files: Arc<Vec<ChangedFile>>) {
+        let sorted = files.windows(2).all(|w| super::file_tree::tree_cmp(w[0].path(), w[1].path()).is_le());
+        let files = if sorted {
+            files
+        } else {
+            let mut v = (*files).clone();
+            v.sort_by(|a, b| super::file_tree::tree_cmp(a.path(), b.path()));
+            Arc::new(v)
+        };
         let unchanged = self.files.as_ref().is_some_and(|f| **f == *files);
         self.files = Some(files);
         if !unchanged {

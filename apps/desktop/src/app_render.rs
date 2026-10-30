@@ -48,9 +48,9 @@ impl GitViewer {
     /// Sidebar width when shown (rail in compact layouts).
     pub(crate) fn sidebar_w_open(&self) -> Pixels {
         if self.compact {
-            layout::SIDEBAR_RAIL_W
+            layout::sidebar_rail_w()
         } else {
-            layout::SIDEBAR_W
+            layout::sidebar_w()
         }
     }
 

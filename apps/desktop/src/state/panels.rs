@@ -54,21 +54,21 @@ impl GitViewer {
     pub(crate) fn panel_limits(&self, p: Pane) -> Limits {
         match p {
             Pane::Tree => Limits {
-                min: layout::TREE_MIN_W.into(),
-                max: layout::TREE_MAX_W.into(),
+                min: layout::tree_min_w().into(),
+                max: layout::tree_max_w().into(),
             },
             Pane::Right => Limits {
-                min: layout::RIGHT_MIN_W.into(),
-                max: f32::from(self.review_content_w() - layout::DIFF_MIN_W)
-                    .max(layout::RIGHT_MIN_W.into()),
+                min: layout::right_min_w().into(),
+                max: f32::from(self.review_content_w() - layout::diff_min_w())
+                    .max(layout::right_min_w().into()),
             },
             Pane::Sidebar => Limits {
                 min: self.sidebar_w_open().into(),
                 max: self.sidebar_w_open().into(),
             },
             Pane::Preview => Limits {
-                min: layout::PREVIEW_W.into(),
-                max: layout::PREVIEW_W.into(),
+                min: layout::preview_w().into(),
+                max: layout::preview_w().into(),
             },
         }
     }
@@ -77,18 +77,17 @@ impl GitViewer {
     pub(crate) fn panel_rest_w(&self, p: Pane) -> f32 {
         match p {
             Pane::Tree => self
-                .review
-                .tree_w
+                .tree_w()
                 .min(
-                    (self.viewport_w - layout::DIFF_MIN_W - layout::RIGHT_MIN_W)
-                        .max(layout::TREE_MIN_W),
+                    (self.viewport_w - layout::diff_min_w() - layout::right_min_w())
+                        .max(layout::tree_min_w()),
                 )
                 .into(),
             Pane::Right => {
                 layout::right_pane_w(self.review_content_w(), self.review.right_ratio).into()
             }
             Pane::Sidebar => self.sidebar_w_open().into(),
-            Pane::Preview => layout::PREVIEW_W.into(),
+            Pane::Preview => layout::preview_w().into(),
         }
     }
 
@@ -161,7 +160,7 @@ impl GitViewer {
                     .push((p, PanelAnim::new(drawn, 0., true, rm))),
                 Release::Width(w) => {
                     match p {
-                        Pane::Tree => self.review.tree_w = gpui::px(w),
+                        Pane::Tree => self.review.tree_w = gpui::px(w) / crate::ui::theme::zoom(),
                         Pane::Right => {
                             self.review.right_ratio =
                                 layout::right_ratio(self.review_content_w(), gpui::px(w))

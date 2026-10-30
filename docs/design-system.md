@@ -389,7 +389,7 @@ Find bar (Cmd+F in Review mode):
 
 Zoom (Cmd+= / Cmd+- / Cmd+0):
 
-- Steps are `settings::ZOOM_STEPS` (80% to 140%). Zoom goes through `theme::set_typography`, so every text size, spacing (`theme::space_*()`), icon size (`theme::icon_*()`) and the diff row height scale; panel widths stay fixed. Never multiply by the zoom in a component.
+- Steps are `settings::ZOOM_STEPS` (80% to 140%). Zoom goes through `theme::set_typography`, so every text size, spacing (`theme::space_*()`), icon size (`theme::icon_*()`), the diff row height and panel widths scale. Panel widths are 100% base consts read through `layout::sidebar_w()`, `preview_w()`, `tree_min_w()`, `right_min_w()`, `diff_min_w()` (and `GitViewer::tree_w()`; a dragged tree width is stored unzoomed). Never multiply by the zoom in a component.
 - A zoom change remeasures the diff rows and keeps the scroll position. Toast confirms the new level.
 
 Word wrap (Alt+Z):

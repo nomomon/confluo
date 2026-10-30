@@ -203,7 +203,7 @@ impl GitViewer {
         let panel = div()
             .id("preview")
             .track_scroll(&h)
-            .w(layout::PREVIEW_W)
+            .w(layout::preview_w())
             .flex_shrink_0()
             .h_full()
             .map(crate::ui::scroll::y_only)

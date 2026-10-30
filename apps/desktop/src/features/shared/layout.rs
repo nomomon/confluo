@@ -1,6 +1,36 @@
-//! Fixed layout dimensions of the window regions.
+//! Layout dimensions of the window regions. Panel widths are base values at 100% zoom; read them
+//! through the zoom-aware functions (`sidebar_w()`, `tree_min_w()`, ...).
 
 use gpui::{px, Pixels};
+
+/// A base width at the current UI zoom.
+pub fn zoomed(base: Pixels) -> Pixels {
+    scale_by(base, crate::ui::theme::zoom())
+}
+fn scale_by(base: Pixels, zoom: f32) -> Pixels {
+    base * zoom
+}
+pub fn sidebar_w() -> Pixels {
+    zoomed(SIDEBAR_W)
+}
+pub fn sidebar_rail_w() -> Pixels {
+    zoomed(SIDEBAR_RAIL_W)
+}
+pub fn preview_w() -> Pixels {
+    zoomed(PREVIEW_W)
+}
+pub fn tree_min_w() -> Pixels {
+    zoomed(TREE_MIN_W)
+}
+pub fn tree_max_w() -> Pixels {
+    zoomed(TREE_MAX_W)
+}
+pub fn right_min_w() -> Pixels {
+    zoomed(RIGHT_MIN_W)
+}
+pub fn diff_min_w() -> Pixels {
+    zoomed(DIFF_MIN_W)
+}
 
 pub const SIDEBAR_W: Pixels = px(240.);
 /// How far the sidebar slides in when shown again (Cmd+B).
@@ -31,8 +61,8 @@ pub const RIGHT_RATIO_MAX: f32 = 0.6;
 
 /// Right panel width for a content width and share, within its min width and the diff's min width.
 pub fn right_pane_w(content: Pixels, ratio: f32) -> Pixels {
-    let max = (content - DIFF_MIN_W).max(RIGHT_MIN_W);
-    (content * ratio).clamp(RIGHT_MIN_W, max)
+    let max = (content - diff_min_w()).max(right_min_w());
+    (content * ratio).clamp(right_min_w(), max)
 }
 
 /// Share to remember after dragging the right panel to `right` pixels of `content`.
@@ -90,6 +120,13 @@ mod tests {
         assert_eq!(right_pane_w(px(600.), RIGHT_RATIO), RIGHT_MIN_W);
         // A wide share never squeezes the diff under its min width.
         assert_eq!(right_pane_w(px(1000.), 0.6), px(1000.) - DIFF_MIN_W);
+    }
+
+    #[test]
+    fn panel_widths_scale_with_zoom() {
+        assert_eq!(scale_by(TREE_MIN_W, 1.25), px(225.));
+        assert_eq!(scale_by(SIDEBAR_W, 0.8), px(192.));
+        assert_eq!(scale_by(PREVIEW_W, 1.), PREVIEW_W);
     }
 
     #[test]

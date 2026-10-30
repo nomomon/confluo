@@ -68,11 +68,16 @@ impl GitViewer {
             .max(1.)
     }
 
+    /// File tree width at the current zoom (`review.tree_w` is the 100% base).
+    pub(crate) fn tree_w(&self) -> Pixels {
+        layout::zoomed(self.review.tree_w)
+    }
+
     /// Window width minus the open file tree: what the diff and the right panel share.
     pub(crate) fn review_content_w(&self) -> Pixels {
         self.viewport_w
             - if self.review.tree_open {
-                self.review.tree_w
+                self.tree_w()
             } else {
                 gpui::px(0.)
             }

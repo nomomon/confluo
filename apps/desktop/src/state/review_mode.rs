@@ -36,6 +36,7 @@ struct Memory {
 
 pub struct ReviewUi {
     pub tree_open: bool,
+    /// File tree width at 100% zoom (drawn through `GitViewer::tree_w()`).
     pub tree_w: Pixels,
     pub right_open: bool,
     /// Right panel share of the content width (see `layout::right_pane_w`).

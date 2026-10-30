@@ -32,7 +32,19 @@ impl GitViewer {
                 self.refocus_palette = true;
             }
             (Some("review"), _) => self.menu = Some(Menu::Review),
-            (Some("older"), _) => self.quiet.show_stale = true,
+            (Some("older"), _) => {
+                self.quiet.show_stale = true;
+                cx.spawn(async move |this, cx| {
+                    cx.background_executor().timer(std::time::Duration::from_millis(1500)).await;
+                    this.update(cx, |v, cx| {
+                        let max = v.list_scroll.max_offset().height;
+                        v.list_scroll.set_offset(gpui::point(gpui::px(0.), -max));
+                        cx.notify()
+                    })
+                    .ok();
+                })
+                .detach();
+            }
             _ => {}
         }
     }

@@ -132,7 +132,7 @@ impl GitViewer {
         let rename_input = input(cx, "Project name");
         let bot_authors_input = input(cx, "Add an author, e.g. *-bot, then Enter");
         let bot_branches_input = input(cx, "Add a branch prefix, e.g. deps/, then Enter");
-        let palette_input = cx.new(|cx| TextInput::new("Search pull requests and commands", cx).inset(crate::ui::molecules::INPUT_INSET, crate::ui::molecules::INPUT_INSET));
+        let palette_input = cx.new(|cx| TextInput::new("Search pull requests and commands", cx));
         let review_input = cx.new(|cx| TextInput::new("Leave a summary (optional)", cx).multiline());
         cx.subscribe(&palette_input, |this, _, ev: &InputEvent, cx| match ev {
             InputEvent::Changed => {

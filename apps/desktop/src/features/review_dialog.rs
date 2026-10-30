@@ -32,7 +32,7 @@ impl GitViewer {
             this.menu = if this.menu == Some(Menu::Review) { None } else { Some(Menu::Review) };
             cx.notify()
         }));
-        Some(div().relative().child(btn).when(open, |el| el.child(self.render_review_menu(info, cx))).into_any_element())
+        Some(div().relative().child(btn).when(open, |el| el.child(gpui::deferred(self.render_review_menu(info, cx)).with_priority(1))).into_any_element())
     }
 
     fn render_review_menu(&self, info: &ReviewInfo, cx: &mut Context<Self>) -> impl IntoElement {

@@ -86,3 +86,15 @@ impl ThemeMode {
         }
     }
 }
+
+/// Tint presets offered as swatches: name and `#rrggbb` (empty for none).
+pub const TINTS: [(&str, &str); 8] = [
+    ("None", ""),
+    ("Slate", "#64748b"),
+    ("Blue", "#3b82f6"),
+    ("Violet", "#8b5cf6"),
+    ("Rose", "#f43f5e"),
+    ("Amber", "#f59e0b"),
+    ("Emerald", "#10b981"),
+    ("Teal", "#14b8a6"),
+];

@@ -29,6 +29,7 @@ mod line_comments;
 mod line_cursor;
 pub mod line_select;
 mod list;
+mod list_tabs;
 mod nav;
 mod overlay;
 pub mod overlay_close;
@@ -57,6 +58,7 @@ pub(crate) use update::UpdateState;
 
 pub use attention::{attention, ThreadFilter};
 pub use code::CodeState;
+pub use list_tabs::{pages_to_draw as list_tabs_pages, tab_index as list_tabs_index, ListTabsUi, INVOLVEMENTS};
 pub use connection::{auth_command, host_avatar_url, sign_in_hint, HostStatus};
 pub use detail::{DetailState, DetailTab};
 pub use feedback::Copied;

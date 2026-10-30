@@ -547,6 +547,12 @@ it out 24px reopens it at its last width. Content keeps its resting width and is
 The right panel pager steps by the panel's measured content width (`right_page_w`, `page_offsets`); while both tabs
 draw, each is opaque and the strip clips.
 
+Triage list tabs (Authored, Reviewing, All) are a `Pager` too (`state::list_tabs`, `pr_list::tab_strip`): a sideways
+gesture starting on the list (arbiter owner `ListTabs`) slides the tab lists side by side 1:1, each with its own scroll
+position, neighbors dimmed slightly (a 30% parallax read as lag); release snaps to the projected tab, rubber band at the
+ends; clicks and 1/2/3 move through the same spring and the segmented pill follows progress (`Tabs::progress`). Only the
+current and adjacent pages draw. `CONFLUO_DEV_TABS=1.4` draws the strip mid-swipe.
+
 Rubber band (`ui::elastic`, glue for `motion::interactive::ElasticScroll`): trackpad gestures stretch panes past their
 edges with resistance (`physics::rubber_band`), momentum reaching an edge hands its velocity to a `SNAPPY` spring (a
 small overshoot that returns), release springs back. The scroll

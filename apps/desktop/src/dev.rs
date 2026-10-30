@@ -91,6 +91,11 @@ pub fn drag() -> Option<(String, f32)> {
     Some((p.to_string(), w.parse().ok()?))
 }
 
+/// `CONFLUO_DEV_TABS=1.4` draws the triage list strip that far between its tabs (0 Authored .. 2 All).
+pub fn list_tabs() -> Option<f32> {
+    var("CONFLUO_DEV_TABS")?.parse().ok()
+}
+
 /// `CONFLUO_SCROLL=<px>` scrolls the detail pane down that far once it has laid out.
 pub fn detail_scroll() -> Option<f32> {
     var("CONFLUO_SCROLL")?.parse().ok()

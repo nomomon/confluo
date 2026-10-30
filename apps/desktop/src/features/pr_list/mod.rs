@@ -1,6 +1,7 @@
 //! Center column: header with freshness, filters, error banner and rows.
 
 mod empty;
+mod tab_strip;
 mod filters;
 mod footer;
 mod row;
@@ -104,6 +105,7 @@ impl GitViewer {
             .pb(layout::END_PAD)
             .child(body);
         let rows = crate::ui::elastic::y_scroller(rows, "pr-list", self.list_scroll.clone());
+        let rows = self.render_list_pages(rows.into_any_element(), cx);
 
         let content = div()
             .flex()

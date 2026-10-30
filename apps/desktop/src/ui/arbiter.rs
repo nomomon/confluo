@@ -21,6 +21,8 @@ pub enum Owner {
     Panel,
     /// The review back / forward pager.
     Page,
+    /// The triage list's involvement tabs pager.
+    ListTabs,
 }
 
 #[derive(Default, Debug)]
@@ -85,7 +87,7 @@ impl Arbiter {
         self.axis == Some(Axis::X)
             && matches!(
                 self.owner,
-                Some(Owner::Block(_) | Owner::Panel | Owner::Page)
+                Some(Owner::Block(_) | Owner::Panel | Owner::Page | Owner::ListTabs)
             )
     }
 }

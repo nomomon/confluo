@@ -22,11 +22,12 @@ impl GitViewer {
     }
 
     /// Re-read the list, stars and aliases from the local cache.
-    pub(crate) fn reload(&mut self) {
-        let q = ListQuery {
+    /// The current view's query for involvement `tab`.
+    fn list_query(&self, tab: gv_engine::Involvement) -> ListQuery {
+        ListQuery {
             project: self.selected,
             filter: Filter {
-                involvement: self.tab,
+                involvement: tab,
                 state: StateFilter::Active,
             },
             starred_only: self.starred_only,
@@ -38,7 +39,16 @@ impl GitViewer {
             },
             stale_days: self.settings.stale_days,
             include_stale: false,
-        };
+        }
+    }
+
+    /// Items another involvement tab would show (a list swipe draws the neighbors).
+    pub(crate) fn listing_for(&self, tab: gv_engine::Involvement) -> Vec<gv_engine::ChangeRequest> {
+        self.engine.listing(&self.list_query(tab)).map(|l| l.items).unwrap_or_default()
+    }
+
+    pub(crate) fn reload(&mut self) {
+        let q = self.list_query(self.tab);
         match self.engine.listing(&q) {
             Ok(l) => {
                 let hidden = l.hidden_bots;

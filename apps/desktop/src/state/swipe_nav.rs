@@ -20,6 +20,8 @@ use super::RightTab;
 const HERE: usize = 1;
 
 pub struct SwipeUi {
+    /// The triage list's involvement tabs (`state::list_tabs`).
+    pub tabs: super::ListTabsUi,
     page_gate: SwipeGate,
     pub page: Pager,
     panel_gate: SwipeGate,
@@ -51,6 +53,7 @@ impl Default for SwipeUi {
             panel_x: 0.,
             panel_progress: 0.,
             fade: None,
+            tabs: Default::default(),
         }
     }
 }
@@ -227,6 +230,7 @@ impl GitViewer {
 
     /// Step both pagers for this frame (start of the window render); completes a finished page swipe.
     pub(crate) fn swipe_frame(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.list_tabs_frame(window);
         let now = Instant::now();
         let w = f32::from(window.viewport_size().width);
         let can_fwd = self.nav.pos + 1 < self.nav.history.len();

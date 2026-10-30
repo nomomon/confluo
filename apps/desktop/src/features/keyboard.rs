@@ -212,8 +212,6 @@ impl GitViewer {
     }
 
     fn set_tab(&mut self, tab: Involvement, cx: &mut Context<Self>) {
-        self.tab = tab;
-        self.reload();
-        cx.notify();
+        self.switch_list_tab(crate::state::list_tabs_index(tab), true, cx);
     }
 }

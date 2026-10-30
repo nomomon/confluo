@@ -1,17 +1,13 @@
 //! Involvement tabs and client-side search.
 
 use gpui::{prelude::*, App, ClickEvent, Context};
-use gv_engine::{ChangeRequest, Involvement};
+use gv_engine::ChangeRequest;
 
 use crate::app::GitViewer;
 use crate::ui::atoms::IconName;
 use crate::ui::molecules::{Input, Tabs};
 
-const INVOLVEMENTS: [(&str, Involvement); 3] = [
-    ("Authored", Involvement::Authored),
-    ("Reviewing", Involvement::Reviewing),
-    ("All", Involvement::All),
-];
+use crate::state::INVOLVEMENTS;
 
 impl GitViewer {
     /// Items matching the search box (title, repo, author, alias, branch or number).
@@ -62,10 +58,7 @@ impl GitViewer {
             .fold(Tabs::new("tabs"), |tabs, (label, inv)| {
                 tabs.tab(*label, self.tab == *inv)
             })
-            .on_select(cx.listener(|this, i: &usize, _, cx| {
-                this.tab = INVOLVEMENTS[*i].1;
-                this.reload();
-                cx.notify()
-            }))
+            .progress(self.review.swipe.tabs.progress)
+            .on_select(cx.listener(|this, i: &usize, _, cx| this.switch_list_tab(*i, true, cx)))
     }
 }

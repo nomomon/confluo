@@ -269,6 +269,7 @@ Atoms:
 
 Molecules:
 
+- `AvatarGroup`: `AvatarGroup::new(id, members).max(4).size(GroupSize::Sm).ring_over(backdrop, fill)`; overlapping avatars (25%) on a 2px ring in the surface color, `+N` past `max`, `AvatarStatus` badge (approved, changes requested, commented), hover card lists name, @handle and state, hovered face rises. Used for the preview Reviewers line, Overview Reviewers/Assignees past 3 people and thread headers with more than 2 participants
 - `Banner`: one-line dismissible notice with an optional action: `Banner::warning` (amber tint) for non-fatal errors with Retry, `Banner::info` (hairline, muted text, optional icon) for neutral state such as "Showing commit"
 - `CommandPalette`: `CommandPalette::new(input).items(Vec<PaletteItem>).selected(i).footer(hint).on_move(..).on_hover(..).on_run(..).on_alt_run(..).on_close(..)`;
   Up/Down (Ctrl+P/N) move, hover highlights, Enter runs, Cmd+Enter alt-runs, no open animation; `command_palette::score` is the fuzzy matcher.

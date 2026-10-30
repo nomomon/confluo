@@ -9,6 +9,7 @@ use crate::app::GitViewer;
 use crate::state::{Copied, DetailState};
 use crate::ui::atoms::{Button, ButtonVariant, IconName};
 use crate::ui::molecules::code::{DiffRow, Lang, LineMark};
+use crate::ui::molecules::GroupSize;
 use crate::ui::theme;
 
 /// Lines of context above the commented range, and the most lines shown.
@@ -46,7 +47,14 @@ impl GitViewer {
     ) -> Option<Div> {
         let loc = location(t);
         let status = status(a);
-        if loc.is_none() && status.is_none() {
+        let people = super::super::people_group::distinct(t.comments.iter().map(|c| &c.author));
+        let group = (people.len() > 2).then(|| {
+            let backdrop = self.surfaces().panel();
+            self.people_group(format!("thread-people-{}", t.id), &people, None)
+                .size(GroupSize::Sm)
+                .ring_over(backdrop, theme::container_bg())
+        });
+        if loc.is_none() && status.is_none() && group.is_none() {
             return None;
         }
         let show = (t.position.is_some() && t.id != "pending").then(|| t.id.clone());
@@ -89,6 +97,7 @@ impl GitViewer {
         if !row_has_path {
             row = row.child(div().flex_1());
         }
+        row = row.children(group);
         if let Some((label, color)) = status {
             row = row.child(
                 div()

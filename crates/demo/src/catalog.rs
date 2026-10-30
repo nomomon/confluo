@@ -40,6 +40,29 @@ type Spec = (
 
 const SPECS: &[Spec] = &[
     (
+        0,
+        1302,
+        "Unify toast and banner timing across the app",
+        "noor",
+        Open,
+        "noor/notice-timing",
+        &[
+            (ME, P),
+            ("ada", A),
+            ("linus-k", X),
+            ("grace.h", C),
+            ("tomas", A),
+            ("priya.r", P),
+        ],
+        (9, 0, 0),
+        &["frontend"],
+        6,
+        122,
+        40,
+        5,
+        5,
+    ),
+    (
         1,
         312,
         "Retry webhook deliveries with exponential backoff",

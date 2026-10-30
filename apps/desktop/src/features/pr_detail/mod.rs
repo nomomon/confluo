@@ -17,6 +17,7 @@ mod description;
 mod edit_dialogs;
 mod edit_menu;
 mod header;
+mod people_group;
 mod preview;
 mod preview_reviewers;
 mod properties;

@@ -65,6 +65,7 @@ pub fn showcase() -> Vec<Thread> {
         inline("t1", RETRY_PATH, 28, false, vec![
             c("t1a", "grace.h", 240, "Full jitter can produce a zero delay. Do we want a floor of `base / 2` so a retry storm cannot hit the receiver immediately?", Some((RETRY_PATH, 28)), vec![]),
             c("t1b", "linus-k", 200, "@mira you wrote the original delivery loop, what do you think? I lean towards keeping full jitter, it spreads load better.", Some((RETRY_PATH, 28)), vec![r(ReactionKind::Eyes, &["grace.h"])]),
+            c("t1c", "ada", 180, "Full jitter matches what the queue workers do, I'd keep it consistent.", Some((RETRY_PATH, 28)), vec![]),
         ]),
         inline("t2", DELIVER_PATH, 16, false, vec![
             c("t2a", "mira", 150, "`Retry-After` on a 429 should win over our own delay, otherwise we retry too early.", Some((DELIVER_PATH, 16)), vec![]),

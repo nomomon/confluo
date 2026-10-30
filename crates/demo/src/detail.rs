@@ -138,6 +138,10 @@ pub fn build(cr: ChangeRequest) -> ChangeRequestDetail {
         ..Default::default()
     };
     edit.caps.merge = cr.state == ChangeRequestState::Open;
+    if cr.reviewers.len() > 3 {
+        // Many people involved: assignees too, so the Overview groups both.
+        edit.assignees = ["noor", "ada", "tomas", ME].map(user).to_vec();
+    }
     edit.caps.merge_methods = vec![MergeMethod::Squash, MergeMethod::Merge];
     ChangeRequestDetail {
         description: if showcase {

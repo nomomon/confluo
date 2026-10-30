@@ -1,5 +1,5 @@
-//! Triage preview: the Reviewers line under the stats and CI line. Reviewers with their state (the
-//! Overview's people list), then the approvals summary, muted. Wraps at narrow widths.
+//! Triage preview: the Reviewers line under the stats and CI line. An avatar group with each
+//! reviewer's state (hover lists them), then the approvals summary, muted.
 
 use gpui::{div, prelude::*};
 
@@ -27,11 +27,13 @@ impl GitViewer {
                 .text_size(theme::text_xs())
                 .text_color(theme::text_muted())
                 .child(div().text_color(theme::text_subtle()).child("Reviewers"))
-                .child(div().flex_1().min_w_0().child(self.people_value(
-                    &users,
-                    Some(&states),
-                    false,
-                )))
+                .when(!users.is_empty(), |e| {
+                    let panel = self.surfaces().panel();
+                    e.child(
+                        self.people_group("preview-reviewers", &users, Some(&states))
+                            .ring_over(panel, panel),
+                    )
+                })
                 .children(approvals),
         )
     }

@@ -193,12 +193,15 @@ impl GitViewer {
             "prop-assignees"
         };
         let open = d.ui.people == Some(role);
-        let row = row_shell(
-            id,
-            role.label(),
-            self.people_value(users, states, editable),
-            editable || open,
-        );
+        let value = if users.len() > super::people_group::GROUP_ABOVE {
+            let s = self.surfaces();
+            self.people_group(format!("{id}-group"), users, states)
+                .ring_over(s.panel(), s.card())
+                .into_any_element()
+        } else {
+            self.people_value(users, states, editable)
+        };
+        let row = row_shell(id, role.label(), value, editable || open);
         let row = if editable {
             row.on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
                 this.open_people(role, window, cx)

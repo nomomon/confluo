@@ -1,5 +1,7 @@
 //! Molecules: small compositions of atoms (inputs, tabs, cards, dialogs).
 
+mod avatar_card;
+mod avatar_group;
 mod banner;
 mod card;
 pub mod code;
@@ -28,6 +30,7 @@ mod textarea;
 mod toast;
 mod toggle_group;
 
+pub use avatar_group::{AvatarGroup, AvatarStatus, GroupMember, GroupSize};
 pub use banner::Banner;
 pub use card::Card;
 pub use combobox::{ComboOption, Combobox};

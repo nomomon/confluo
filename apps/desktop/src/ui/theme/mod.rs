@@ -15,7 +15,7 @@ pub use runtime::{is_light, mono_font, set_light, set_typography, ui_font, zoom,
 pub use scale::*;
 pub use syntax::*;
 pub use tokens::*;
-pub use translucency::Translucency;
+pub use translucency::{mix, Translucency};
 
 use gpui::Hsla;
 

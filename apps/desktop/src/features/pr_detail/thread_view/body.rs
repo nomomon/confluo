@@ -32,7 +32,7 @@ impl GitViewer {
         cx: &mut Context<Self>,
     ) -> Div {
         let inline = &d.code.inline;
-        let tid = (t.id != "pending").then(|| t.id.clone());
+        let tid = (!t.id.starts_with(crate::state::outbox::PREFIX)).then(|| t.id.clone());
         let replies = t.comments.len().saturating_sub(1);
         let (toggle, hidden) = fold_state(replies, inline.replies_folded.contains(&t.id));
         let resolved_line = (t.resolved == Some(true)).then(|| {

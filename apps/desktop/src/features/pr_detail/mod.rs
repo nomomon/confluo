@@ -10,6 +10,7 @@ mod comment;
 mod comment_actions;
 mod comment_links;
 mod comment_menu;
+mod comment_pending;
 mod comment_run;
 mod comment_toolbar;
 mod commits;

@@ -1,86 +1,45 @@
-//! Posting, replying to and editing comments with optimistic updates.
+//! Posting, replying to and editing comments (through the outbox), and deleting them.
 
-use chrono::Utc;
 use gpui::Context;
-use gv_engine::{Comment, Thread, User};
+use gv_engine::{Post, Thread};
 
-use super::{bridge, err_str};
 use crate::app::GitViewer;
 
 impl GitViewer {
+    /// Send the composer text as a comment, reply or edit through the outbox (`state::outbox`).
     pub(crate) fn post_comment(&mut self, cx: &mut Context<Self>) {
         let body = self.composer.read(cx).text().trim().to_string();
         let Some(d) = self.detail.as_mut() else {
             return;
         };
-        if body.is_empty() || d.posting {
+        if body.is_empty() {
             return;
         }
-        let id = d.summary.id.clone();
-        let me = User::named(d.me.clone().unwrap_or_else(|| "you".into()));
-        let optimistic = Comment {
-            id: "pending".into(),
-            author: me,
-            body: body.clone(),
-            created_at: Utc::now(),
-            position: None,
-            reactions: vec![],
-            suggestions: vec![],
-        };
-        let reply_to = d.reply_to.take();
-        let editing = d.editing.take();
-        if let Some(det) = d.detail.as_mut() {
-            if let Some(cid) = &editing {
-                for c in det.threads.iter_mut().flat_map(|t| t.comments.iter_mut()) {
-                    if &c.id == cid {
-                        c.body = body.clone();
-                    }
-                }
-            } else if let Some(tid) = &reply_to {
-                if let Some(t) = det.threads.iter_mut().find(|t| &t.id == tid) {
-                    t.comments.push(optimistic);
-                }
-            } else {
+        let (reply_to, editing) = (d.reply_to.clone(), d.editing.clone());
+        let before = editing.as_ref().and_then(|cid| {
+            d.detail.as_ref().and_then(|det| {
                 det.threads
-                    .push(Thread::conversation("pending", vec![optimistic]));
-            }
+                    .iter()
+                    .flat_map(|t| t.comments.iter())
+                    .find(|c| &c.id == cid)
+                    .map(|c| c.body.clone())
+            })
+        });
+        let post = match (editing, reply_to) {
+            (Some(c), _) => Post::Edit(c),
+            (None, Some(t)) => Post::Reply(t),
+            (None, None) => Post::Comment,
+        };
+        if !self.send_post(post, body, before, cx) {
+            return;
         }
-        d.posting = true;
+        if let Some(d) = self.detail.as_mut() {
+            d.reply_to = None;
+            d.editing = None;
+        }
         self.review.right_tab = super::RightTab::Conversation;
         self.review.right_open = true;
         self.composer.update(cx, |i, cx| i.set_text("", cx));
-        let engine = self.engine.clone();
-        let (restore_reply, restore_edit, restore_body) =
-            (reply_to.clone(), editing.clone(), body.clone());
-        let rx = bridge::spawn(async move {
-            let r = if let Some(cid) = editing {
-                engine.edit_comment(&id, &cid, &body).await
-            } else if let Some(tid) = reply_to {
-                engine.reply_to_thread(&id, &tid, &body).await
-            } else {
-                engine.add_comment(&id, &body).await
-            };
-            r.map(|_| ()).map_err(err_str)
-        });
-        cx.spawn(async move |this, cx| {
-            let r = rx.await.unwrap_or_else(|_| Err("cancelled".into()));
-            this.update(cx, |v, cx| {
-                if let Some(d) = v.detail.as_mut() {
-                    d.posting = false;
-                    if let Err(e) = r {
-                        d.error = Some(format!("Posting failed: {e}"));
-                        d.reply_to = restore_reply;
-                        d.editing = restore_edit;
-                        if v.composer.read(cx).text().trim().is_empty() {
-                            v.composer.update(cx, |i, cx| i.set_text(restore_body, cx));
-                        }
-                    }
-                }
-                v.load_detail(cx);
-            })
-            .ok();
-        })
-        .detach();
         cx.notify();
     }
 
@@ -130,6 +89,8 @@ pub(crate) fn remove_comment(threads: &mut Vec<Thread>, cid: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
+    use gv_engine::{Comment, User};
 
     fn c(id: &str) -> Comment {
         Comment {

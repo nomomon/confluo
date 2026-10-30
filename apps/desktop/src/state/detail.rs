@@ -175,6 +175,8 @@ impl GitViewer {
                     }
                     Err(e) => d.error = Some(e),
                 }
+                // Pending and failed posts survive the refetch; confirmed ones drop out.
+                v.relay_outbox(true);
                 if reload_code {
                     v.load_code(cx);
                 }

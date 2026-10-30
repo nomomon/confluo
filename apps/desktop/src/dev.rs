@@ -64,6 +64,11 @@ pub fn hover_comment() -> Option<String> {
     var("CONFLUO_HOVER")
 }
 
+/// `CONFLUO_DEV_OUTBOX=1` adds a sending comment and a failed reply to the open PR (screenshots).
+pub fn fake_outbox() -> bool {
+    var("CONFLUO_DEV_OUTBOX").is_some()
+}
+
 /// `CONFLUO_VIEW=starred|bots|project:<name>` opens that list view at launch.
 pub fn view() -> Option<String> {
     var("CONFLUO_VIEW")

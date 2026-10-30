@@ -22,6 +22,7 @@ Dev-only env (screenshots and walkthroughs; see `apps/desktop/src/dev.rs`):
 - `CONFLUO_DEMO=1` runs on invented fixture data (no network; settings and cache in `$TMPDIR/confluo-demo`, wiped at launch)
 - `CONFLUO_DEV_UPDATE=0.2.0` shows the update card for that version (`CONFLUO_DEV_UPDATE_PROGRESS=0.4` mid download)
 - `CONFLUO_HOVER=<comment id>` keeps that comment's hover toolbar visible; `CONFLUO_COMMENT_MENU=<comment id>` opens its More menu
+- `CONFLUO_DEV_OUTBOX=1` adds a sending comment and a failed reply to the open PR (outbox states)
 - `CONFLUO_HINTS=1` keeps the hold-Cmd shortcut hints visible
 - `CONFLUO_FIND=<query>` opens the Review mode find bar with that query (`CONFLUO_FIND_NEXT=1` steps twice);
   `CONFLUO_OVERLAY=discard` shows the "Discard changes?" prompt over a review summary with typed text
@@ -86,6 +87,16 @@ GitLab: my last review time is my latest note, approval or "requested changes" s
 version current then (`GET .../merge_requests/:iid/versions`, one request, only when I reviewed and am not the
 author) gives the head I reviewed. Overview shows "N new commits since your last review" with "Show changes", which
 filters the diff to `GET .../repository/compare?from=<reviewed head>&to=<head>` (GitHub: `compare/{from}...{to}`).
+
+## Posting comments
+
+Comments, replies, inline comments and edits go through an outbox (`state/outbox.rs`): each gets a client id
+(`pending:<n>`, never sent to a host) and renders at once, at `theme::OPACITY_PENDING` with "Sending...". The POST
+response replaces it; a refetch drops it once the server has it (same id, or my comment with the same body). A failure
+keeps it, red "Couldn't send" (reason on hover) with Retry, Edit, Discard. `Engine::post` retries once on network or
+5xx errors, first checking the host for the comment so a request that landed is not posted twice. Every comment write
+drops the engine's 60s detail reuse and the host's ETags; writes take their own governor slot (no queueing behind
+refreshes).
 
 ## Bot PRs
 

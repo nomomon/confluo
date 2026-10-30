@@ -1,8 +1,7 @@
 //! Inline comment actions on the Code tab: open a composer on a line or range, post, reply, edit, resolve.
 
-use chrono::Utc;
 use gpui::{Context, Focusable, Window};
-use gv_engine::{Comment, Thread, User};
+use gv_engine::Post;
 
 use super::line_select::comment_span;
 use super::{bridge, err_str, DetailTab, LineDraft};
@@ -109,61 +108,38 @@ impl GitViewer {
         if body.is_empty() || inline.posting {
             return;
         }
-        let mode = if let Some(c) = inline.editing.take() {
+        let mode = if let Some(c) = inline.editing.clone() {
             Mode::Edit(c)
-        } else if let Some(dr) = inline.draft.take() {
+        } else if let Some(dr) = inline.draft.clone() {
             Mode::New(dr)
-        } else if let Some(t) = inline.reply_to.take() {
+        } else if let Some(t) = inline.reply_to.clone() {
             Mode::Reply(t)
         } else {
             return;
         };
-        inline.clear_modes();
-        inline.posting = true;
-        let me = User::named(d.me.clone().unwrap_or_else(|| "you".into()));
-        let pending = Comment {
-            id: "pending".into(),
-            author: me,
-            body: body.clone(),
-            created_at: Utc::now(),
-            position: None,
-            reactions: vec![],
-            suggestions: vec![],
+        let post = match mode {
+            Mode::Edit(c) => Post::Edit(c),
+            Mode::Reply(t) => Post::Reply(t),
+            Mode::New(dr) => Post::Line(dr.position()),
         };
-        if let Some(det) = d.detail.as_mut() {
-            match &mode {
-                Mode::Edit(cid) => det
-                    .threads
-                    .iter_mut()
-                    .flat_map(|t| t.comments.iter_mut())
-                    .filter(|c| &c.id == cid)
-                    .for_each(|c| c.body = body.clone()),
-                Mode::Reply(tid) => det
-                    .threads
-                    .iter_mut()
-                    .filter(|t| &t.id == tid)
-                    .for_each(|t| t.comments.push(pending.clone())),
-                Mode::New(dr) => {
-                    let mut t = Thread::conversation("pending", vec![pending]);
-                    t.position = Some(dr.position());
-                    t.resolved = Some(false);
-                    det.threads.push(t);
-                }
-            }
+        let before = match &post {
+            Post::Edit(cid) => d.detail.as_ref().and_then(|det| {
+                det.threads
+                    .iter()
+                    .flat_map(|t| t.comments.iter())
+                    .find(|c| &c.id == cid)
+                    .map(|c| c.body.clone())
+            }),
+            _ => None,
+        };
+        if !self.send_post(post, body, before, cx) {
+            return;
         }
-        d.reindex();
+        if let Some(d) = self.detail.as_mut() {
+            d.code.inline.clear_modes();
+            d.code.sync_rows();
+        }
         self.inline_input.update(cx, |i, cx| i.set_text("", cx));
-        let id = d.summary.id.clone();
-        let engine = self.engine.clone();
-        let rx = bridge::spawn(async move {
-            let r = match mode {
-                Mode::Edit(cid) => engine.edit_comment(&id, &cid, &body).await,
-                Mode::Reply(tid) => engine.reply_to_thread(&id, &tid, &body).await,
-                Mode::New(dr) => engine.add_line_comment(&id, &dr.position(), &body).await,
-            };
-            r.map(|_| ()).map_err(err_str)
-        });
-        self.after_inline(rx, "Comment failed", cx);
     }
 
     pub(crate) fn set_thread_resolved(

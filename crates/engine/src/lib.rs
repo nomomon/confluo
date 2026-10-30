@@ -17,6 +17,7 @@ mod demo;
 mod edit;
 mod extras;
 mod line_stats;
+mod post;
 mod quiet;
 mod review;
 mod tokens;
@@ -28,6 +29,7 @@ pub use extras::viewed_paths;
 pub use gv_auth::{parse_provider, provider_name, Account, TokenOrigin};
 pub use gv_core::*;
 pub use gv_store::{Project, RepoOverride, Source};
+pub use post::{find_post, same_post, Post};
 pub use quiet::Listing;
 
 /// Group repo listings are re-resolved at most this often (the group MR query covers new repos).

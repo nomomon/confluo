@@ -57,7 +57,8 @@ impl GitViewer {
         if loc.is_none() && status.is_none() && group.is_none() {
             return None;
         }
-        let show = (t.position.is_some() && t.id != "pending").then(|| t.id.clone());
+        let show = (t.position.is_some() && !t.id.starts_with(crate::state::outbox::PREFIX))
+            .then(|| t.id.clone());
         let mut row = div()
             .flex()
             .items_center()

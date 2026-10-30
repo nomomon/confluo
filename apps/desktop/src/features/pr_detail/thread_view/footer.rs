@@ -19,7 +19,7 @@ impl GitViewer {
         place: Place,
         cx: &mut Context<Self>,
     ) -> Option<Div> {
-        if t.id == "pending" {
+        if t.id.starts_with(crate::state::outbox::PREFIX) {
             return None;
         }
         let foot = section().px(theme::space_3()).py(theme::space_2());

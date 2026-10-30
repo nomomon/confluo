@@ -60,15 +60,19 @@ impl GitViewer {
         ctx: CommentCtx,
         cx: &mut Context<Self>,
     ) -> Stateful<Div> {
-        let pending = c.id == "pending";
+        let queued = self
+            .outbox
+            .get(&d.summary.id)
+            .and_then(|o| o.pending_for(&c.id))
+            .cloned();
+        let pending = c.id.starts_with(crate::state::outbox::PREFIX) || queued.is_some();
+        let sending = queued
+            .as_ref()
+            .is_some_and(|p| p.status == crate::state::outbox::Status::Sending);
         let mine = !pending && is_mine(c, d.me.as_deref());
         let key = CommentKey::new(ctx.place, c.id.clone());
         let group: SharedString = format!("comment-{}", key.tag()).into();
-        let when = if pending {
-            "posting...".to_string()
-        } else {
-            relative_time(c.created_at)
-        };
+        let when = relative_time(c.created_at);
         let exact = c
             .created_at
             .with_timezone(&chrono::Local)
@@ -114,13 +118,15 @@ impl GitViewer {
                     .child(name),
             )
             .children(handle.map(|h| div().text_color(theme::text_subtle()).child(h)))
-            .child(
-                div()
+            .child(match &queued {
+                Some(p) => self.pending_meta(p, cx).into_any_element(),
+                None => div()
                     .id(SharedString::from(format!("when-{}", c.id)))
                     .text_color(theme::text_subtle())
                     .tooltip(tooltip(exact))
-                    .child(when),
-            )
+                    .child(when)
+                    .into_any_element(),
+            })
             .children(
                 roles(c, &d.summary.author.username)
                     .into_iter()
@@ -158,6 +164,7 @@ impl GitViewer {
             .py(theme::space_2p5())
             .rounded(theme::RADIUS_SM)
             .hover(|s| s.bg(theme::surface_hover()))
+            .when(sending, |e| e.opacity(theme::OPACITY_PENDING))
             .on_hover(cx.listener(move |this, h: &bool, _, cx| this.hover_comment_row(&hk, *h, cx)))
             .when(!pending, |e| {
                 e.on_mouse_down(

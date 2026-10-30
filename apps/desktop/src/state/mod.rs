@@ -34,6 +34,8 @@ mod line_stats;
 mod list;
 mod list_tabs;
 mod nav;
+pub mod outbox;
+mod outbox_send;
 mod overlay;
 pub mod overlay_close;
 pub mod palette_rank;

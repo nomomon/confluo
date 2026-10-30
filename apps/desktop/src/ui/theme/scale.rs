@@ -198,3 +198,5 @@ pub const KV_KEY_W: Pixels = px(88.);
 
 /// Minimum width of dropdown menus.
 pub const MENU_MIN_W: Pixels = px(180.);
+/// Content that is not on the server yet (a comment being sent).
+pub const OPACITY_PENDING: f32 = 0.6;
